@@ -98,6 +98,116 @@ class GitHubGraphQLClient {
     ''';
   }
 
+  /// Execute a GraphQL mutation
+  Future<Result<Map<String, dynamic>>> mutate({
+    required String mutationString,
+    Map<String, dynamic> variables = const {},
+  }) async {
+    final config = RequestConfig(
+      url: ApiConstants.githubGraphQLUrl,
+      headers: await _authHeaders(),
+    );
+
+    final result = await _httpClient.post(
+      config,
+      body: {
+        'query': mutationString,
+        'variables': variables,
+      },
+    );
+
+    return result.map((response) => response.data as Map<String, dynamic>);
+  }
+
+  /// Fork a repository
+  /// Returns the forked repository details including name, owner, url, and sshUrl
+  Future<Result<Map<String, dynamic>>> forkRepository({
+    required String owner,
+    required String name,
+  }) async {
+    // First, get the repository ID
+    const getRepoIdQuery = '''
+      query getRepoId(\$owner: String!, \$name: String!) {
+        repository(owner: \$owner, name: \$name) {
+          id
+          url
+        }
+      }
+    ''';
+
+    final repoResult = await query(
+      queryString: getRepoIdQuery,
+      variables: {
+        'owner': owner,
+        'name': name,
+      },
+    );
+
+    // Handle repository query result
+    if (repoResult.isFailure) {
+      return Failure(repoResult.error!);
+    }
+
+    final repoData = repoResult.data!;
+    final repository = repoData['data']?['repository'] as Map<String, dynamic>?;
+
+    if (repository == null) {
+      return Failure(
+        ApiException('Repository not found: $owner/$name'),
+      );
+    }
+
+    final repositoryId = repository['id'] as String;
+    final upstreamUrl = repository['url'] as String;
+
+    // Now fork the repository using the repository ID
+    const forkMutation = '''
+      mutation forkRepository(\$repositoryId: ID!) {
+        createFork(input: {repositoryId: \$repositoryId}) {
+          repository {
+            name
+            owner {
+              login
+            }
+            url
+            sshUrl
+          }
+        }
+      }
+    ''';
+
+    final forkResult = await mutate(
+      mutationString: forkMutation,
+      variables: {
+        'repositoryId': repositoryId,
+      },
+    );
+
+    // Handle fork mutation result
+    if (forkResult.isFailure) {
+      return Failure(forkResult.error!);
+    }
+
+    final forkData = forkResult.data!;
+    final createFork = forkData['data']?['createFork'] as Map<String, dynamic>?;
+
+    if (createFork == null) {
+      return Failure(
+        ApiException('Failed to fork repository: No data returned'),
+      );
+    }
+
+    final forkedRepo = createFork['repository'] as Map<String, dynamic>;
+
+    // Add upstream URL to the result
+    return Success({
+      ...forkedRepo,
+      'upstreamUrl': upstreamUrl,
+      'originalOwner': owner,
+      'originalName': name,
+    });
+  }
+
   Future<Map<String, String>> _authHeaders() async {
     final token = await _tokenStorage.getToken();
     if (token == null || token.isEmpty) {

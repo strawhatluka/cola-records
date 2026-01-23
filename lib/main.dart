@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Core
 import 'core/network/http_client.dart';
@@ -23,6 +24,14 @@ import 'features/dashboard/presentation/screens/dashboard_screen.dart';
 
 // Contributions
 import 'features/contributions/presentation/screens/contributions_screen.dart';
+import 'features/contributions/presentation/bloc/contribution_bloc.dart';
+import 'features/contributions/data/services/git_service.dart';
+import 'features/contributions/data/repositories/contribution_repository_impl.dart';
+
+// Settings
+import 'features/settings/presentation/screens/settings_screen.dart';
+import 'features/settings/presentation/cubit/settings_cubit.dart';
+import 'features/settings/data/repositories/settings_repository.dart';
 
 // Core Widgets
 import 'core/widgets/sidebar_navigation.dart';
@@ -70,19 +79,36 @@ void main() async {
   final issueRepository = IssueRepositoryImpl(graphqlClient);
   final searchIssuesUseCase = SearchGoodFirstIssues(issueRepository);
 
+  // Settings
+  final sharedPrefs = await SharedPreferences.getInstance();
+  final settingsRepository = SettingsRepository(sharedPrefs);
+
+  // Contributions
+  final gitService = GitService();
+  final contributionRepository = ContributionRepositoryImpl(sharedPrefs);
+
   runApp(ColaRecordsApp(
     graphqlClient: graphqlClient,
     searchIssuesUseCase: searchIssuesUseCase,
+    settingsRepository: settingsRepository,
+    gitService: gitService,
+    contributionRepository: contributionRepository,
   ));
 }
 
 class ColaRecordsApp extends StatelessWidget {
   final GitHubGraphQLClient graphqlClient;
   final SearchGoodFirstIssues searchIssuesUseCase;
+  final SettingsRepository settingsRepository;
+  final GitService gitService;
+  final ContributionRepositoryImpl contributionRepository;
 
   const ColaRecordsApp({
     required this.graphqlClient,
     required this.searchIssuesUseCase,
+    required this.settingsRepository,
+    required this.gitService,
+    required this.contributionRepository,
     super.key,
   });
 
@@ -91,16 +117,62 @@ class ColaRecordsApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<GitHubGraphQLClient>.value(value: graphqlClient),
+        RepositoryProvider<SettingsRepository>.value(value: settingsRepository),
+        RepositoryProvider<GitService>.value(value: gitService),
+        RepositoryProvider<ContributionRepositoryImpl>.value(value: contributionRepository),
       ],
-      child: BlocProvider(
-        create: (_) => IssueDiscoveryBloc(searchIssuesUseCase),
-        child: MaterialApp(
-          title: 'Cola Records',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            useMaterial3: true,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => IssueDiscoveryBloc(searchIssuesUseCase),
           ),
-          home: const MainScreen(),
+          BlocProvider(
+            create: (_) => SettingsCubit(settingsRepository)..loadSettings(),
+          ),
+          BlocProvider(
+            create: (_) => ContributionBloc(
+              githubClient: graphqlClient,
+              gitService: gitService,
+              settingsRepository: settingsRepository,
+            ),
+          ),
+        ],
+        child: BlocBuilder<SettingsCubit, SettingsState>(
+          builder: (context, state) {
+            ThemeMode themeMode = ThemeMode.system;
+
+            if (state is SettingsLoaded) {
+              switch (state.settings.themeMode) {
+                case 'light':
+                  themeMode = ThemeMode.light;
+                  break;
+                case 'dark':
+                  themeMode = ThemeMode.dark;
+                  break;
+                case 'system':
+                default:
+                  themeMode = ThemeMode.system;
+                  break;
+              }
+            }
+
+            return MaterialApp(
+              title: 'Cola Records',
+              theme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+                useMaterial3: true,
+              ),
+              darkTheme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color(0xFF4A148C), // Darker purple for dark mode
+                  brightness: Brightness.dark,
+                ),
+                useMaterial3: true,
+              ),
+              themeMode: themeMode,
+              home: const MainScreen(),
+            );
+          },
         ),
       ),
     );
@@ -121,6 +193,7 @@ class _MainScreenState extends State<MainScreen> {
     NavItem(label: 'Dashboard', icon: Icons.dashboard, index: 0),
     NavItem(label: 'Good First Issues', icon: Icons.search, index: 1),
     NavItem(label: 'Contributions', icon: Icons.code, index: 2),
+    NavItem(label: 'Settings', icon: Icons.settings, index: 3),
   ];
 
   @override
@@ -144,7 +217,9 @@ class _MainScreenState extends State<MainScreen> {
                 ? const DashboardScreen()
                 : _selectedIndex == 1
                     ? const IssueDiscoveryScreen()
-                    : const ContributionsScreen(),
+                    : _selectedIndex == 2
+                        ? const ContributionsScreen()
+                        : const SettingsScreen(),
           ),
         ],
       ),

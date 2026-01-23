@@ -92,7 +92,7 @@ class _SidebarNavigationState extends State<SidebarNavigation> {
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
                         height: 56,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: EdgeInsets.symmetric(horizontal: _isExpanded ? 12 : 0),
                         child: _isExpanded
                             ? Row(
                                 children: [

@@ -2,9 +2,13 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../domain/entities/issue.dart';
+import '../../../contributions/presentation/bloc/contribution_bloc.dart';
+import '../../../contributions/data/repositories/contribution_repository_impl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'repo_file_tree.dart';
 
 /// Modal dialog showing full issue details
@@ -15,8 +19,36 @@ class IssueDetailModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
+    return BlocListener<ContributionBloc, ContributionState>(
+      listener: (context, state) {
+        if (state is ContributionCompleted) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Successfully set up contribution for ${state.contribution.fullRepoName}!',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Save the contribution
+          _saveContribution(context, state);
+
+          // Close modal
+          Navigator.of(context).pop();
+        } else if (state is ContributionError) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: Dialog(
+        child: Container(
         width: MediaQuery.of(context).size.width * 0.8,
         height: MediaQuery.of(context).size.height * 0.8,
         decoration: BoxDecoration(
@@ -339,6 +371,67 @@ class IssueDetailModal extends StatelessWidget {
                 ),
               ),
             ),
+            // Contribute button section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: BlocBuilder<ContributionBloc, ContributionState>(
+                  builder: (context, state) {
+                    final isLoading = state is ContributionForking ||
+                        state is ContributionCloning ||
+                        state is ContributionSettingUpRemotes;
+
+                    String buttonText = 'Contribute to this Issue';
+                    if (state is ContributionForking) {
+                      buttonText = 'Forking Repository...';
+                    } else if (state is ContributionCloning) {
+                      buttonText = 'Cloning Repository...';
+                    } else if (state is ContributionSettingUpRemotes) {
+                      buttonText = 'Setting up Remotes...';
+                    }
+
+                    return ElevatedButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () {
+                              context.read<ContributionBloc>().add(
+                                    StartContributionEvent(
+                                      owner: issue.repository.owner,
+                                      repoName: issue.repository.name,
+                                      issueNumber: issue.number,
+                                      issueTitle: issue.title,
+                                    ),
+                                  );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFF9C4), // Pale yellow
+                        foregroundColor: const Color(0xFF5D4037), // Dark brown text
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.code_outlined),
+                      label: Text(
+                        buttonText,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
             // Footer with link to GitHub
             Container(
               padding: const EdgeInsets.all(16),
@@ -368,7 +461,18 @@ class IssueDetailModal extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
+  }
+
+  Future<void> _saveContribution(BuildContext context, ContributionCompleted state) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final repository = ContributionRepositoryImpl(prefs);
+      await repository.saveContribution(state.contribution);
+    } catch (e) {
+      // Silently fail - contribution was already saved by BLoC
+    }
   }
 
   String _formatDate(DateTime date) {

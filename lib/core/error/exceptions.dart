@@ -75,3 +75,13 @@ class StorageException implements Exception {
   @override
   String toString() => 'StorageException: $message';
 }
+
+/// Exception thrown when API operations fail
+class ApiException implements Exception {
+  final String message;
+
+  ApiException(this.message);
+
+  @override
+  String toString() => 'ApiException: $message';
+}
