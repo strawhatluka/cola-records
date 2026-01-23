@@ -24,7 +24,10 @@ class ContributionCard extends StatelessWidget {
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: onOpenInExplorer,
+        onTap: () {
+          // Card is clickable but has no action
+          // Reserved for future detail view
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -142,13 +145,22 @@ class ContributionCard extends StatelessWidget {
                       isBlue: true,
                     ),
                   const SizedBox(width: 8),
-                  // Upstream status badge
+                  // Upstream status badge with PR indicator
                   if (contribution.upstreamUrl.isNotEmpty)
-                    _buildConfigBadge(
-                      context,
-                      'Upstream',
-                      Icons.upload,
-                      isBlue: false,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildConfigBadge(
+                          context,
+                          'Upstream',
+                          Icons.upload,
+                          isBlue: false,
+                        ),
+                        if (_hasPullRequest(contribution)) ...[
+                          const SizedBox(width: 4),
+                          _buildPRBadge(context),
+                        ],
+                      ],
                     ),
                   const Spacer(),
                   // Actions
@@ -291,5 +303,82 @@ class ContributionCard extends StatelessWidget {
     } else {
       return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     }
+  }
+
+  /// Check if contribution has an open pull request
+  bool _hasPullRequest(Contribution contribution) {
+    return contribution.status == ContributionStatus.pullRequestCreated ||
+        contribution.status == ContributionStatus.merged;
+  }
+
+  /// Build PR status badge
+  Widget _buildPRBadge(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isMerged = contribution.status == ContributionStatus.merged;
+    final isOpen = contribution.status == ContributionStatus.pullRequestCreated;
+
+    // Determine colors and text based on status
+    final Color bgColor;
+    final Color borderColor;
+    final Color iconColor;
+    final Color textColor;
+    final String label;
+    final IconData icon;
+
+    if (isMerged) {
+      // Gold/amber for merged
+      bgColor = isDarkMode ? const Color(0xFFFFB300) : Colors.amber.shade50;
+      borderColor = isDarkMode ? const Color(0xFFFFCA28) : Colors.amber.shade300;
+      iconColor = isDarkMode ? Colors.black87 : Colors.amber.shade900;
+      textColor = isDarkMode ? Colors.black87 : Colors.amber.shade900;
+      label = 'PR Merged';
+      icon = Icons.check_circle_outline;
+    } else if (isOpen) {
+      // Green for open PR
+      bgColor = isDarkMode ? const Color(0xFF4CAF50) : Colors.green.shade50;
+      borderColor = isDarkMode ? const Color(0xFF81C784) : Colors.green.shade200;
+      iconColor = isDarkMode ? Colors.white : Colors.green.shade700;
+      textColor = isDarkMode ? Colors.white : Colors.green.shade700;
+      label = 'Open PR';
+      icon = Icons.pending_outlined;
+    } else {
+      // Red for closed (shouldn't normally show, but just in case)
+      bgColor = isDarkMode ? const Color(0xFFF44336) : Colors.red.shade50;
+      borderColor = isDarkMode ? const Color(0xFFE57373) : Colors.red.shade200;
+      iconColor = isDarkMode ? Colors.white : Colors.red.shade700;
+      textColor = isDarkMode ? Colors.white : Colors.red.shade700;
+      label = 'PR Closed';
+      icon = Icons.cancel_outlined;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: borderColor,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: iconColor,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: textColor,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -260,4 +260,76 @@ class GitHubGraphQLClient {
       'Content-Type': 'application/json',
     };
   }
+
+  /// Check for open pull requests from a fork to upstream
+  /// Returns PR status: null (no PR), 'open', or 'merged'
+  Future<Result<String?>> checkPullRequestStatus({
+    required String upstreamOwner,
+    required String upstreamRepo,
+    required String forkOwner,
+  }) async {
+    const prQuery = '''
+      query getPRStatus(\$owner: String!, \$repo: String!) {
+        repository(owner: \$owner, name: \$repo) {
+          pullRequests(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) {
+            nodes {
+              state
+              merged
+              headRepositoryOwner {
+                login
+              }
+            }
+          }
+        }
+      }
+    ''';
+
+    final result = await query(
+      queryString: prQuery,
+      variables: {
+        'owner': upstreamOwner,
+        'repo': upstreamRepo,
+      },
+    );
+
+    return result.when(
+      success: (data) {
+        try {
+          final repo = data['data']?['repository'] as Map<String, dynamic>?;
+          final pullRequests = repo?['pullRequests']?['nodes'] as List?;
+
+          if (pullRequests == null || pullRequests.isEmpty) {
+            return Success(null); // No PRs found
+          }
+
+          // Filter PRs by fork owner and find the most recent one
+          for (final pr in pullRequests) {
+            final prMap = pr as Map<String, dynamic>;
+            final headOwner = prMap['headRepositoryOwner'] as Map<String, dynamic>?;
+            final headOwnerLogin = headOwner?['login'] as String?;
+
+            // Check if this PR is from the fork owner
+            if (headOwnerLogin == forkOwner) {
+              final state = prMap['state'] as String?;
+              final merged = prMap['merged'] as bool?;
+
+              if (merged == true) {
+                return Success('merged');
+              } else if (state == 'OPEN') {
+                return Success('open');
+              }
+              // If we found a PR but it's closed (not merged), continue checking
+              // for other PRs that might be open or merged
+            }
+          }
+
+          // No matching PR found
+          return Success(null);
+        } catch (e) {
+          return Failure(ApiException('Failed to parse PR status: $e'));
+        }
+      },
+      failure: (error) => Failure(error),
+    );
+  }
 }

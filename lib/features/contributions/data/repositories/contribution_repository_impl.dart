@@ -113,9 +113,11 @@ class ContributionRepositoryImpl {
             // Check if it's a git repository and read remotes
             if (await gitDir.exists()) {
               final remoteUrls = await _getGitRemotes(entity.path);
+              final extractedOwner = _extractOwnerFromUrl(remoteUrls['upstream'] ?? remoteUrls['origin'] ?? '');
 
-              // Add with remote URLs
+              // Add with remote URLs and extracted owner
               scannedContributions.add(savedContribution.copyWith(
+                owner: extractedOwner.isNotEmpty ? extractedOwner : savedContribution.owner,
                 forkUrl: remoteUrls['origin'] ?? '',
                 upstreamUrl: remoteUrls['upstream'] ?? '',
               ));
@@ -174,6 +176,38 @@ class ContributionRepositoryImpl {
       return {};
     } catch (e) {
       return {};
+    }
+  }
+
+  /// Extract owner from GitHub URL
+  /// Examples:
+  /// - https://github.com/owner/repo.git -> owner
+  /// - git@github.com:owner/repo.git -> owner
+  String _extractOwnerFromUrl(String url) {
+    if (url.isEmpty) return '';
+
+    try {
+      // Handle HTTPS URLs: https://github.com/owner/repo.git
+      if (url.startsWith('https://github.com/')) {
+        final path = url.replaceFirst('https://github.com/', '').replaceFirst('.git', '');
+        final parts = path.split('/');
+        if (parts.isNotEmpty) {
+          return parts[0];
+        }
+      }
+
+      // Handle SSH URLs: git@github.com:owner/repo.git
+      if (url.startsWith('git@github.com:')) {
+        final path = url.replaceFirst('git@github.com:', '').replaceFirst('.git', '');
+        final parts = path.split('/');
+        if (parts.isNotEmpty) {
+          return parts[0];
+        }
+      }
+
+      return '';
+    } catch (e) {
+      return '';
     }
   }
 }

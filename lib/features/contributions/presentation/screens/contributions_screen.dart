@@ -5,10 +5,16 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../domain/entities/contribution.dart';
 import '../../data/repositories/contribution_repository_impl.dart';
+import '../../data/services/pr_sync_service.dart';
 import '../../../settings/data/repositories/settings_repository.dart';
+import '../../../shared/data/github_graphql_client.dart';
+import 'package:cola_records/core/network/http_client.dart';
+import 'package:cola_records/core/storage/secure_token_storage.dart';
 import '../widgets/contribution_card.dart';
 
 /// Main contributions screen showing user contributions
@@ -105,6 +111,9 @@ class _ContributionsScreenState extends State<ContributionsScreen> {
       // Sort by last updated (most recent first)
       allContributions.sort((a, b) => b.lastUpdated.compareTo(a.lastUpdated));
 
+      // Sync PR status from GitHub in background
+      _syncPRStatus(allContributions, repository);
+
       if (mounted) {
         setState(() {
           _contributions = allContributions;
@@ -172,6 +181,44 @@ class _ContributionsScreenState extends State<ContributionsScreen> {
           SnackBar(content: Text('Failed to open directory: $e')),
         );
       }
+    }
+  }
+
+  /// Sync PR status from GitHub (runs in background)
+  Future<void> _syncPRStatus(
+    List<Contribution> contributions,
+    ContributionRepositoryImpl repository,
+  ) async {
+    try {
+      print('Starting PR sync for ${contributions.length} contributions...');
+
+      // Create GitHub client
+      final dio = Dio();
+      final httpClient = HttpClient(dio);
+      const secureStorage = FlutterSecureStorage();
+      final tokenStorage = SecureTokenStorage(secureStorage);
+      final githubClient = GitHubGraphQLClient(httpClient, tokenStorage);
+      final prSyncService = PRSyncService(githubClient);
+
+      // Sync all contributions in background
+      final updatedContributions = await prSyncService.syncAllPRStatus(contributions);
+
+      print('PR sync complete. Updated ${updatedContributions.length} contributions.');
+
+      // Save updated contributions
+      for (final contribution in updatedContributions) {
+        await repository.saveContribution(contribution);
+      }
+
+      // Reload UI with updated statuses
+      if (mounted) {
+        setState(() {
+          _contributions = updatedContributions;
+        });
+      }
+    } catch (e, stackTrace) {
+      print('PR sync error: $e');
+      print('Stack trace: $stackTrace');
     }
   }
 
