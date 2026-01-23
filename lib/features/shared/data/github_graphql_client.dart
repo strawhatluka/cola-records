@@ -51,6 +51,7 @@ class GitHubGraphQLClient {
                 id
                 number
                 title
+                body
                 url
                 createdAt
                 repository {
@@ -59,6 +60,35 @@ class GitHubGraphQLClient {
                     login
                   }
                   stargazerCount
+                  issues(states: OPEN) {
+                    totalCount
+                  }
+                  pullRequests(states: OPEN) {
+                    totalCount
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ''';
+  }
+
+  /// Build GraphQL query for getting repository file tree
+  String buildRepoTreeQuery() {
+    return '''
+      query getRepoTree(\$owner: String!, \$name: String!) {
+        repository(owner: \$owner, name: \$name) {
+          defaultBranchRef {
+            target {
+              ... on Commit {
+                tree {
+                  entries {
+                    name
+                    type
+                    path
+                  }
                 }
               }
             }

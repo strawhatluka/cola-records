@@ -2,8 +2,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/issue.dart';
+import 'issue_detail_modal.dart';
 
 /// Card widget to display a single issue
 class IssueCard extends StatelessWidget {
@@ -27,16 +27,16 @@ class IssueCard extends StatelessWidget {
             style: TextStyle(color: Colors.grey[600]),
           ),
         ),
-        trailing: const Icon(Icons.open_in_new),
-        onTap: () => _launchUrl(issue.url),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => _showIssueDetail(context),
       ),
     );
   }
 
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+  void _showIssueDetail(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => IssueDetailModal(issue: issue),
+    );
   }
 }

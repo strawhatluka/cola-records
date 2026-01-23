@@ -14,6 +14,7 @@
         "flutter",
         "flutter_bloc",
         "flutter_dotenv",
+        "flutter_markdown",
         "flutter_secure_storage",
         "freezed_annotation",
         "graphql_flutter",
@@ -151,6 +152,16 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "flutter_markdown",
+      "version": "0.7.7+1",
+      "dependencies": [
+        "flutter",
+        "markdown",
+        "meta",
+        "path"
       ]
     },
     {
@@ -782,6 +793,14 @@
       "dependencies": [
         "clock",
         "collection"
+      ]
+    },
+    {
+      "name": "markdown",
+      "version": "7.3.0",
+      "dependencies": [
+        "args",
+        "meta"
       ]
     },
     {

@@ -10,7 +10,6 @@ import 'core/storage/secure_token_storage.dart';
 import 'core/storage/cache_repository.dart';
 
 // Shared
-import 'features/shared/data/github_rest_client.dart';
 import 'features/shared/data/github_graphql_client.dart';
 
 // Issue Discovery
@@ -19,12 +18,14 @@ import 'features/issue_discovery/domain/usecases/search_good_first_issues.dart';
 import 'features/issue_discovery/presentation/bloc/issue_discovery_bloc.dart';
 import 'features/issue_discovery/presentation/screens/issue_discovery_screen.dart';
 
-// Repo Analysis
-import 'features/repo_analysis/data/repositories/repo_analysis_repository_impl.dart';
-import 'features/repo_analysis/domain/usecases/analyze_repository_documentation.dart';
-import 'features/repo_analysis/domain/usecases/calculate_doc_score.dart';
-import 'features/repo_analysis/presentation/bloc/repo_analysis_bloc.dart';
-import 'features/repo_analysis/presentation/screens/repo_analysis_screen.dart';
+// Dashboard
+import 'features/dashboard/presentation/screens/dashboard_screen.dart';
+
+// Contributions
+import 'features/contributions/presentation/screens/contributions_screen.dart';
+
+// Core Widgets
+import 'core/widgets/sidebar_navigation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,96 +51,77 @@ void main() async {
 
   // Auto-load GitHub token from .env.local if available
   final envToken = dotenv.maybeGet('GITHUB_TOKEN');
-  debugPrint('Environment token present: ${envToken != null && envToken.isNotEmpty}');
-
   if (envToken != null && envToken.isNotEmpty) {
     final hasToken = await tokenStorage.hasValidToken();
-    debugPrint('Existing valid token in storage: $hasToken');
-
     if (!hasToken) {
       // Save token from .env.local to secure storage
-      try {
-        await tokenStorage.saveToken(TokenParams(
-          token: envToken,
-          expiresAt: DateTime.now().add(const Duration(days: 365)),
-          scopes: ['public_repo', 'read:user'],
-        ));
-        debugPrint('✓ GitHub token loaded from .env.local and saved to secure storage');
-
-        // Verify it was saved
-        final savedToken = await tokenStorage.getToken();
-        debugPrint('Token verification: ${savedToken != null ? "SUCCESS" : "FAILED"}');
-      } catch (e) {
-        debugPrint('✗ Failed to save token to secure storage: $e');
-      }
-    } else {
-      debugPrint('Using existing token from secure storage');
+      await tokenStorage.saveToken(TokenParams(
+        token: envToken,
+        expiresAt: DateTime.now().add(const Duration(days: 365)),
+        scopes: ['public_repo', 'read:user'],
+      ));
     }
-  } else {
-    debugPrint('⚠ No GitHub token found in .env.local');
   }
 
   // GitHub clients
-  final restClient = GitHubRestClient(httpClient, tokenStorage);
   final graphqlClient = GitHubGraphQLClient(httpClient, tokenStorage);
 
   // Issue Discovery
   final issueRepository = IssueRepositoryImpl(graphqlClient);
   final searchIssuesUseCase = SearchGoodFirstIssues(issueRepository);
 
-  // Repo Analysis
-  final docScorer = DocumentationScorer();
-  final repoAnalysisRepository = RepoAnalysisRepositoryImpl(restClient, docScorer);
-  final analyzeRepoUseCase = AnalyzeRepositoryDocumentation(repoAnalysisRepository);
-
   runApp(ColaRecordsApp(
+    graphqlClient: graphqlClient,
     searchIssuesUseCase: searchIssuesUseCase,
-    analyzeRepoUseCase: analyzeRepoUseCase,
   ));
 }
 
 class ColaRecordsApp extends StatelessWidget {
+  final GitHubGraphQLClient graphqlClient;
   final SearchGoodFirstIssues searchIssuesUseCase;
-  final AnalyzeRepositoryDocumentation analyzeRepoUseCase;
 
   const ColaRecordsApp({
+    required this.graphqlClient,
     required this.searchIssuesUseCase,
-    required this.analyzeRepoUseCase,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    return MultiRepositoryProvider(
       providers: [
-        BlocProvider(
-          create: (_) => IssueDiscoveryBloc(searchIssuesUseCase),
-        ),
-        BlocProvider(
-          create: (_) => RepoAnalysisBloc(analyzeRepoUseCase),
-        ),
+        RepositoryProvider<GitHubGraphQLClient>.value(value: graphqlClient),
       ],
-      child: MaterialApp(
-        title: 'Cola Records',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
+      child: BlocProvider(
+        create: (_) => IssueDiscoveryBloc(searchIssuesUseCase),
+        child: MaterialApp(
+          title: 'Cola Records',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            useMaterial3: true,
+          ),
+          home: const MainScreen(),
         ),
-        home: const DashboardScreen(),
       ),
     );
   }
 }
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+
+  final List<NavItem> _navItems = const [
+    NavItem(label: 'Dashboard', icon: Icons.dashboard, index: 0),
+    NavItem(label: 'Good First Issues', icon: Icons.search, index: 1),
+    NavItem(label: 'Contributions', icon: Icons.code, index: 2),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -147,35 +129,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Cola Records'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // TODO: Open settings (authentication)
+      ),
+      body: Row(
+        children: [
+          SidebarNavigation(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) {
+              setState(() => _selectedIndex = index);
             },
+            items: _navItems,
           ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: const [
-          IssueDiscoveryScreen(),
-          RepoAnalysisScreen(),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.search),
-            label: 'Find Issues',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.analytics),
-            label: 'Analyze Repo',
+          Expanded(
+            child: _selectedIndex == 0
+                ? const DashboardScreen()
+                : _selectedIndex == 1
+                    ? const IssueDiscoveryScreen()
+                    : const ContributionsScreen(),
           ),
         ],
       ),

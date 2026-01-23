@@ -21,7 +21,13 @@ class SearchParams extends Equatable {
 
   /// Convert to GitHub search query string
   String toQueryString() {
-    final parts = <String>['label:"good first issue"'];
+    final parts = <String>[
+      'label:"good first issue"',
+      'is:open', // Only open issues
+      'is:public', // Only public repositories
+      'no:assignee', // Exclude issues already assigned to someone
+      'archived:false', // Exclude archived repositories
+    ];
 
     if (language != null && language!.isNotEmpty) {
       parts.add('language:$language');
