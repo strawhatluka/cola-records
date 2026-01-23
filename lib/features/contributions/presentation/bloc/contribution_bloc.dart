@@ -75,19 +75,14 @@ class ContributionBloc extends Bloc<ContributionEvent, ContributionState> {
       }
 
       final forkData = forkResult.data!;
-      final forkedRepo = forkData['repository'] as Map<String, dynamic>?;
 
-      if (forkedRepo == null) {
-        emit(ContributionError('Invalid fork response'));
-        return;
-      }
-
-      final forkOwner = forkedRepo['owner']?['login'] as String?;
-      final forkUrl = forkedRepo['url'] as String?;
+      // Fork data is returned directly from REST API, not nested under 'repository'
+      final forkOwner = forkData['owner']?['login'] as String?;
+      final forkUrl = forkData['url'] as String?;
       final upstreamUrl = forkData['upstreamUrl'] as String?;
 
       if (forkOwner == null || forkUrl == null || upstreamUrl == null) {
-        emit(ContributionError('Missing fork data'));
+        emit(ContributionError('Missing fork data: owner=$forkOwner, url=$forkUrl, upstream=$upstreamUrl'));
         return;
       }
 

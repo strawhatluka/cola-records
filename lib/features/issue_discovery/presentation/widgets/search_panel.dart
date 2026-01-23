@@ -8,8 +8,13 @@ import '../../domain/value_objects/search_params.dart';
 /// Widget for searching good first issues
 class SearchPanel extends StatefulWidget {
   final Function(SearchParams) onSearch;
+  final Function(String)? onTitleFilterChanged;
 
-  const SearchPanel({required this.onSearch, super.key});
+  const SearchPanel({
+    required this.onSearch,
+    this.onTitleFilterChanged,
+    super.key,
+  });
 
   @override
   State<SearchPanel> createState() => _SearchPanelState();
@@ -19,10 +24,12 @@ class _SearchPanelState extends State<SearchPanel> {
   String? _selectedLanguage;
   int _minStars = 0;
   final _minStarsController = TextEditingController();
+  final _titleFilterController = TextEditingController();
 
   @override
   void dispose() {
     _minStarsController.dispose();
+    _titleFilterController.dispose();
     super.dispose();
   }
 
@@ -42,6 +49,22 @@ class _SearchPanelState extends State<SearchPanel> {
             const SizedBox(height: 16),
             Row(
               children: [
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    controller: _titleFilterController,
+                    decoration: const InputDecoration(
+                      labelText: 'Filter by Title',
+                      hintText: 'Type to filter results...',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.filter_alt),
+                    ),
+                    onChanged: (value) {
+                      widget.onTitleFilterChanged?.call(value);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
                 Expanded(
                   flex: 2,
                   child: DropdownButtonFormField<String>(

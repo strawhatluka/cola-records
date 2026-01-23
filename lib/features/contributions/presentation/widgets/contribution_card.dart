@@ -135,66 +135,20 @@ class ContributionCard extends StatelessWidget {
                 children: [
                   // Fork status badge
                   if (contribution.forkUrl.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: Colors.blue.shade200,
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.fork_right,
-                            size: 14,
-                            color: Colors.blue.shade700,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Fork',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ),
+                    _buildConfigBadge(
+                      context,
+                      'Fork',
+                      Icons.fork_right,
+                      isBlue: true,
                     ),
                   const SizedBox(width: 8),
                   // Upstream status badge
                   if (contribution.upstreamUrl.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: Colors.purple.shade200,
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.upload,
-                            size: 14,
-                            color: Colors.purple.shade700,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Upstream',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.purple.shade700,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ),
+                    _buildConfigBadge(
+                      context,
+                      'Upstream',
+                      Icons.upload,
+                      isBlue: false,
                     ),
                   const Spacer(),
                   // Actions
@@ -230,28 +184,28 @@ class ContributionCard extends StatelessWidget {
 
     switch (contribution.status.colorName) {
       case 'blue':
-        badgeColor = isDarkMode ? Colors.blue.shade700 : Colors.blue.shade100;
-        textColor = isDarkMode ? Colors.blue.shade100 : Colors.blue.shade900;
+        badgeColor = isDarkMode ? const Color(0xFF448AFF) : Colors.blue.shade100; // Bright blue
+        textColor = isDarkMode ? Colors.white : Colors.blue.shade900;
         break;
       case 'green':
-        badgeColor = isDarkMode ? Colors.green.shade700 : Colors.green.shade100;
-        textColor = isDarkMode ? Colors.green.shade100 : Colors.green.shade900;
+        badgeColor = isDarkMode ? const Color(0xFF69F0AE) : Colors.green.shade100; // Bright green
+        textColor = isDarkMode ? Colors.black87 : Colors.green.shade900;
         break;
       case 'orange':
-        badgeColor = isDarkMode ? Colors.orange.shade700 : Colors.orange.shade100;
-        textColor = isDarkMode ? Colors.orange.shade100 : Colors.orange.shade900;
+        badgeColor = isDarkMode ? const Color(0xFFFF9800) : Colors.orange.shade100; // Bright orange
+        textColor = isDarkMode ? Colors.black87 : Colors.orange.shade900;
         break;
       case 'purple':
-        badgeColor = isDarkMode ? Colors.purple.shade700 : Colors.purple.shade100;
-        textColor = isDarkMode ? Colors.purple.shade100 : Colors.purple.shade900;
+        badgeColor = isDarkMode ? const Color(0xFFB388FF) : Colors.purple.shade100; // Bright purple
+        textColor = isDarkMode ? Colors.white : Colors.purple.shade900;
         break;
       case 'teal':
-        badgeColor = isDarkMode ? Colors.teal.shade700 : Colors.teal.shade100;
-        textColor = isDarkMode ? Colors.teal.shade100 : Colors.teal.shade900;
+        badgeColor = isDarkMode ? const Color(0xFF64FFDA) : Colors.teal.shade100; // Bright teal
+        textColor = isDarkMode ? Colors.black87 : Colors.teal.shade900;
         break;
       case 'red':
-        badgeColor = isDarkMode ? Colors.red.shade700 : Colors.red.shade100;
-        textColor = isDarkMode ? Colors.red.shade100 : Colors.red.shade900;
+        badgeColor = isDarkMode ? const Color(0xFFFF5252) : Colors.red.shade100; // Bright red
+        textColor = isDarkMode ? Colors.white : Colors.red.shade900;
         break;
       default:
         badgeColor = Theme.of(context).colorScheme.surfaceContainerHighest;
@@ -270,6 +224,56 @@ class ContributionCard extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: textColor,
             ),
+      ),
+    );
+  }
+
+  Widget _buildConfigBadge(BuildContext context, String label, IconData icon, {required bool isBlue}) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final bgColor = isBlue
+        ? (isDarkMode ? const Color(0xFF448AFF) : Colors.blue.shade50)
+        : (isDarkMode ? const Color(0xFFB388FF) : Colors.purple.shade50);
+
+    final borderColor = isBlue
+        ? (isDarkMode ? const Color(0xFF82B1FF) : Colors.blue.shade200)
+        : (isDarkMode ? const Color(0xFFD1C4E9) : Colors.purple.shade200);
+
+    final iconColor = isBlue
+        ? (isDarkMode ? Colors.white : Colors.blue.shade700)
+        : (isDarkMode ? Colors.white : Colors.purple.shade700);
+
+    final textColor = isBlue
+        ? (isDarkMode ? Colors.white : Colors.blue.shade700)
+        : (isDarkMode ? Colors.white : Colors.purple.shade700);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: borderColor,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: iconColor,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: textColor,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
       ),
     );
   }

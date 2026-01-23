@@ -15,20 +15,32 @@ class IssueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: ListTile(
-        title: Text(
-          '${issue.title} #${issue.number}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: Text(
-            '${issue.repository.owner}/${issue.repository.name} · ${issue.repository.stars} ⭐',
-            style: TextStyle(color: Colors.grey[600]),
+      child: InkWell(
+        onTap: () => _showIssueDetail(context),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SelectableText(
+                      '${issue.title} #${issue.number}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${issue.repository.owner}/${issue.repository.name} · ${issue.repository.stars} ⭐',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
           ),
         ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => _showIssueDetail(context),
       ),
     );
   }

@@ -4,7 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_html/flutter_html.dart';
 import '../../domain/entities/issue.dart';
 import '../../../contributions/presentation/bloc/contribution_bloc.dart';
 import '../../../contributions/data/repositories/contribution_repository_impl.dart';
@@ -329,35 +329,63 @@ class IssueDetailModal extends StatelessWidget {
                                     ),
                                   ),
                                   Expanded(
-                                    child: Markdown(
-                                      data: issue.body.isNotEmpty
-                                          ? issue.body
-                                          : 'No description provided.',
-                                      selectable: true,
+                                    child: SingleChildScrollView(
                                       padding: const EdgeInsets.all(16),
-                                      styleSheet: MarkdownStyleSheet(
-                                        p: Theme.of(context).textTheme.bodyMedium,
-                                        h1: Theme.of(context).textTheme.headlineMedium,
-                                        h2: Theme.of(context).textTheme.headlineSmall,
-                                        h3: Theme.of(context).textTheme.titleLarge,
-                                        code: TextStyle(
-                                          backgroundColor: Theme.of(context)
-                                              .colorScheme
-                                              .surfaceContainerHighest,
-                                          fontFamily: 'monospace',
-                                        ),
-                                        codeblockDecoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .surfaceContainerHighest,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          return Html(
+                                            data: issue.body.isNotEmpty
+                                                ? issue.body
+                                                : '<p>No description provided.</p>',
+                                            style: {
+                                              "body": Style(
+                                                margin: Margins.zero,
+                                                padding: HtmlPaddings.zero,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                              "p": Style(
+                                                fontSize: FontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                              "h1": Style(
+                                                fontSize: FontSize(Theme.of(context).textTheme.headlineMedium?.fontSize ?? 24),
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              "h2": Style(
+                                                fontSize: FontSize(Theme.of(context).textTheme.headlineSmall?.fontSize ?? 20),
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              "h3": Style(
+                                                fontSize: FontSize(Theme.of(context).textTheme.titleLarge?.fontSize ?? 18),
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              "code": Style(
+                                                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontFamily: 'monospace',
+                                              ),
+                                              "pre": Style(
+                                                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                                padding: HtmlPaddings.all(8),
+                                                margin: Margins.symmetric(vertical: 8),
+                                              ),
+                                              "img": Style(
+                                                padding: HtmlPaddings.symmetric(vertical: 8),
+                                                width: Width(constraints.maxWidth),
+                                                maxLines: null,
+                                              ),
+                                            },
+                                            onLinkTap: (url, attributes, element) {
+                                              if (url != null) {
+                                                _launchUrl(url);
+                                              }
+                                            },
+                                          );
+                                        },
                                       ),
-                                      onTapLink: (text, href, title) {
-                                        if (href != null) {
-                                          _launchUrl(href);
-                                        }
-                                      },
                                     ),
                                   ),
                                 ],
@@ -391,6 +419,8 @@ class IssueDetailModal extends StatelessWidget {
                       buttonText = 'Setting up Remotes...';
                     }
 
+                    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
                     return ElevatedButton.icon(
                       onPressed: isLoading
                           ? null
@@ -405,8 +435,12 @@ class IssueDetailModal extends StatelessWidget {
                                   );
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFF9C4), // Pale yellow
-                        foregroundColor: const Color(0xFF5D4037), // Dark brown text
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFFF9A825) // Darker, more vibrant yellow for dark mode
+                            : const Color(0xFFFFF9C4), // Pale yellow for light mode
+                        foregroundColor: isDarkMode
+                            ? const Color(0xFF1A1A1A) // Very dark gray text for contrast
+                            : const Color(0xFF5D4037), // Dark brown text for light mode
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 2,
                         shape: RoundedRectangleBorder(

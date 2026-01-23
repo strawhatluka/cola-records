@@ -33,7 +33,21 @@ class GitHubGraphQLClient {
       },
     );
 
-    return result.map((response) => response.data as Map<String, dynamic>);
+    return result.when(
+      success: (response) {
+        final responseData = response.data as Map<String, dynamic>;
+
+        // Check for GraphQL errors
+        if (responseData.containsKey('errors')) {
+          final errors = responseData['errors'] as List;
+          final errorMessages = errors.map((e) => e['message'] as String).join(', ');
+          return Failure(ApiException('GraphQL Error: $errorMessages'));
+        }
+
+        return Success(responseData);
+      },
+      failure: (error) => Failure(error),
+    );
   }
 
   /// Build GraphQL query for searching issues
@@ -116,27 +130,40 @@ class GitHubGraphQLClient {
       },
     );
 
-    return result.map((response) => response.data as Map<String, dynamic>);
+    return result.when(
+      success: (response) {
+        final responseData = response.data as Map<String, dynamic>;
+
+        // Check for GraphQL errors
+        if (responseData.containsKey('errors')) {
+          final errors = responseData['errors'] as List;
+          final errorMessages = errors.map((e) => e['message'] as String).join(', ');
+          return Failure(ApiException('GraphQL Error: $errorMessages'));
+        }
+
+        return Success(responseData);
+      },
+      failure: (error) => Failure(error),
+    );
   }
 
-  /// Fork a repository
+  /// Fork a repository using GitHub REST API
   /// Returns the forked repository details including name, owner, url, and sshUrl
   Future<Result<Map<String, dynamic>>> forkRepository({
     required String owner,
     required String name,
   }) async {
-    // First, get the repository ID
-    const getRepoIdQuery = '''
-      query getRepoId(\$owner: String!, \$name: String!) {
+    // First, get the upstream URL using GraphQL
+    const getRepoQuery = '''
+      query getRepo(\$owner: String!, \$name: String!) {
         repository(owner: \$owner, name: \$name) {
-          id
           url
         }
       }
     ''';
 
     final repoResult = await query(
-      queryString: getRepoIdQuery,
+      queryString: getRepoQuery,
       variables: {
         'owner': owner,
         'name': name,
@@ -157,55 +184,58 @@ class GitHubGraphQLClient {
       );
     }
 
-    final repositoryId = repository['id'] as String;
     final upstreamUrl = repository['url'] as String;
 
-    // Now fork the repository using the repository ID
-    const forkMutation = '''
-      mutation forkRepository(\$repositoryId: ID!) {
-        createFork(input: {repositoryId: \$repositoryId}) {
-          repository {
-            name
-            owner {
-              login
-            }
-            url
-            sshUrl
-          }
-        }
-      }
-    ''';
-
-    final forkResult = await mutate(
-      mutationString: forkMutation,
-      variables: {
-        'repositoryId': repositoryId,
-      },
+    // Fork using REST API - REST API requires 'token' prefix instead of 'Bearer'
+    final config = RequestConfig(
+      url: 'https://api.github.com/repos/$owner/$name/forks',
+      headers: await _authHeadersRest(),
     );
 
-    // Handle fork mutation result
-    if (forkResult.isFailure) {
-      return Failure(forkResult.error!);
-    }
+    final forkResult = await _httpClient.post(config, body: {});
 
-    final forkData = forkResult.data!;
-    final createFork = forkData['data']?['createFork'] as Map<String, dynamic>?;
+    return forkResult.when(
+      success: (response) {
+        try {
+          final forkData = response.data as Map<String, dynamic>;
 
-    if (createFork == null) {
-      return Failure(
-        ApiException('Failed to fork repository: No data returned'),
-      );
-    }
+          // Debug: Print the full response
+          print('Fork API Response: $forkData');
+          print('Status Code: ${response.statusCode}');
 
-    final forkedRepo = createFork['repository'] as Map<String, dynamic>;
+          // Extract fork details from REST API response
+          final ownerData = forkData['owner'];
+          final forkOwner = ownerData is Map ? ownerData['login'] as String? : null;
+          final forkName = forkData['name'] as String?;
+          final forkUrl = forkData['html_url'] as String?;
+          final sshUrl = forkData['ssh_url'] as String?;
 
-    // Add upstream URL to the result
-    return Success({
-      ...forkedRepo,
-      'upstreamUrl': upstreamUrl,
-      'originalOwner': owner,
-      'originalName': name,
-    });
+          print('Extracted - owner: $forkOwner, name: $forkName, url: $forkUrl, ssh: $sshUrl');
+
+          if (forkOwner == null || forkName == null || forkUrl == null) {
+            // Log the actual response for debugging
+            return Failure(
+              ApiException('Invalid fork response: owner=$forkOwner, name=$forkName, url=$forkUrl'),
+            );
+          }
+
+          return Success({
+            'owner': {'login': forkOwner},
+            'name': forkName,
+            'url': forkUrl,
+            'sshUrl': sshUrl ?? '',
+            'upstreamUrl': upstreamUrl,
+            'originalOwner': owner,
+            'originalName': name,
+          });
+        } catch (e) {
+          return Failure(
+            ApiException('Failed to parse fork response: $e'),
+          );
+        }
+      },
+      failure: (error) => Failure(error),
+    );
   }
 
   Future<Map<String, String>> _authHeaders() async {
@@ -215,6 +245,18 @@ class GitHubGraphQLClient {
     }
     return {
       'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+  }
+
+  /// Get auth headers for GitHub REST API (uses 'token' prefix instead of 'Bearer')
+  Future<Map<String, String>> _authHeadersRest() async {
+    final token = await _tokenStorage.getToken();
+    if (token == null || token.isEmpty) {
+      throw AuthException('No GitHub token found. Please configure your token in .env.local');
+    }
+    return {
+      'Authorization': 'token $token',
       'Content-Type': 'application/json',
     };
   }

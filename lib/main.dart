@@ -164,8 +164,21 @@ class ColaRecordsApp extends StatelessWidget {
               ),
               darkTheme: ThemeData(
                 colorScheme: ColorScheme.fromSeed(
-                  seedColor: const Color(0xFF4A148C), // Darker purple for dark mode
+                  seedColor: const Color(0xFF7C4DFF), // Deep glossy purple seed
                   brightness: Brightness.dark,
+                ).copyWith(
+                  primary: const Color(0xFF7C4DFF), // Deep glossy purple
+                  secondary: const Color(0xFF40C4FF), // Bright glossy cyan
+                  tertiary: const Color(0xFF69F0AE), // Bright glossy green
+                  error: const Color(0xFFFF5252), // Bright glossy red
+                  primaryContainer: const Color(0xFF6A3FD9), // Even deeper vibrant purple
+                  secondaryContainer: const Color(0xFF00B0FF), // Deeper vibrant cyan
+                  inversePrimary: const Color(0xFF9575CD), // Lighter purple for inverse
+                ),
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: Color(0xFF6A3FD9), // Deep glossy purple for app bar
+                  foregroundColor: Colors.white,
+                  elevation: 0,
                 ),
                 useMaterial3: true,
               ),
@@ -198,10 +211,14 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cola Records'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: isDarkMode
+            ? const Color(0xFF5E35B1)  // Dark glossy royal purple for dark mode
+            : Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Row(
         children: [

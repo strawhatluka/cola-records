@@ -10,8 +10,15 @@ import '../widgets/issue_card.dart';
 import '../widgets/search_panel.dart';
 
 /// Main screen for discovering good first issues
-class IssueDiscoveryScreen extends StatelessWidget {
+class IssueDiscoveryScreen extends StatefulWidget {
   const IssueDiscoveryScreen({super.key});
+
+  @override
+  State<IssueDiscoveryScreen> createState() => _IssueDiscoveryScreenState();
+}
+
+class _IssueDiscoveryScreenState extends State<IssueDiscoveryScreen> {
+  String _titleFilter = '';
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +31,11 @@ class IssueDiscoveryScreen extends StatelessWidget {
                 context.read<IssueDiscoveryBloc>().add(
                       SearchIssuesRequested(params),
                     );
+              },
+              onTitleFilterChanged: (filter) {
+                setState(() {
+                  _titleFilter = filter.toLowerCase();
+                });
               },
             ),
             Expanded(
@@ -65,16 +77,27 @@ class IssueDiscoveryScreen extends StatelessWidget {
   }
 
   Widget _buildIssueList(List issues) {
-    if (issues.isEmpty) {
-      return const Center(
-        child: Text('No issues found. Try different search criteria.'),
+    // Filter issues by title if a filter is set
+    final filteredIssues = _titleFilter.isEmpty
+        ? issues
+        : issues.where((issue) {
+            return issue.title.toLowerCase().contains(_titleFilter);
+          }).toList();
+
+    if (filteredIssues.isEmpty) {
+      return Center(
+        child: Text(
+          _titleFilter.isEmpty
+              ? 'No issues found. Try different search criteria.'
+              : 'No issues match "$_titleFilter"',
+        ),
       );
     }
 
     return ListView.builder(
-      itemCount: issues.length,
+      itemCount: filteredIssues.length,
       itemBuilder: (context, index) {
-        return IssueCard(issue: issues[index]);
+        return IssueCard(issue: filteredIssues[index]);
       },
     );
   }
