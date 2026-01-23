@@ -2,6 +2,7 @@
 library;
 
 import 'package:cola_records/core/constants/api_constants.dart';
+import 'package:cola_records/core/error/exceptions.dart';
 import 'package:cola_records/core/network/http_client.dart';
 import 'package:cola_records/core/network/request_config.dart';
 import 'package:cola_records/core/result/result.dart';
@@ -17,6 +18,9 @@ class GitHubRestClient {
   /// Get authentication headers with token
   Future<Map<String, String>> _authHeaders() async {
     final token = await _tokenStorage.getToken();
+    if (token == null || token.isEmpty) {
+      throw AuthException('No GitHub token found. Please configure your token in .env.local');
+    }
     return {
       'Authorization': 'Bearer $token',
       'Accept': ApiConstants.apiVersionHeader,

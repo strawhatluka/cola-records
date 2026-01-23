@@ -17,9 +17,9 @@ class RepositoryModel {
 
   factory RepositoryModel.fromJson(Map<String, dynamic> json) {
     return RepositoryModel(
-      name: json['name'] as String,
-      owner: (json['owner'] as Map<String, dynamic>)['login'] as String,
-      stars: json['stargazerCount'] as int,
+      name: json['name'] as String? ?? 'Unknown',
+      owner: (json['owner'] as Map<String, dynamic>?)? ['login'] as String? ?? 'Unknown',
+      stars: json['stargazerCount'] as int? ?? 0,
     );
   }
 
@@ -51,13 +51,16 @@ class IssueModel {
   });
 
   factory IssueModel.fromJson(Map<String, dynamic> json) {
+    final repoJson = json['repository'] as Map<String, dynamic>?;
     return IssueModel(
-      id: json['id'] as String,
-      number: json['number'] as int,
-      title: json['title'] as String,
-      url: json['url'] as String,
-      createdAt: json['createdAt'] as String,
-      repository: RepositoryModel.fromJson(json['repository'] as Map<String, dynamic>),
+      id: json['id'] as String? ?? '',
+      number: json['number'] as int? ?? 0,
+      title: json['title'] as String? ?? 'Untitled',
+      url: json['url'] as String? ?? '',
+      createdAt: json['createdAt'] as String? ?? DateTime.now().toIso8601String(),
+      repository: repoJson != null
+          ? RepositoryModel.fromJson(repoJson)
+          : RepositoryModel(name: 'Unknown', owner: 'Unknown', stars: 0),
     );
   }
 

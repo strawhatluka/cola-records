@@ -30,7 +30,7 @@ migrate_working_dir/
 .packages
 .pub-cache/
 .pub/
-/build/
+build/
 
 # Symbolication related
 app.*.symbols
@@ -42,6 +42,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Desktop platform build artifacts (keep source, ignore builds)
+/windows/flutter/ephemeral/
+/windows/CMakeFiles/
+/windows/cmake_install.cmake
+/windows/CMakeCache.txt
+
+/linux/flutter/ephemeral/
+/linux/CMakeFiles/
+/linux/cmake_install.cmake
+/linux/CMakeCache.txt
+
+/macos/Flutter/ephemeral/
+/macos/Flutter/GeneratedPluginRegistrant.swift
 
 # SQLite database files
 *.db

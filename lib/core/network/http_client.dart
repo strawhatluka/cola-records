@@ -2,6 +2,7 @@
 library;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../error/exceptions.dart';
 import '../result/result.dart';
 import 'request_config.dart';
@@ -55,6 +56,9 @@ class HttpClient {
     required Map<String, dynamic> body,
   }) async {
     try {
+      debugPrint('🌐 POST ${config.url}');
+      debugPrint('📤 Body: $body');
+
       final response = await _dio.post(
         config.url,
         data: body,
@@ -65,14 +69,19 @@ class HttpClient {
         ),
       );
 
+      debugPrint('✓ Response ${response.statusCode}: ${response.data?.toString().substring(0, 100)}...');
+
       return Result.success(HttpResponse(
         data: response.data,
         statusCode: response.statusCode ?? 200,
         headers: _convertHeaders(response.headers),
       ));
     } on DioException catch (e) {
+      debugPrint('✗ DioException: ${e.type} - ${e.message}');
+      debugPrint('  Response: ${e.response?.data}');
       return Result.failure(_mapDioError(e));
     } catch (e) {
+      debugPrint('✗ Unexpected error: $e');
       return Result.failure(NetworkException('Unexpected error: $e'));
     }
   }

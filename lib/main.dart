@@ -50,17 +50,33 @@ void main() async {
 
   // Auto-load GitHub token from .env.local if available
   final envToken = dotenv.maybeGet('GITHUB_TOKEN');
+  debugPrint('Environment token present: ${envToken != null && envToken.isNotEmpty}');
+
   if (envToken != null && envToken.isNotEmpty) {
     final hasToken = await tokenStorage.hasValidToken();
+    debugPrint('Existing valid token in storage: $hasToken');
+
     if (!hasToken) {
       // Save token from .env.local to secure storage
-      await tokenStorage.saveToken(TokenParams(
-        token: envToken,
-        expiresAt: DateTime.now().add(const Duration(days: 365)),
-        scopes: ['public_repo', 'read:user'],
-      ));
-      debugPrint('GitHub token loaded from .env.local');
+      try {
+        await tokenStorage.saveToken(TokenParams(
+          token: envToken,
+          expiresAt: DateTime.now().add(const Duration(days: 365)),
+          scopes: ['public_repo', 'read:user'],
+        ));
+        debugPrint('✓ GitHub token loaded from .env.local and saved to secure storage');
+
+        // Verify it was saved
+        final savedToken = await tokenStorage.getToken();
+        debugPrint('Token verification: ${savedToken != null ? "SUCCESS" : "FAILED"}');
+      } catch (e) {
+        debugPrint('✗ Failed to save token to secure storage: $e');
+      }
+    } else {
+      debugPrint('Using existing token from secure storage');
     }
+  } else {
+    debugPrint('⚠ No GitHub token found in .env.local');
   }
 
   // GitHub clients
