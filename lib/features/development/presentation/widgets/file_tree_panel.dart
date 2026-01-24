@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../data/services/gitignore_service.dart';
 import '../../domain/entities/file_node.dart';
 import '../../domain/entities/git_status.dart';
 import '../bloc/file_tree/file_tree_bloc.dart';
@@ -11,7 +12,7 @@ import '../bloc/file_tree/file_tree_event.dart';
 import '../bloc/file_tree/file_tree_state.dart';
 
 /// File tree panel widget
-class FileTreePanel extends StatelessWidget {
+class FileTreePanel extends StatefulWidget {
   /// Callback when a file is selected
   final void Function(FileNode node)? onFileSelected;
 
@@ -23,6 +24,66 @@ class FileTreePanel extends StatelessWidget {
     this.onFolderSelected,
     super.key,
   });
+
+  @override
+  State<FileTreePanel> createState() => _FileTreePanelState();
+}
+
+class _FileTreePanelState extends State<FileTreePanel> {
+  /// GitIgnore service for lazy checking (VSCode approach)
+  final GitIgnoreService _gitIgnoreService = GitIgnoreService();
+
+  /// Resolved cache (path -> bool) for synchronous access during render
+  final Map<String, bool> _gitIgnoreCache = {};
+
+  /// Current repository path
+  String? _repositoryPath;
+
+  /// Track if gitignore warming is in progress
+  bool _isWarmingGitIgnore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // VSCode approach: Check gitignore lazily AFTER tree loads
+    // See build() method for implementation
+  }
+
+  /// Warm gitignore cache in background after tree loads (VSCode approach)
+  /// This happens AFTER the tree is displayed to the user
+  void _warmGitIgnoreCache(FileNode root, String repositoryPath) {
+    if (_isWarmingGitIgnore) return;
+    if (_repositoryPath == repositoryPath && _gitIgnoreCache.isNotEmpty) {
+      return; // Already warmed for this repository
+    }
+
+    _isWarmingGitIgnore = true;
+    _repositoryPath = repositoryPath;
+    _gitIgnoreCache.clear();
+
+    print('DEBUG: Starting gitignore cache warming for $repositoryPath');
+
+    // Warm cache asynchronously in background
+    _warmGitIgnoreCacheRecursive(root, repositoryPath).then((_) {
+      print('DEBUG: Gitignore cache warming complete (${_gitIgnoreCache.length} entries)');
+      _isWarmingGitIgnore = false;
+      if (mounted) {
+        setState(() {}); // Trigger re-render with dimmed files
+      }
+    });
+  }
+
+  /// Recursively warm gitignore cache for all nodes
+  Future<void> _warmGitIgnoreCacheRecursive(FileNode node, String repositoryPath) async {
+    // Check this node
+    final isIgnored = await _gitIgnoreService.isIgnored(node.path, repositoryPath);
+    _gitIgnoreCache[node.path] = isIgnored;
+
+    // Check children
+    for (final child in node.children) {
+      await _warmGitIgnoreCacheRecursive(child, repositoryPath);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +132,12 @@ class FileTreePanel extends StatelessWidget {
         }
 
         if (state is FileTreeLoaded) {
+          // VSCode approach: Warm gitignore cache AFTER tree is displayed
+          // Only start warming after git status is also loaded (complete tree state)
+          if (state.gitStatus != null) {
+            _warmGitIgnoreCache(state.root, state.directoryPath);
+          }
+
           return Column(
             children: [
               // Header with controls
@@ -244,8 +311,8 @@ class FileTreePanel extends StatelessWidget {
       iconColor = Theme.of(context).colorScheme.onSurfaceVariant;
     }
 
-    // Dim gitignored files
-    if (node.isGitIgnored) {
+    // Dim gitignored files (checked lazily from cache)
+    if (_isGitIgnored(node.path)) {
       iconColor = iconColor.withValues(alpha: 0.4);
     }
 
@@ -356,8 +423,8 @@ class FileTreePanel extends StatelessWidget {
 
   /// Get text color for node based on git status (VSCode-style)
   Color _getNodeTextColor(BuildContext context, FileNode node) {
-    // Gitignored files are dimmed
-    if (node.isGitIgnored) {
+    // Gitignored files are dimmed (checked lazily from cache)
+    if (_isGitIgnored(node.path)) {
       return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
     }
 
@@ -420,6 +487,13 @@ class FileTreePanel extends StatelessWidget {
     );
   }
 
+  /// Check if a file/folder is gitignored (uses cache from async warming)
+  /// VSCode approach: Returns cached value immediately during render
+  /// Cache is populated asynchronously AFTER tree and git status load
+  bool _isGitIgnored(String nodePath) {
+    return _gitIgnoreCache[nodePath] ?? false;
+  }
+
   /// Handle node tap
   void _handleNodeTap(BuildContext context, FileNode node) {
     if (node.isDirectory) {
@@ -427,16 +501,16 @@ class FileTreePanel extends StatelessWidget {
       context.read<FileTreeBloc>().add(ToggleNodeExpansionEvent(node.path));
 
       // Notify folder selected
-      if (onFolderSelected != null) {
-        onFolderSelected!(node);
+      if (widget.onFolderSelected != null) {
+        widget.onFolderSelected!(node);
       }
     } else {
       // Select file
       context.read<FileTreeBloc>().add(SelectNodeEvent(node.path));
 
       // Notify file selected
-      if (onFileSelected != null) {
-        onFileSelected!(node);
+      if (widget.onFileSelected != null) {
+        widget.onFileSelected!(node);
       }
     }
   }

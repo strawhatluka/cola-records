@@ -25,7 +25,7 @@ class FileTreeBloc extends Bloc<FileTreeEvent, FileTreeState> {
     on<UpdateGitStatusEvent>(_onUpdateGitStatus);
   }
 
-  /// Load file tree for a directory
+  /// Load file tree for a directory (VSCode approach: show tree FIRST, decorations later)
   Future<void> _onLoadFileTree(
     LoadFileTreeEvent event,
     Emitter<FileTreeState> emit,
@@ -33,30 +33,39 @@ class FileTreeBloc extends Bloc<FileTreeEvent, FileTreeState> {
     emit(const FileTreeLoading());
 
     try {
-      var root = await _fileTreeService.scanDirectory(
+      // Load bare tree structure FAST (no git status, no metadata)
+      final root = await _fileTreeService.scanDirectory(
         directoryPath: event.directoryPath,
         showHidden: true,
-        gitStatus: event.gitStatus,
       );
 
-      // If there's a pending git status update, apply it now
-      final gitStatusToUse = _pendingGitStatus ?? event.gitStatus;
-      if (gitStatusToUse != null) {
-        print('DEBUG: Applying git status to newly loaded tree (${gitStatusToUse.fileStatuses.length} files)');
-        root = _fileTreeService.updateGitStatus(
-          root: root,
-          repositoryPath: event.directoryPath,
-          gitStatus: gitStatusToUse,
-        );
-        _pendingGitStatus = null; // Clear pending status
-      }
-
+      // Emit tree IMMEDIATELY so user sees it right away
       emit(FileTreeLoaded(
         root: root,
         directoryPath: event.directoryPath,
         showHidden: true,
-        gitStatus: gitStatusToUse,
+        gitStatus: null, // Will be applied async
       ));
+
+      // Apply git status asynchronously AFTER tree is displayed
+      final gitStatusToUse = _pendingGitStatus ?? event.gitStatus;
+      if (gitStatusToUse != null) {
+        print('DEBUG: Applying git status to loaded tree (${gitStatusToUse.fileStatuses.length} files)');
+        final updatedRoot = _fileTreeService.updateGitStatus(
+          root: root,
+          repositoryPath: event.directoryPath,
+          gitStatus: gitStatusToUse,
+        );
+        _pendingGitStatus = null;
+
+        // Emit updated tree with git status
+        emit(FileTreeLoaded(
+          root: updatedRoot,
+          directoryPath: event.directoryPath,
+          showHidden: true,
+          gitStatus: gitStatusToUse,
+        ));
+      }
     } catch (e) {
       emit(FileTreeError('Failed to load file tree: $e'));
     }

@@ -6,21 +6,22 @@ import 'package:path/path.dart' as path;
 
 import '../../domain/entities/file_node.dart';
 import '../../domain/entities/git_status.dart';
-import 'gitignore_service.dart';
 
 /// Service for scanning directories and building file trees
 class FileTreeService {
-  final GitIgnoreService _gitIgnoreService = GitIgnoreService();
-  /// Scan a directory and build a file tree
+  /// Scan a directory and build a BARE file tree (VSCode approach)
+  ///
+  /// Returns just the directory structure without git status or file metadata.
+  /// Git status is applied afterward via updateGitStatus() for performance.
   ///
   /// [directoryPath] - Absolute path to directory to scan (also serves as repository root)
   /// [showHidden] - Whether to include hidden files/folders
-  /// [gitStatus] - Optional git status to apply to files
   Future<FileNode> scanDirectory({
     required String directoryPath,
     bool showHidden = true,
-    GitStatus? gitStatus,
+    GitStatus? gitStatus, // Ignored - kept for compatibility
   }) async {
+    final stopwatch = Stopwatch()..start();
     final dir = Directory(directoryPath);
 
     if (!await dir.exists()) {
@@ -32,10 +33,13 @@ class FileTreeService {
       directory: dir,
       repositoryPath: directoryPath,
       showHidden: showHidden,
-      gitStatus: gitStatus,
+      gitStatus: null, // Don't apply git status during scan
       depth: 0,
       maxDepth: 10, // Limit recursion depth for performance
     );
+
+    stopwatch.stop();
+    print('DEBUG: File tree scan completed in ${stopwatch.elapsedMilliseconds}ms');
 
     return FileNode.directory(
       name: dirName,
@@ -62,7 +66,14 @@ class FileTreeService {
     final nodes = <FileNode>[];
 
     try {
+      // Time the directory listing operation
+      final listStopwatch = Stopwatch()..start();
       final entities = await directory.list().toList();
+      listStopwatch.stop();
+
+      if (depth == 0) {
+        print('DEBUG: Root directory.list() took ${listStopwatch.elapsedMilliseconds}ms (${entities.length} entities)');
+      }
 
       for (final entity in entities) {
         final entityName = path.basename(entity.path);
@@ -89,35 +100,36 @@ class FileTreeService {
             maxDepth: maxDepth,
           );
 
-          final isGitIgnored = await _gitIgnoreService.isIgnored(entity.path, repositoryPath);
-
+          // VSCode approach: Load bare tree structure fast
+          // Git status, gitignore, etc. are applied AFTER initial load
           nodes.add(FileNode.directory(
             name: entityName,
             path: entity.path,
             children: children,
             isHidden: isHidden,
-            isGitIgnored: isGitIgnored,
-            gitStatus: _getFileGitStatus(entity.path, repositoryPath, gitStatus),
+            isGitIgnored: false, // Applied later
+            gitStatus: GitFileStatus.clean, // Applied later
           ));
         } else if (entity is File) {
-          final stat = await entity.stat();
           final ext = path.extension(entityName).replaceFirst('.', '');
-          final isGitIgnored = await _gitIgnoreService.isIgnored(entity.path, repositoryPath);
 
+          // VSCode approach: Load bare tree structure fast
+          // File metadata (size, date, git status) loaded afterward
           nodes.add(FileNode.file(
             name: entityName,
             path: entity.path,
             extension: ext.isNotEmpty ? ext : null,
-            sizeBytes: stat.size,
-            lastModified: stat.modified,
+            sizeBytes: 0, // Lazy-loaded when needed
+            lastModified: DateTime.now(), // Lazy-loaded when needed
             isHidden: isHidden,
-            isGitIgnored: isGitIgnored,
-            gitStatus: _getFileGitStatus(entity.path, repositoryPath, gitStatus),
+            isGitIgnored: false, // Applied later
+            gitStatus: GitFileStatus.clean, // Applied later
           ));
         }
       }
 
       // Sort: directories first, then alphabetically
+      // Note: This is O(n log n) but shouldn't be the bottleneck
       nodes.sort((a, b) {
         if (a.isDirectory && !b.isDirectory) return -1;
         if (!a.isDirectory && b.isDirectory) return 1;

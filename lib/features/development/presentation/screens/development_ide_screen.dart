@@ -9,10 +9,12 @@ import 'package:split_view/split_view.dart';
 
 import '../../../contributions/domain/entities/contribution.dart';
 import '../../data/services/file_tree_service.dart';
+import '../../data/services/file_watcher_service.dart';
 import '../../data/services/git_service.dart';
 import '../../domain/entities/file_node.dart';
 import '../bloc/file_tree/file_tree_bloc.dart';
 import '../bloc/file_tree/file_tree_event.dart';
+import '../bloc/file_tree/file_tree_state.dart';
 import '../bloc/code_editor/code_editor_bloc.dart';
 import '../bloc/code_editor/code_editor_event.dart';
 import '../bloc/terminal/terminal_bloc.dart';
@@ -40,7 +42,9 @@ class DevelopmentIdeScreen extends StatefulWidget {
 }
 
 class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
-  Timer? _gitStatusTimer;
+  FileWatcherService? _fileWatcher;
+  StreamSubscription<FileWatcherEvent>? _fileWatcherSubscription;
+  Timer? _gitRefreshDebouncer;
   late GitBloc _gitBloc;
 
   @override
@@ -56,16 +60,27 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
     // Git status will be loaded in Phase 5
   }
 
-  /// Start periodic git status polling (VSCode-style live updates)
-  void _startGitStatusPolling(GitBloc gitBloc) {
+  /// Start file watcher (VSCode-style native file watching)
+  /// Uses platform-specific native watchers:
+  /// - FSEvents on macOS
+  /// - ReadDirectoryChangesW on Windows
+  /// - inotify on Linux
+  void _startFileWatcher(GitBloc gitBloc, FileTreeBloc fileTreeBloc) {
     _gitBloc = gitBloc;
 
-    // Poll git status every 1 second for responsive IDE experience
-    // VSCode uses file watchers, but polling at 1s is acceptable for cross-platform compatibility
-    _gitStatusTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        _gitBloc.add(FetchGitStatusEvent(widget.contribution.localPath));
-      }
+    // Initialize file watcher service
+    _fileWatcher = FileWatcherService(widget.contribution.localPath);
+
+    // Subscribe to file system events
+    _fileWatcherSubscription = _fileWatcher!.watch().listen((event) {
+      // Debounce git status refresh to avoid excessive updates
+      // VSCode uses similar approach with request deduplication
+      _gitRefreshDebouncer?.cancel();
+      _gitRefreshDebouncer = Timer(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _gitBloc.add(FetchGitStatusEvent(widget.contribution.localPath));
+        }
+      });
     });
   }
 
@@ -85,16 +100,19 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
             ..add(InitializeTerminalEvent(workingDirectory: widget.contribution.localPath)),
         ),
         BlocProvider(
-          create: (context) => GitBloc(GitService())
-            ..add(FetchGitStatusEvent(widget.contribution.localPath)),
+          create: (context) => GitBloc(GitService()),
+          // Don't fetch git status on init - wait for file tree to load first
         ),
       ],
       child: Builder(
         builder: (context) {
-          // Start git status polling once after the first build
+          // Start file watcher once after the first build
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_gitStatusTimer == null && mounted) {
-              _startGitStatusPolling(context.read<GitBloc>());
+            if (_fileWatcher == null && mounted) {
+              _startFileWatcher(
+                context.read<GitBloc>(),
+                context.read<FileTreeBloc>(),
+              );
             }
           });
           return _buildScaffold(context);
@@ -183,18 +201,33 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
   Widget _buildFileTreePanel() {
     return Container(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: BlocListener<GitBloc, GitState>(
-        listener: (context, state) {
-          // Update file tree when git status changes
-          print('DEBUG: GitBloc state changed to ${state.runtimeType}');
-          if (state is GitStatusLoaded) {
-            print('DEBUG: Git status loaded with ${state.status.fileStatuses.length} files');
-            print('DEBUG: File statuses: ${state.status.fileStatuses}');
-            context.read<FileTreeBloc>().add(
+      child: MultiBlocListener(
+        listeners: [
+          // Listen to file tree load completion to trigger git status fetch
+          BlocListener<FileTreeBloc, FileTreeState>(
+            listener: (context, state) {
+              if (state is FileTreeLoaded && state.gitStatus == null) {
+                // Tree just loaded without git status - fetch it now
+                print('DEBUG: File tree loaded, now fetching git status');
+                context.read<GitBloc>().add(
+                  FetchGitStatusEvent(widget.contribution.localPath),
+                );
+              }
+            },
+          ),
+          // Listen to git status changes to update file tree
+          BlocListener<GitBloc, GitState>(
+            listener: (context, state) {
+              print('DEBUG: GitBloc state changed to ${state.runtimeType}');
+              if (state is GitStatusLoaded) {
+                print('DEBUG: Git status loaded with ${state.status.fileStatuses.length} files');
+                context.read<FileTreeBloc>().add(
                   UpdateGitStatusEvent(state.status),
                 );
-          }
-        },
+              }
+            },
+          ),
+        ],
         child: FileTreePanel(
           onFileSelected: (FileNode node) {
             // Open file in editor
@@ -246,7 +279,9 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
 
   @override
   void dispose() {
-    _gitStatusTimer?.cancel();
+    _gitRefreshDebouncer?.cancel();
+    _fileWatcherSubscription?.cancel();
+    _fileWatcher?.dispose();
     // Terminal session is disposed by TerminalBloc.close()
     super.dispose();
   }
