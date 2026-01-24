@@ -48,6 +48,9 @@ class FileNode extends Equatable {
   /// Whether this is a hidden file/folder (starts with .)
   final bool isHidden;
 
+  /// Whether this file/folder is gitignored
+  final bool isGitIgnored;
+
   const FileNode({
     required this.name,
     required this.path,
@@ -60,6 +63,7 @@ class FileNode extends Equatable {
     this.sizeBytes,
     this.lastModified,
     this.isHidden = false,
+    this.isGitIgnored = false,
   });
 
   /// Check if this is a directory
@@ -70,6 +74,17 @@ class FileNode extends Equatable {
 
   /// Check if this directory has children
   bool get hasChildren => children.isNotEmpty;
+
+  /// Check if this directory or any of its descendants have git changes
+  bool get hasGitChanges {
+    if (!isDirectory) return gitStatus != GitFileStatus.clean;
+
+    // Check if any children have changes (recursive)
+    return children.any((child) =>
+      child.gitStatus != GitFileStatus.clean ||
+      (child.isDirectory && child.hasGitChanges)
+    );
+  }
 
   /// Get file icon based on extension
   String get iconName {
@@ -158,6 +173,7 @@ class FileNode extends Equatable {
     GitFileStatus gitStatus = GitFileStatus.clean,
     bool isSelected = false,
     bool isHidden = false,
+    bool isGitIgnored = false,
   }) {
     return FileNode(
       name: name,
@@ -169,6 +185,7 @@ class FileNode extends Equatable {
       gitStatus: gitStatus,
       isSelected: isSelected,
       isHidden: isHidden,
+      isGitIgnored: isGitIgnored,
     );
   }
 
@@ -181,6 +198,7 @@ class FileNode extends Equatable {
     bool isSelected = false,
     GitFileStatus gitStatus = GitFileStatus.clean,
     bool isHidden = false,
+    bool isGitIgnored = false,
   }) {
     return FileNode(
       name: name,
@@ -191,6 +209,7 @@ class FileNode extends Equatable {
       isSelected: isSelected,
       gitStatus: gitStatus,
       isHidden: isHidden,
+      isGitIgnored: isGitIgnored,
     );
   }
 
@@ -207,6 +226,7 @@ class FileNode extends Equatable {
     int? sizeBytes,
     DateTime? lastModified,
     bool? isHidden,
+    bool? isGitIgnored,
   }) {
     return FileNode(
       name: name ?? this.name,
@@ -220,6 +240,7 @@ class FileNode extends Equatable {
       sizeBytes: sizeBytes ?? this.sizeBytes,
       lastModified: lastModified ?? this.lastModified,
       isHidden: isHidden ?? this.isHidden,
+      isGitIgnored: isGitIgnored ?? this.isGitIgnored,
     );
   }
 
@@ -276,6 +297,7 @@ class FileNode extends Equatable {
         sizeBytes,
         lastModified,
         isHidden,
+        isGitIgnored,
       ];
 
   @override

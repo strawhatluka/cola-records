@@ -1,6 +1,8 @@
 /// Development IDE screen
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:split_view/split_view.dart';
@@ -17,6 +19,7 @@ import '../bloc/terminal/terminal_bloc.dart';
 import '../bloc/terminal/terminal_event.dart';
 import '../bloc/git/git_bloc.dart';
 import '../bloc/git/git_event.dart';
+import '../bloc/git/git_state.dart';
 import '../widgets/file_tree_panel.dart';
 import '../widgets/code_editor_panel.dart';
 import '../widgets/terminal_panel.dart';
@@ -37,6 +40,9 @@ class DevelopmentIdeScreen extends StatefulWidget {
 }
 
 class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
+  Timer? _gitStatusTimer;
+  late GitBloc _gitBloc;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +54,19 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
     // File tree is initialized in BlocProvider
     // Terminal will be initialized in Phase 4
     // Git status will be loaded in Phase 5
+  }
+
+  /// Start periodic git status polling (VSCode-style live updates)
+  void _startGitStatusPolling(GitBloc gitBloc) {
+    _gitBloc = gitBloc;
+
+    // Poll git status every 1 second for responsive IDE experience
+    // VSCode uses file watchers, but polling at 1s is acceptable for cross-platform compatibility
+    _gitStatusTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        _gitBloc.add(FetchGitStatusEvent(widget.contribution.localPath));
+      }
+    });
   }
 
   @override
@@ -70,8 +89,23 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
             ..add(FetchGitStatusEvent(widget.contribution.localPath)),
         ),
       ],
-      child: Scaffold(
-        appBar: AppBar(
+      child: Builder(
+        builder: (context) {
+          // Start git status polling once after the first build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_gitStatusTimer == null && mounted) {
+              _startGitStatusPolling(context.read<GitBloc>());
+            }
+          });
+          return _buildScaffold(context);
+        },
+      ),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
         title: Row(
           children: [
             Icon(
@@ -115,8 +149,7 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
           ),
         ],
       ),
-        body: _buildSplitView(),
-      ),
+      body: _buildSplitView(),
     );
   }
 
@@ -150,14 +183,27 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
   Widget _buildFileTreePanel() {
     return Container(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: FileTreePanel(
-        onFileSelected: (FileNode node) {
-          // Open file in editor
-          context.read<CodeEditorBloc>().add(OpenFileEvent(node.path));
+      child: BlocListener<GitBloc, GitState>(
+        listener: (context, state) {
+          // Update file tree when git status changes
+          print('DEBUG: GitBloc state changed to ${state.runtimeType}');
+          if (state is GitStatusLoaded) {
+            print('DEBUG: Git status loaded with ${state.status.fileStatuses.length} files');
+            print('DEBUG: File statuses: ${state.status.fileStatuses}');
+            context.read<FileTreeBloc>().add(
+                  UpdateGitStatusEvent(state.status),
+                );
+          }
         },
-        onFolderSelected: (FileNode node) {
-          // Folder expansion is handled by the FileTreeBloc
-        },
+        child: FileTreePanel(
+          onFileSelected: (FileNode node) {
+            // Open file in editor
+            context.read<CodeEditorBloc>().add(OpenFileEvent(node.path));
+          },
+          onFolderSelected: (FileNode node) {
+            // Folder expansion is handled by the FileTreeBloc
+          },
+        ),
       ),
     );
   }
@@ -200,8 +246,8 @@ class _DevelopmentIdeScreenState extends State<DevelopmentIdeScreen> {
 
   @override
   void dispose() {
+    _gitStatusTimer?.cancel();
     // Terminal session is disposed by TerminalBloc.close()
-    // File watchers will be added in future phases
     super.dispose();
   }
 }

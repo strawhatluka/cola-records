@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
-import 'package:flutter_highlight/themes/github-dark.dart' as github_dark;
+import 'package:flutter_highlight/themes/atom-one-dark.dart';
 
 import '../../domain/entities/editor_file.dart';
 import '../bloc/code_editor/code_editor_bloc.dart';
@@ -27,16 +27,12 @@ class CodeEditorPanel extends StatefulWidget {
 
 class _CodeEditorPanelState extends State<CodeEditorPanel> {
   final Map<String, TextEditingController> _controllers = {};
-  final Map<String, FocusNode> _focusNodes = {};
 
   @override
   void dispose() {
-    // Dispose all controllers and focus nodes
+    // Dispose all controllers
     for (final controller in _controllers.values) {
       controller.dispose();
-    }
-    for (final focusNode in _focusNodes.values) {
-      focusNode.dispose();
     }
     super.dispose();
   }
@@ -54,13 +50,6 @@ class _CodeEditorPanelState extends State<CodeEditorPanel> {
       _controllers[file.filePath] = controller;
     }
     return _controllers[file.filePath]!;
-  }
-
-  FocusNode _getFocusNode(EditorFile file) {
-    if (!_focusNodes.containsKey(file.filePath)) {
-      _focusNodes[file.filePath] = FocusNode();
-    }
-    return _focusNodes[file.filePath]!;
   }
 
   @override
@@ -285,7 +274,7 @@ class _CodeEditorPanelState extends State<CodeEditorPanel> {
         },
       },
       child: Focus(
-        autofocus: true,
+        autofocus: false,
         child: Container(
           color: isDarkMode ? const Color(0xFF0D1117) : const Color(0xFFFFFFFF),
           child: Column(
@@ -319,7 +308,7 @@ class _CodeEditorPanelState extends State<CodeEditorPanel> {
                             child: HighlightView(
                               controller.text,
                               language: _getLanguage(file.fileExtension),
-                              theme: isDarkMode ? github_dark.githubDarkTheme : githubTheme,
+                              theme: isDarkMode ? atomOneDarkTheme : githubTheme,
                               padding: EdgeInsets.zero,
                               textStyle: const TextStyle(
                                 fontFamily: 'monospace',

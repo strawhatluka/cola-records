@@ -35,7 +35,7 @@ class FileTreeLoaded extends FileTreeState {
   const FileTreeLoaded({
     required this.root,
     required this.directoryPath,
-    this.showHidden = false,
+    this.showHidden = true, // Show hidden files by default in IDE
     this.gitStatus,
     this.selectedNodePath,
   });

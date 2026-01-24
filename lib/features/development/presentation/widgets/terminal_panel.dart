@@ -34,6 +34,13 @@ class _TerminalPanelState extends State<TerminalPanel> {
     _terminal.onOutput = (data) {
       context.read<TerminalBloc>().add(SendCommandEvent(data));
     };
+
+    // Delay focus to avoid text input client conflicts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   @override
@@ -253,7 +260,7 @@ class _TerminalPanelState extends State<TerminalPanel> {
         child: xterm.TerminalView(
           _terminal,
           controller: _controller,
-          autofocus: true,
+          autofocus: false,
           backgroundOpacity: 1.0,
           padding: const EdgeInsets.all(4),
           theme: xterm.TerminalTheme(

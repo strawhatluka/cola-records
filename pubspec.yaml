@@ -70,7 +70,7 @@ dependencies:
   code_text_field: ^1.1.0
 
   # Terminal
-  xterm: ^3.5.0
+  xterm: ^4.0.0
   flutter_pty: ^0.4.0
 
   # Git Integration

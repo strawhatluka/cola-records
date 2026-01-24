@@ -6,17 +6,19 @@ import 'package:path/path.dart' as path;
 
 import '../../domain/entities/file_node.dart';
 import '../../domain/entities/git_status.dart';
+import 'gitignore_service.dart';
 
 /// Service for scanning directories and building file trees
 class FileTreeService {
+  final GitIgnoreService _gitIgnoreService = GitIgnoreService();
   /// Scan a directory and build a file tree
   ///
-  /// [directoryPath] - Absolute path to directory to scan
+  /// [directoryPath] - Absolute path to directory to scan (also serves as repository root)
   /// [showHidden] - Whether to include hidden files/folders
   /// [gitStatus] - Optional git status to apply to files
   Future<FileNode> scanDirectory({
     required String directoryPath,
-    bool showHidden = false,
+    bool showHidden = true,
     GitStatus? gitStatus,
   }) async {
     final dir = Directory(directoryPath);
@@ -28,6 +30,7 @@ class FileTreeService {
     final dirName = path.basename(directoryPath);
     final children = await _scanDirectoryRecursive(
       directory: dir,
+      repositoryPath: directoryPath,
       showHidden: showHidden,
       gitStatus: gitStatus,
       depth: 0,
@@ -45,6 +48,7 @@ class FileTreeService {
   /// Recursively scan directory contents
   Future<List<FileNode>> _scanDirectoryRecursive({
     required Directory directory,
+    required String repositoryPath,
     required bool showHidden,
     GitStatus? gitStatus,
     required int depth,
@@ -69,8 +73,8 @@ class FileTreeService {
           continue;
         }
 
-        // Skip common ignore patterns
-        if (_shouldIgnore(entityName)) {
+        // Skip common ignore patterns (but respect showHidden for .git, .env, etc)
+        if (_shouldIgnore(entityName, showHidden)) {
           continue;
         }
 
@@ -78,22 +82,27 @@ class FileTreeService {
           // Recursively scan subdirectory
           final children = await _scanDirectoryRecursive(
             directory: entity,
+            repositoryPath: repositoryPath,
             showHidden: showHidden,
             gitStatus: gitStatus,
             depth: depth + 1,
             maxDepth: maxDepth,
           );
 
+          final isGitIgnored = await _gitIgnoreService.isIgnored(entity.path, repositoryPath);
+
           nodes.add(FileNode.directory(
             name: entityName,
             path: entity.path,
             children: children,
             isHidden: isHidden,
-            gitStatus: _getFileGitStatus(entity.path, gitStatus),
+            isGitIgnored: isGitIgnored,
+            gitStatus: _getFileGitStatus(entity.path, repositoryPath, gitStatus),
           ));
         } else if (entity is File) {
           final stat = await entity.stat();
           final ext = path.extension(entityName).replaceFirst('.', '');
+          final isGitIgnored = await _gitIgnoreService.isIgnored(entity.path, repositoryPath);
 
           nodes.add(FileNode.file(
             name: entityName,
@@ -102,7 +111,8 @@ class FileTreeService {
             sizeBytes: stat.size,
             lastModified: stat.modified,
             isHidden: isHidden,
-            gitStatus: _getFileGitStatus(entity.path, gitStatus),
+            isGitIgnored: isGitIgnored,
+            gitStatus: _getFileGitStatus(entity.path, repositoryPath, gitStatus),
           ));
         }
       }
@@ -122,36 +132,69 @@ class FileTreeService {
   }
 
   /// Get git status for a file path
-  GitFileStatus _getFileGitStatus(String filePath, GitStatus? gitStatus) {
+  ///
+  /// [filePath] - Absolute path to the file
+  /// [repositoryPath] - Absolute path to repository root
+  /// [gitStatus] - Git status object containing relative paths
+  GitFileStatus _getFileGitStatus(String filePath, String repositoryPath, GitStatus? gitStatus) {
     if (gitStatus == null) {
       return GitFileStatus.clean;
     }
 
-    return gitStatus.getFileStatus(filePath);
+    // Git status uses relative paths from repository root
+    // Convert absolute path to relative path and normalize separators
+    final relativePath = path.relative(filePath, from: repositoryPath).replaceAll('\\', '/');
+    final status = gitStatus.getFileStatus(relativePath);
+
+    if (status != GitFileStatus.clean) {
+      print('DEBUG: File $relativePath has status $status');
+    }
+
+    return status;
   }
 
   /// Check if a file/folder should be ignored
-  bool _shouldIgnore(String name) {
-    // Common ignore patterns
-    const ignorePatterns = [
-      'node_modules',
-      '.git',
-      '.dart_tool',
-      'build',
-      '.idea',
-      '.vscode',
-      '__pycache__',
-      '.pytest_cache',
-      'venv',
-      '.env',
-      'dist',
-      'target',
-      '.gradle',
-      'bin',
-      'obj',
-    ];
+  bool _shouldIgnore(String name, bool showHidden) {
+    // Only hide .git directory (massive, internal git data)
+    if (name == '.git') {
+      return true;
+    }
 
-    return ignorePatterns.contains(name);
+    // Everything else is visible (this is a full IDE)
+    return false;
+  }
+
+  /// Update git status on an existing file tree without rescanning
+  ///
+  /// [root] - The root node of the tree to update
+  /// [repositoryPath] - Absolute path to repository root
+  /// [gitStatus] - Git status to apply
+  FileNode updateGitStatus({
+    required FileNode root,
+    required String repositoryPath,
+    required GitStatus gitStatus,
+  }) {
+    // Update this node's git status
+    final newGitStatus = _getFileGitStatus(root.path, repositoryPath, gitStatus);
+
+    // If this is a directory, recursively update children
+    if (root.isDirectory && root.children.isNotEmpty) {
+      final updatedChildren = root.children.map((child) {
+        return updateGitStatus(
+          root: child,
+          repositoryPath: repositoryPath,
+          gitStatus: gitStatus,
+        );
+      }).toList();
+
+      return root.copyWith(
+        gitStatus: newGitStatus,
+        children: updatedChildren,
+      );
+    }
+
+    // For files, just update the git status
+    return root.copyWith(gitStatus: newGitStatus);
   }
 
   /// Refresh a specific node in the tree
@@ -159,6 +202,7 @@ class FileTreeService {
   /// Useful for updating a folder's contents after file system changes
   Future<FileNode> refreshNode({
     required FileNode node,
+    required String repositoryPath,
     required bool showHidden,
     GitStatus? gitStatus,
   }) async {
@@ -176,6 +220,7 @@ class FileTreeService {
     // Rescan the directory
     final children = await _scanDirectoryRecursive(
       directory: dir,
+      repositoryPath: repositoryPath,
       showHidden: showHidden,
       gitStatus: gitStatus,
       depth: 0,

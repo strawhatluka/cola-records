@@ -211,16 +211,15 @@ class FileTreePanel extends StatelessWidget {
                 node.name,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: node.isDirectory ? FontWeight.w600 : FontWeight.normal,
-                      color: node.isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurface,
+                      color: _getNodeTextColor(context, node),
                     ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
 
-            // Git status indicator
-            if (node.gitStatus != GitFileStatus.clean) _buildGitStatusBadge(context, node),
+            // Git status indicator (show for files with status or directories with changes)
+            if (node.gitStatus != GitFileStatus.clean || (node.isDirectory && node.hasGitChanges))
+              _buildGitStatusBadge(context, node),
           ],
         ),
       ),
@@ -243,6 +242,11 @@ class FileTreePanel extends StatelessWidget {
       iconColor = Theme.of(context).colorScheme.primary;
     } else {
       iconColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    }
+
+    // Dim gitignored files
+    if (node.isGitIgnored) {
+      iconColor = iconColor.withValues(alpha: 0.4);
     }
 
     return Icon(
@@ -296,35 +300,112 @@ class FileTreePanel extends StatelessWidget {
     }
   }
 
+  /// Get git status color (VSCode default theme colors)
+  Color _getGitStatusColor(GitFileStatus status) {
+    switch (status) {
+      case GitFileStatus.untracked:
+        return const Color(0xFF73C991); // Green (VSCode untracked color)
+      case GitFileStatus.modified:
+        return const Color(0xFFE2C08D); // Gold/Orange (VSCode modified color)
+      case GitFileStatus.added:
+        return const Color(0xFF73C991); // Green (staged/added)
+      case GitFileStatus.deleted:
+        return const Color(0xFFC74E39); // Red (deleted)
+      case GitFileStatus.renamed:
+        return const Color(0xFF73C991); // Green (VSCode treats renamed as green)
+      case GitFileStatus.conflicted:
+        return const Color(0xFFC74E39); // Red (conflicts)
+      case GitFileStatus.clean:
+        return Colors.transparent;
+    }
+  }
+
+  /// Get the most significant git status from directory children
+  GitFileStatus _getDirectoryGitStatus(FileNode node) {
+    if (!node.isDirectory) return node.gitStatus;
+
+    // Priority: conflicted > modified > deleted > added > untracked > clean
+    var mostSignificant = GitFileStatus.clean;
+
+    for (final child in node.children) {
+      final childStatus = child.isDirectory
+        ? _getDirectoryGitStatus(child)
+        : child.gitStatus;
+
+      if (childStatus == GitFileStatus.conflicted) return GitFileStatus.conflicted;
+      if (childStatus == GitFileStatus.modified && mostSignificant != GitFileStatus.conflicted) {
+        mostSignificant = GitFileStatus.modified;
+      }
+      if (childStatus == GitFileStatus.deleted &&
+          mostSignificant != GitFileStatus.conflicted &&
+          mostSignificant != GitFileStatus.modified) {
+        mostSignificant = GitFileStatus.deleted;
+      }
+      if (childStatus == GitFileStatus.added &&
+          mostSignificant == GitFileStatus.clean ||
+          mostSignificant == GitFileStatus.untracked) {
+        mostSignificant = GitFileStatus.added;
+      }
+      if (childStatus == GitFileStatus.untracked && mostSignificant == GitFileStatus.clean) {
+        mostSignificant = GitFileStatus.untracked;
+      }
+    }
+
+    return mostSignificant;
+  }
+
+  /// Get text color for node based on git status (VSCode-style)
+  Color _getNodeTextColor(BuildContext context, FileNode node) {
+    // Gitignored files are dimmed
+    if (node.isGitIgnored) {
+      return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
+    }
+
+    // Selected files use primary color
+    if (node.isSelected) {
+      return Theme.of(context).colorScheme.primary;
+    }
+
+    // For directories, use the most significant child status
+    if (node.isDirectory && node.hasGitChanges) {
+      final dirStatus = _getDirectoryGitStatus(node);
+      if (dirStatus != GitFileStatus.clean) {
+        return _getGitStatusColor(dirStatus);
+      }
+    }
+
+    // Apply git status colors - same as badge
+    if (node.gitStatus != GitFileStatus.clean) {
+      return _getGitStatusColor(node.gitStatus);
+    }
+
+    return Theme.of(context).colorScheme.onSurface;
+  }
+
   /// Build git status badge
   Widget _buildGitStatusBadge(BuildContext context, FileNode node) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // For directories with changes, show a colored dot with the appropriate color
+    if (node.isDirectory && node.hasGitChanges && node.gitStatus == GitFileStatus.clean) {
+      final dirStatus = _getDirectoryGitStatus(node);
+      final dotColor = _getGitStatusColor(dirStatus);
 
-    Color badgeColor;
-    switch (node.gitStatus.colorName) {
-      case 'red':
-        badgeColor = isDarkMode ? const Color(0xFFFF5252) : Colors.red.shade100;
-        break;
-      case 'orange':
-        badgeColor = isDarkMode ? const Color(0xFFFF9800) : Colors.orange.shade100;
-        break;
-      case 'green':
-        badgeColor = isDarkMode ? const Color(0xFF69F0AE) : Colors.green.shade100;
-        break;
-      case 'blue':
-        badgeColor = isDarkMode ? const Color(0xFF448AFF) : Colors.blue.shade100;
-        break;
-      case 'purple':
-        badgeColor = isDarkMode ? const Color(0xFFB388FF) : Colors.purple.shade100;
-        break;
-      default:
-        badgeColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+      return Container(
+        width: 6,
+        height: 6,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          color: dotColor,
+          shape: BoxShape.circle,
+        ),
+      );
     }
+
+    final badgeColor = _getGitStatusColor(node.gitStatus);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
-        color: badgeColor,
+        color: badgeColor.withValues(alpha: 0.3), // Semi-transparent background
         borderRadius: BorderRadius.circular(2),
       ),
       child: Text(
@@ -333,6 +414,7 @@ class FileTreePanel extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w600,
               fontFamily: 'monospace',
+              color: badgeColor, // Text color matches git status
             ),
       ),
     );
