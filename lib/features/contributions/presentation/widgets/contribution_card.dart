@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/contribution.dart';
+import '../../../development/presentation/screens/development_ide_screen.dart';
 
 /// Card widget for displaying a contribution
 class ContributionCard extends StatelessWidget {
@@ -25,8 +26,14 @@ class ContributionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          // Card is clickable but has no action
-          // Reserved for future detail view
+          // Navigate to Development IDE screen
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => DevelopmentIdeScreen(
+                contribution: contribution,
+              ),
+            ),
+          );
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

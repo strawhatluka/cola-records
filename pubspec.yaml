@@ -62,6 +62,29 @@ dependencies:
   flutter_markdown: ^0.7.4+1
   flutter_html: ^3.0.0-beta.2
 
+  # Development IDE Features
+  # Code Editor
+  flutter_code_editor: ^0.3.0
+  highlight: ^0.7.0
+  flutter_highlight: ^0.7.0
+  code_text_field: ^1.1.0
+
+  # Terminal
+  xterm: ^3.5.0
+  flutter_pty: ^0.4.0
+
+  # Git Integration
+  git: ^2.3.0
+
+  # UI Components for IDE
+  flutter_treeview: ^1.0.7
+  resizable_widget: ^1.0.5
+  split_view: ^3.2.1
+
+  # File Viewers
+  extended_image: ^8.2.0
+  syncfusion_flutter_pdfviewer: ^24.1.41
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
