@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import { ContributionCard } from './ContributionCard';
 import type { Contribution } from '../../../main/ipc/channels';
 

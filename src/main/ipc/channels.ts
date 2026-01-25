@@ -137,6 +137,17 @@ export interface IpcChannels {
   // GitIgnore Channels
   'gitignore:is-ignored': (repoPath: string, filePath: string) => boolean;
   'gitignore:get-patterns': (repoPath: string) => string[];
+  // Dialog Channels (added for WO-MIGRATE-002.1)
+  'dialog:open-directory': () => string | null;
+
+  // Shell Channels (added for WO-MIGRATE-002.1)
+  'shell:execute': (command: string) => void;
+
+  // GitHub Additional Channels (added for WO-MIGRATE-002.1)
+  'github:fork-repository': (repoFullName: string) => GitHubRepository;
+  'github:get-repository-tree': (owner: string, repo: string, branch: string) => any;
+  'git:add-remote': (repoPath: string, remoteName: string, url: string) => void;
+
 }
 
 /**
@@ -150,3 +161,4 @@ export interface IpcEvents {
   'fs:file-deleted': (path: string) => void;
   'git:status-changed': (repoPath: string) => void;
 }
+

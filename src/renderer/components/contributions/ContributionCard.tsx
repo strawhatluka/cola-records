@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import { Folder, GitBranch, Trash2, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';

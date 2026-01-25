@@ -151,7 +151,7 @@ export class GitHubService {
   /**
    * Fork repository
    */
-  async forkRepository(owner: string, repo: string): Promise<string> {
+  async forkRepository(owner: string, repo: string): Promise<GitHubRepository> {
     return gitHubRestService.forkRepository(owner, repo);
   }
 
@@ -221,6 +221,19 @@ export class GitHubService {
    */
   setCacheEnabled(enabled: boolean): void {
     this.cacheEnabled = enabled;
+  }
+
+  /**
+   * Get repository file tree
+   */
+  async getRepositoryTree(owner: string, repo: string, branch: string = 'main'): Promise<any> {
+    const cacheKey = this.getCacheKey('tree', owner, repo, branch);
+
+    return this.getCached(
+      cacheKey,
+      () => gitHubGraphQLService.getRepositoryTree(owner, repo, branch),
+      false
+    );
   }
 
   /**

@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import { Badge } from '../ui/Badge';
 import type { Contribution } from '../../../main/ipc/channels';
 

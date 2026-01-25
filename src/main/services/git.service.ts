@@ -234,6 +234,17 @@ export class GitService {
       throw new Error(`Failed to fetch from ${remote} in ${repoPath}: ${error}`);
     }
   }
+  /**
+   * Add a remote repository
+   */
+  async addRemote(repoPath: string, remoteName: string, url: string): Promise<void> {
+    try {
+      const git = this.getGit(repoPath);
+      await git.addRemote(remoteName, url);
+    } catch (error) {
+      throw new Error(`Failed to add remote ${remoteName} in ${repoPath}: ${error}`);
+    }
+  }
 }
 
 // Export singleton instance

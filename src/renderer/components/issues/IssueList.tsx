@@ -1,7 +1,7 @@
-import * as React from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { List } from 'react-window';
 import { IssueCard } from './IssueCard';
 import type { GitHubIssue } from '../../../main/ipc/channels';
+import type { CSSProperties } from 'react';
 
 interface IssueListProps {
   issues: GitHubIssue[];
@@ -26,7 +26,7 @@ export function IssueList({ issues, onIssueSelect, loading }: IssueListProps) {
     );
   }
 
-  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+  const Row = ({ index, style }: { index: number; style: CSSProperties }) => {
     const issue = issues[index];
     return (
       <div style={{ ...style, padding: '8px' }}>
@@ -40,13 +40,12 @@ export function IssueList({ issues, onIssueSelect, loading }: IssueListProps) {
 
   return (
     <List
-      height={600}
-      itemCount={issues.length}
-      itemSize={140}
-      width="100%"
+      defaultHeight={600}
+      rowCount={issues.length}
+      rowHeight={140}
+      rowComponent={Row}
+      rowProps={{} as any}
       className="px-4"
-    >
-      {Row}
-    </List>
+    />
   );
 }

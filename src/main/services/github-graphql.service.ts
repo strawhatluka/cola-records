@@ -270,6 +270,55 @@ export class GitHubGraphQLService {
       throw new Error(`Failed to search repositories: ${error}`);
     }
   }
+  /**
+   * Get repository file tree
+   */
+  /**
+   * Get repository file tree
+   */
+  async getRepositoryTree(owner: string, repo: string, branch: string = 'main'): Promise<any> {
+    try {
+      const client = this.getClient();
+
+      const query = `
+        query($owner: String!, $repo: String!, $expression: String!) {
+          repository(owner: $owner, name: $repo) {
+            object(expression: $expression) {
+              ... on Tree {
+                entries {
+                  name
+                  type
+                  mode
+                  object {
+                    ... on Tree {
+                      entries {
+                        name
+                        type
+                      }
+                    }
+                    ... on Blob {
+                      byteSize
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const result: any = await client(query, {
+        owner,
+        repo,
+        expression: `${branch}:`,
+      });
+
+      return result.repository?.object?.entries || [];
+    } catch (error) {
+      console.error('GitHub get repository tree error:', error);
+      throw new Error(`Failed to get repository tree for ${owner}/${repo}: ${error}`);
+    }
+  }
 }
 
 // Export singleton instance

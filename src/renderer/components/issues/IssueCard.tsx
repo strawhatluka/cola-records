@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ExternalLink, Star } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -12,7 +12,6 @@ interface IssueCardProps {
 }
 
 export function IssueCard({ issue, onViewDetails, style }: IssueCardProps) {
-  const repositoryName = issue.repository.split('/').pop() || issue.repository;
 
   return (
     <Card className="cursor-pointer hover:bg-accent/50 transition-colors" style={style}>

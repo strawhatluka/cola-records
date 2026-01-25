@@ -1,3 +1,4 @@
+import type { GitHubRepository } from '../ipc/channels';
 import { Octokit } from '@octokit/rest';
 import { env } from './environment.service';
 
@@ -94,7 +95,7 @@ export class GitHubRestService {
   /**
    * Fork a repository
    */
-  async forkRepository(owner: string, repo: string): Promise<string> {
+  async forkRepository(owner: string, repo: string): Promise<GitHubRepository> {
     try {
       const client = this.getClient();
       const response = await client.repos.createFork({
@@ -102,7 +103,16 @@ export class GitHubRestService {
         repo,
       });
 
-      return response.data.clone_url;
+      return {
+        id: response.data.id.toString(),
+        name: response.data.name,
+        fullName: response.data.full_name,
+        description: response.data.description || '',
+        url: response.data.html_url,
+        language: response.data.language || 'Unknown',
+        stars: response.data.stargazers_count,
+        forks: response.data.forks_count,
+      };
     } catch (error) {
       console.error('GitHub REST fork error:', error);
       throw new Error(`Failed to fork ${owner}/${repo}: ${error}`);

@@ -164,6 +164,35 @@ const setupIpcHandlers = () => {
   handleIpc('github:validate-token', async (_event, token) => {
     return await gitHubService.validateToken(token);
   });
+  // Additional GitHub handlers
+  handleIpc("github:fork-repository", async (_event, repoFullName) => {
+    const [owner, repo] = repoFullName.split("/");
+    return await gitHubService.forkRepository(owner, repo);
+  });
+
+  // Git remote handler
+  handleIpc("git:add-remote", async (_event, repoPath, remoteName, url) => {
+    await gitService.addRemote(repoPath, remoteName, url);
+  });
+
+  // Dialog handlers
+  handleIpc("dialog:open-directory", async () => {
+    const { dialog } = await import("electron");
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory"]
+    });
+    return result.canceled ? null : result.filePaths[0];
+  });
+
+  // Shell handler
+  handleIpc("shell:execute", async (_event, command) => {
+    const { shell } = await import("electron");
+    await shell.openPath(command);
+  });
+  handleIpc("github:get-repository-tree", async (_event, owner, repo, branch) => {
+    return await gitHubService.getRepositoryTree(owner, repo, branch || "main");
+  });
+
 };
 
 const initializeServices = async () => {

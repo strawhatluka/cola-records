@@ -1,4 +1,4 @@
-import * as React from 'react';
+
 import ReactMarkdown from 'react-markdown';
 import { ExternalLink, Calendar, Tag } from 'lucide-react';
 import {
@@ -10,6 +10,7 @@ import {
 } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { RepositoryFileTree } from './RepositoryFileTree';
 import type { GitHubIssue } from '../../../main/ipc/channels';
 
 interface IssueDetailModalProps {
@@ -61,6 +62,12 @@ export function IssueDetailModal({ issue, onClose, onContribute }: IssueDetailMo
           {/* Issue Body */}
           <div className="prose prose-sm dark:prose-invert max-w-none">
             <ReactMarkdown>{issue.body || 'No description provided'}</ReactMarkdown>
+          </div>
+
+          {/* Repository File Tree */}
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium mb-3">Repository File Structure</h3>
+            <RepositoryFileTree repository={issue.repository} />
           </div>
 
           {/* Actions */}

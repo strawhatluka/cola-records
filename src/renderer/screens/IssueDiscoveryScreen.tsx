@@ -2,21 +2,28 @@ import * as React from 'react';
 import { SearchPanel } from '../components/issues/SearchPanel';
 import { IssueList } from '../components/issues/IssueList';
 import { IssueDetailModal } from '../components/issues/IssueDetailModal';
+import { ContributionWorkflowModal } from '../components/contributions/ContributionWorkflowModal';
 import { useIssuesStore } from '../stores/useIssuesStore';
-import type { GitHubIssue } from '../../main/ipc/channels';
+import type { GitHubIssue, Contribution } from '../../main/ipc/channels';
 
 export function IssueDiscoveryScreen() {
   const { issues, loading, searchIssues } = useIssuesStore();
   const [selectedIssue, setSelectedIssue] = React.useState<GitHubIssue | null>(null);
+  const [workflowIssue, setWorkflowIssue] = React.useState<GitHubIssue | null>(null);
 
   const handleSearch = (query: string, labels: string[]) => {
     searchIssues(query, labels);
   };
 
   const handleContribute = (issue: GitHubIssue) => {
-    // This will be implemented in Phase 3 with the contribution workflow
-    console.log('Contribute to issue:', issue);
+    setWorkflowIssue(issue);
     setSelectedIssue(null);
+  };
+
+  const handleWorkflowComplete = (contribution: Contribution) => {
+    setWorkflowIssue(null);
+    // TODO: Show success toast or navigate to Contributions screen
+    console.log('Contribution created:', contribution);
   };
 
   return (
@@ -40,6 +47,14 @@ export function IssueDiscoveryScreen() {
         issue={selectedIssue}
         onClose={() => setSelectedIssue(null)}
         onContribute={handleContribute}
+      />
+
+      {/* Contribution Workflow Modal */}
+      <ContributionWorkflowModal
+        issue={workflowIssue}
+        isOpen={workflowIssue !== null}
+        onClose={() => setWorkflowIssue(null)}
+        onComplete={handleWorkflowComplete}
       />
     </div>
   );
