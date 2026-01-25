@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from 'lucide-react';
 import { ipc } from '../../ipc/client';
+import { Skeleton } from '../ui/Skeleton';
 
 interface FileTreeNode {
   name: string;
@@ -124,8 +125,12 @@ export function RepositoryFileTree({ repository, branch = 'main' }: RepositoryFi
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <p className="text-sm text-muted-foreground">Loading file tree...</p>
+      <div className="space-y-2 p-4">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-6 w-1/2 ml-4" />
+        <Skeleton className="h-6 w-2/3 ml-4" />
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-6 w-1/2 ml-4" />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import { List } from 'react-window';
 import { IssueCard } from './IssueCard';
+import { Skeleton } from '../ui/Skeleton';
 import type { GitHubIssue } from '../../../main/ipc/channels';
 import type { CSSProperties } from 'react';
 
@@ -12,8 +13,11 @@ interface IssueListProps {
 export function IssueList({ issues, onIssueSelect, loading }: IssueListProps) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Loading issues...</p>
+      <div className="space-y-3 p-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 
 import { ContributionCard } from './ContributionCard';
+import { Skeleton } from '../ui/Skeleton';
 import type { Contribution } from '../../../main/ipc/channels';
 
 interface ContributionListProps {
@@ -17,8 +18,10 @@ export function ContributionList({
 }: ContributionListProps) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading contributions...</p>
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 p-4">
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
       </div>
     );
   }

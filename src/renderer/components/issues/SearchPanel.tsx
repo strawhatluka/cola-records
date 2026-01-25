@@ -80,6 +80,7 @@ export function SearchPanel({ onSearch, loading }: SearchPanelProps) {
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Input
+            data-search-input
             placeholder="Search issues..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
