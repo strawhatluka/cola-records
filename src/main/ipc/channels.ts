@@ -66,6 +66,7 @@ export interface GitHubRepository {
   language: string;
   stars: number;
   forks: number;
+  openIssues?: number;
 }
 
 // Contribution Types
