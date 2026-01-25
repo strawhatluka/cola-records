@@ -10,23 +10,24 @@ vi.mock('../../renderer/ipc/client', () => ({
   },
 }));
 
+// Import the mocked module AFTER the mock declaration
+import { ipc } from '../../renderer/ipc/client';
+
 describe('RepositoryFileTree', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('should show loading state initially', () => {
-    const { ipc } = require('../../renderer/ipc/client');
     vi.mocked(ipc.invoke).mockImplementation(() => new Promise(() => {})); // Never resolves
 
-    render(<RepositoryFileTree repository="owner/repo" />);
+    const { container } = render(<RepositoryFileTree repository="owner/repo" />);
 
-    expect(screen.getByText('Loading file tree...')).toBeInTheDocument();
+    // Verify skeleton loading state is shown
+    expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
   });
 
   it('should fetch and display file tree', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
-
     const mockTree = [
       {
         name: 'src',
@@ -59,7 +60,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('should use custom branch when provided', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
     vi.mocked(ipc.invoke).mockResolvedValueOnce([]);
 
     render(<RepositoryFileTree repository="owner/repo" branch="develop" />);
@@ -70,7 +70,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('should show error state on fetch failure', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
     vi.mocked(ipc.invoke).mockRejectedValueOnce(new Error('Failed to fetch tree'));
 
     render(<RepositoryFileTree repository="owner/repo" />);
@@ -81,7 +80,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('should show empty state when no files found', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
     vi.mocked(ipc.invoke).mockResolvedValueOnce([]);
 
     render(<RepositoryFileTree repository="owner/repo" />);
@@ -92,7 +90,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('should expand and collapse directories', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
     const user = userEvent.setup();
 
     const mockTree = [
@@ -133,8 +130,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('should display file sizes in human-readable format', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
-
     const mockTree = [
       { name: 'small.txt', type: 'blob', mode: '100644', object: { byteSize: 512 } },
       { name: 'medium.txt', type: 'blob', mode: '100644', object: { byteSize: 1024 } },
@@ -153,8 +148,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('should show folder icons for directories', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
-
     const mockTree = [
       {
         name: 'src',
@@ -178,7 +171,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('should handle nested directory structures', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
     const user = userEvent.setup();
 
     const mockTree = [
@@ -221,7 +213,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('should parse repository owner and name correctly', async () => {
-    const { ipc } = require('../../renderer/ipc/client');
     vi.mocked(ipc.invoke).mockResolvedValueOnce([]);
 
     render(<RepositoryFileTree repository="facebook/react" />);

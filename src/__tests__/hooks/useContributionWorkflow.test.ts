@@ -96,18 +96,6 @@ describe('useContributionWorkflow', () => {
       defaultBranch: 'main',
     };
 
-    const mockContribution: Contribution = {
-      id: '1',
-      repositoryUrl: 'https://github.com/user/repo',
-      localPath: '/path/to/repo',
-      issueNumber: 123,
-      issueTitle: 'Test Issue',
-      branchName: 'fix-issue-123',
-      status: 'in_progress',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
     // Mock IPC calls
     vi.mocked(ipc.invoke)
       .mockResolvedValueOnce(mockFork) // fork-repository
@@ -167,7 +155,8 @@ describe('useContributionWorkflow', () => {
     };
 
     // Mock IPC calls
-    vi.mocked(ipc.invoke).mockImplementation(async (channel: string) => {
+    vi.mocked(ipc.invoke).mockImplementation(async (...args: any[]) => {
+      const [channel] = args;
       if (channel === 'github:fork-repository') {
         return mockFork;
       }
@@ -392,7 +381,8 @@ describe('useContributionWorkflow', () => {
       defaultBranch: 'main',
     };
 
-    vi.mocked(ipc.invoke).mockImplementation(async (channel: string) => {
+    vi.mocked(ipc.invoke).mockImplementation(async (...args: any[]) => {
+      const [channel] = args;
       if (channel === 'github:fork-repository') return mockFork;
       return undefined;
     });
@@ -434,7 +424,8 @@ describe('useContributionWorkflow', () => {
       defaultBranch: 'main',
     };
 
-    vi.mocked(ipc.invoke).mockImplementation(async (channel: string) => {
+    vi.mocked(ipc.invoke).mockImplementation(async (...args: any[]) => {
+      const [channel] = args;
       if (channel === 'github:fork-repository') return mockFork;
       return undefined;
     });
