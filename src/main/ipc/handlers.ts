@@ -57,6 +57,10 @@ export function removeAllIpcHandlers(): void {
     'settings:update',
     'gitignore:is-ignored',
     'gitignore:get-patterns',
+    'terminal:spawn',
+    'terminal:write',
+    'terminal:resize',
+    'terminal:kill',
   ];
 
   channels.forEach((channel) => {

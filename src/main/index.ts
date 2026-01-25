@@ -9,6 +9,7 @@ import {
   gitIgnoreService,
   gitHubService,
 } from './services';
+import { terminalService } from './services/terminal.service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -201,6 +202,23 @@ const setupIpcHandlers = () => {
     return await gitHubService.getRepositoryTree(owner, repo, branch || "main");
   });
 
+  // Terminal handlers (added for WO-MIGRATE-003.3)
+  handleIpc('terminal:spawn', async (_event, sessionId, cwd) => {
+    terminalService.spawn(sessionId, cwd);
+  });
+
+  handleIpc('terminal:write', async (_event, sessionId, data) => {
+    terminalService.write(sessionId, data);
+  });
+
+  handleIpc('terminal:resize', async (_event, sessionId, cols, rows) => {
+    terminalService.resize(sessionId, cols, rows);
+  });
+
+  handleIpc('terminal:kill', async (_event, sessionId) => {
+    terminalService.kill(sessionId);
+  });
+
 };
 
 const initializeServices = async () => {
@@ -221,8 +239,9 @@ const createWindow = () => {
     },
   });
 
-  // Set main window reference for file watcher
+  // Set main window reference for file watcher and terminal
   fileWatcherService.setMainWindow(mainWindow);
+  terminalService.setMainWindow(mainWindow);
 
   // Load the index.html of the app
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -264,10 +283,11 @@ app.on('activate', () => {
   }
 });
 
-// Clean up IPC handlers, file watchers, and database before quit
+// Clean up IPC handlers, file watchers, terminals, and database before quit
 app.on('will-quit', async () => {
   removeAllIpcHandlers();
   await fileWatcherService.unwatchAll();
+  terminalService.killAll();
   database.close();
 });
 

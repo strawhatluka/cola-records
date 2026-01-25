@@ -154,6 +154,12 @@ export interface IpcChannels {
   'github:get-repository-tree': (owner: string, repo: string, branch: string) => any;
   'git:add-remote': (repoPath: string, remoteName: string, url: string) => void;
 
+  // Terminal Channels (added for WO-MIGRATE-003.3)
+  'terminal:spawn': (sessionId: string, cwd: string) => void;
+  'terminal:write': (sessionId: string, data: string) => void;
+  'terminal:resize': (sessionId: string, cols: number, rows: number) => void;
+  'terminal:kill': (sessionId: string) => void;
+
 }
 
 /**
@@ -166,5 +172,8 @@ export interface IpcEvents {
   'fs:file-added': (path: string) => void;
   'fs:file-deleted': (path: string) => void;
   'git:status-changed': (repoPath: string) => void;
+  'terminal:data': (event: { sessionId: string; data: string }) => void;
+  'terminal:exit': (event: { sessionId: string; exitCode: number; signal?: number }) => void;
+  'terminal:error': (event: { sessionId: string; error: string }) => void;
 }
 

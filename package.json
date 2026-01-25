@@ -67,6 +67,11 @@
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@types/uuid": "^10.0.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-search": "^0.16.0",
+    "@xterm/addon-web-links": "^0.12.0",
+    "@xterm/xterm": "^6.0.0",
     "better-sqlite3": "^12.6.2",
     "chokidar": "^5.0.0",
     "class-variance-authority": "^0.7.1",
@@ -74,6 +79,7 @@
     "ignore": "^7.0.5",
     "lucide-react": "^0.563.0",
     "monaco-editor": "^0.55.1",
+    "node-pty": "^1.1.0",
     "pdfjs-dist": "^5.4.530",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -83,6 +89,7 @@
     "simple-git": "^3.30.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
+    "uuid": "^13.0.0",
     "zustand": "^5.0.10"
   }
 }
