@@ -78,3 +78,4 @@ credentials.json
 trinity/
 *CLAUDE.md
 TRINITY.md
+node_modules
