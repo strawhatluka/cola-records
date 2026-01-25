@@ -6,6 +6,8 @@ import { IssueDiscoveryScreen } from './screens/IssueDiscoveryScreen';
 import { ContributionsScreen } from './screens/ContributionsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import type { Screen } from './components/layout/Sidebar';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { Toaster } from './components/ui/Toaster';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
@@ -26,11 +28,14 @@ const App: React.FC = () => {
   };
 
   return (
+    <ErrorBoundary>
     <ThemeProvider defaultTheme="system">
       <Layout currentScreen={currentScreen} onScreenChange={setCurrentScreen}>
         {renderScreen()}
       </Layout>
-    </ThemeProvider>
+          </ThemeProvider>
+      <Toaster />
+    </ErrorBoundary>
   );
 };
 
