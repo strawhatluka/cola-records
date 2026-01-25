@@ -14,6 +14,8 @@ export interface FileNode {
   size?: number;
   modified?: Date;
   children?: FileNode[];
+  gitStatus?: 'M' | 'A' | 'D' | 'C' | null;
+  isGitIgnored?: boolean;
 }
 
 export interface FileContent {
@@ -106,6 +108,8 @@ export interface IpcChannels {
   'fs:read-file': (path: string) => FileContent;
   'fs:write-file': (path: string, content: string) => void;
   'fs:delete-file': (path: string) => void;
+  'fs:rename-file': (oldPath: string, newPath: string) => void;
+  'fs:reveal-in-explorer': (path: string) => void;
   'fs:watch-directory': (path: string) => void;
   'fs:unwatch-directory': (path: string) => void;
 

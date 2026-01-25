@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import path from 'path';
 import { handleIpc, removeAllIpcHandlers } from './ipc';
 import { database } from './database';
@@ -39,6 +39,14 @@ const setupIpcHandlers = () => {
 
   handleIpc('fs:delete-file', async (_event, filePath) => {
     await fileSystemService.deleteFile(filePath);
+  });
+
+  handleIpc('fs:rename-file', async (_event, oldPath, newPath) => {
+    await fileSystemService.moveFile(oldPath, newPath);
+  });
+
+  handleIpc('fs:reveal-in-explorer', async (_event, filePath) => {
+    shell.showItemInFolder(filePath);
   });
 
   handleIpc('fs:watch-directory', async (_event, dirPath) => {
