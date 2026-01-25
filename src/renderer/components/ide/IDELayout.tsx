@@ -4,6 +4,7 @@ import { CodeEditorPanel } from './editor/CodeEditorPanel';
 import { TerminalPanel } from './terminal/TerminalPanel';
 import { IDEAppBar } from './IDEAppBar';
 import { IDEStatusBar } from './IDEStatusBar';
+import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
 import { useIDEStore } from '../../stores/useIDEStore';
 import type { Contribution } from '../../../main/ipc/channels';
 
@@ -70,6 +71,7 @@ export function IDELayout({ contribution, onNavigateBack }: IDELayoutProps) {
       </div>
 
       <IDEStatusBar />
+      <KeyboardShortcutsHelp />
     </div>
   );
 }

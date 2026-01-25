@@ -4,7 +4,7 @@ import type { FileNode } from '../../../../main/ipc/channels';
 import { useFileTreeStore } from '../../../stores/useFileTreeStore';
 import { useGitStore } from '../../../stores/useGitStore';
 import { FileTreeNode } from './FileTreeNode';
-import { Skeleton } from '../../ui/Skeleton';
+import { FileTreeSkeleton } from '../../ui/FileTreeSkeleton';
 import { ipc } from '../../../ipc/client';
 
 interface FileTreePanelProps {
@@ -120,13 +120,8 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
   // Loading state
   if (loading && fileTree.length === 0) {
     return (
-      <div className="h-full border-r p-4 space-y-2">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <Skeleton className="h-4 w-4" />
-            <Skeleton className="h-4 flex-1" />
-          </div>
-        ))}
+      <div className="h-full border-r">
+        <FileTreeSkeleton />
       </div>
     );
   }
