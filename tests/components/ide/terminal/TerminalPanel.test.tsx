@@ -3,6 +3,19 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TerminalPanel } from '@renderer/components/ide/terminal/TerminalPanel';
 import { useTerminalStore } from '@renderer/stores/useTerminalStore';
 
+// Mock IPC - using vi.hoisted() to avoid TDZ violations
+const { mockInvoke, mockOn } = vi.hoisted(() => ({
+  mockInvoke: vi.fn().mockResolvedValue(undefined),
+  mockOn: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('@renderer/ipc/client', () => ({
+  ipc: {
+    invoke: mockInvoke,
+    on: mockOn,
+  },
+}));
+
 // Mock the child components
 vi.mock('@renderer/components/ide/terminal/XTermWrapper', () => ({
   XTermWrapper: ({ sessionId, cwd }: any) => (
@@ -36,14 +49,11 @@ vi.mock('@renderer/components/ui/Button', () => ({
 describe('TerminalPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Mock electronAPI
-    global.window = global.window || ({} as any);
-    (global.window as any).electronAPI = {
-      invoke: vi.fn(),
-      on: vi.fn(() => vi.fn()), // Return unsubscribe function
-    };
-    
+    vi.restoreAllMocks(); // Restores all spies before each test
+
+    // Reset IPC mock to return resolved promise
+    mockInvoke.mockResolvedValue(undefined);
+
     // Mock matchMedia for xterm.js
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -58,7 +68,7 @@ describe('TerminalPanel', () => {
         dispatchEvent: vi.fn(),
       })),
     });
-    
+
     // Reset store state
     useTerminalStore.setState({
       sessions: new Map(),
