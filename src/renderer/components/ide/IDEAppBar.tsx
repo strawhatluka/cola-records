@@ -46,9 +46,9 @@ export function IDEAppBar({ contribution, onNavigateBack }: IDEAppBarProps) {
 
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">/</span>
-          <span className="font-semibold text-lg">
+          <h1 className="font-semibold text-lg">
             {repoName}
-          </span>
+          </h1>
         </div>
       </div>
 

@@ -8,14 +8,25 @@ import userEvent from '@testing-library/user-event';
 const mockInvoke = vi.fn();
 const mockOn = vi.fn(() => () => {});
 
+vi.mock('@renderer/ipc/client', () => ({
+  ipc: {
+    invoke: mockInvoke,
+    on: mockOn,
+  },
+}));
+
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
 describe('GitPanel - Comprehensive Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.window = global.window || ({} as any);
-    (global.window as any).electronAPI = {
-      invoke: mockInvoke,
-      on: mockOn,
-    };
 
     // Reset store
     useGitStore.setState({
@@ -247,7 +258,7 @@ describe('GitPanel - Comprehensive Tests', () => {
     await user.click(screen.getByRole('button', { name: /refresh/i }));
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledTimes(2);
+      expect(mockInvoke).toHaveBeenCalledTimes(3); // mount + dropdown + refresh button
     });
   });
 

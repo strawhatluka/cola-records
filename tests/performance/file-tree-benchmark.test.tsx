@@ -2,7 +2,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel';
 
+// Mock IPC
+const mockInvokeIPC = vi.fn();
+const mockOnIPC = vi.fn(() => () => {});
 
+vi.mock('@renderer/ipc/client', () => ({
+  ipc: {
+    invoke: mockInvokeIPC,
+    on: mockOnIPC,
+  },
+}));
+
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
 
 // Mock react-window to avoid TypeError
 vi.mock('react-window', () => ({
@@ -25,17 +43,8 @@ vi.mock('react-window', () => ({
  * large directory structures using virtualization.
  */
 describe('FileTree Performance Benchmarks', () => {
-  // Mock IPC
-  const mockInvoke = vi.fn();
-  const mockOn = vi.fn(() => () => {});
-
   beforeEach(() => {
     vi.clearAllMocks();
-    global.window = global.window || ({} as any);
-    (global.window as any).electronAPI = {
-      invoke: mockInvoke,
-      on: mockOn,
-    };
   });
   it('should render 10,000 files in under 3.5 seconds', async () => {
     // Generate mock file tree with 10,000 files
@@ -68,7 +77,7 @@ describe('FileTree Performance Benchmarks', () => {
 
     const largeFileTree = generateLargeFileTree(10000);
 
-    mockInvoke.mockResolvedValueOnce(largeFileTree);
+    mockInvokeIPC.mockResolvedValueOnce(largeFileTree);
 
     // Measure rendering time
     const startTime = performance.now();
@@ -111,7 +120,7 @@ describe('FileTree Performance Benchmarks', () => {
       })),
     };
 
-    mockInvoke.mockResolvedValueOnce([nestedDirs]);
+    mockInvokeIPC.mockResolvedValueOnce([nestedDirs]);
 
     const { container } = render(<FileTreePanel repoPath="/test/repo" />);
 
@@ -150,7 +159,7 @@ describe('FileTree Performance Benchmarks', () => {
       type: 'file',
     }));
 
-    mockInvoke.mockResolvedValueOnce(largeFileList);
+    mockInvokeIPC.mockResolvedValueOnce(largeFileList);
 
     const { container } = render(<FileTreePanel repoPath="/test/repo" />);
 
@@ -199,7 +208,7 @@ describe('FileTree Performance Benchmarks', () => {
       type: 'file',
     }));
 
-    mockInvoke.mockResolvedValueOnce(largeFileTree);
+    mockInvokeIPC.mockResolvedValueOnce(largeFileTree);
 
     const { container } = render(<FileTreePanel repoPath="/test/repo" />);
 
@@ -241,7 +250,7 @@ describe('FileTree Performance Benchmarks', () => {
       gitStatus: i % 5 === 0 ? 'modified' : i % 7 === 0 ? 'added' : null,
     }));
 
-    mockInvoke.mockResolvedValueOnce(filesWithGitStatus);
+    mockInvokeIPC.mockResolvedValueOnce(filesWithGitStatus);
 
     const { container } = render(<FileTreePanel repoPath="/test/repo" />);
 
@@ -258,7 +267,7 @@ describe('FileTree Performance Benchmarks', () => {
     const startTime = performance.now();
 
     // Trigger update via IPC event
-    const gitUpdateHandler = mockOn.mock.calls.find(
+    const gitUpdateHandler = mockOnIPC.mock.calls.find(
       ([event]) => event === 'git:status-update'
     )?.[1];
 
@@ -284,10 +293,10 @@ describe('FileTree Performance Benchmarks', () => {
       name: i % 10 === 0 ? `node_modules/pkg-${i}` : `file-${i}.ts`,
       path: `/test/repo/${i % 10 === 0 ? `node_modules/pkg-${i}` : `file-${i}.ts`}`,
       type: 'file',
-      ignored: i % 10 === 0,
+      isGitIgnored: i % 10 === 0,
     }));
 
-    mockInvoke.mockResolvedValueOnce(filesWithIgnored);
+    mockInvokeIPC.mockResolvedValueOnce(filesWithIgnored);
 
     const startTime = performance.now();
 
@@ -320,7 +329,7 @@ describe('FileTree Performance Benchmarks', () => {
       type: 'file',
     }));
 
-    mockInvoke.mockResolvedValueOnce(largeFileTree);
+    mockInvokeIPC.mockResolvedValueOnce(largeFileTree);
 
     render(<FileTreePanel repoPath="/test/repo" />);
 

@@ -46,6 +46,8 @@ export function GitStatusBadge({ status, className = '' }: GitStatusBadgeProps) 
       }}
       title={config.tooltip}
       aria-label={`Git status: ${config.tooltip}`}
+      data-git-status={status}
+      data-testid="git-status-badge"
     >
       {config.label}
     </div>

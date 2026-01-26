@@ -49,14 +49,30 @@ describe('IDELayout - Comprehensive Tests', () => {
     });
   });
 
-  it('should render all IDE panels', () => {
+  it('should render all IDE panels', async () => {
+    // Mock IPC responses for file tree, git status, and terminal
+    mockInvoke
+      .mockResolvedValueOnce([  // fs:read-directory for file tree
+        {
+          name: 'src',
+          path: '/test/repo/src',
+          type: 'directory',
+          children: [
+            { name: 'index.ts', path: '/test/repo/src/index.ts', type: 'file' },
+          ],
+        },
+      ])
+      .mockResolvedValueOnce(undefined) // fs:watch-directory
+      .mockResolvedValueOnce({ current: 'main', files: [] }) // git:status
+      .mockResolvedValueOnce('session-123'); // terminal:spawn
+
     render(<IDELayout contribution={mockContribution} />);
 
     // Should have app bar
     expect(screen.getByText('repo')).toBeInTheDocument(); // Repo name
 
     // Should render all panels (file tree, editor, terminal, git, status bar)
-    expect(screen.getByRole('tree')).toBeInTheDocument(); // File tree
+    expect(await screen.findByRole('tree')).toBeInTheDocument(); // File tree
     expect(screen.getByRole('tablist')).toBeInTheDocument(); // Editor tabs
     expect(screen.getByText(/terminal/i)).toBeInTheDocument();
   });
@@ -126,7 +142,9 @@ describe('IDELayout - Comprehensive Tests', () => {
 
     render(<IDELayout contribution={mockContribution} />);
 
-    expect(screen.getByText('feature-branch')).toBeInTheDocument();
+    // Branch name appears in both GitPanel and status bar
+    const branchElements = screen.getAllByText('feature-branch');
+    expect(branchElements.length).toBeGreaterThan(0);
   });
 
   it('should track focused panel', () => {

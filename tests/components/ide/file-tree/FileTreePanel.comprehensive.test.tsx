@@ -7,6 +7,22 @@ import userEvent from '@testing-library/user-event';
 const mockInvoke = vi.fn();
 const mockOn = vi.fn(() => () => {});
 
+vi.mock('@renderer/ipc/client', () => ({
+  ipc: {
+    invoke: mockInvoke,
+    on: mockOn,
+  },
+}));
+
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
 // Mock react-window
 vi.mock('react-window', () => ({
   List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
@@ -131,10 +147,10 @@ describe('FileTreePanel - Comprehensive Tests', () => {
     render(<FileTreePanel repoPath="/test/repo" />);
 
     // Should show loading state
-    expect(screen.queryByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
   });
 
@@ -144,7 +160,7 @@ describe('FileTreePanel - Comprehensive Tests', () => {
     render(<FileTreePanel repoPath="/test/repo" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to load/i)).toBeInTheDocument();
+      expect(screen.getByText('Failed to load file tree')).toBeInTheDocument();
     });
   });
 
@@ -154,7 +170,7 @@ describe('FileTreePanel - Comprehensive Tests', () => {
     render(<FileTreePanel repoPath="/test/repo" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/empty/i)).toBeInTheDocument();
+      expect(screen.getByText('No files found')).toBeInTheDocument();
     });
   });
 

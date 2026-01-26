@@ -140,7 +140,7 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
   const nodeContent = (
     <div
       className={cn(
-        'flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-accent text-sm select-none',
+        'flex items-center gap-1.5 py-1 cursor-pointer hover:bg-accent text-sm select-none',
         isSelected && 'bg-accent'
       )}
       style={nodeStyle}

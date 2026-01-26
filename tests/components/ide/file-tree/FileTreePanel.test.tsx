@@ -4,6 +4,7 @@ import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel'
 import { useFileTreeStore } from '@renderer/stores/useFileTreeStore';
 import { useGitStore } from '@renderer/stores/useGitStore';
 import type { FileNode } from '@main/ipc/channels';
+import { ipc } from '@renderer/ipc/client';
 
 // Mock stores
 vi.mock('@renderer/stores/useFileTreeStore', () => ({
@@ -232,7 +233,6 @@ describe('FileTreePanel', () => {
         removeNode: mockRemoveNode,
       });
 
-      const { ipc } = require('@renderer/ipc/client');
       render(<FileTreePanel repoPath="/repo" />);
       expect(ipc.invoke).toHaveBeenCalledWith('fs:watch-directory', '/repo');
     });
@@ -250,7 +250,6 @@ describe('FileTreePanel', () => {
         removeNode: mockRemoveNode,
       });
 
-      const { ipc } = require('@renderer/ipc/client');
       const { unmount } = render(<FileTreePanel repoPath="/repo" />);
       unmount();
       expect(ipc.invoke).toHaveBeenCalledWith('fs:unwatch-directory', '/repo');

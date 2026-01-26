@@ -36,7 +36,9 @@ export function IDELayout({ contribution, onNavigateBack }: IDELayoutProps) {
             maxSize={40}
             id="file-tree"
           >
-            <FileTreePanel repoPath={contribution.localPath} />
+            <nav aria-label="File navigation">
+              <FileTreePanel repoPath={contribution.localPath} />
+            </nav>
           </Panel>
 
           <Separator className="w-1 bg-border hover:bg-primary transition-colors" />

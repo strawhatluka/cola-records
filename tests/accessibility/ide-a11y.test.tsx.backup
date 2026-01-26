@@ -395,8 +395,6 @@ describe('IDE Accessibility - WCAG 2.1 AA Compliance', () => {
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-      addListener: vi.fn(), // Deprecated but still used by xterm.js
-      removeListener: vi.fn(), // Deprecated but still used by xterm.js
     }));
 
     global.window.matchMedia = matchMediaMock;

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
+import { ipc } from '../ipc/client';
 
 export interface TerminalSession {
   id: string;
@@ -33,30 +34,26 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
     set((state) => {
       const newSessions = new Map(state.sessions);
+      const isFirstSession = newSessions.size === 0;
 
-      // Deactivate all existing sessions
-      newSessions.forEach((s) => {
-        s.isActive = false;
-      });
-
-      // Create new session as active
+      // Create new session - only set as active if it's the first session
       const session: TerminalSession = {
         id: sessionId,
         cwd,
         createdAt: new Date(),
-        isActive: true,
+        isActive: isFirstSession,
       };
 
       newSessions.set(sessionId, session);
 
       return {
         sessions: newSessions,
-        activeSessionId: sessionId,
+        activeSessionId: isFirstSession ? sessionId : state.activeSessionId,
       };
     });
 
     // Spawn PTY process via IPC
-    window.electronAPI.invoke('terminal:spawn', sessionId, cwd);
+    ipc.invoke('terminal:spawn', sessionId, cwd);
 
     return sessionId;
   },
@@ -87,13 +84,13 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   },
 
   closeSession: (sessionId: string) => {
-    const { sessions } = get();
+    const { sessions, activeSessionId } = get();
     const session = sessions.get(sessionId);
 
     if (!session) return;
 
     // Kill PTY process via IPC
-    window.electronAPI.invoke('terminal:kill', sessionId);
+    ipc.invoke('terminal:kill', sessionId);
 
     set((state) => {
       const newSessions = new Map(state.sessions);
@@ -102,10 +99,19 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       // If closing active session, switch to another one
       let newActiveId = state.activeSessionId;
       if (sessionId === state.activeSessionId) {
-        const remainingSessions = Array.from(newSessions.values());
+        const remainingSessions = Array.from(newSessions.keys());
         if (remainingSessions.length > 0) {
-          newActiveId = remainingSessions[0].id;
-          remainingSessions[0].isActive = true;
+          // Pick the session that is NOT the one being closed
+          // Prefer the next session, or fall back to the previous one
+          const sessionArray = Array.from(state.sessions.keys());
+          const closedIndex = sessionArray.indexOf(sessionId);
+          const nextIndex = closedIndex < sessionArray.length - 1 ? closedIndex + 1 : closedIndex - 1;
+          newActiveId = sessionArray[nextIndex] !== sessionId ? sessionArray[nextIndex] : remainingSessions[0];
+
+          const newActiveSession = newSessions.get(newActiveId);
+          if (newActiveSession) {
+            newActiveSession.isActive = true;
+          }
         } else {
           newActiveId = null;
         }
@@ -120,7 +126,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   clearTerminal: (sessionId: string) => {
     // Send clear command (Ctrl+L equivalent)
-    window.electronAPI.invoke('terminal:write', sessionId, '\x0c');
+    ipc.invoke('terminal:write', sessionId, '\x0c');
   },
 
   restartTerminal: (sessionId: string) => {
@@ -128,11 +134,11 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     if (!session) return;
 
     // Kill and respawn
-    window.electronAPI.invoke('terminal:kill', sessionId);
+    ipc.invoke('terminal:kill', sessionId);
 
     // Small delay to ensure cleanup, then respawn
     setTimeout(() => {
-      window.electronAPI.invoke('terminal:spawn', sessionId, session.cwd);
+      ipc.invoke('terminal:spawn', sessionId, session.cwd);
     }, 100);
   },
 

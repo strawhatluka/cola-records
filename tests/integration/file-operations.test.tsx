@@ -5,7 +5,25 @@ import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel'
 import { CodeEditorPanel } from '@renderer/components/ide/editor/CodeEditorPanel';
 import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
 
+// Mock IPC
+const mockInvokeIPCIPC = vi.fn();
+const mockOnIPC = vi.fn(() => () => {});
 
+vi.mock('@renderer/ipc/client', () => ({
+  ipc: {
+    invoke: mockInvokeIPCIPC,
+    on: mockOnIPC,
+  },
+}));
+
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
 
 // Mock react-window to avoid TypeError
 vi.mock('react-window', () => ({
@@ -21,17 +39,8 @@ vi.mock('react-window', () => ({
   },
 }));
 describe('File Operations - Integration Tests', () => {
-  // Mock IPC
-  const mockInvoke = vi.fn();
-  const mockOn = vi.fn(() => () => {});
-
   beforeEach(() => {
     vi.clearAllMocks();
-    global.window = global.window || ({} as any);
-    (global.window as any).electronAPI = {
-      invoke: mockInvoke,
-      on: mockOn,
-    };
 
     // Reset store
     useCodeEditorStore.setState({
@@ -45,7 +54,7 @@ describe('File Operations - Integration Tests', () => {
     const user = userEvent.setup();
 
     // Mock file tree
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'src',
         path: '/test/repo/src',
@@ -70,10 +79,10 @@ describe('File Operations - Integration Tests', () => {
     await user.type(filenameInput, 'newFile.ts{Enter}');
 
     // Mock file creation
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:create-file',
         '/test/repo/src/newFile.ts',
         ''
@@ -81,7 +90,7 @@ describe('File Operations - Integration Tests', () => {
     });
 
     // Mock file tree refresh
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'src',
         path: '/test/repo/src',
@@ -98,7 +107,7 @@ describe('File Operations - Integration Tests', () => {
     });
 
     // Mock file open
-    mockInvoke.mockResolvedValueOnce({
+    mockInvokeIPC.mockResolvedValueOnce({
       content: '',
       encoding: 'utf-8',
     });
@@ -108,7 +117,7 @@ describe('File Operations - Integration Tests', () => {
     await user.click(newFileNode);
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:read-file',
         '/test/repo/src/newFile.ts'
       );
@@ -116,7 +125,7 @@ describe('File Operations - Integration Tests', () => {
 
     // Verify editor has file open
     const { openFiles, activeFilePath } = useCodeEditorStore.getState();
-    expect(openFiles).toContain('/test/repo/src/newFile.ts');
+    expect(openFiles.has('/test/repo/src/newFile.ts')).toBe(true);
     expect(activeFilePath).toBe('/test/repo/src/newFile.ts');
   });
 
@@ -124,7 +133,7 @@ describe('File Operations - Integration Tests', () => {
     const user = userEvent.setup();
 
     // Mock file tree with existing file
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'oldName.ts',
         path: '/test/repo/oldName.ts',
@@ -136,7 +145,7 @@ describe('File Operations - Integration Tests', () => {
     render(<CodeEditorPanel />);
 
     // Open file in editor first
-    mockInvoke.mockResolvedValueOnce({
+    mockInvokeIPC.mockResolvedValueOnce({
       content: 'const test = 1;',
       encoding: 'utf-8',
     });
@@ -146,7 +155,7 @@ describe('File Operations - Integration Tests', () => {
 
     await waitFor(() => {
       const { openFiles } = useCodeEditorStore.getState();
-      expect(openFiles).toContain('/test/repo/oldName.ts');
+      expect(openFiles.has('/test/repo/oldName.ts')).toBe(true);
     });
 
     // Right-click and rename
@@ -160,10 +169,10 @@ describe('File Operations - Integration Tests', () => {
     await user.type(renameInput, 'newName.ts{Enter}');
 
     // Mock rename operation
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:rename',
         '/test/repo/oldName.ts',
         '/test/repo/newName.ts'
@@ -171,7 +180,7 @@ describe('File Operations - Integration Tests', () => {
     });
 
     // Mock file tree refresh
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'newName.ts',
         path: '/test/repo/newName.ts',
@@ -197,7 +206,7 @@ describe('File Operations - Integration Tests', () => {
     const user = userEvent.setup();
 
     // Mock file tree
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'toDelete.ts',
         path: '/test/repo/toDelete.ts',
@@ -209,7 +218,7 @@ describe('File Operations - Integration Tests', () => {
     render(<CodeEditorPanel />);
 
     // Open file in editor
-    mockInvoke.mockResolvedValueOnce({
+    mockInvokeIPC.mockResolvedValueOnce({
       content: 'const test = 1;',
       encoding: 'utf-8',
     });
@@ -219,7 +228,7 @@ describe('File Operations - Integration Tests', () => {
 
     await waitFor(() => {
       const { openFiles } = useCodeEditorStore.getState();
-      expect(openFiles).toContain('/test/repo/toDelete.ts');
+      expect(openFiles.has('/test/repo/toDelete.ts')).toBe(true);
     });
 
     // Right-click and delete
@@ -233,17 +242,17 @@ describe('File Operations - Integration Tests', () => {
     await user.click(confirmButton);
 
     // Mock delete operation
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:delete',
         '/test/repo/toDelete.ts'
       );
     });
 
     // Mock file tree refresh
-    mockInvoke.mockResolvedValueOnce([]);
+    mockInvokeIPC.mockResolvedValueOnce([]);
 
     await waitFor(() => {
       expect(screen.queryByText('toDelete.ts')).not.toBeInTheDocument();
@@ -251,7 +260,7 @@ describe('File Operations - Integration Tests', () => {
 
     // Verify editor tab closed
     const { openFiles, activeFilePath } = useCodeEditorStore.getState();
-    expect(openFiles).not.toContain('/test/repo/toDelete.ts');
+    expect(openFiles.has('/test/repo/toDelete.ts')).toBe(false);
     expect(activeFilePath).toBeNull();
   });
 
@@ -259,7 +268,7 @@ describe('File Operations - Integration Tests', () => {
     const user = userEvent.setup();
 
     // Mock file tree
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'original.ts',
         path: '/test/repo/original.ts',
@@ -271,7 +280,7 @@ describe('File Operations - Integration Tests', () => {
     render(<CodeEditorPanel />);
 
     // Open file
-    mockInvoke.mockResolvedValueOnce({
+    mockInvokeIPC.mockResolvedValueOnce({
       content: 'const original = true;',
       encoding: 'utf-8',
     });
@@ -291,10 +300,10 @@ describe('File Operations - Integration Tests', () => {
     await user.type(saveAsInput, '/test/repo/copy.ts{Enter}');
 
     // Mock save as operation
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:write-file',
         '/test/repo/copy.ts',
         'const modified = true;'
@@ -302,7 +311,7 @@ describe('File Operations - Integration Tests', () => {
     });
 
     // Mock file tree refresh
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'original.ts',
         path: '/test/repo/original.ts',
@@ -321,7 +330,7 @@ describe('File Operations - Integration Tests', () => {
 
     // Verify new file opened in editor
     const { openFiles, activeFilePath } = useCodeEditorStore.getState();
-    expect(openFiles).toContain('/test/repo/copy.ts');
+    expect(openFiles.has('/test/repo/copy.ts')).toBe(true);
     expect(activeFilePath).toBe('/test/repo/copy.ts');
   });
 
@@ -329,7 +338,7 @@ describe('File Operations - Integration Tests', () => {
     const user = userEvent.setup();
 
     // Mock file tree
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       { name: 'file1.ts', path: '/test/repo/file1.ts', type: 'file' },
       { name: 'file2.ts', path: '/test/repo/file2.ts', type: 'file' },
     ]);
@@ -338,7 +347,7 @@ describe('File Operations - Integration Tests', () => {
     render(<CodeEditorPanel />);
 
     // Open file1
-    mockInvoke.mockResolvedValueOnce({
+    mockInvokeIPC.mockResolvedValueOnce({
       content: 'const file1 = 1;',
       encoding: 'utf-8',
     });
@@ -347,7 +356,7 @@ describe('File Operations - Integration Tests', () => {
     await user.click(file1Node);
 
     // Open file2
-    mockInvoke.mockResolvedValueOnce({
+    mockInvokeIPC.mockResolvedValueOnce({
       content: 'const file2 = 2;',
       encoding: 'utf-8',
     });
@@ -375,12 +384,12 @@ describe('File Operations - Integration Tests', () => {
     expect(modifiedFiles.has('/test/repo/file2.ts')).toBe(true);
 
     // Save file1
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await user.keyboard('{Control>}s{/Control}');
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:write-file',
         '/test/repo/file2.ts', // active file
         'const file2 = 20;'
@@ -391,12 +400,12 @@ describe('File Operations - Integration Tests', () => {
     const file1Tab = screen.getByRole('tab', { name: /file1\.ts/i });
     await user.click(file1Tab);
 
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await user.keyboard('{Control>}s{/Control}');
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:write-file',
         '/test/repo/file1.ts',
         'const file1 = 10;'
@@ -411,7 +420,7 @@ describe('File Operations - Integration Tests', () => {
     const user = userEvent.setup();
 
     // Mock empty file tree
-    mockInvoke.mockResolvedValueOnce([]);
+    mockInvokeIPC.mockResolvedValueOnce([]);
 
     render(<FileTreePanel repoPath="/test/repo" />);
 
@@ -425,17 +434,17 @@ describe('File Operations - Integration Tests', () => {
     const dirInput = screen.getByPlaceholderText(/folder name/i);
     await user.type(dirInput, 'components{Enter}');
 
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:create-directory',
         '/test/repo/components'
       );
     });
 
     // Mock file tree refresh
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'components',
         path: '/test/repo/components',
@@ -459,10 +468,10 @@ describe('File Operations - Integration Tests', () => {
     await user.clear(renameInput);
     await user.type(renameInput, 'ui{Enter}');
 
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:rename',
         '/test/repo/components',
         '/test/repo/ui'
@@ -470,7 +479,7 @@ describe('File Operations - Integration Tests', () => {
     });
 
     // Mock file tree refresh
-    mockInvoke.mockResolvedValueOnce([
+    mockInvokeIPC.mockResolvedValueOnce([
       {
         name: 'ui',
         path: '/test/repo/ui',
@@ -494,17 +503,17 @@ describe('File Operations - Integration Tests', () => {
     const confirmButton = screen.getByRole('button', { name: /confirm/i });
     await user.click(confirmButton);
 
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvokeIPC.mockResolvedValueOnce(undefined);
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith(
+      expect(mockInvokeIPC).toHaveBeenCalledWith(
         'fs:delete-directory',
         '/test/repo/ui'
       );
     });
 
     // Mock file tree refresh
-    mockInvoke.mockResolvedValueOnce([]);
+    mockInvokeIPC.mockResolvedValueOnce([]);
 
     await waitFor(() => {
       expect(screen.queryByText('ui')).not.toBeInTheDocument();
