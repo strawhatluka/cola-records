@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { UnsupportedViewer } from '@renderer/components/ide/editor/UnsupportedViewer';
+import { ipc } from '@renderer/ipc/client';
+import { toast } from 'sonner';
 
 // Mock IPC
-vi.mock('../../../../renderer/ipc/client', () => ({
+vi.mock('@renderer/ipc/client', () => ({
   ipc: {
     invoke: vi.fn(),
   },
@@ -14,15 +16,6 @@ vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
   },
-}));
-
-// Mock Button component
-vi.mock('../../../../renderer/components/ui/Button', () => ({
-  Button: ({ children, onClick, variant }: any) => (
-    <button onClick={onClick} data-variant={variant}>
-      {children}
-    </button>
-  ),
 }));
 
 describe('UnsupportedViewer', () => {
@@ -40,7 +33,10 @@ describe('UnsupportedViewer', () => {
     it('should display file extension in message', () => {
       render(<UnsupportedViewer filePath="/repo/file.bin" extension="bin" />);
 
-      expect(screen.getByText(/cannot preview \.bin files/i)).toBeInTheDocument();
+      const elements = screen.getAllByText((content, element) => {
+        return element?.textContent?.match(/cannot preview \.bin files/i) !== null;
+      });
+      expect(elements.length).toBeGreaterThan(0);
     });
 
     it('should display full file path', () => {
@@ -101,8 +97,7 @@ describe('UnsupportedViewer', () => {
 
   describe('Open in Default Application', () => {
     it('should call IPC with correct command on click', async () => {
-      const { ipc } = require('../../../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(undefined);
+      vi.mocked(ipc.invoke).mockResolvedValue(undefined);
 
       render(<UnsupportedViewer filePath="/repo/file.exe" extension="exe" />);
 
@@ -115,10 +110,10 @@ describe('UnsupportedViewer', () => {
     });
 
     it('should handle Windows paths correctly', async () => {
-      const { ipc } = require('../../../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(undefined);
+      vi.mocked(ipc.invoke).mockResolvedValue(undefined);
 
-      render(<UnsupportedViewer filePath="C:\\Users\\test\\file.dll" extension="dll" />);
+      const windowsPath = 'C:\\Users\\test\\file.dll';
+      render(<UnsupportedViewer filePath={windowsPath} extension="dll" />);
 
       const openButton = screen.getByRole('button', { name: /open in default application/i });
       fireEvent.click(openButton);
@@ -126,15 +121,13 @@ describe('UnsupportedViewer', () => {
       await waitFor(() => {
         expect(ipc.invoke).toHaveBeenCalledWith(
           'shell:execute',
-          'start "" "C:\\Users\\test\\file.dll"'
+          `start "" "${windowsPath}"`
         );
       });
     });
 
     it('should show error toast on failure', async () => {
-      const { ipc } = require('../../../../renderer/ipc/client');
-      const { toast } = require('sonner');
-      ipc.invoke.mockRejectedValue(new Error('Failed to open'));
+      vi.mocked(ipc.invoke).mockRejectedValue(new Error('Failed to open'));
 
       render(<UnsupportedViewer filePath="/repo/file.exe" extension="exe" />);
 
@@ -149,8 +142,7 @@ describe('UnsupportedViewer', () => {
 
   describe('Reveal in Explorer', () => {
     it('should call IPC with correct path on click', async () => {
-      const { ipc } = require('../../../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(undefined);
+      vi.mocked(ipc.invoke).mockResolvedValue(undefined);
 
       render(<UnsupportedViewer filePath="/repo/file.exe" extension="exe" />);
 
@@ -163,9 +155,7 @@ describe('UnsupportedViewer', () => {
     });
 
     it('should show error toast on failure', async () => {
-      const { ipc } = require('../../../../renderer/ipc/client');
-      const { toast } = require('sonner');
-      ipc.invoke.mockRejectedValue(new Error('Failed to reveal'));
+      vi.mocked(ipc.invoke).mockRejectedValue(new Error('Failed to reveal'));
 
       render(<UnsupportedViewer filePath="/repo/file.exe" extension="exe" />);
 
@@ -251,7 +241,10 @@ describe('UnsupportedViewer', () => {
         render(<UnsupportedViewer filePath={`/repo/file.${ext}`} extension={ext} />);
 
         expect(screen.getByText(`file.${ext}`)).toBeInTheDocument();
-        expect(screen.getByText(new RegExp(`\\.${ext}`, 'i'))).toBeInTheDocument();
+        const elements = screen.getAllByText((content, element) => {
+          return element?.textContent?.match(new RegExp(`\\.${ext}`, 'i')) !== null;
+        });
+        expect(elements.length).toBeGreaterThan(0);
       });
     });
   });
@@ -294,7 +287,10 @@ describe('UnsupportedViewer', () => {
       render(<UnsupportedViewer filePath="/repo/file" extension="" />);
 
       expect(screen.getByText('file')).toBeInTheDocument();
-      expect(screen.getByText(/cannot preview \. files/i)).toBeInTheDocument();
+      const elements = screen.getAllByText((content, element) => {
+        return element?.textContent?.match(/cannot preview \. files/i) !== null;
+      });
+      expect(elements.length).toBeGreaterThan(0);
     });
 
     it('should handle paths with special characters', () => {

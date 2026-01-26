@@ -22,7 +22,7 @@ export function ImageViewer({ filePath }: ImageViewerProps) {
         // Convert file path to file:// URL for image loading
         const fileUrl = `file:///${filePath.replace(/\\/g, '/')}`;
         setImageUrl(fileUrl);
-        setLoading(false);
+        // Don't set loading to false here - let the img onLoad event handle it
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load image');
         setLoading(false);
@@ -37,6 +37,10 @@ export function ImageViewer({ filePath }: ImageViewerProps) {
       }
     };
   }, [filePath]);
+
+  const handleImageLoad = () => {
+    setLoading(false);
+  };
 
   if (loading) {
     return (
@@ -56,14 +60,17 @@ export function ImageViewer({ filePath }: ImageViewerProps) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-muted/20 p-8 overflow-auto">
-      <img
-        src={imageUrl}
-        alt={filePath}
-        className="max-w-full max-h-full object-contain"
-        onError={() => setError('Failed to load image')}
-      />
-      <p className="text-xs text-muted-foreground mt-4">{filePath}</p>
+    <div className="flex items-center justify-center h-full bg-muted/20 p-8 overflow-auto">
+      <div className="flex flex-col items-center">
+        <img
+          src={imageUrl}
+          alt={filePath}
+          className="max-w-full max-h-full object-contain"
+          onLoad={handleImageLoad}
+          onError={() => setError('Failed to load image')}
+        />
+        <p className="text-xs text-muted-foreground mt-4">{filePath}</p>
+      </div>
     </div>
   );
 }

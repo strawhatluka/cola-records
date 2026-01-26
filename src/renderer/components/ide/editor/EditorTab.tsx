@@ -28,7 +28,7 @@ export function EditorTab({ file, isActive, onClose, onClick }: EditorTabProps) 
       <FileIcon filename={fileName} type="file" />
 
       {/* File Name */}
-      <span className="truncate flex-1" title={file.path}>
+      <span className="truncate flex-1 max-w-[200px]" title={file.path}>
         {fileName}
       </span>
 
@@ -37,6 +37,7 @@ export function EditorTab({ file, isActive, onClose, onClick }: EditorTabProps) 
         <div
           className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"
           title="Modified"
+          data-modified="true"
         />
       )}
 

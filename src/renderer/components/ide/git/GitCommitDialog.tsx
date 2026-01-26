@@ -19,7 +19,7 @@ export function GitCommitDialog({ open, onClose, repoPath }: GitCommitDialogProp
   const [error, setError] = useState<string | null>(null);
 
   // Get all changed files
-  const allFiles = status
+  const allFiles = status?.files
     ? status.files.map((f) => f.path).filter((path) => path.trim() !== '')
     : [];
 

@@ -7,16 +7,16 @@ import userEvent from '@testing-library/user-event';
 const mockInvoke = vi.fn();
 const mockOn = vi.fn(() => () => {});
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-});
-
 describe('FileTreePanel - Comprehensive Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+  });
+
   it('should load and display file tree', async () => {
     mockInvoke.mockResolvedValueOnce([
       {

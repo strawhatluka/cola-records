@@ -69,7 +69,7 @@ describe('useContributionWorkflow', () => {
   });
 
   it('should complete full workflow successfully', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
 
     const mockIssue: GitHubIssue = {
       id: 'issue-1',
@@ -127,7 +127,7 @@ describe('useContributionWorkflow', () => {
   });
 
   it('should reach 100% progress on successful completion', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
 
     const mockIssue: GitHubIssue = {
       id: 'issue-1',
@@ -176,7 +176,7 @@ describe('useContributionWorkflow', () => {
   });
 
   it('should handle fork error and set error state', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
 
     const mockIssue: GitHubIssue = {
       id: 'issue-1',
@@ -210,7 +210,7 @@ describe('useContributionWorkflow', () => {
   });
 
   it('should handle clone error', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
 
     const mockIssue: GitHubIssue = {
       id: 'issue-1',
@@ -257,7 +257,7 @@ describe('useContributionWorkflow', () => {
   });
 
   it('should handle remote setup error', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
 
     const mockIssue: GitHubIssue = {
       id: 'issue-1',
@@ -305,7 +305,7 @@ describe('useContributionWorkflow', () => {
   });
 
   it('should handle branch creation error', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
 
     const mockIssue: GitHubIssue = {
       id: 'issue-1',
@@ -354,7 +354,7 @@ describe('useContributionWorkflow', () => {
   });
 
   it('should generate correct branch name from issue number', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
 
     const mockIssue: GitHubIssue = {
       id: 'issue-1',
@@ -397,7 +397,7 @@ describe('useContributionWorkflow', () => {
   });
 
   it('should use default clone path from settings', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
 
     const mockIssue: GitHubIssue = {
       id: 'issue-1',

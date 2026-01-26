@@ -19,27 +19,27 @@ const mockContribution = {
 const mockInvoke = vi.fn();
 const mockOn = vi.fn(() => () => {});
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-
-  // Reset store
-  useIDEStore.setState({
-    panelSizes: {
-      fileTree: 25,
-      main: 75,
-      editor: 60,
-      terminal: 40,
-    },
-    focusedPanel: null,
-  });
-});
-
 describe('IDELayout - Comprehensive Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+
+    // Reset store
+    useIDEStore.setState({
+      panelSizes: {
+        fileTree: 25,
+        main: 75,
+        editor: 60,
+        terminal: 40,
+      },
+      focusedPanel: null,
+    });
+  });
+
   it('should render all IDE panels', () => {
     render(<IDELayout contribution={mockContribution} />);
 

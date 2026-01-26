@@ -28,7 +28,7 @@ vi.mock('react-pdf', () => ({
 }));
 
 // Mock Button component
-vi.mock('../../../../renderer/components/ui/Button', () => ({
+vi.mock('@renderer/components/ui/Button', () => ({
   Button: ({ children, onClick, disabled, size, variant, ...props }: any) => (
     <button
       onClick={onClick}
@@ -82,13 +82,15 @@ describe('PdfViewer', () => {
     });
 
     it('should convert Windows paths correctly', async () => {
-      render(<PdfViewer filePath="C:\\Users\\test\\doc.pdf" />);
+      const windowsPath = 'C:\\Users\\test\\doc.pdf';
+      const expectedPath = 'C:/Users/test/doc.pdf';
+      render(<PdfViewer filePath={windowsPath} />);
 
       await waitFor(() => {
         const doc = screen.getByTestId('pdf-document');
         const fileAttr = doc.getAttribute('data-file');
         expect(fileAttr).toContain('file:///');
-        expect(fileAttr).toContain('C:/Users/test/doc.pdf');
+        expect(fileAttr).toContain(expectedPath);
       });
     });
   });

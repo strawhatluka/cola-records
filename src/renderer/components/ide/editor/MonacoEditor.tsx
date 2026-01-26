@@ -146,31 +146,6 @@ export function MonacoEditor({ filePath, content, onChange }: MonacoEditorProps)
   const handleEditorMount: OnMount = (editor, _monaco) => {
     editorRef.current = editor;
 
-    // Configure Monaco options
-    editor.updateOptions({
-      minimap: { enabled: true },
-      lineNumbers: 'on',
-      fontSize: 14,
-      wordWrap: 'on',
-      automaticLayout: true,
-      scrollBeyondLastLine: false,
-      readOnly: false,
-      tabSize: 2,
-      insertSpaces: true,
-      formatOnPaste: true,
-      formatOnType: true,
-      suggestOnTriggerCharacters: true,
-      quickSuggestions: true,
-      parameterHints: { enabled: true },
-      folding: true,
-      foldingStrategy: 'indentation',
-      showFoldingControls: 'always',
-      matchBrackets: 'always',
-      autoClosingBrackets: 'always',
-      autoClosingQuotes: 'always',
-      autoIndent: 'full',
-    });
-
     // Focus editor
     editor.focus();
   };
@@ -194,8 +169,27 @@ export function MonacoEditor({ filePath, content, onChange }: MonacoEditorProps)
       onMount={handleEditorMount}
       loading={<div className="flex items-center justify-center h-full">Loading editor...</div>}
       options={{
-        // Additional options can be set here
-        // These are overridden by the ones in handleEditorMount
+        minimap: { enabled: true },
+        lineNumbers: 'on',
+        fontSize: 14,
+        wordWrap: 'on',
+        automaticLayout: true,
+        scrollBeyondLastLine: false,
+        readOnly: false,
+        tabSize: 2,
+        insertSpaces: true,
+        formatOnPaste: true,
+        formatOnType: true,
+        suggestOnTriggerCharacters: true,
+        quickSuggestions: true,
+        parameterHints: { enabled: true },
+        folding: true,
+        foldingStrategy: 'indentation',
+        showFoldingControls: 'always',
+        matchBrackets: 'always',
+        autoClosingBrackets: 'always',
+        autoClosingQuotes: 'always',
+        autoIndent: 'full',
       }}
     />
   );

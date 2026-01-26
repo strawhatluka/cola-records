@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useContributionsStore } from '@renderer/stores/useContributionsStore';
 
 // Mock the IPC client
-vi.mock('../../renderer/ipc/client', () => ({
+vi.mock('@renderer/ipc/client', () => ({
   ipc: {
     invoke: vi.fn(),
   },
@@ -29,7 +29,7 @@ describe('useContributionsStore', () => {
   });
 
   it('should fetch contributions', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
     const mockContributions = [
       {
         id: '1',
@@ -58,7 +58,7 @@ describe('useContributionsStore', () => {
   });
 
   it('should handle fetch error', async () => {
-    const { ipc } = await import('../../renderer/ipc/client');
+    const { ipc } = await import('@renderer/ipc/client');
     const errorMessage = 'Failed to fetch';
 
     vi.mocked(ipc.invoke).mockRejectedValueOnce(new Error(errorMessage));

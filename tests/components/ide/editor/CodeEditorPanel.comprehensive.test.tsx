@@ -8,24 +8,24 @@ import userEvent from '@testing-library/user-event';
 const mockInvoke = vi.fn();
 const mockOn = vi.fn(() => () => {});
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-
-  // Reset store
-  useCodeEditorStore.setState({
-    openFiles: new Map(),
-    activeFilePath: null,
-    modifiedFiles: new Set(),
-    loading: false,
-  });
-});
-
 describe('CodeEditorPanel - Comprehensive Tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+
+    // Reset store
+    useCodeEditorStore.setState({
+      openFiles: new Map(),
+      activeFilePath: null,
+      modifiedFiles: new Set(),
+      loading: false,
+    });
+  });
+
   it('should render empty state when no files open', () => {
     render(<CodeEditorPanel />);
 

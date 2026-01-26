@@ -73,6 +73,11 @@ app.*.map.json
 secrets.json
 credentials.json
 
+# Node.js / Electron build artifacts
+dist/
+out/
+.vite/
+
 # Trinity Method SDK
 .claude/
 trinity/

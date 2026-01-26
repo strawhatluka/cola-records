@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../../ui/Button';
@@ -15,6 +15,13 @@ export function PdfViewer({ filePath }: PdfViewerProps) {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset to page 1 when file changes
+  useEffect(() => {
+    setPageNumber(1);
+    setLoading(true);
+    setError(null);
+  }, [filePath]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);

@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useFileTreeStore } from '@renderer/stores/useFileTreeStore';
 import type { FileNode, GitStatus } from '@main/ipc/channels';
+import { ipc } from '@renderer/ipc/client';
 
 // Mock IPC
-vi.mock('../../renderer/ipc/client', () => ({
+vi.mock('@renderer/ipc/client', () => ({
   ipc: {
     invoke: vi.fn(),
     on: vi.fn(() => vi.fn()),
@@ -128,7 +129,7 @@ describe('useFileTreeStore', () => {
 
   describe('loadTree', () => {
     it('should set loading to true while loading', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
+      vi.mocked(ipc.invoke);
       ipc.invoke.mockResolvedValue(mockFileTree);
 
       const { result } = renderHook(() => useFileTreeStore());
@@ -141,7 +142,7 @@ describe('useFileTreeStore', () => {
     });
 
     it('should set file tree after loading', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
+      vi.mocked(ipc.invoke);
       ipc.invoke.mockResolvedValue(mockFileTree);
 
       const { result } = renderHook(() => useFileTreeStore());
@@ -157,7 +158,7 @@ describe('useFileTreeStore', () => {
     });
 
     it('should set root path', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
+      vi.mocked(ipc.invoke);
       ipc.invoke.mockResolvedValue(mockFileTree);
 
       const { result } = renderHook(() => useFileTreeStore());
@@ -172,7 +173,7 @@ describe('useFileTreeStore', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
+      vi.mocked(ipc.invoke);
       ipc.invoke.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => useFileTreeStore());
@@ -265,7 +266,7 @@ describe('useFileTreeStore', () => {
 
   describe('warmGitIgnoreCache', () => {
     it('should populate gitignore cache', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
+      vi.mocked(ipc.invoke);
       ipc.invoke.mockResolvedValue(true); // File is ignored
 
       const { result } = renderHook(() => useFileTreeStore());
@@ -281,7 +282,7 @@ describe('useFileTreeStore', () => {
     });
 
     it('should handle directories recursively', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
+      vi.mocked(ipc.invoke);
       ipc.invoke.mockResolvedValue(false);
 
       const { result } = renderHook(() => useFileTreeStore());
@@ -326,7 +327,7 @@ describe('useFileTreeStore', () => {
 
   describe('Error handling', () => {
     it('should clear error on successful load', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
+      vi.mocked(ipc.invoke);
       const { result } = renderHook(() => useFileTreeStore());
 
       // First load fails

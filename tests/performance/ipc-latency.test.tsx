@@ -252,8 +252,16 @@ describe('IPC Latency Performance Benchmarks', () => {
       view[i] = Math.floor(Math.random() * 256);
     }
 
+    // Convert to base64 in chunks to avoid stack overflow
+    let binaryString = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < view.length; i += chunkSize) {
+      const chunk = view.slice(i, i + chunkSize);
+      binaryString += String.fromCharCode(...chunk);
+    }
+
     mockInvoke.mockResolvedValueOnce({
-      content: btoa(String.fromCharCode(...view)), // Base64 encode
+      content: btoa(binaryString), // Base64 encode
       encoding: 'base64',
     });
 

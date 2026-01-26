@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
+import { ipc } from '@renderer/ipc/client';
+import { toast } from 'sonner';
 
 // Mock IPC
-vi.mock('../../renderer/ipc/client', () => ({
+vi.mock('@renderer/ipc/client', () => ({
   ipc: {
     invoke: vi.fn(),
     on: vi.fn(() => vi.fn()),
@@ -47,8 +49,7 @@ describe('useCodeEditorStore', () => {
 
   describe('openFile', () => {
     it('should open a TypeScript file with monaco viewer', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -68,8 +69,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should open an image file with image viewer', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue('');
+      vi.mocked(ipc.invoke).mockResolvedValue('');
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -85,8 +85,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should open a PDF file with pdf viewer', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue('');
+      vi.mocked(ipc.invoke).mockResolvedValue('');
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -102,8 +101,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should open unknown file with unsupported viewer', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue('');
+      vi.mocked(ipc.invoke).mockResolvedValue('');
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -119,8 +117,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should switch to already open file', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -144,9 +141,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should handle file read errors', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      const { toast } = require('sonner');
-      ipc.invoke.mockRejectedValue(new Error('File not found'));
+      vi.mocked(ipc.invoke).mockRejectedValue(new Error('File not found'));
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -155,7 +150,7 @@ describe('useCodeEditorStore', () => {
       });
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('Failed to open file');
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to open file');
         expect(result.current.loading).toBe(false);
       });
     });
@@ -163,8 +158,7 @@ describe('useCodeEditorStore', () => {
 
   describe('closeFile', () => {
     it('should close a file without modifications', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -187,8 +181,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should switch to next file after closing active file', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -215,8 +208,7 @@ describe('useCodeEditorStore', () => {
 
   describe('closeAllFiles', () => {
     it('should close all files', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -244,8 +236,7 @@ describe('useCodeEditorStore', () => {
 
   describe('closeOtherFiles', () => {
     it('should close all files except specified one', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -273,8 +264,7 @@ describe('useCodeEditorStore', () => {
 
   describe('switchToTab', () => {
     it('should switch active file', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -299,8 +289,7 @@ describe('useCodeEditorStore', () => {
 
   describe('updateContent', () => {
     it('should update file content and mark as modified', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -326,8 +315,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should not mark as modified if content unchanged', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -353,9 +341,7 @@ describe('useCodeEditorStore', () => {
 
   describe('saveFile', () => {
     it('should save modified file', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      const { toast } = require('sonner');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -374,14 +360,14 @@ describe('useCodeEditorStore', () => {
       });
 
       // Save file
-      ipc.invoke.mockResolvedValue(undefined);
+      vi.mocked(ipc.invoke).mockResolvedValue(undefined);
       await act(async () => {
         await result.current.saveFile('/repo/test.ts');
       });
 
       await waitFor(() => {
-        expect(ipc.invoke).toHaveBeenCalledWith('fs:write-file', '/repo/test.ts', newContent);
-        expect(toast.success).toHaveBeenCalledWith('File saved successfully');
+        expect(vi.mocked(ipc.invoke)).toHaveBeenCalledWith('fs:write-file', '/repo/test.ts', newContent);
+        expect(vi.mocked(toast.success)).toHaveBeenCalledWith('File saved successfully');
         const file = result.current.openFiles.get('/repo/test.ts');
         expect(file?.isModified).toBe(false);
         expect(result.current.modifiedFiles.has('/repo/test.ts')).toBe(false);
@@ -389,9 +375,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should handle save errors', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      const { toast } = require('sonner');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -409,22 +393,20 @@ describe('useCodeEditorStore', () => {
       });
 
       // Fail to save
-      ipc.invoke.mockRejectedValue(new Error('Permission denied'));
+      vi.mocked(ipc.invoke).mockRejectedValue(new Error('Permission denied'));
       await act(async () => {
         await result.current.saveFile('/repo/test.ts');
       });
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('Failed to save file');
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to save file');
       });
     });
   });
 
   describe('saveAllFiles', () => {
     it('should save all modified files', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      const { toast } = require('sonner');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -446,22 +428,21 @@ describe('useCodeEditorStore', () => {
       expect(result.current.modifiedFiles.size).toBe(2);
 
       // Save all
-      ipc.invoke.mockResolvedValue(undefined);
+      vi.mocked(ipc.invoke).mockResolvedValue(undefined);
       await act(async () => {
         await result.current.saveAllFiles();
       });
 
       await waitFor(() => {
         expect(result.current.modifiedFiles.size).toBe(0);
-        expect(toast.success).toHaveBeenCalledWith('All files saved successfully');
+        expect(vi.mocked(toast.success)).toHaveBeenCalledWith('All files saved successfully');
       });
     });
   });
 
   describe('reloadFile', () => {
     it('should reload file content from disk', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -481,7 +462,7 @@ describe('useCodeEditorStore', () => {
 
       // Reload from disk
       const updatedContent = '// Updated from disk';
-      ipc.invoke.mockResolvedValue(updatedContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(updatedContent);
       await act(async () => {
         await result.current.reloadFile('/repo/test.ts');
       });
@@ -496,8 +477,7 @@ describe('useCodeEditorStore', () => {
 
   describe('isModified', () => {
     it('should return true for modified files', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -517,8 +497,7 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should return false for unmodified files', async () => {
-      const { ipc } = require('../../renderer/ipc/client');
-      ipc.invoke.mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
 
       const { result } = renderHook(() => useCodeEditorStore());
 

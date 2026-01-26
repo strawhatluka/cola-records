@@ -33,9 +33,13 @@ const statusConfig = {
 export function GitStatusBadge({ status, className = '' }: GitStatusBadgeProps) {
   const config = statusConfig[status];
 
+  if (!config) {
+    return null;
+  }
+
   return (
     <div
-      className={`w-4 h-4 rounded-sm text-[10px] flex items-center justify-center font-bold leading-none ${className}`}
+      className={`w-4 h-4 rounded text-xs flex items-center justify-center font-bold leading-none ${className}`}
       style={{
         backgroundColor: config.color,
         color: config.textColor,

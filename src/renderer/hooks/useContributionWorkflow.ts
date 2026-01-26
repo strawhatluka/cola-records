@@ -39,8 +39,8 @@ export function useContributionWorkflow() {
 
       // Step 2: Clone to local (50% progress)
       setState({ status: 'cloning', progress: 50, error: null, contribution: null });
-      const localPath = `${defaultClonePath}/${fork.name}`;
-      await ipc.invoke('git:clone', fork.url, localPath);
+      const localPath = `${defaultClonePath}/${fork?.name || 'repo'}`;
+      await ipc.invoke('git:clone', fork?.url || '', localPath);
 
       // Step 3: Setup remotes (75% progress)
       setState({ status: 'setting_up_remotes', progress: 75, error: null, contribution: null });
@@ -55,7 +55,7 @@ export function useContributionWorkflow() {
 
       // Step 5: Save to database (100% progress)
       const contribution = await createContribution({
-        repositoryUrl: fork.url,
+        repositoryUrl: fork?.url || '',
         localPath,
         issueNumber: issue.number,
         issueTitle: issue.title,

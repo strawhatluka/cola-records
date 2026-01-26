@@ -31,6 +31,7 @@ describe('GitPanel - Comprehensive Tests', () => {
   });
 
   it('should show git status summary', async () => {
+    const user = userEvent.setup();
     mockInvoke.mockResolvedValueOnce({
       current: 'main',
       tracking: 'origin/main',
@@ -45,6 +46,14 @@ describe('GitPanel - Comprehensive Tests', () => {
     });
 
     render(<GitPanel repoPath="/test/repo" />);
+
+    // Wait for branch button and click to open dropdown
+    await waitFor(() => {
+      expect(screen.getByText('main')).toBeInTheDocument();
+    });
+
+    const branchButton = screen.getByRole('button', { name: /main/i });
+    await user.click(branchButton);
 
     await waitFor(() => {
       expect(screen.getByText(/2.*modified/i)).toBeInTheDocument();
@@ -61,6 +70,14 @@ describe('GitPanel - Comprehensive Tests', () => {
     });
 
     render(<GitPanel repoPath="/test/repo" />);
+
+    // Wait for branch button and click to open dropdown
+    await waitFor(() => {
+      expect(screen.getByText('main')).toBeInTheDocument();
+    });
+
+    const branchButton = screen.getByRole('button', { name: /main/i });
+    await user.click(branchButton);
 
     await waitFor(() => {
       const commitButton = screen.getByRole('button', { name: /commit/i });
@@ -86,6 +103,14 @@ describe('GitPanel - Comprehensive Tests', () => {
       .mockResolvedValueOnce(undefined); // git:commit
 
     render(<GitPanel repoPath="/test/repo" />);
+
+    // Wait for branch button and click to open dropdown
+    await waitFor(() => {
+      expect(screen.getByText('main')).toBeInTheDocument();
+    });
+
+    const branchButton = screen.getByRole('button', { name: /main/i });
+    await user.click(branchButton);
 
     // Open commit dialog
     await waitFor(() => {
@@ -129,6 +154,14 @@ describe('GitPanel - Comprehensive Tests', () => {
 
     render(<GitPanel repoPath="/test/repo" />);
 
+    // Wait for branch button and click to open dropdown
+    await waitFor(() => {
+      expect(screen.getByText('main')).toBeInTheDocument();
+    });
+
+    const branchButton = screen.getByRole('button', { name: /main/i });
+    await user.click(branchButton);
+
     await waitFor(() => {
       const pushButton = screen.getByRole('button', { name: /push/i });
       expect(pushButton).toBeInTheDocument();
@@ -158,6 +191,14 @@ describe('GitPanel - Comprehensive Tests', () => {
       .mockResolvedValueOnce(undefined); // git:pull
 
     render(<GitPanel repoPath="/test/repo" />);
+
+    // Wait for branch button and click to open dropdown
+    await waitFor(() => {
+      expect(screen.getByText('main')).toBeInTheDocument();
+    });
+
+    const branchButton = screen.getByRole('button', { name: /main/i });
+    await user.click(branchButton);
 
     await waitFor(() => {
       const pullButton = screen.getByRole('button', { name: /pull/i });
@@ -189,6 +230,14 @@ describe('GitPanel - Comprehensive Tests', () => {
       });
 
     render(<GitPanel repoPath="/test/repo" />);
+
+    // Wait for branch button and click to open dropdown
+    await waitFor(() => {
+      expect(screen.getByText('main')).toBeInTheDocument();
+    });
+
+    const branchButton = screen.getByRole('button', { name: /main/i });
+    await user.click(branchButton);
 
     await waitFor(() => {
       const refreshButton = screen.getByRole('button', { name: /refresh/i });

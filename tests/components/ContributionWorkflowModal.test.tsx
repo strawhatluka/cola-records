@@ -14,7 +14,7 @@ let mockState = {
   contribution: null as Contribution | null,
 };
 
-vi.mock('../../renderer/hooks/useContributionWorkflow', () => ({
+vi.mock('@renderer/hooks/useContributionWorkflow', () => ({
   useContributionWorkflow: () => ({
     state: mockState,
     startWorkflow: mockStartWorkflow,
