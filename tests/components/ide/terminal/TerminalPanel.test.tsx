@@ -309,7 +309,7 @@ describe('TerminalPanel', () => {
         expect(useTerminalStore.getState().sessions.size).toBe(1);
       });
 
-      const tab = screen.getByText('Terminal 1');
+      const tab = screen.getByRole('tab', { name: /Terminal 1/i });
       expect(tab.getAttribute('title')).toContain('/test/path');
     });
   });

@@ -25,19 +25,8 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Mock react-window
-vi.mock('react-window', () => ({
-  List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
-    const Inner = InnerElement || 'div';
-    return (
-      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
-        {Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
-          children({ index, style: {} })
-        )}
-      </Inner>
-    );
-  },
-}));
+// Note: react-window is mocked globally in tests/setup.ts to render all items
+// This ensures all file tree nodes are accessible for testing
 
 describe('FileTreePanel - Comprehensive Tests', () => {
   beforeEach(() => {

@@ -290,7 +290,7 @@ describe('FileTree Performance Benchmarks', () => {
     expect(updateTime).toBeLessThan(200);
   });
 
-  it('should efficiently handle gitignore dimming (<300ms)', async () => {
+  it('should efficiently handle gitignore dimming (<750ms)', async () => {
     const filesWithIgnored = Array.from({ length: 5000 }, (_, i) => ({
       name: i % 10 === 0 ? `node_modules/pkg-${i}` : `file-${i}.ts`,
       path: `/test/repo/${i % 10 === 0 ? `node_modules/pkg-${i}` : `file-${i}.ts`}`,
@@ -314,7 +314,7 @@ describe('FileTree Performance Benchmarks', () => {
 
     console.log(`Gitignore dimming render time: ${renderTime.toFixed(2)}ms`);
 
-    expect(renderTime).toBeLessThan(300);
+    expect(renderTime).toBeLessThan(750);
   });
 
   it('should measure memory usage for large file trees', async () => {

@@ -14,36 +14,40 @@ export function EditorTab({ file, isActive, onClose, onClick }: EditorTabProps) 
   const fileName = file.path.split(/[/\\]/).pop() || file.path;
 
   return (
-    <div
-      className={cn(
-        'flex items-center gap-2 px-3 py-2 border-r cursor-pointer hover:bg-accent text-sm select-none min-w-0 max-w-[200px] group',
-        isActive && 'bg-accent border-b-2 border-b-primary'
-      )}
-      onClick={onClick}
-      role="tab"
-      aria-selected={isActive}
-      tabIndex={0}
-    >
-      {/* File Icon */}
-      <FileIcon filename={fileName} type="file" />
+    <div className="group flex items-center border-r min-w-0 max-w-[200px]" role="group" aria-label={`${fileName} tab`}>
+      <button
+        className={cn(
+          'flex items-center gap-2 pl-3 pr-1 py-2 hover:bg-accent text-sm select-none',
+          isActive && 'bg-accent border-b-2 border-b-primary'
+        )}
+        onClick={onClick}
+        aria-pressed={isActive}
+        aria-label={fileName}
+      >
+        {/* File Icon */}
+        <FileIcon filename={fileName} type="file" />
 
-      {/* File Name */}
-      <span className="truncate flex-1 max-w-[200px]" title={file.path}>
-        {fileName}
-      </span>
+        {/* File Name */}
+        <span className="truncate max-w-[120px]" title={file.path}>
+          {fileName}
+        </span>
 
-      {/* Modified Indicator */}
-      {file.isModified && (
-        <div
-          className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"
-          title="Modified"
-          data-modified="true"
-        />
-      )}
+        {/* Modified Indicator */}
+        {file.isModified && (
+          <div
+            className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"
+            title="Modified"
+            data-modified="true"
+          />
+        )}
+      </button>
 
       {/* Close Button */}
       <button
-        className="ml-1 hover:bg-accent-foreground/10 rounded p-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        className={cn(
+          'p-1.5 hover:bg-accent-foreground/10 rounded flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity',
+          isActive && 'bg-accent opacity-100'
+        )}
         onClick={(e) => {
           e.stopPropagation();
           onClose();

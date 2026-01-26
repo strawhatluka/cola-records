@@ -138,22 +138,32 @@ describe('GitPanel - Comprehensive Tests', () => {
 
     await user.click(screen.getByRole('button', { name: /commit/i }));
 
-    // Wait for commit dialog to open
+    // Wait for commit dialog to open and files to be displayed
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/describe your changes/i)).toBeInTheDocument();
+      expect(screen.getByText('file1.ts')).toBeInTheDocument();
     });
 
     // Enter commit message
     const messageInput = screen.getByPlaceholderText(/describe your changes/i);
     await user.type(messageInput, 'Test commit');
 
-    // Select files
+    // Wait for file checkbox to be available and click it
+    await waitFor(() => {
+      expect(screen.getByRole('checkbox')).toBeInTheDocument();
+    });
     const checkbox = screen.getByRole('checkbox');
     await user.click(checkbox);
 
-    // Submit
-    const submitButton = screen.getAllByRole('button', { name: /commit/i })[1];
-    await user.click(submitButton);
+    // Wait for checkbox to be checked
+    await waitFor(() => {
+      expect(checkbox).toBeChecked();
+    });
+
+    // Find and click the commit button in the dialog footer
+    const buttons = screen.getAllByRole('button', { name: /commit/i });
+    const submitButton = buttons.find(btn => !btn.hasAttribute('aria-expanded'));
+    await user.click(submitButton!);
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith(

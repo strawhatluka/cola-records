@@ -11,7 +11,6 @@ export function EditorTabBar() {
   return (
     <div
       className="flex overflow-x-auto border-b bg-background scrollbar-thin"
-      role="tablist"
       aria-label="Open files"
     >
       {Array.from(openFiles.values()).map((file) => (

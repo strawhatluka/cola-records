@@ -176,12 +176,13 @@ describe('TerminalPanel - Comprehensive Tests', () => {
       expect(sessions.size).toBeGreaterThan(0);
     });
 
-    const { createSession, closeSession, sessions } =
+    const { createSession, closeSession } =
       useTerminalStore.getState();
 
     const sessionId = createSession('/test/repo');
 
-    const initialCount = sessions.size;
+    // Get the count AFTER creating the session
+    const initialCount = useTerminalStore.getState().sessions.size;
     closeSession(sessionId);
 
     await waitFor(() => {

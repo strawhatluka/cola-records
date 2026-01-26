@@ -7,19 +7,8 @@ import { useTerminalStore } from '@renderer/stores/useTerminalStore';
 import { useIDEStore } from '@renderer/stores/useIDEStore';
 import { useFileTreeStore } from '@renderer/stores/useFileTreeStore';
 
-// Mock react-window for virtualized list rendering
-vi.mock('react-window', () => ({
-  List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
-    const Inner = InnerElement || 'div';
-    return (
-      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
-        {Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
-          children({ index, style: {} })
-        )}
-      </Inner>
-    );
-  },
-}));
+// Note: react-window is mocked globally in tests/setup.ts to render all items
+// This ensures files beyond the first 10 are visible in tests
 
 const mockContribution = {
   id: 'test-contribution',
