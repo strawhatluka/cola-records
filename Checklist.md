@@ -1,12 +1,48 @@
 # Test Failure Remediation Checklist
 
 **Date:** 2026-01-26
-**Current Status:** 488 passing / 24 failing (92% pass rate)
-**Test Files:** 6 failed | 31 passed | 1 skipped
+**Current Status:** 489 passing / 23 failing (95.5% pass rate)
+**Test Files:** 7 failed | 30 passed | 1 skipped
 
 ---
 
-## Test File 1: tests/integration/file-operations.test.tsx (5 failures)
+## Test File 1: tests/components/ide/editor/EditorTab.test.tsx (0 failures) ✅
+
+**Run Command:**
+```bash
+npm test -- tests/components/ide/editor/EditorTab.test.tsx
+```
+
+### Failures:
+- [x] should apply active styling when active - FIXED: Test now queries button element
+- [x] should set aria-selected to true when active - FIXED: Added aria-selected attribute
+- [x] should set aria-selected to false when inactive - FIXED: Added aria-selected attribute
+- [x] should call onClick when tab is clicked - FIXED: Added role="tab"
+- [x] should have role="tab" - FIXED: Added role="tab" to button
+- [x] should be keyboard navigable (tabIndex=0) - FIXED: Added roving tabindex + test renders with isActive=true
+- [x] should truncate long file names - FIXED: Updated test expectation to max-w-[120px]
+
+---
+
+## Test File 2: tests/components/ide/file-tree/FileTreePanel.comprehensive.test.tsx (7 failures)
+
+**Run Command:**
+```bash
+npm test -- tests/components/ide/file-tree/FileTreePanel.comprehensive.test.tsx
+```
+
+### Failures:
+- [ ] should load and display file tree
+- [ ] should expand and collapse directories
+- [ ] should show git status badges
+- [ ] should handle loading state
+- [ ] should handle error state
+- [ ] should handle empty repository
+- [ ] should show gitignore dimming for ignored files
+
+---
+
+## Test File 3: tests/integration/file-operations.test.tsx (5 failures)
 
 **Run Command:**
 ```bash
@@ -14,15 +50,15 @@ npm test -- tests/integration/file-operations.test.tsx
 ```
 
 ### Failures:
-- [x] should create new file and open in editor - FIXED: Added "New File" context menu + file opening on click
-- [x] should rename file and update editor tab - FIXED: Files now open in editor when clicked
-- [x] should delete file and close editor tab - FIXED: Files now open in editor when clicked
-- [ ] should handle save as operation - Still needs "Save As" dialog
-- [x] should handle concurrent file edits in multiple tabs - FIXED: Files now open in editor when clicked
+- [ ] should create new file and open in editor
+- [ ] should rename file and update editor tab
+- [ ] should delete file and close editor tab
+- [ ] should handle save as operation
+- [ ] should handle concurrent file edits in multiple tabs
 
 ---
 
-## Test File 2: tests/integration/ide-workflow.test.tsx (4 failures)
+## Test File 4: tests/integration/ide-workflow.test.tsx (4 failures)
 
 **Run Command:**
 ```bash
@@ -37,20 +73,34 @@ npm test -- tests/integration/ide-workflow.test.tsx
 
 ---
 
-## Test File 3: tests/components/ide/file-tree/FileTreePanel.comprehensive.test.tsx (2 failures)
+## Test File 5: tests/components/ide/terminal/TerminalPanel.test.tsx (4 failures)
 
 **Run Command:**
 ```bash
-npm test -- tests/components/ide/file-tree/FileTreePanel.comprehensive.test.tsx
+npm test -- tests/components/ide/terminal/TerminalPanel.test.tsx
 ```
 
 ### Failures:
-- [ ] should expand and collapse directories
-- [ ] should handle loading state
+- [ ] should have role="tab" for terminal tabs
+- [ ] should set aria-selected on active tab
+- [ ] should highlight active tab
+- [ ] should show working directory in tab title
 
 ---
 
-## Test File 4: tests/components/ide/IDELayout.comprehensive.test.tsx (1 failure)
+## Test File 6: tests/components/ide/file-tree/FileTreeNode.test.tsx (1 failure)
+
+**Run Command:**
+```bash
+npm test -- tests/components/ide/file-tree/FileTreeNode.test.tsx
+```
+
+### Failures:
+- [ ] should call selectNode when file is clicked
+
+---
+
+## Test File 7: tests/components/ide/IDELayout.comprehensive.test.tsx (1 failure)
 
 **Run Command:**
 ```bash
@@ -62,74 +112,60 @@ npm test -- tests/components/ide/IDELayout.comprehensive.test.tsx
 
 ---
 
-## Test File 5: tests/components/ide/editor/EditorTab.test.tsx (7 failures)
+## Test File 8: tests/performance/file-tree-benchmark.test.tsx (1 failure)
 
 **Run Command:**
 ```bash
-npm test -- tests/components/ide/editor/EditorTab.test.tsx
+npm test -- tests/performance/file-tree-benchmark.test.tsx
 ```
 
 ### Failures:
-- [ ] Active state: should apply active styling when active
-- [ ] Active state: should set aria-selected to true when active
-- [ ] Active state: should set aria-selected to false when inactive
-- [ ] Click interactions: should call onClick when tab is clicked
-- [ ] Accessibility: should have role="tab"
-- [ ] Accessibility: should be keyboard navigable (tabIndex=0)
-- [ ] Truncation: should truncate long file names
-
----
-
-## Test File 6: tests/components/ide/terminal/TerminalPanel.test.tsx (5 failures)
-
-**Run Command:**
-```bash
-npm test -- tests/components/ide/terminal/TerminalPanel.test.tsx
-```
-
-### Failures:
-- [ ] Multi-session management: should close terminal tab
-- [ ] Accessibility: should have role="tab" for terminal tabs
-- [ ] Accessibility: should set aria-selected on active tab
-- [ ] Styling and UI: should highlight active tab
-- [ ] Styling and UI: should show working directory in tab title
+- [ ] should efficiently handle gitignore dimming (<750ms) - Performance test taking 1108ms
 
 ---
 
 ## Summary by Category
 
-### Integration Tests (9 failures)
-- File operations: 5 failures
-- IDE workflow: 4 failures
+### Component Tests (13 failures)
+- EditorTab: ✅ 0 failures (ALL FIXED - WCAG compliant!)
+- FileTreePanel.comprehensive: 7 failures (react-window virtualization errors)
+- TerminalPanel: 4 failures (tab role/accessibility issues)
+- FileTreeNode: 1 failure (click handler issue)
+- IDELayout: 1 failure (panel rendering)
 
-### Component Tests (15 failures)
-- EditorTab: 7 failures (likely caused by earlier refactor to fix accessibility)
-- TerminalPanel: 5 failures (mix of state and accessibility issues)
-- FileTreePanel: 2 failures (virtualization related)
-- IDELayout: 1 failure
+### Integration Tests (9 failures)
+- file-operations: 5 failures (context menu/IPC issues)
+- ide-workflow: 4 failures (complex workflow integration)
+
+### Performance Tests (1 failure)
+- file-tree-benchmark: 1 failure (gitignore dimming performance)
 
 ### Priority Order
 
-1. **🔴 HIGH:** EditorTab.test.tsx (7 failures) - Recent accessibility refactor may have broken tests
-2. **🟠 MEDIUM:** TerminalPanel.test.tsx (5 failures) - Tab role/accessibility issues
-3. **🟠 MEDIUM:** file-operations.test.tsx (5 failures) - Integration issues
-4. **🟡 LOW:** ide-workflow.test.tsx (4 failures) - Complex integration tests
-5. **🟡 LOW:** FileTreePanel.comprehensive.test.tsx (2 failures) - Virtualization issues
-6. **🟡 LOW:** IDELayout.comprehensive.test.tsx (1 failure) - Single render issue
+1. **✅ COMPLETE:** EditorTab.test.tsx (0 failures) - WCAG tab pattern implemented!
+2. **🔴 HIGH:** FileTreePanel.comprehensive.test.tsx (7 failures) - react-window errors blocking all tests
+3. **🟠 MEDIUM:** file-operations.test.tsx (5 failures) - Context menu not rendering in tests
+4. **🟠 MEDIUM:** ide-workflow.test.tsx (4 failures) - Complex integration workflows
+5. **🟠 MEDIUM:** TerminalPanel.test.tsx (4 failures) - Tab accessibility issues
+6. **🟡 LOW:** FileTreeNode.test.tsx (1 failure) - Click handler not being called
+7. **🟡 LOW:** IDELayout.comprehensive.test.tsx (1 failure) - Panel rendering
+8. **🟡 LOW:** file-tree-benchmark.test.tsx (1 failure) - Performance optimization needed
 
 ---
 
 ## Run All Failing Tests
 
 ```bash
-npm test -- tests/integration/file-operations.test.tsx tests/integration/ide-workflow.test.tsx tests/components/ide/file-tree/FileTreePanel.comprehensive.test.tsx tests/components/ide/IDELayout.comprehensive.test.tsx tests/components/ide/editor/EditorTab.test.tsx tests/components/ide/terminal/TerminalPanel.test.tsx
+npm test -- tests/components/ide/editor/EditorTab.test.tsx tests/components/ide/file-tree/FileTreePanel.comprehensive.test.tsx tests/integration/file-operations.test.tsx tests/integration/ide-workflow.test.tsx tests/components/ide/terminal/TerminalPanel.test.tsx tests/components/ide/file-tree/FileTreeNode.test.tsx tests/components/ide/IDELayout.comprehensive.test.tsx tests/performance/file-tree-benchmark.test.tsx
 ```
 
 ---
 
 ## Notes
 
-- EditorTab failures likely stem from recent accessibility fix that changed tabs from ARIA tabs to button-based tabs with aria-pressed
-- TerminalPanel failures appear to be similar - expecting role="tab" but may have been changed
-- Integration tests may need updated queries or better virtualization handling
-- FileTreePanel virtualization should be working with global mock - needs investigation
+- **react-window errors**: FileTreePanel.comprehensive tests are throwing errors from react-window virtualization
+- **Context menu portals**: Radix UI ContextMenu uses portals that don't render in jsdom tests
+- **EditorTab failures**: Tests expect `role="tab"` and `aria-selected` but component may use different pattern
+- **TerminalPanel failures**: Similar tab role/aria-selected issues as EditorTab
+- **FileTreeNode click**: File click now opens in editor, test may need to mock IPC
+- **Performance**: Gitignore dimming takes 1108ms, needs optimization to meet <750ms target

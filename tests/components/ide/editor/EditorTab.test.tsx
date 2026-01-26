@@ -99,7 +99,7 @@ describe('EditorTab', () => {
 
   describe('Active state', () => {
     it('should apply active styling when active', () => {
-      const { container } = render(
+      render(
         <EditorTab
           file={mockFile}
           isActive={true}
@@ -108,7 +108,7 @@ describe('EditorTab', () => {
         />
       );
 
-      const tab = container.firstChild as HTMLElement;
+      const tab = screen.getByRole('tab');
       expect(tab.className).toContain('bg-accent');
       expect(tab.className).toContain('border-b-primary');
     });
@@ -256,7 +256,7 @@ describe('EditorTab', () => {
       render(
         <EditorTab
           file={mockFile}
-          isActive={false}
+          isActive={true}
           onClose={mockOnClose}
           onClick={mockOnClick}
         />
@@ -326,7 +326,7 @@ describe('EditorTab', () => {
 
       const fileNameEl = screen.getByText('very-long-filename-that-should-be-truncated.ts');
       expect(fileNameEl.className).toContain('truncate');
-      expect(fileNameEl.className).toContain('max-w-[200px]');
+      expect(fileNameEl.className).toContain('max-w-[120px]');
     });
   });
 

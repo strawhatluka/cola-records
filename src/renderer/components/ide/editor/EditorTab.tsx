@@ -16,13 +16,15 @@ export function EditorTab({ file, isActive, onClose, onClick }: EditorTabProps) 
   return (
     <div className="group flex items-center border-r min-w-0 max-w-[200px]" role="group" aria-label={`${fileName} tab`}>
       <button
+        role="tab"
+        tabIndex={isActive ? 0 : -1}
+        aria-selected={isActive}
+        aria-label={fileName}
         className={cn(
           'flex items-center gap-2 pl-3 pr-1 py-2 hover:bg-accent text-sm select-none',
           isActive && 'bg-accent border-b-2 border-b-primary'
         )}
         onClick={onClick}
-        aria-pressed={isActive}
-        aria-label={fileName}
       >
         {/* File Icon */}
         <FileIcon filename={fileName} type="file" />

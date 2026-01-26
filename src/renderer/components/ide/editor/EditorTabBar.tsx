@@ -10,6 +10,7 @@ export function EditorTabBar() {
 
   return (
     <div
+      role="tablist"
       className="flex overflow-x-auto border-b bg-background scrollbar-thin"
       aria-label="Open files"
     >
