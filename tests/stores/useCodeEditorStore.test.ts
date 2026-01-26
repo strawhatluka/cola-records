@@ -528,7 +528,10 @@ describe('useCodeEditorStore', () => {
 
       // Reload from disk
       const updatedContent = '// Updated from disk';
-      vi.mocked(ipc.invoke).mockResolvedValue(updatedContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        content: updatedContent,
+        encoding: 'utf-8',
+      });
       await act(async () => {
         await result.current.reloadFile('/repo/test.ts');
       });

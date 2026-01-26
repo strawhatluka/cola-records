@@ -32,6 +32,18 @@ describe('Monaco Editor Performance Benchmarks', () => {
     });
   });
   it('should load Monaco editor initially in under 500ms', async () => {
+    // Open a file first so Monaco editor loads
+    mockInvoke.mockResolvedValueOnce({
+      content: 'const test = 1;',
+      encoding: 'utf-8',
+    });
+
+    useCodeEditorStore.getState().openFile('/test/file.ts');
+
+    await waitFor(() => {
+      expect(useCodeEditorStore.getState().activeFilePath).toBe('/test/file.ts');
+    });
+
     const startTime = performance.now();
 
     render(<CodeEditorPanel />);
@@ -50,13 +62,6 @@ describe('Monaco Editor Performance Benchmarks', () => {
   });
 
   it('should open subsequent files in under 100ms', async () => {
-    // Render editor first
-    render(<CodeEditorPanel />);
-
-    await waitFor(() => {
-      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
-    });
-
     // Open first file to warm up
     mockInvoke.mockResolvedValueOnce({
       content: 'const warmup = true;',
@@ -65,6 +70,17 @@ describe('Monaco Editor Performance Benchmarks', () => {
 
     const { openFile } = useCodeEditorStore.getState();
     await openFile('/test/repo/warmup.ts');
+
+    await waitFor(() => {
+      expect(useCodeEditorStore.getState().activeFilePath).toBe('/test/repo/warmup.ts');
+    });
+
+    // Render editor first
+    render(<CodeEditorPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
+    });
 
     // Measure subsequent file opens
     const fileTimes: number[] = [];
@@ -98,12 +114,6 @@ describe('Monaco Editor Performance Benchmarks', () => {
   });
 
   it('should handle large file (1MB) in under 1000ms', async () => {
-    render(<CodeEditorPanel />);
-
-    await waitFor(() => {
-      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
-    });
-
     // Generate 1MB file content
     const generateLargeContent = (sizeInMB: number) => {
       const bytesPerMB = 1024 * 1024;
@@ -136,6 +146,13 @@ describe('Monaco Editor Performance Benchmarks', () => {
       );
     });
 
+    // Render editor after file is opened
+    render(<CodeEditorPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
+    });
+
     const endTime = performance.now();
     const loadTime = endTime - startTime;
 
@@ -146,12 +163,6 @@ describe('Monaco Editor Performance Benchmarks', () => {
   });
 
   it('should handle rapid file switching (<50ms per switch)', async () => {
-    render(<CodeEditorPanel />);
-
-    await waitFor(() => {
-      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
-    });
-
     // Open multiple files first
     const fileCount = 5;
     for (let i = 0; i < fileCount; i++) {
@@ -162,6 +173,13 @@ describe('Monaco Editor Performance Benchmarks', () => {
 
       await useCodeEditorStore.getState().openFile(`/test/repo/file${i}.ts`);
     }
+
+    // Render editor after files are opened
+    render(<CodeEditorPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
+    });
 
     // Measure switching between already-open files
     const { switchToTab } = useCodeEditorStore.getState();
@@ -192,12 +210,6 @@ describe('Monaco Editor Performance Benchmarks', () => {
   });
 
   it('should handle syntax highlighting for large files efficiently', async () => {
-    render(<CodeEditorPanel />);
-
-    await waitFor(() => {
-      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
-    });
-
     // Generate TypeScript file with complex syntax
     const generateComplexTS = (lines: number) => {
       let content = 'import { Component } from "react";\n\n';
@@ -252,12 +264,6 @@ export class Class${i} implements Interface${i} {
   });
 
   it('should maintain responsive typing with IntelliSense (<100ms latency)', async () => {
-    render(<CodeEditorPanel />);
-
-    await waitFor(() => {
-      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
-    });
-
     mockInvoke.mockResolvedValueOnce({
       content: 'const test = ',
       encoding: 'utf-8',
@@ -265,6 +271,17 @@ export class Class${i} implements Interface${i} {
 
     const { openFile, updateContent } = useCodeEditorStore.getState();
     await openFile('/test/repo/test.ts');
+
+    await waitFor(() => {
+      expect(useCodeEditorStore.getState().activeFilePath).toBe('/test/repo/test.ts');
+    });
+
+    // Render editor after file is opened
+    render(<CodeEditorPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
+    });
 
     // Measure typing latency
     const keyPressTimes: number[] = [];
@@ -293,12 +310,6 @@ export class Class${i} implements Interface${i} {
   });
 
   it('should efficiently handle multiple tabs (10+ open files)', async () => {
-    render(<CodeEditorPanel />);
-
-    await waitFor(() => {
-      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
-    });
-
     const fileCount = 15;
 
     // Open 15 files
@@ -312,6 +323,13 @@ export class Class${i} implements Interface${i} {
 
       await useCodeEditorStore.getState().openFile(`/test/repo/file${i}.ts`);
     }
+
+    // Render editor after files are opened
+    render(<CodeEditorPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
+    });
 
     const endTime = performance.now();
     const totalTime = endTime - startTime;
@@ -344,6 +362,17 @@ export class Class${i} implements Interface${i} {
 
     const { openFile, updateContent, saveFile } = useCodeEditorStore.getState();
     await openFile('/test/repo/test.ts');
+
+    await waitFor(() => {
+      expect(useCodeEditorStore.getState().activeFilePath).toBe('/test/repo/test.ts');
+    });
+
+    // Render editor after file is opened
+    render(<CodeEditorPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.monaco-editor')).toBeInTheDocument();
+    });
 
     updateContent('/test/repo/test.ts', 'const updated = 2;');
 

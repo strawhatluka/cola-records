@@ -57,7 +57,7 @@ describe('FileTreePanel - Comprehensive Tests', () => {
       },
     ]);
 
-    // const { container } = render(<FileTreePanel repoPath="/test/repo" />);
+    render(<FileTreePanel repoPath="/test/repo" />);
 
     await waitFor(() => {
       expect(screen.getByText('src')).toBeInTheDocument();

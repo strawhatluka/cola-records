@@ -23,12 +23,16 @@ interface FlattenedNode {
 function flattenTree(nodes: FileNode[], expandedPaths: Set<string>, depth = 0): FlattenedNode[] {
   const flattened: FlattenedNode[] = [];
 
+  if (!nodes || !Array.isArray(nodes)) {
+    return flattened;
+  }
+
   for (const node of nodes) {
     // Add current node
     flattened.push({ node, depth });
 
     // Add children if directory is expanded
-    if (node.type === 'directory' && node.children && expandedPaths.has(node.path)) {
+    if (node.type === 'directory' && node.children && Array.isArray(node.children) && expandedPaths.has(node.path)) {
       flattened.push(...flattenTree(node.children, expandedPaths, depth + 1));
     }
   }
@@ -114,6 +118,9 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
 
   // Flatten tree for virtualization
   const flattenedNodes = useMemo(() => {
+    if (!fileTree || !Array.isArray(fileTree)) {
+      return [];
+    }
     return flattenTree(fileTree, expandedPaths);
   }, [fileTree, expandedPaths]);
 
@@ -153,6 +160,13 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
     return <FileTreeNode key={node.path} node={node} depth={depth} style={style} />;
   };
 
+  // Custom inner element that doesn't use role="list"
+  const InnerElement = ({ children, ...rest }: any) => (
+    <div {...rest} role="group" data-testid="virtualized-list" data-row-count={flattenedNodes.length}>
+      {children}
+    </div>
+  );
+
   // Virtualized tree
   return (
     <div className="h-full border-r" role="tree" aria-label="File explorer">
@@ -163,6 +177,7 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
         rowComponent={Row}
         rowProps={{} as any}
         className="scrollbar-thin"
+        innerElementType={InnerElement}
       />
     </div>
   );

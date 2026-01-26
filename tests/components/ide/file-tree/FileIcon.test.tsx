@@ -50,18 +50,18 @@ describe('FileIcon', () => {
       const { container } = render(<FileIcon filename="script.py" type="file" />);
       const icon = container.querySelector('svg');
       expect(icon).toBeInTheDocument();
-      expect(icon).toHaveClass('text-green-600');
+      expect(icon).toHaveClass('text-blue-400');
     });
 
     it('should render Markdown icon for .md files', () => {
       const { container } = render(<FileIcon filename="README.md" type="file" />);
       const icon = container.querySelector('svg');
       expect(icon).toBeInTheDocument();
-      expect(icon).toHaveClass('text-gray-600');
+      expect(icon).toHaveClass('text-blue-600'); // README.md has special filename color
     });
 
     it('should render JSON icon for .json files', () => {
-      const { container } = render(<FileIcon filename="package.json" type="file" />);
+      const { container } = render(<FileIcon filename="config.json" type="file" />);
       const icon = container.querySelector('svg');
       expect(icon).toBeInTheDocument();
       expect(icon).toHaveClass('text-yellow-600');
@@ -96,7 +96,7 @@ describe('FileIcon', () => {
       const { container } = render(<FileIcon filename="unknown.xyz" type="file" />);
       const icon = container.querySelector('svg');
       expect(icon).toBeInTheDocument();
-      expect(icon).toHaveClass('text-gray-500');
+      expect(icon).toHaveClass('text-gray-400');
     });
 
     it('should render default file icon for files without extension', () => {

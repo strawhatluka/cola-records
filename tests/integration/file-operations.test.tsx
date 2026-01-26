@@ -340,6 +340,13 @@ describe('File Operations - Integration Tests', () => {
     const file2Node = screen.getByText('file2.ts');
     await user.click(file2Node);
 
+    // Wait for files to be opened
+    await waitFor(() => {
+      const { openFiles } = useCodeEditorStore.getState();
+      expect(openFiles.has('/test/repo/file1.ts')).toBe(true);
+      expect(openFiles.has('/test/repo/file2.ts')).toBe(true);
+    });
+
     // Edit file1
     const { updateContent } = useCodeEditorStore.getState();
     updateContent('/test/repo/file1.ts', 'const file1 = 10;');

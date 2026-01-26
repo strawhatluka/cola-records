@@ -143,8 +143,11 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
       )}
       onClick={handleClick}
       role="treeitem"
+      aria-label={node.name}
       aria-selected={isSelected}
       aria-expanded={isDirectory ? isExpanded : undefined}
+      data-ignored={node.isGitIgnored ? 'true' : undefined}
+      tabIndex={0}
     >
       {/* Chevron for directories */}
       {isDirectory ? (
