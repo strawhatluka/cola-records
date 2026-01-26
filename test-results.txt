@@ -1,0 +1,1208 @@
+
+> cola-records@1.0.0 test
+> vitest tests/integration/terminal-execution.test.tsx
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/lukaf/Desktop/Dev Work/cola-records[39m
+
+[90mstdout[2m | tests/integration/terminal-execution.test.tsx[2m > [22m[2mTerminal Execution - Integration Tests[2m > [22m[2mshould execute command and capture output
+[22m[39m[createSession] Called with cwd: /test/repo sessionId: 2e618d41-eb69-4d79-9013-efaad67ddbbf
+[createSession] Current state.sessions.size: [33m0[39m
+[createSession] isFirstSession: [33mtrue[39m
+[createSession] After adding, newSessions.size: [33m1[39m
+[createSession] Returning newState with activeSessionId: 2e618d41-eb69-4d79-9013-efaad67ddbbf
+[createSession] After set(), current state.sessions.size: [33m1[39m
+[createSession] After set(), current state.activeSessionId: 2e618d41-eb69-4d79-9013-efaad67ddbbf
+
+[90mstdout[2m | tests/integration/terminal-execution.test.tsx[2m > [22m[2mTerminal Execution - Integration Tests[2m > [22m[2mshould handle long-running process with streaming output
+[22m[39m[createSession] Called with cwd: /test/repo sessionId: 0318c4d4-692f-4d5b-812b-0a1d65bf8ddf
+[createSession] Current state.sessions.size: [33m0[39m
+[createSession] isFirstSession: [33mtrue[39m
+[createSession] After adding, newSessions.size: [33m1[39m
+[createSession] Returning newState with activeSessionId: 0318c4d4-692f-4d5b-812b-0a1d65bf8ddf
+[createSession] After set(), current state.sessions.size: [33m1[39m
+[createSession] After set(), current state.activeSessionId: 0318c4d4-692f-4d5b-812b-0a1d65bf8ddf
+
+[90mstdout[2m | tests/integration/terminal-execution.test.tsx[2m > [22m[2mTerminal Execution - Integration Tests[2m > [22m[2mshould handle command with error output
+[22m[39m[createSession] Called with cwd: /test/repo sessionId: 609dd64d-bde5-41f6-b63c-5ba62d96f9c0
+[createSession] Current state.sessions.size: [33m0[39m
+[createSession] isFirstSession: [33mtrue[39m
+[createSession] After adding, newSessions.size: [33m1[39m
+[createSession] Returning newState with activeSessionId: 609dd64d-bde5-41f6-b63c-5ba62d96f9c0
+[createSession] After set(), current state.sessions.size: [33m1[39m
+[createSession] After set(), current state.activeSessionId: 609dd64d-bde5-41f6-b63c-5ba62d96f9c0
+
+[90mstdout[2m | tests/integration/terminal-execution.test.tsx[2m > [22m[2mTerminal Execution - Integration Tests[2m > [22m[2mshould handle interactive prompts (y/n)
+[22m[39m[createSession] Called with cwd: /test/repo sessionId: 87c37e46-9ee6-4663-b2cf-af15d713fe70
+[createSession] Current state.sessions.size: [33m0[39m
+[createSession] isFirstSession: [33mtrue[39m
+[createSession] After adding, newSessions.size: [33m1[39m
+[createSession] Returning newState with activeSessionId: 87c37e46-9ee6-4663-b2cf-af15d713fe70
+[createSession] After set(), current state.sessions.size: [33m1[39m
+[createSession] After set(), current state.activeSessionId: 87c37e46-9ee6-4663-b2cf-af15d713fe70
+
+[90mstdout[2m | tests/integration/terminal-execution.test.tsx[2m > [22m[2mTerminal Execution - Integration Tests[2m > [22m[2mshould handle Ctrl+C to cancel running process
+[22m[39m[createSession] Called with cwd: /test/repo sessionId: 40e0bf4a-f474-46d5-bd07-8316502dd3d8
+[createSession] Current state.sessions.size: [33m0[39m
+[createSession] isFirstSession: [33mtrue[39m
+[createSession] After adding, newSessions.size: [33m1[39m
+[createSession] Returning newState with activeSessionId: 40e0bf4a-f474-46d5-bd07-8316502dd3d8
+[createSession] After set(), current state.sessions.size: [33m1[39m
+[createSession] After set(), current state.activeSessionId: 40e0bf4a-f474-46d5-bd07-8316502dd3d8
+
+[90mstdout[2m | tests/integration/terminal-execution.test.tsx[2m > [22m[2mTerminal Execution - Integration Tests[2m > [22m[2mshould handle directory navigation commands
+[22m[39m[createSession] Called with cwd: /test/repo sessionId: 801f61e2-d30c-4d05-98b5-b21ed6783e8f
+[createSession] Current state.sessions.size: [33m0[39m
+[createSession] isFirstSession: [33mtrue[39m
+[createSession] After adding, newSessions.size: [33m1[39m
+[createSession] Returning newState with activeSessionId: 801f61e2-d30c-4d05-98b5-b21ed6783e8f
+[createSession] After set(), current state.sessions.size: [33m1[39m
+[createSession] After set(), current state.activeSessionId: 801f61e2-d30c-4d05-98b5-b21ed6783e8f
+
+[90mstdout[2m | tests/integration/terminal-execution.test.tsx[2m > [22m[2mTerminal Execution - Integration Tests[2m > [22m[2mshould preserve command history and allow navigation
+[22m[39m[createSession] Called with cwd: /test/repo sessionId: 73a8b92f-1239-4c37-8375-43aa67a73c87
+[createSession] Current state.sessions.size: [33m0[39m
+[createSession] isFirstSession: [33mtrue[39m
+[createSession] After adding, newSessions.size: [33m1[39m
+[createSession] Returning newState with activeSessionId: 73a8b92f-1239-4c37-8375-43aa67a73c87
+[createSession] After set(), current state.sessions.size: [33m1[39m
+[createSession] After set(), current state.activeSessionId: 73a8b92f-1239-4c37-8375-43aa67a73c87
+
+[90mstdout[2m | tests/integration/terminal-execution.test.tsx[2m > [22m[2mTerminal Execution - Integration Tests[2m > [22m[2mshould handle tab completion
+[22m[39m[createSession] Called with cwd: /test/repo sessionId: afc23328-8341-414d-b0ba-a7939d530ed1
+[createSession] Current state.sessions.size: [33m0[39m
+[createSession] isFirstSession: [33mtrue[39m
+[createSession] After adding, newSessions.size: [33m1[39m
+[createSession] Returning newState with activeSessionId: afc23328-8341-414d-b0ba-a7939d530ed1
+[createSession] After set(), current state.sessions.size: [33m1[39m
+[createSession] After set(), current state.activeSessionId: afc23328-8341-414d-b0ba-a7939d530ed1
+
+ [31m❯[39m tests/integration/terminal-execution.test.tsx [2m([22m[2m8 tests[22m[2m | [22m[31m6 failed[39m[2m)[22m[33m 17458[2mms[22m[39m
+[31m     [31m×[31m should execute command and capture output[39m[33m 2832[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle long-running process with streaming output [33m 1772[2mms[22m[39m
+[31m     [31m×[31m should handle command with error output[39m[33m 1625[2mms[22m[39m
+[31m     [31m×[31m should handle interactive prompts (y/n)[39m[33m 2189[2mms[22m[39m
+[31m     [31m×[31m should handle Ctrl+C to cancel running process[39m[33m 3125[2mms[22m[39m
+     [33m[2m✓[22m[39m should handle directory navigation commands [33m 1701[2mms[22m[39m
+[31m     [31m×[31m should preserve command history and allow navigation[39m[33m 2350[2mms[22m[39m
+[31m     [31m×[31m should handle tab completion[39m[33m 1860[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 6 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/integration/terminal-execution.test.tsx[2m > [22mTerminal Execution - Integration Tests[2m > [22mshould execute command and capture output
+[31m[1mAssertionError[22m[39m: expected "vi.fn()" to be called with arguments: [ 'terminal:input', …(2) ][90m
+
+Received: 
+
+[1m  1st vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:spawn",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "/test/repo",[90m
+[2m  ][22m
+
+[1m  2nd vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "n",[90m
+[2m  ][22m
+
+[1m  3rd vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "p",[90m
+[2m  ][22m
+
+[1m  4th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "m",[90m
+[2m  ][22m
+
+[1m  5th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   " ",[90m
+[2m  ][22m
+
+[1m  6th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "t",[90m
+[2m  ][22m
+
+[1m  7th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "e",[90m
+[2m  ][22m
+
+[1m  8th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "s",[90m
+[2m  ][22m
+
+[1m  9th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "t",[90m
+[2m  ][22m
+
+[1m  10th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "2e618d41-eb69-4d79-9013-efaad67ddbbf",[22m
+[32m-   "npm test[90m
+[32m- ",[90m
+[31m+   "",[90m
+[2m  ][22m
+[39m[90m
+
+Number of calls: [1m10[22m
+[39m
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col h-full bg-background"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-1 px-2 py-1 border-b border-border bg-muted/20"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Terminal sessions"[39m
+            [33mclass[39m=[32m"flex-1 flex items-center gap-1 overflow-x-auto"[39m
+            [33mrole[39m=[32m"tablist"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-selected[39m=[32m"true"[39m
+              [33mclass[39m=[32m"
+                group flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer
+                transition-colors duration-150
+                bg-accent text-foreground
+              "[39m
+              [33mrole[39m=[32m"tab"[39m
+              [33mtabindex[39m=[32m"0"[39m
+              [33mtitle[39m=[32m"/test/repo"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-sm font-medium truncate max-w-[120px]"[39m
+              [36m>[39m
+                [0mTerminal [0m
+                [0m1[0m
+              [36m</span>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Close terminal 1"[39m
+                [33mclass[39m=[32m"
+                  p-0.5 rounded hover:bg-destructive/20
+                  transition-opacity duration-150
+                  opacity-100
+                "[39m
+                [33mtitle[39m=[32m"Close terminal"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M6 18L18 6M6 6l12 12"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<button[39m
+            [33maria-label[39m=[32m"New terminal"[39m
+            [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 shrink-0"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-variant[39m=[32m"ghost"[39m
+            [33mtitle[39m=[32m"New terminal (Ctrl+Shift+`)"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 4v16m8-8H4"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</button>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex-1 flex flex-col overflow-hidden"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-3 py-2 border-b border-border bg-background"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Clear terminal"[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-variant[39m=[32m"ghost"[39m
+              [33mtitle[39m=[32m"Clear terminal (Ctrl+L)"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-4 h-4"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1.5"[39m
+              [36m>[39m
+                [0mClear[0m
+              [36m</span>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Restart terminal"[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-variant[39m=[32m"ghost"[39m
+              [33mtitle[39m=[32m"Restart terminal"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-4 h-4"...
+[36m [2m❯[22m tests/integration/terminal-execution.test.tsx:[2m53:26[22m[39m
+    [90m 51| [39m
+    [90m 52| [39m    [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m 53| [39m      [34mexpect[39m(mockInvoke)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                         [31m^[39m
+    [90m 54| [39m        [32m'terminal:input'[39m[33m,[39m
+    [90m 55| [39m        sessionId[33m,[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/integration/terminal-execution.test.tsx[2m > [22mTerminal Execution - Integration Tests[2m > [22mshould handle command with error output
+[31m[1mAssertionError[22m: expected 0 to be greater than 0[39m
+[36m [2m❯[22m tests/integration/terminal-execution.test.tsx:[2m195:31[22m[39m
+    [90m193| [39m    [90m// Verify error styling applied[39m
+    [90m194| [39m    [35mconst[39m errorLines [33m=[39m container[33m.[39m[34mquerySelectorAll[39m([32m'.terminal-error'[39m)[33m;[39m
+    [90m195| [39m    [34mexpect[39m(errorLines[33m.[39mlength)[33m.[39m[34mtoBeGreaterThan[39m([34m0[39m)[33m;[39m
+    [90m   | [39m                              [31m^[39m
+    [90m196| [39m  })[33m;[39m
+    [90m197| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/integration/terminal-execution.test.tsx[2m > [22mTerminal Execution - Integration Tests[2m > [22mshould handle interactive prompts (y/n)
+[31m[1mAssertionError[22m[39m: expected "vi.fn()" to be called with arguments: [ 'terminal:input', …(2) ][90m
+
+Received: 
+
+[1m  1st vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:spawn",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "/test/repo",[90m
+[2m  ][22m
+
+[1m  2nd vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "n",[90m
+[2m  ][22m
+
+[1m  3rd vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "p",[90m
+[2m  ][22m
+
+[1m  4th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "m",[90m
+[2m  ][22m
+
+[1m  5th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   " ",[90m
+[2m  ][22m
+
+[1m  6th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "i",[90m
+[2m  ][22m
+
+[1m  7th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "n",[90m
+[2m  ][22m
+
+[1m  8th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "i",[90m
+[2m  ][22m
+
+[1m  9th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "t",[90m
+[2m  ][22m
+
+[1m  10th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "",[90m
+[2m  ][22m
+
+[1m  11th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "y",[90m
+[2m  ][22m
+
+[1m  12th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "e",[90m
+[2m  ][22m
+
+[1m  13th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "s",[90m
+[2m  ][22m
+
+[1m  14th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:input",[90m
+[31m+   "terminal:write",[90m
+[2m    "87c37e46-9ee6-4663-b2cf-af15d713fe70",[22m
+[32m-   "yes[90m
+[32m- ",[90m
+[31m+   "",[90m
+[2m  ][22m
+[39m[90m
+
+Number of calls: [1m14[22m
+[39m
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col h-full bg-background"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-1 px-2 py-1 border-b border-border bg-muted/20"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Terminal sessions"[39m
+            [33mclass[39m=[32m"flex-1 flex items-center gap-1 overflow-x-auto"[39m
+            [33mrole[39m=[32m"tablist"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-selected[39m=[32m"true"[39m
+              [33mclass[39m=[32m"
+                group flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer
+                transition-colors duration-150
+                bg-accent text-foreground
+              "[39m
+              [33mrole[39m=[32m"tab"[39m
+              [33mtabindex[39m=[32m"0"[39m
+              [33mtitle[39m=[32m"/test/repo"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-sm font-medium truncate max-w-[120px]"[39m
+              [36m>[39m
+                [0mTerminal [0m
+                [0m1[0m
+              [36m</span>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Close terminal 1"[39m
+                [33mclass[39m=[32m"
+                  p-0.5 rounded hover:bg-destructive/20
+                  transition-opacity duration-150
+                  opacity-100
+                "[39m
+                [33mtitle[39m=[32m"Close terminal"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M6 18L18 6M6 6l12 12"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<button[39m
+            [33maria-label[39m=[32m"New terminal"[39m
+            [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 shrink-0"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-variant[39m=[32m"ghost"[39m
+            [33mtitle[39m=[32m"New terminal (Ctrl+Shift+`)"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 4v16m8-8H4"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</button>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex-1 flex flex-col overflow-hidden"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-3 py-2 border-b border-border bg-background"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Clear terminal"[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-variant[39m=[32m"ghost"[39m
+              [33mtitle[39m=[32m"Clear terminal (Ctrl+L)"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-4 h-4"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1.5"[39m
+              [36m>[39m
+                [0mClear[0m
+              [36m</span>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Restart terminal"[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-variant[39m=[32m"ghost"[39m
+              [33mtitle[39m=[32m"Restart terminal"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-4 h-4"...
+[36m [2m❯[22m tests/integration/terminal-execution.test.tsx:[2m243:26[22m[39m
+    [90m241| [39m
+    [90m242| [39m    [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m243| [39m      [34mexpect[39m(mockInvoke)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                         [31m^[39m
+    [90m244| [39m        [32m'terminal:input'[39m[33m,[39m
+    [90m245| [39m        sessionId[33m,[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/integration/terminal-execution.test.tsx[2m > [22mTerminal Execution - Integration Tests[2m > [22mshould handle Ctrl+C to cancel running process
+[31m[1mAssertionError[22m[39m: expected "vi.fn()" to be called with arguments: [ 'terminal:kill', …(1) ][90m
+
+Received: 
+
+[1m  1st vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:spawn",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "/test/repo",[90m
+[2m  ][22m
+
+[1m  2nd vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "n",[90m
+[2m  ][22m
+
+[1m  3rd vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "p",[90m
+[2m  ][22m
+
+[1m  4th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "m",[90m
+[2m  ][22m
+
+[1m  5th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   " ",[90m
+[2m  ][22m
+
+[1m  6th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "r",[90m
+[2m  ][22m
+
+[1m  7th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "u",[90m
+[2m  ][22m
+
+[1m  8th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "n",[90m
+[2m  ][22m
+
+[1m  9th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   " ",[90m
+[2m  ][22m
+
+[1m  10th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "d",[90m
+[2m  ][22m
+
+[1m  11th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "e",[90m
+[2m  ][22m
+
+[1m  12th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "v",[90m
+[2m  ][22m
+
+[1m  13th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:kill",[90m
+[31m+   "terminal:write",[90m
+[2m    "40e0bf4a-f474-46d5-bd07-8316502dd3d8",[22m
+[31m+   "",[90m
+[2m  ][22m
+[39m[90m
+
+Number of calls: [1m13[22m
+[39m
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col h-full bg-background"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-1 px-2 py-1 border-b border-border bg-muted/20"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Terminal sessions"[39m
+            [33mclass[39m=[32m"flex-1 flex items-center gap-1 overflow-x-auto"[39m
+            [33mrole[39m=[32m"tablist"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-selected[39m=[32m"true"[39m
+              [33mclass[39m=[32m"
+                group flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer
+                transition-colors duration-150
+                bg-accent text-foreground
+              "[39m
+              [33mrole[39m=[32m"tab"[39m
+              [33mtabindex[39m=[32m"0"[39m
+              [33mtitle[39m=[32m"/test/repo"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-sm font-medium truncate max-w-[120px]"[39m
+              [36m>[39m
+                [0mTerminal [0m
+                [0m1[0m
+              [36m</span>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Close terminal 1"[39m
+                [33mclass[39m=[32m"
+                  p-0.5 rounded hover:bg-destructive/20
+                  transition-opacity duration-150
+                  opacity-100
+                "[39m
+                [33mtitle[39m=[32m"Close terminal"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M6 18L18 6M6 6l12 12"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<button[39m
+            [33maria-label[39m=[32m"New terminal"[39m
+            [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 shrink-0"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-variant[39m=[32m"ghost"[39m
+            [33mtitle[39m=[32m"New terminal (Ctrl+Shift+`)"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 4v16m8-8H4"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</button>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex-1 flex flex-col overflow-hidden"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-3 py-2 border-b border-border bg-background"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Clear terminal"[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-variant[39m=[32m"ghost"[39m
+              [33mtitle[39m=[32m"Clear terminal (Ctrl+L)"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-4 h-4"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1.5"[39m
+              [36m>[39m
+                [0mClear[0m
+              [36m</span>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Restart terminal"[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-variant[39m=[32m"ghost"[39m
+              [33mtitle[39m=[32m"Restart terminal"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-4 h-4"...
+[36m [2m❯[22m tests/integration/terminal-execution.test.tsx:[2m291:26[22m[39m
+    [90m289| [39m
+    [90m290| [39m    [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m291| [39m      expect(mockInvoke).toHaveBeenCalledWith('terminal:kill', session…
+    [90m   | [39m                         [31m^[39m
+    [90m292| [39m    })[33m;[39m
+    [90m293| [39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/integration/terminal-execution.test.tsx[2m > [22mTerminal Execution - Integration Tests[2m > [22mshould preserve command history and allow navigation
+[31m[1mError[22m: [2mexpect([22m[31melement[31m[2m).toHaveValue([22m[32mgit status[31m[2m)[22m
+
+Expected the element to have value:
+[32m  git status[31m
+Received:
+[31m  npm test
+  npm run build
+  git status
+[31m[39m
+[36m [2m❯[22m tests/integration/terminal-execution.test.tsx:[2m388:27[22m[39m
+    [90m386| [39m    [35mawait[39m user[33m.[39m[34mkeyboard[39m([32m'{ArrowUp}'[39m)[33m;[39m
+    [90m387| [39m
+    [90m388| [39m    [34mexpect[39m(terminalInput)[33m.[39m[34mtoHaveValue[39m([32m'git status'[39m)[33m;[39m
+    [90m   | [39m                          [31m^[39m
+    [90m389| [39m
+    [90m390| [39m    [35mawait[39m user[33m.[39m[34mkeyboard[39m([32m'{ArrowUp}'[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/integration/terminal-execution.test.tsx[2m > [22mTerminal Execution - Integration Tests[2m > [22mshould handle tab completion
+[31m[1mAssertionError[22m[39m: expected "vi.fn()" to be called with arguments: [ 'terminal:autocomplete', …(2) ][90m
+
+Received: 
+
+[1m  1st vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:autocomplete",[90m
+[31m+   "terminal:spawn",[90m
+[2m    "afc23328-8341-414d-b0ba-a7939d530ed1",[22m
+[32m-   "npm ru",[90m
+[31m+   "/test/repo",[90m
+[2m  ][22m
+
+[1m  2nd vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:autocomplete",[90m
+[31m+   "terminal:write",[90m
+[2m    "afc23328-8341-414d-b0ba-a7939d530ed1",[22m
+[32m-   "npm ru",[90m
+[31m+   "n",[90m
+[2m  ][22m
+
+[1m  3rd vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:autocomplete",[90m
+[31m+   "terminal:write",[90m
+[2m    "afc23328-8341-414d-b0ba-a7939d530ed1",[22m
+[32m-   "npm ru",[90m
+[31m+   "p",[90m
+[2m  ][22m
+
+[1m  4th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:autocomplete",[90m
+[31m+   "terminal:write",[90m
+[2m    "afc23328-8341-414d-b0ba-a7939d530ed1",[22m
+[32m-   "npm ru",[90m
+[31m+   "m",[90m
+[2m  ][22m
+
+[1m  5th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:autocomplete",[90m
+[31m+   "terminal:write",[90m
+[2m    "afc23328-8341-414d-b0ba-a7939d530ed1",[22m
+[32m-   "npm ru",[90m
+[31m+   " ",[90m
+[2m  ][22m
+
+[1m  6th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:autocomplete",[90m
+[31m+   "terminal:write",[90m
+[2m    "afc23328-8341-414d-b0ba-a7939d530ed1",[22m
+[32m-   "npm ru",[90m
+[31m+   "r",[90m
+[2m  ][22m
+
+[1m  7th vi.fn() call:
+
+[22m[2m  [[22m
+[32m-   "terminal:autocomplete",[90m
+[31m+   "terminal:write",[90m
+[2m    "afc23328-8341-414d-b0ba-a7939d530ed1",[22m
+[32m-   "npm ru",[90m
+[31m+   "u",[90m
+[2m  ][22m
+[39m[90m
+
+Number of calls: [1m7[22m
+[39m
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col h-full bg-background"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-1 px-2 py-1 border-b border-border bg-muted/20"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"Terminal sessions"[39m
+            [33mclass[39m=[32m"flex-1 flex items-center gap-1 overflow-x-auto"[39m
+            [33mrole[39m=[32m"tablist"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-selected[39m=[32m"true"[39m
+              [33mclass[39m=[32m"
+                group flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer
+                transition-colors duration-150
+                bg-accent text-foreground
+              "[39m
+              [33mrole[39m=[32m"tab"[39m
+              [33mtabindex[39m=[32m"0"[39m
+              [33mtitle[39m=[32m"/test/repo"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-sm font-medium truncate max-w-[120px]"[39m
+              [36m>[39m
+                [0mTerminal [0m
+                [0m1[0m
+              [36m</span>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Close terminal 1"[39m
+                [33mclass[39m=[32m"
+                  p-0.5 rounded hover:bg-destructive/20
+                  transition-opacity duration-150
+                  opacity-100
+                "[39m
+                [33mtitle[39m=[32m"Close terminal"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M6 18L18 6M6 6l12 12"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<button[39m
+            [33maria-label[39m=[32m"New terminal"[39m
+            [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 shrink-0"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-variant[39m=[32m"ghost"[39m
+            [33mtitle[39m=[32m"New terminal (Ctrl+Shift+`)"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 4v16m8-8H4"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</button>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex-1 flex flex-col overflow-hidden"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-3 py-2 border-b border-border bg-background"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Clear terminal"[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-variant[39m=[32m"ghost"[39m
+              [33mtitle[39m=[32m"Clear terminal (Ctrl+L)"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-4 h-4"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1.5"[39m
+              [36m>[39m
+                [0mClear[0m
+              [36m</span>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Restart terminal"[39m
+              [33mclass[39m=[32m"inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-variant[39m=[32m"ghost"[39m
+              [33mtitle[39m=[32m"Restart terminal"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"w-4 h-4"...
+[36m [2m❯[22m tests/integration/terminal-execution.test.tsx:[2m427:26[22m[39m
+    [90m425| [39m
+    [90m426| [39m    [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m427| [39m      [34mexpect[39m(mockInvoke)[33m.[39m[34mtoHaveBeenCalledWith[39m(
+    [90m   | [39m                         [31m^[39m
+    [90m428| [39m        [32m'terminal:autocomplete'[39m[33m,[39m
+    [90m429| [39m        sessionId[33m,[39m
+[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
+[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
+[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 11:05:08
+[2m   Duration [22m 20.89s[2m (transform 317ms, setup 268ms, import 828ms, tests 17.46s, environment 1.94s)[22m
+

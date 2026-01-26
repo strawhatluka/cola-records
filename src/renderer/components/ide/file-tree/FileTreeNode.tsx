@@ -131,6 +131,7 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
   };
 
   // Merge custom styles with default styles
+  // Custom styles come AFTER defaults to ensure they take precedence
   const nodeStyle: React.CSSProperties = {
     paddingLeft: `${depth * 16 + 8}px`,
     opacity: node.isGitIgnored ? 0.4 : 1,
@@ -178,7 +179,7 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger>{nodeContent}</ContextMenuTrigger>
+        <ContextMenuTrigger asChild>{nodeContent}</ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem onClick={handleRename}>
             <Edit className="h-4 w-4 mr-2" />

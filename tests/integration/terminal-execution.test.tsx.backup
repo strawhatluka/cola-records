@@ -26,16 +26,15 @@ describe('Terminal Execution - Integration Tests', () => {
   it('should execute command and capture output', async () => {
     const user = userEvent.setup();
 
-    // Mock terminal session creation (IPC signature: sessionId, cwd)
-    mockInvoke.mockResolvedValueOnce(undefined);
+    // Mock terminal session creation
+    mockInvoke.mockResolvedValueOnce('session-123');
 
     const { container } = render(<TerminalPanel defaultCwd="/test/repo" />);
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith(
         'terminal:spawn',
-        expect.any(String), // sessionId (UUID)
-        '/test/repo' // cwd
+        expect.objectContaining({ cwd: '/test/repo' })
       );
     });
 
@@ -91,8 +90,7 @@ describe('Terminal Execution - Integration Tests', () => {
   it('should handle long-running process with streaming output', async () => {
     const user = userEvent.setup();
 
-    // Mock terminal session creation (IPC signature: sessionId, cwd)
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvoke.mockResolvedValueOnce('session-456');
 
     const { container } = render(<TerminalPanel defaultCwd="/test/repo" />);
 
@@ -143,8 +141,7 @@ describe('Terminal Execution - Integration Tests', () => {
   it('should handle command with error output', async () => {
     const user = userEvent.setup();
 
-    // Mock terminal session creation (IPC signature: sessionId, cwd)
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvoke.mockResolvedValueOnce('session-789');
 
     const { container } = render(<TerminalPanel defaultCwd="/test/repo" />);
 
@@ -198,8 +195,7 @@ describe('Terminal Execution - Integration Tests', () => {
   it('should handle interactive prompts (y/n)', async () => {
     const user = userEvent.setup();
 
-    // Mock terminal session creation (IPC signature: sessionId, cwd)
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvoke.mockResolvedValueOnce('session-abc');
 
     const { container } = render(<TerminalPanel defaultCwd="/test/repo" />);
 
@@ -251,8 +247,7 @@ describe('Terminal Execution - Integration Tests', () => {
   it('should handle Ctrl+C to cancel running process', async () => {
     const user = userEvent.setup();
 
-    // Mock terminal session creation (IPC signature: sessionId, cwd)
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvoke.mockResolvedValueOnce('session-def');
 
     const { container } = render(<TerminalPanel defaultCwd="/test/repo" />);
 
@@ -312,8 +307,7 @@ describe('Terminal Execution - Integration Tests', () => {
   it('should handle directory navigation commands', async () => {
     const user = userEvent.setup();
 
-    // Mock terminal session creation (IPC signature: sessionId, cwd)
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvoke.mockResolvedValueOnce('session-ghi');
 
     const { container } = render(<TerminalPanel defaultCwd="/test/repo" />);
 
@@ -362,8 +356,7 @@ describe('Terminal Execution - Integration Tests', () => {
   it('should preserve command history and allow navigation', async () => {
     const user = userEvent.setup();
 
-    // Mock terminal session creation (IPC signature: sessionId, cwd)
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvoke.mockResolvedValueOnce('session-jkl');
 
     render(<TerminalPanel defaultCwd="/test/repo" />);
 
@@ -404,8 +397,7 @@ describe('Terminal Execution - Integration Tests', () => {
   it('should handle tab completion', async () => {
     const user = userEvent.setup();
 
-    // Mock terminal session creation (IPC signature: sessionId, cwd)
-    mockInvoke.mockResolvedValueOnce(undefined);
+    mockInvoke.mockResolvedValueOnce('session-mno');
 
     render(<TerminalPanel defaultCwd="/test/repo" />);
 

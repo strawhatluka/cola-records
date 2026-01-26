@@ -5,7 +5,7 @@ import { useTerminalStore } from '@renderer/stores/useTerminalStore';
 
 // Mock IPC - using vi.hoisted() to avoid TDZ violations
 const { mockInvoke, mockOn } = vi.hoisted(() => ({
-  mockInvoke: vi.fn(),
+  mockInvoke: vi.fn().mockResolvedValue(undefined),
   mockOn: vi.fn(() => () => {}),
 }));
 

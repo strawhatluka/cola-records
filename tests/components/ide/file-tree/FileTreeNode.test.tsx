@@ -26,6 +26,15 @@ vi.mock('sonner', () => ({
   },
 }));
 
+// Mock ContextMenu components to passthrough children
+vi.mock('@renderer/components/ui/ContextMenu', () => ({
+  ContextMenu: ({ children }: any) => children,
+  ContextMenuTrigger: ({ children, asChild }: any) => children,
+  ContextMenuContent: () => null,
+  ContextMenuItem: () => null,
+  ContextMenuSeparator: () => null,
+}));
+
 describe('FileTreeNode', () => {
   const mockToggleNode = vi.fn();
   const mockSelectNode = vi.fn();
@@ -83,7 +92,10 @@ describe('FileTreeNode', () => {
       const { container } = render(<FileTreeNode node={fileNode} depth={0} style={customStyle} />);
       const treeItem = container.querySelector('[role="treeitem"]');
       // Check that the custom style is applied along with default inline styles
-      expect(treeItem).toHaveStyle({ backgroundColor: 'red', paddingLeft: '8px' });
+      // Test using getAttribute instead of toHaveStyle
+      const styleAttr = treeItem?.getAttribute("style");
+      expect(styleAttr).toContain("background-color: red");
+      expect(styleAttr).toContain("padding-left: 8px");
     });
   });
 
