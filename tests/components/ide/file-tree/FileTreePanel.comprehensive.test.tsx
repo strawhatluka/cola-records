@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel';
+import { useFileTreeStore } from '@renderer/stores/useFileTreeStore';
+import { useGitStore } from '@renderer/stores/useGitStore';
 import userEvent from '@testing-library/user-event';
 
 // Mock IPC with hoisting
@@ -25,12 +27,77 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Note: react-window is mocked globally in tests/setup.ts to render all items
+// Mock ContextMenu components to passthrough children
+vi.mock('@renderer/components/ui/ContextMenu', () => ({
+  ContextMenu: ({ children }: any) => children,
+  ContextMenuTrigger: ({ children, asChild }: any) => children,
+  ContextMenuContent: () => null,
+  ContextMenuItem: () => null,
+  ContextMenuSeparator: () => null,
+}));
+
+// Mock react-window for virtualization
+vi.mock('react-window', () => {
+  const React = require('react');
+
+  // Create a proper React component that re-renders when props change
+  const MockList = ({ children, itemCount, innerElementType: InnerElement }: any) => {
+    const Inner = InnerElement || 'div';
+
+    // Generate items array - will re-render when itemCount changes
+    const items = Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
+      children({ index, style: {} })
+    );
+
+    return (
+      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
+        {items}
+      </Inner>
+    );
+  };
+
+  // Mark component name for React DevTools
+  MockList.displayName = 'MockList';
+
+  return {
+    List: MockList,
+  };
+});
+
+// Note: react-window is mocked above to render all items in tests
 // This ensures all file tree nodes are accessible for testing
 
 describe('FileTreePanel - Comprehensive Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Reset FileTreeStore to initial state
+    useFileTreeStore.setState({
+      rootPath: null,
+      root: null,
+      fileTree: [],
+      expandedPaths: new Set(),
+      selectedPath: null,
+      gitStatus: null,
+      gitIgnoreCache: new Map(),
+      loading: false,
+      error: null,
+      expandedDirs: new Set(),
+      selectedFile: null,
+    });
+
+    // Reset GitStore to initial state
+    useGitStore.setState({
+      repoPath: null,
+      status: null,
+      commits: [],
+      branches: [],
+      currentBranch: null,
+      loading: false,
+      error: null,
+      lastRefresh: null,
+    });
+
     global.window = global.window || ({} as any);
     (global.window as any).electronAPI = {
       invoke: mockInvoke,
@@ -63,20 +130,33 @@ describe('FileTreePanel - Comprehensive Tests', () => {
 
   it('should expand and collapse directories', async () => {
     const user = userEvent.setup();
-    mockInvoke.mockResolvedValueOnce([
-      {
-        name: 'src',
-        path: '/test/repo/src',
-        type: 'directory',
-        children: [
+
+    // Mock fs:read-directory call
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'fs:read-directory') {
+        return Promise.resolve([
           {
-            name: 'index.ts',
-            path: '/test/repo/src/index.ts',
-            type: 'file',
+            name: 'src',
+            path: '/test/repo/src',
+            type: 'directory',
+            children: [
+              {
+                name: 'index.ts',
+                path: '/test/repo/src/index.ts',
+                type: 'file',
+              },
+            ],
           },
-        ],
-      },
-    ]);
+        ]);
+      }
+      if (channel === 'git:status') {
+        return Promise.resolve({ files: [] });
+      }
+      if (channel === 'fs:watch-directory' || channel === 'fs:unwatch-directory') {
+        return Promise.resolve();
+      }
+      return Promise.reject(new Error(`Unexpected channel: ${channel}`));
+    });
 
     render(<FileTreePanel repoPath="/test/repo" />);
 

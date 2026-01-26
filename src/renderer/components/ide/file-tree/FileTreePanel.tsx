@@ -174,6 +174,7 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
   return (
     <div className="h-full border-r" role="tree" aria-label="File explorer">
       <List
+        key={`${flattenedNodes.length}-${expandedPaths.size}`}
         height={height}
         width="100%"
         itemCount={flattenedNodes.length}
