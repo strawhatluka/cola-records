@@ -3,9 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { TerminalPanel } from '@renderer/components/ide/terminal/TerminalPanel';
 import { useTerminalStore } from '@renderer/stores/useTerminalStore';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
+// Mock IPC - using vi.hoisted() to avoid TDZ violations
+const { mockInvoke, mockOn } = vi.hoisted(() => ({
+  mockInvoke: vi.fn(),
+  mockOn: vi.fn(() => () => {}),
+}));
 
 vi.mock('@renderer/ipc/client', () => ({
   ipc: {

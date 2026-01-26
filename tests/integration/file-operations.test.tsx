@@ -5,13 +5,15 @@ import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel'
 import { CodeEditorPanel } from '@renderer/components/ide/editor/CodeEditorPanel';
 import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
 
-// Mock IPC
-const mockInvokeIPCIPC = vi.fn();
-const mockOnIPC = vi.fn(() => () => {});
+// Mock IPC - using vi.hoisted() to avoid TDZ violations
+const { mockInvokeIPC, mockOnIPC } = vi.hoisted(() => ({
+  mockInvokeIPC: vi.fn(),
+  mockOnIPC: vi.fn(() => () => {}),
+}));
 
 vi.mock('@renderer/ipc/client', () => ({
   ipc: {
-    invoke: mockInvokeIPCIPC,
+    invoke: mockInvokeIPC,
     on: mockOnIPC,
   },
 }));

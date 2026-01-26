@@ -57,10 +57,7 @@ describe('IDE Workflow - Complete Integration Tests', () => {
   it('should complete full workflow: load → edit → save → commit → push', async () => {
     const user = userEvent.setup();
 
-    // Mock fs:watch-directory (called first by FileTreePanel on mount)
-    mockInvoke.mockResolvedValueOnce(undefined);
-
-    // Mock file tree load (fs:read-directory)
+    // Mock file tree load
     mockInvoke.mockResolvedValueOnce([
       {
         name: 'src',
@@ -201,9 +198,6 @@ describe('IDE Workflow - Complete Integration Tests', () => {
   it('should handle concurrent file editing and terminal execution', async () => {
     const user = userEvent.setup();
 
-    // Mock fs:watch-directory (called first by FileTreePanel on mount)
-    mockInvoke.mockResolvedValueOnce(undefined);
-
     // Mock file tree and git status
     mockInvoke
       .mockResolvedValueOnce([
@@ -257,9 +251,6 @@ describe('IDE Workflow - Complete Integration Tests', () => {
   it('should handle panel resizing during active editing', async () => {
     const user = userEvent.setup();
 
-    // Mock fs:watch-directory (called first by FileTreePanel on mount)
-    mockInvoke.mockResolvedValueOnce(undefined);
-
     mockInvoke
       .mockResolvedValueOnce([
         { name: 'test.ts', path: '/test/repo/test.ts', type: 'file' },
@@ -297,9 +288,6 @@ describe('IDE Workflow - Complete Integration Tests', () => {
 
   it('should maintain state across panel focus changes', async () => {
     const user = userEvent.setup();
-
-    // Mock fs:watch-directory (called first by FileTreePanel on mount)
-    mockInvoke.mockResolvedValueOnce(undefined);
 
     mockInvoke
       .mockResolvedValueOnce([

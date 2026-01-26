@@ -4,9 +4,11 @@ import { GitPanel } from '@renderer/components/ide/git/GitPanel';
 import { useGitStore } from '@renderer/stores/useGitStore';
 import userEvent from '@testing-library/user-event';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
+// Mock IPC - using vi.hoisted() to avoid TDZ violations
+const { mockInvoke, mockOn } = vi.hoisted(() => ({
+  mockInvoke: vi.fn(),
+  mockOn: vi.fn(() => () => {}),
+}));
 
 vi.mock('@renderer/ipc/client', () => ({
   ipc: {

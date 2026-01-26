@@ -1,4 +1,5 @@
-import { Panel, Group, Separator } from 'react-resizable-panels';
+import { Panel, Separator } from 'react-resizable-panels';
+import { ResizablePanelGroup } from './ResizablePanelGroup';
 import { FileTreePanel } from './file-tree/FileTreePanel';
 import { CodeEditorPanel } from './editor/CodeEditorPanel';
 import { TerminalPanel } from './terminal/TerminalPanel';
@@ -25,7 +26,7 @@ export function IDELayout({ contribution, onNavigateBack }: IDELayoutProps) {
       <IDEAppBar contribution={contribution} onNavigateBack={onNavigateBack} />
 
       <main className="flex-1 overflow-hidden">
-        <Group
+        <ResizablePanelGroup
           orientation="horizontal"
           onLayoutChange={handleLayoutChange}
         >
@@ -45,7 +46,7 @@ export function IDELayout({ contribution, onNavigateBack }: IDELayoutProps) {
 
           {/* Editor + Terminal Panel (60-85%) */}
           <Panel defaultSize={panelSizes.main} id="main">
-            <Group orientation="vertical">
+            <ResizablePanelGroup orientation="vertical">
               {/* Code Editor (30-80%) */}
               <Panel
                 defaultSize={panelSizes.editor}
@@ -67,9 +68,9 @@ export function IDELayout({ contribution, onNavigateBack }: IDELayoutProps) {
               >
                 <TerminalPanel defaultCwd={contribution.localPath} />
               </Panel>
-            </Group>
+            </ResizablePanelGroup>
           </Panel>
-        </Group>
+        </ResizablePanelGroup>
       </main>
 
       <IDEStatusBar />
