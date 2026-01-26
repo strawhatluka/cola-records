@@ -135,11 +135,14 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
 
   // Error state
   if (error) {
+    const errorTitle = 'Failed to load file tree';
+    const showErrorMessage = error !== errorTitle;
+    
     return (
       <div className="h-full border-r p-4">
         <div className="text-sm text-destructive">
-          <p className="font-semibold">Failed to load file tree</p>
-          <p className="text-xs mt-1">{error}</p>
+          <p className="font-semibold">{errorTitle}</p>
+          {showErrorMessage && <p className="text-xs mt-1">{error}</p>}
         </div>
       </div>
     );

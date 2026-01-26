@@ -8,14 +8,17 @@ interface GitQuickActionsProps {
 }
 
 export function GitQuickActions({ repoPath, onCommit }: GitQuickActionsProps) {
-  const { push, pull, fetchStatus, loading } = useGitStore();
+  const { status, push, pull, fetchStatus, loading } = useGitStore();
   const [pushLoading, setPushLoading] = useState(false);
   const [pullLoading, setPullLoading] = useState(false);
 
   const handlePush = async () => {
     setPushLoading(true);
     try {
-      await push(repoPath);
+      // Get tracking branch info from status
+      const remote = status?.tracking?.split('/')[0] || 'origin';
+      const branch = status?.current || 'main';
+      await push(repoPath, remote, branch);
       // Success toast would go here
     } catch (error) {
       // Error toast would go here
@@ -28,7 +31,10 @@ export function GitQuickActions({ repoPath, onCommit }: GitQuickActionsProps) {
   const handlePull = async () => {
     setPullLoading(true);
     try {
-      await pull(repoPath);
+      // Get tracking branch info from status
+      const remote = status?.tracking?.split('/')[0] || 'origin';
+      const branch = status?.current || 'main';
+      await pull(repoPath, remote, branch);
       // Success toast would go here
     } catch (error) {
       // Error toast would go here

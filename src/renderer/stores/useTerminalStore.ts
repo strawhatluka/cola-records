@@ -30,28 +30,28 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
   createSession: (cwd: string) => {
     const sessionId = uuidv4();
-    const session: TerminalSession = {
-      id: sessionId,
-      cwd,
-      createdAt: new Date(),
-      isActive: false,
-    };
 
     set((state) => {
       const newSessions = new Map(state.sessions);
+
+      // Deactivate all existing sessions
+      newSessions.forEach((s) => {
+        s.isActive = false;
+      });
+
+      // Create new session as active
+      const session: TerminalSession = {
+        id: sessionId,
+        cwd,
+        createdAt: new Date(),
+        isActive: true,
+      };
+
       newSessions.set(sessionId, session);
-
-      // Set as active if it's the first session
-      const newActiveId = state.sessions.size === 0 ? sessionId : state.activeSessionId;
-
-      // Update isActive flags
-      if (newActiveId === sessionId) {
-        session.isActive = true;
-      }
 
       return {
         sessions: newSessions,
-        activeSessionId: newActiveId,
+        activeSessionId: sessionId,
       };
     });
 

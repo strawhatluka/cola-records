@@ -65,6 +65,15 @@ export function XTermWrapper({ sessionId, cwd, onResize }: XTermWrapperProps) {
 
     // Open terminal in container
     term.open(terminalRef.current);
+    
+    // Add accessibility attributes to terminal element
+    const terminalElement = terminalRef.current.querySelector(".xterm");
+    if (terminalElement) {
+      terminalElement.setAttribute("role", "log");
+      terminalElement.setAttribute("aria-live", "polite");
+      terminalElement.setAttribute("aria-label", "Terminal output");
+      terminalElement.classList.add("terminal");
+    }
 
     // Fit terminal to container
     fitAddon.fit();

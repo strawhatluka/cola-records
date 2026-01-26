@@ -41,7 +41,7 @@ export function TerminalPanel({ defaultCwd = process.cwd() }: TerminalPanelProps
     <div className="flex flex-col h-full bg-background">
       {/* Tab bar */}
       <div className="flex items-center gap-1 px-2 py-1 border-b border-border bg-muted/20">
-        <div className="flex-1 flex items-center gap-1 overflow-x-auto">
+        <div className="flex-1 flex items-center gap-1 overflow-x-auto" role="tablist" aria-label="Terminal sessions">
           {sessionArray.map((session) => (
             <div
               key={session.id}
@@ -58,6 +58,7 @@ export function TerminalPanel({ defaultCwd = process.cwd() }: TerminalPanelProps
               role="tab"
               aria-selected={session.isActive}
               tabIndex={0}
+              title={session.cwd}
             >
               <svg
                 className="w-3.5 h-3.5"
@@ -72,8 +73,7 @@ export function TerminalPanel({ defaultCwd = process.cwd() }: TerminalPanelProps
                   d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
-
-              <span className="text-sm font-medium truncate max-w-[120px]" title={session.cwd}>
+              <span className="text-sm font-medium truncate max-w-[120px]">
                 Terminal {sessionArray.indexOf(session) + 1}
               </span>
 
@@ -86,6 +86,7 @@ export function TerminalPanel({ defaultCwd = process.cwd() }: TerminalPanelProps
                 `}
                 title="Close terminal"
                 aria-label={`Close terminal ${sessionArray.indexOf(session) + 1}`}
+                tabIndex={-1}
               >
                 <svg
                   className="w-3.5 h-3.5"

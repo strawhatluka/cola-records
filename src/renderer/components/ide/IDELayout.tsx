@@ -24,7 +24,7 @@ export function IDELayout({ contribution, onNavigateBack }: IDELayoutProps) {
     <div className="flex flex-col h-screen">
       <IDEAppBar contribution={contribution} onNavigateBack={onNavigateBack} />
 
-      <div className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden">
         <Group
           orientation="horizontal"
           onLayoutChange={handleLayoutChange}
@@ -68,7 +68,7 @@ export function IDELayout({ contribution, onNavigateBack }: IDELayoutProps) {
             </Group>
           </Panel>
         </Group>
-      </div>
+      </main>
 
       <IDEStatusBar />
       <KeyboardShortcutsHelp />

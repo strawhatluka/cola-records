@@ -149,6 +149,7 @@ export const useGitStore = create<GitState>((set, get) => ({
     try {
       await ipc.invoke('git:push', path, remote, branch);
       await get().fetchStatus(path);
+      set({ loading: false });
     } catch (error) {
       set({ error: String(error), loading: false });
       throw error;
@@ -160,6 +161,7 @@ export const useGitStore = create<GitState>((set, get) => ({
     try {
       await ipc.invoke('git:pull', path, remote, branch);
       await get().fetchStatus(path);
+      set({ loading: false });
     } catch (error) {
       set({ error: String(error), loading: false });
       throw error;

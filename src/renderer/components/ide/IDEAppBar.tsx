@@ -70,6 +70,7 @@ export function IDEAppBar({ contribution, onNavigateBack }: IDEAppBarProps) {
           variant="ghost"
           size="sm"
           onClick={handleGoBack}
+          aria-label="Close IDE"
           className="gap-2"
         >
           <X className="h-4 w-4" />

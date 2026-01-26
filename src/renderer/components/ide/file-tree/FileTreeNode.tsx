@@ -130,17 +130,20 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
     }
   };
 
+  // Merge custom styles with default styles
+  const nodeStyle: React.CSSProperties = {
+    paddingLeft: `${depth * 16 + 8}px`,
+    opacity: node.isGitIgnored ? 0.4 : 1,
+    ...(style || {}),
+  };
+
   const nodeContent = (
     <div
       className={cn(
         'flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-accent text-sm select-none',
         isSelected && 'bg-accent'
       )}
-      style={{
-        paddingLeft: `${depth * 16 + 8}px`,
-        opacity: node.isGitIgnored ? 0.4 : 1,
-        ...style,
-      }}
+      style={nodeStyle}
       onClick={handleClick}
       role="treeitem"
       aria-label={node.name}

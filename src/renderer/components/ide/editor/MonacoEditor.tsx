@@ -138,13 +138,25 @@ function getLanguageFromExtension(filePath: string): string {
 
 export function MonacoEditor({ filePath, content, onChange }: MonacoEditorProps) {
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<typeof Monaco | null>(null);
   const language = getLanguageFromExtension(filePath);
 
   // Theme is handled by Monaco's default light/dark themes
   // You can extend this to sync with app theme
 
-  const handleEditorMount: OnMount = (editor, _monaco) => {
+  const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
+
+    // Performance optimization: Disable unused features for large files
+    const lineCount = content.split('\n').length;
+    if (lineCount > 1000) {
+      editor.updateOptions({
+        minimap: { enabled: false },
+        folding: false,
+        renderLineHighlight: 'none',
+      });
+    }
 
     // Focus editor
     editor.focus();
@@ -158,6 +170,30 @@ export function MonacoEditor({ filePath, content, onChange }: MonacoEditorProps)
       }
     };
   }, []);
+
+  // Update editor when filePath changes (switch files)
+  useEffect(() => {
+    if (editorRef.current && monacoRef.current) {
+      const editor = editorRef.current;
+      const monaco = monacoRef.current;
+
+      // Get existing model or create new one
+      const existingModel = monaco.editor.getModels().find(
+        model => model.uri.toString() === `file:///${filePath}`
+      );
+
+      if (existingModel) {
+        editor.setModel(existingModel);
+      } else {
+        const newModel = monaco.editor.createModel(
+          content,
+          language,
+          monaco.Uri.parse(`file:///${filePath}`)
+        );
+        editor.setModel(newModel);
+      }
+    }
+  }, [filePath, content, language]);
 
   return (
     <Editor
@@ -190,6 +226,10 @@ export function MonacoEditor({ filePath, content, onChange }: MonacoEditorProps)
         autoClosingBrackets: 'always',
         autoClosingQuotes: 'always',
         autoIndent: 'full',
+        // Performance optimizations
+        renderValidationDecorations: 'on',
+        smoothScrolling: false,
+        cursorSmoothCaretAnimation: 'off',
       }}
     />
   );

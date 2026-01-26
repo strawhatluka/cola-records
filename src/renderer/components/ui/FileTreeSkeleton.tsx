@@ -6,7 +6,7 @@ import { Skeleton } from './skeleton';
  */
 export function FileTreeSkeleton() {
   return (
-    <div className="p-4 space-y-2" aria-label="Loading file tree">
+    <div className="p-4 space-y-2" role="status" aria-label="Loading file tree">
       {/* Root directory */}
       <div className="flex items-center space-x-2">
         <Skeleton className="h-4 w-4" />
