@@ -18,43 +18,42 @@ const mockContribution = {
   updatedAt: new Date(),
 };
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-
-  // Reset all stores
-  useCodeEditorStore.setState({
-    openFiles: new Map(),
-    activeFilePath: null,
-    modifiedFiles: new Set(),
-    loading: false,
-  });
-
-  useTerminalStore.setState({
-    sessions: new Map(),
-    activeSessionId: null,
-  });
-
-  useIDEStore.setState({
-    panelSizes: {
-      fileTree: 25,
-      main: 75,
-      editor: 60,
-      terminal: 40,
-    },
-    focusedPanel: null,
-  });
-});
-
 describe('IDE Workflow - Complete Integration Tests', () => {
+  // Mock IPC
+  const mockInvoke = vi.fn();
+  const mockOn = vi.fn(() => () => {});
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+
+    // Reset all stores
+    useCodeEditorStore.setState({
+      openFiles: new Map(),
+      activeFilePath: null,
+      modifiedFiles: new Set(),
+      loading: false,
+    });
+
+    useTerminalStore.setState({
+      sessions: new Map(),
+      activeSessionId: null,
+    });
+
+    useIDEStore.setState({
+      panelSizes: {
+        fileTree: 25,
+        main: 75,
+        editor: 60,
+        terminal: 40,
+      },
+      focusedPanel: null,
+    });
+  });
   it('should complete full workflow: load → edit → save → commit → push', async () => {
     const user = userEvent.setup();
 

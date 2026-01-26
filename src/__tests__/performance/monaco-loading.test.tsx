@@ -3,27 +3,6 @@ import { render, waitFor } from '@testing-library/react';
 import { CodeEditorPanel } from '../../renderer/components/ide/editor/CodeEditorPanel';
 import { useCodeEditorStore } from '../../renderer/stores/useCodeEditorStore';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-
-  // Reset store
-  useCodeEditorStore.setState({
-    openFiles: new Map(),
-    activeFilePath: null,
-    
-    modifiedFiles: new Set(),
-  });
-});
-
 /**
  * Performance Benchmark: Monaco Editor Loading
  * Targets:
@@ -32,6 +11,26 @@ beforeEach(() => {
  * - Large file (1MB): <1000ms
  */
 describe('Monaco Editor Performance Benchmarks', () => {
+  // Mock IPC
+  const mockInvoke = vi.fn();
+  const mockOn = vi.fn(() => () => {});
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+
+    // Reset store
+    useCodeEditorStore.setState({
+      openFiles: new Map(),
+      activeFilePath: null,
+
+      modifiedFiles: new Set(),
+    });
+  });
   it('should load Monaco editor initially in under 500ms', async () => {
     const startTime = performance.now();
 

@@ -1,18 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-});
-
 /**
  * Performance Benchmark: IPC Latency
  * Target: <100ms for 1MB file operations
@@ -21,6 +8,18 @@ beforeEach(() => {
  * between renderer and main processes.
  */
 describe('IPC Latency Performance Benchmarks', () => {
+  // Mock IPC
+  const mockInvoke = vi.fn();
+  const mockOn = vi.fn(() => () => {});
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+  });
   it('should read 1MB file in under 100ms', async () => {
     // Generate 1MB file content
     const oneMB = 1024 * 1024;
@@ -135,10 +134,10 @@ describe('IPC Latency Performance Benchmarks', () => {
     });
 
     // Simulate streaming terminal output
-    const mockCall2 = mockCall;
-    const outputHandler = mockCall2?.[1] = mockOn.mock.calls.find(
+    const dataCall = mockOn.mock.calls.find(
       ([event]) => event === 'terminal:data'
-    )?);
+    );
+    const outputHandler = dataCall ? dataCall[1] : undefined;
 
     if (!outputHandler) {
       throw new Error('Terminal data handler not registered');
@@ -211,9 +210,10 @@ describe('IPC Latency Performance Benchmarks', () => {
       });
     });
 
-    const fileWatcherHandler = mockCall = mockOn.mock.calls.find(
+    const watcherCall = mockOn.mock.calls.find(
       ([event]) => event === 'fs:file-changed'
-    )?);
+    );
+    const fileWatcherHandler = watcherCall ? watcherCall[1] : undefined;
 
     if (!fileWatcherHandler) {
       throw new Error('File watcher handler not registered');

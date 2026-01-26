@@ -22,42 +22,6 @@ const mockContribution = {
   updatedAt: new Date(),
 };
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-
-  // Reset stores
-  useCodeEditorStore.setState({
-    openFiles: new Map(),
-    activeFilePath: null,
-    modifiedFiles: new Set(),
-    loading: false,
-  });
-
-  useTerminalStore.setState({
-    sessions: new Map(),
-    activeSessionId: null,
-  });
-
-  useIDEStore.setState({
-    panelSizes: {
-      fileTree: 25,
-      main: 75,
-      editor: 60,
-      terminal: 40,
-    },
-    focusedPanel: null,
-  });
-});
-
 /**
  * Accessibility Testing with axe-core
  * Target: WCAG 2.1 Level AA compliance
@@ -66,6 +30,41 @@ beforeEach(() => {
  * color contrast, and screen reader support.
  */
 describe('IDE Accessibility - WCAG 2.1 AA Compliance', () => {
+  // Mock IPC
+  const mockInvoke = vi.fn();
+  const mockOn = vi.fn(() => () => {});
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+
+    // Reset stores
+    useCodeEditorStore.setState({
+      openFiles: new Map(),
+      activeFilePath: null,
+      modifiedFiles: new Set(),
+      loading: false,
+    });
+
+    useTerminalStore.setState({
+      sessions: new Map(),
+      activeSessionId: null,
+    });
+
+    useIDEStore.setState({
+      panelSizes: {
+        fileTree: 25,
+        main: 75,
+        editor: 60,
+        terminal: 40,
+      },
+      focusedPanel: null,
+    });
+  });
   it('should have no axe violations in IDELayout', async () => {
     mockInvoke
       .mockResolvedValueOnce([]) // file tree

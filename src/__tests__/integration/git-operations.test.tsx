@@ -3,20 +3,19 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GitPanel } from '../../renderer/components/ide/git/GitPanel';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-});
-
 describe('Git Operations - Integration Tests', () => {
+  // Mock IPC
+  const mockInvoke = vi.fn();
+  const mockOn = vi.fn(() => () => {});
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+  });
   it('should handle complete commit workflow with staged files', async () => {
     const user = userEvent.setup();
 

@@ -1,24 +1,59 @@
+// Vitest setup file
 import '@testing-library/jest-dom';
 
-// Mock Electron modules
-global.window = global.window || {};
-(global.window as any).electronAPI = {
-  invoke: async (channel: string, ...args: any[]) => {
-    console.log('Mock IPC invoke:', channel, args);
-    return null;
-  },
-  send: (channel: string, ...args: any[]) => {
-    console.log('Mock IPC send:', channel, args);
-  },
-  on: (channel: string, _callback: (...args: any[]) => void) => {
-    console.log('Mock IPC on:', channel);
-    return () => {};
-  },
-};
+// Mock performance.memory for tests (browser-specific API)
+if (typeof performance !== 'undefined' && !(performance as any).memory) {
+  Object.defineProperty(performance, 'memory', {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return {
+        jsHeapSizeLimit: 2172649472,
+        totalJSHeapSize: 10000000,
+        usedJSHeapSize: 10000000,
+      };
+    },
+  });
+}
 
-(global.window as any).process = {
-  platform: 'win32',
-  env: {
-    NODE_ENV: 'test',
-  },
-};
+// Mock window.electronAPI for all tests
+global.window = global.window || ({} as any);
+
+// Mock DOMMatrix for react-pdf
+if (typeof DOMMatrix === 'undefined') {
+  (global as any).DOMMatrix = class DOMMatrix {
+    constructor() {}
+  };
+}
+
+// Mock Canvas for react-pdf
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = function() {
+    return {
+      fillRect: () => {},
+      clearRect: () => {},
+      getImageData: () => ({ data: [] }),
+      putImageData: () => {},
+      createImageData: () => ([]),
+      setTransform: () => {},
+      drawImage: () => {},
+      save: () => {},
+      fillText: () => {},
+      restore: () => {},
+      beginPath: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      closePath: () => {},
+      stroke: () => {},
+      translate: () => {},
+      scale: () => {},
+      rotate: () => {},
+      arc: () => {},
+      fill: () => {},
+      measureText: () => ({ width: 0 }),
+      transform: () => {},
+      rect: () => {},
+      clip: () => {},
+    } as any;
+  };
+}

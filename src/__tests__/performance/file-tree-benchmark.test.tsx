@@ -2,19 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { FileTreePanel } from '../../renderer/components/ide/file-tree/FileTreePanel';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-});
-
 /**
  * Performance Benchmark: File Tree Rendering
  * Target: <3.5 seconds for 10,000+ files
@@ -23,6 +10,18 @@ beforeEach(() => {
  * large directory structures using virtualization.
  */
 describe('FileTree Performance Benchmarks', () => {
+  // Mock IPC
+  const mockInvoke = vi.fn();
+  const mockOn = vi.fn(() => () => {});
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+  });
   it('should render 10,000 files in under 3.5 seconds', async () => {
     // Generate mock file tree with 10,000 files
     const generateLargeFileTree = (count: number) => {

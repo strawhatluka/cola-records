@@ -5,28 +5,27 @@ import { FileTreePanel } from '../../renderer/components/ide/file-tree/FileTreeP
 import { CodeEditorPanel } from '../../renderer/components/ide/editor/CodeEditorPanel';
 import { useCodeEditorStore } from '../../renderer/stores/useCodeEditorStore';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-
-  // Reset store
-  useCodeEditorStore.setState({
-    openFiles: new Map(),
-    activeFilePath: null,
-    modifiedFiles: new Set(),
-    loading: false,
-  });
-});
-
 describe('File Operations - Integration Tests', () => {
+  // Mock IPC
+  const mockInvoke = vi.fn();
+  const mockOn = vi.fn(() => () => {});
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+
+    // Reset store
+    useCodeEditorStore.setState({
+      openFiles: new Map(),
+      activeFilePath: null,
+      modifiedFiles: new Set(),
+      loading: false,
+    });
+  });
   it('should create new file and open in editor', async () => {
     const user = userEvent.setup();
 

@@ -4,26 +4,25 @@ import userEvent from '@testing-library/user-event';
 import { TerminalPanel } from '../../renderer/components/ide/terminal/TerminalPanel';
 import { useTerminalStore } from '../../renderer/stores/useTerminalStore';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  global.window = global.window || ({} as any);
-  (global.window as any).electronAPI = {
-    invoke: mockInvoke,
-    on: mockOn,
-  };
-
-  // Reset store
-  useTerminalStore.setState({
-    sessions: new Map(),
-    activeSessionId: null,
-  });
-});
-
 describe('Terminal Execution - Integration Tests', () => {
+  // Mock IPC
+  const mockInvoke = vi.fn();
+  const mockOn = vi.fn(() => () => {});
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: mockInvoke,
+      on: mockOn,
+    };
+
+    // Reset store
+    useTerminalStore.setState({
+      sessions: new Map(),
+      activeSessionId: null,
+    });
+  });
   it('should execute command and capture output', async () => {
     const user = userEvent.setup();
 
@@ -58,11 +57,10 @@ describe('Terminal Execution - Integration Tests', () => {
     });
 
     // Simulate terminal output
-    const mockCall = mockCall = mockOn.mock.calls.find(
+    const dataCall = mockOn.mock.calls.find(
       (call) => call[0] === 'terminal:data'
     );
-    const mockCall2 = mockCall;
-    const outputHandler = mockCall2?.[1]?);
+    const outputHandler = dataCall ? dataCall[1] : undefined;
 
     if (outputHandler) {
       outputHandler({
@@ -106,11 +104,10 @@ describe('Terminal Execution - Integration Tests', () => {
     mockInvoke.mockResolvedValueOnce(undefined);
 
     // Simulate streaming output
-    const mockCall = mockCall = mockOn.mock.calls.find(
+    const dataCall2 = mockOn.mock.calls.find(
       (call) => call[0] === 'terminal:data'
     );
-    const mockCall2 = mockCall;
-    const outputHandler = mockCall2?.[1]?);
+    const outputHandler = dataCall2 ? dataCall2[1] : undefined;
 
     if (outputHandler) {
       // Initial output
@@ -158,10 +155,10 @@ describe('Terminal Execution - Integration Tests', () => {
     mockInvoke.mockResolvedValueOnce(undefined);
 
     // Simulate error output
-    const mockCall2 = mockCall;
-    const outputHandler = mockCall2?.[1] = mockOn.mock.calls.find(
+    const dataCall3 = mockOn.mock.calls.find(
       ([event]) => event === 'terminal:data'
-    )?);
+    );
+    const outputHandler = dataCall3 ? dataCall3[1] : undefined;
 
     if (outputHandler) {
       outputHandler({
@@ -212,10 +209,10 @@ describe('Terminal Execution - Integration Tests', () => {
     mockInvoke.mockResolvedValueOnce(undefined);
 
     // Simulate prompt
-    const mockCall2 = mockCall;
-    const outputHandler = mockCall2?.[1] = mockOn.mock.calls.find(
+    const dataCall4 = mockOn.mock.calls.find(
       ([event]) => event === 'terminal:data'
-    )?);
+    );
+    const outputHandler = dataCall4 ? dataCall4[1] : undefined;
 
     if (outputHandler) {
       outputHandler({
@@ -264,10 +261,10 @@ describe('Terminal Execution - Integration Tests', () => {
     mockInvoke.mockResolvedValueOnce(undefined);
 
     // Simulate process output
-    const mockCall2 = mockCall;
-    const outputHandler = mockCall2?.[1] = mockOn.mock.calls.find(
+    const dataCall5 = mockOn.mock.calls.find(
       ([event]) => event === 'terminal:data'
-    )?);
+    );
+    const outputHandler = dataCall5 ? dataCall5[1] : undefined;
 
     if (outputHandler) {
       outputHandler({
@@ -325,10 +322,10 @@ describe('Terminal Execution - Integration Tests', () => {
     mockInvoke.mockResolvedValueOnce(undefined);
 
     // Simulate pwd output
-    const mockCall2 = mockCall;
-    const outputHandler = mockCall2?.[1] = mockOn.mock.calls.find(
+    const dataCall6 = mockOn.mock.calls.find(
       ([event]) => event === 'terminal:data'
-    )?);
+    );
+    const outputHandler = dataCall6 ? dataCall6[1] : undefined;
 
     if (outputHandler) {
       outputHandler({
