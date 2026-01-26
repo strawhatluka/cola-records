@@ -20,7 +20,7 @@ export function GitPanel({ repoPath }: GitPanelProps) {
   const { status, currentBranch, fetchStatus, fetchBranches } = useGitStore();
   const [showCommitDialog, setShowCommitDialog] = useState(false);
 
-  const modifiedCount = status?.files.length || 0;
+  const modifiedCount = status?.files?.length || 0;
 
   useEffect(() => {
     if (repoPath) {

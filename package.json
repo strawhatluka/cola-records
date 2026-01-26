@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run",
+    "test:run": "node -e \"console.log('Test run started at:', new Date().toLocaleString())\" && vitest run",
     "test:coverage": "vitest run --coverage",
     "bench": "vitest bench"
   },
