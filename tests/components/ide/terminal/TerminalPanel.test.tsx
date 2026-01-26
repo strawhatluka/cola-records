@@ -4,7 +4,7 @@ import { TerminalPanel } from '@renderer/components/ide/terminal/TerminalPanel';
 import { useTerminalStore } from '@renderer/stores/useTerminalStore';
 
 // Mock the child components
-vi.mock('../../../../renderer/components/ide/terminal/XTermWrapper', () => ({
+vi.mock('@renderer/components/ide/terminal/XTermWrapper', () => ({
   XTermWrapper: ({ sessionId, cwd }: any) => (
     <div data-testid={`xterm-wrapper-${sessionId}`} data-cwd={cwd}>
       XTerm Terminal {sessionId}
@@ -12,7 +12,7 @@ vi.mock('../../../../renderer/components/ide/terminal/XTermWrapper', () => ({
   ),
 }));
 
-vi.mock('../../../../renderer/components/ide/terminal/TerminalControls', () => ({
+vi.mock('@renderer/components/ide/terminal/TerminalControls', () => ({
   TerminalControls: ({ sessionId, onClear, onRestart }: any) => (
     <div data-testid={`terminal-controls-${sessionId}`}>
       <button onClick={onClear} data-testid="clear-button">
@@ -25,7 +25,7 @@ vi.mock('../../../../renderer/components/ide/terminal/TerminalControls', () => (
   ),
 }));
 
-vi.mock('../../../../renderer/components/ui/Button', () => ({
+vi.mock('@renderer/components/ui/Button', () => ({
   Button: ({ children, onClick, ...props }: any) => (
     <button onClick={onClick} {...props}>
       {children}

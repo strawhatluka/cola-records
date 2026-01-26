@@ -4,14 +4,14 @@ import { useContributionWorkflow } from '@renderer/hooks/useContributionWorkflow
 import type { GitHubIssue, Contribution, GitHubRepository } from '@main/ipc/channels';
 
 // Mock the IPC client
-vi.mock('../../renderer/ipc/client', () => ({
+vi.mock('@renderer/ipc/client', () => ({
   ipc: {
     invoke: vi.fn(),
   },
 }));
 
 // Mock the stores
-vi.mock('../../renderer/stores/useContributionsStore', () => ({
+vi.mock('@renderer/stores/useContributionsStore', () => ({
   useContributionsStore: () => ({
     createContribution: vi.fn().mockResolvedValue({
       id: '1',
@@ -27,7 +27,7 @@ vi.mock('../../renderer/stores/useContributionsStore', () => ({
   }),
 }));
 
-vi.mock('../../renderer/stores/useSettingsStore', () => ({
+vi.mock('@renderer/stores/useSettingsStore', () => ({
   useSettingsStore: () => ({
     defaultClonePath: '/path/to',
   }),

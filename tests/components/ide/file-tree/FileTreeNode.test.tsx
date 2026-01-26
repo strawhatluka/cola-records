@@ -5,12 +5,12 @@ import { useFileTreeStore } from '@renderer/stores/useFileTreeStore';
 import type { FileNode } from '../../../../main/ipc/channels';
 
 // Mock the store
-vi.mock('../../../../renderer/stores/useFileTreeStore', () => ({
+vi.mock('@renderer/stores/useFileTreeStore', () => ({
   useFileTreeStore: vi.fn(),
 }));
 
 // Mock IPC
-vi.mock('../../../../renderer/ipc/client', () => ({
+vi.mock('@renderer/ipc/client', () => ({
   ipc: {
     invoke: vi.fn(),
     on: vi.fn(() => vi.fn()), // Return unsubscribe function
@@ -49,7 +49,7 @@ describe('FileTreeNode', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useFileTreeStore as any).mockReturnValue({
+    vi.mocked(useFileTreeStore).mockReturnValue({
       toggleNode: mockToggleNode,
       selectNode: mockSelectNode,
       selectedPath: null,
@@ -88,7 +88,7 @@ describe('FileTreeNode', () => {
 
   describe('Selection state', () => {
     it('should highlight when selected', () => {
-      (useFileTreeStore as any).mockReturnValue({
+      vi.mocked(useFileTreeStore).mockReturnValue({
         toggleNode: mockToggleNode,
         selectNode: mockSelectNode,
         selectedPath: fileNode.path,
@@ -103,7 +103,7 @@ describe('FileTreeNode', () => {
     });
 
     it('should have aria-selected when selected', () => {
-      (useFileTreeStore as any).mockReturnValue({
+      vi.mocked(useFileTreeStore).mockReturnValue({
         toggleNode: mockToggleNode,
         selectNode: mockSelectNode,
         selectedPath: fileNode.path,
@@ -126,7 +126,7 @@ describe('FileTreeNode', () => {
     });
 
     it('should rotate chevron when expanded', () => {
-      (useFileTreeStore as any).mockReturnValue({
+      vi.mocked(useFileTreeStore).mockReturnValue({
         toggleNode: mockToggleNode,
         selectNode: mockSelectNode,
         selectedPath: null,

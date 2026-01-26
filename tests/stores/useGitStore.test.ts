@@ -95,7 +95,7 @@ describe('useGitStore', () => {
         .mockResolvedValueOnce(undefined) // git:push
         .mockResolvedValueOnce(mockStatus); // git:status
 
-      await useGitStore.getState().push('/repo/path');
+      await useGitStore.getState().push('/repo/path', 'origin', 'main');
 
       expect(mockInvoke).toHaveBeenCalledWith('git:push', '/repo/path', 'origin', 'main');
     });
@@ -115,7 +115,7 @@ describe('useGitStore', () => {
         .mockResolvedValueOnce(undefined) // git:pull
         .mockResolvedValueOnce(mockStatus); // git:status
 
-      await useGitStore.getState().pull('/repo/path');
+      await useGitStore.getState().pull('/repo/path', 'origin', 'main');
 
       expect(mockInvoke).toHaveBeenCalledWith('git:pull', '/repo/path', 'origin', 'main');
     });

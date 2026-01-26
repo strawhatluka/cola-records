@@ -3,19 +3,19 @@ import { render, screen } from '@testing-library/react';
 import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel';
 import { useFileTreeStore } from '@renderer/stores/useFileTreeStore';
 import { useGitStore } from '@renderer/stores/useGitStore';
-import type { FileNode } from '../../../../main/ipc/channels';
+import type { FileNode } from '@main/ipc/channels';
 
 // Mock stores
-vi.mock('../../../../renderer/stores/useFileTreeStore', () => ({
+vi.mock('@renderer/stores/useFileTreeStore', () => ({
   useFileTreeStore: vi.fn(),
 }));
 
-vi.mock('../../../../renderer/stores/useGitStore', () => ({
+vi.mock('@renderer/stores/useGitStore', () => ({
   useGitStore: vi.fn(),
 }));
 
 // Mock IPC
-vi.mock('../../../../renderer/ipc/client', () => ({
+vi.mock('@renderer/ipc/client', () => ({
   ipc: {
     invoke: vi.fn(),
     on: vi.fn(() => vi.fn()), // Return unsubscribe function
@@ -229,7 +229,7 @@ describe('FileTreePanel', () => {
         removeNode: mockRemoveNode,
       });
 
-      const { ipc } = require('../../../../renderer/ipc/client');
+      const { ipc } = require('@renderer/ipc/client');
       render(<FileTreePanel repoPath="/repo" />);
       expect(ipc.invoke).toHaveBeenCalledWith('fs:watch-directory', '/repo');
     });
@@ -247,7 +247,7 @@ describe('FileTreePanel', () => {
         removeNode: mockRemoveNode,
       });
 
-      const { ipc } = require('../../../../renderer/ipc/client');
+      const { ipc } = require('@renderer/ipc/client');
       const { unmount } = render(<FileTreePanel repoPath="/repo" />);
       unmount();
       expect(ipc.invoke).toHaveBeenCalledWith('fs:unwatch-directory', '/repo');

@@ -49,7 +49,11 @@ describe('useCodeEditorStore', () => {
 
   describe('openFile', () => {
     it('should open a TypeScript file with monaco viewer', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -69,7 +73,11 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should open an image file with image viewer', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue('');
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '',
+        content: '',
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -85,7 +93,11 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should open a PDF file with pdf viewer', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue('');
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '',
+        content: '',
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -101,7 +113,11 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should open unknown file with unsupported viewer', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue('');
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '',
+        content: '',
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -117,7 +133,11 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should switch to already open file', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -150,7 +170,7 @@ describe('useCodeEditorStore', () => {
       });
 
       await waitFor(() => {
-        expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to open file');
+        expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to open file: File not found');
         expect(result.current.loading).toBe(false);
       });
     });
@@ -158,7 +178,11 @@ describe('useCodeEditorStore', () => {
 
   describe('closeFile', () => {
     it('should close a file without modifications', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -181,7 +205,11 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should switch to next file after closing active file', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -208,7 +236,11 @@ describe('useCodeEditorStore', () => {
 
   describe('closeAllFiles', () => {
     it('should close all files', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -236,7 +268,11 @@ describe('useCodeEditorStore', () => {
 
   describe('closeOtherFiles', () => {
     it('should close all files except specified one', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -264,7 +300,11 @@ describe('useCodeEditorStore', () => {
 
   describe('switchToTab', () => {
     it('should switch active file', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -289,7 +329,11 @@ describe('useCodeEditorStore', () => {
 
   describe('updateContent', () => {
     it('should update file content and mark as modified', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -315,7 +359,11 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should not mark as modified if content unchanged', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -333,15 +381,21 @@ describe('useCodeEditorStore', () => {
         result.current.updateContent('/repo/test.ts', mockFileContent);
       });
 
-      const file = result.current.openFiles.get('/repo/test.ts');
-      expect(file?.isModified).toBe(false);
-      expect(result.current.modifiedFiles.has('/repo/test.ts')).toBe(false);
+      await waitFor(() => {
+        const file = result.current.openFiles.get('/repo/test.ts');
+        expect(file?.isModified).toBe(false);
+        expect(result.current.modifiedFiles.has('/repo/test.ts')).toBe(false);
+      });
     });
   });
 
   describe('saveFile', () => {
     it('should save modified file', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -367,7 +421,7 @@ describe('useCodeEditorStore', () => {
 
       await waitFor(() => {
         expect(vi.mocked(ipc.invoke)).toHaveBeenCalledWith('fs:write-file', '/repo/test.ts', newContent);
-        expect(vi.mocked(toast.success)).toHaveBeenCalledWith('File saved successfully');
+        expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Saved: test.ts');
         const file = result.current.openFiles.get('/repo/test.ts');
         expect(file?.isModified).toBe(false);
         expect(result.current.modifiedFiles.has('/repo/test.ts')).toBe(false);
@@ -375,7 +429,11 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should handle save errors', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -406,7 +464,11 @@ describe('useCodeEditorStore', () => {
 
   describe('saveAllFiles', () => {
     it('should save all modified files', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -442,7 +504,11 @@ describe('useCodeEditorStore', () => {
 
   describe('reloadFile', () => {
     it('should reload file content from disk', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -477,7 +543,11 @@ describe('useCodeEditorStore', () => {
 
   describe('isModified', () => {
     it('should return true for modified files', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 
@@ -497,7 +567,11 @@ describe('useCodeEditorStore', () => {
     });
 
     it('should return false for unmodified files', async () => {
-      vi.mocked(ipc.invoke).mockResolvedValue(mockFileContent);
+      vi.mocked(ipc.invoke).mockResolvedValue({
+        path: '/repo/test.ts',
+        content: mockFileContent,
+        encoding: 'utf-8',
+      });
 
       const { result } = renderHook(() => useCodeEditorStore());
 

@@ -4,7 +4,7 @@ import { RepositoryFileTree } from '@renderer/components/issues/RepositoryFileTr
 import userEvent from '@testing-library/user-event';
 
 // Mock the IPC client
-vi.mock('../../renderer/ipc/client', () => ({
+vi.mock('@renderer/ipc/client', () => ({
   ipc: {
     invoke: vi.fn(),
   },

@@ -5,12 +5,12 @@ import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
 import type { EditorFile } from '@renderer/stores/useCodeEditorStore';
 
 // Mock stores
-vi.mock('../../../../renderer/stores/useCodeEditorStore', () => ({
+vi.mock('@renderer/stores/useCodeEditorStore', () => ({
   useCodeEditorStore: vi.fn(),
 }));
 
 // Mock EditorTab component
-vi.mock('../../../../renderer/components/ide/editor/EditorTab', () => ({
+vi.mock('@renderer/components/ide/editor/EditorTab', () => ({
   EditorTab: ({ file, isActive, onClose, onClick }: any) => (
     <div
       data-testid={`tab-${file.path}`}

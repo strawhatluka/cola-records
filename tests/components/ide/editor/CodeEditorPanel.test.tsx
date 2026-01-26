@@ -5,7 +5,7 @@ import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
 import type { EditorFile } from '@renderer/stores/useCodeEditorStore';
 
 // Mock stores
-vi.mock('../../../../renderer/stores/useCodeEditorStore', () => ({
+vi.mock('@renderer/stores/useCodeEditorStore', () => ({
   useCodeEditorStore: vi.fn(),
 }));
 
@@ -19,11 +19,11 @@ vi.mock('sonner', () => ({
 }));
 
 // Mock child components
-vi.mock('../../../../renderer/components/ide/editor/EditorTabBar', () => ({
+vi.mock('@renderer/components/ide/editor/EditorTabBar', () => ({
   EditorTabBar: () => <div data-testid="editor-tab-bar">Tab Bar</div>,
 }));
 
-vi.mock('../../../../renderer/components/ide/editor/MonacoEditor', () => ({
+vi.mock('@renderer/components/ide/editor/MonacoEditor', () => ({
   MonacoEditor: ({ filePath, content, onChange }: any) => (
     <div data-testid="monaco-editor" data-file={filePath}>
       <textarea
@@ -35,19 +35,19 @@ vi.mock('../../../../renderer/components/ide/editor/MonacoEditor', () => ({
   ),
 }));
 
-vi.mock('../../../../renderer/components/ide/editor/ImageViewer', () => ({
+vi.mock('@renderer/components/ide/editor/ImageViewer', () => ({
   ImageViewer: ({ filePath }: any) => (
     <div data-testid="image-viewer" data-file={filePath}>Image Viewer</div>
   ),
 }));
 
-vi.mock('../../../../renderer/components/ide/editor/PdfViewer', () => ({
+vi.mock('@renderer/components/ide/editor/PdfViewer', () => ({
   PdfViewer: ({ filePath }: any) => (
     <div data-testid="pdf-viewer" data-file={filePath}>PDF Viewer</div>
   ),
 }));
 
-vi.mock('../../../../renderer/components/ide/editor/UnsupportedViewer', () => ({
+vi.mock('@renderer/components/ide/editor/UnsupportedViewer', () => ({
   UnsupportedViewer: ({ filePath, extension }: any) => (
     <div data-testid="unsupported-viewer" data-file={filePath} data-ext={extension}>
       Unsupported Viewer
@@ -83,7 +83,7 @@ describe('CodeEditorPanel', () => {
 
   describe('Empty state', () => {
     it('should show empty state when no files are open', () => {
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles: new Map(),
         activeFilePath: null,
         modifiedFiles: new Set(),
@@ -100,7 +100,7 @@ describe('CodeEditorPanel', () => {
     });
 
     it('should render FileCode icon in empty state', () => {
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles: new Map(),
         activeFilePath: null,
         modifiedFiles: new Set(),
@@ -118,7 +118,7 @@ describe('CodeEditorPanel', () => {
     });
 
     it('should not render tab bar when no files', () => {
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles: new Map(),
         activeFilePath: null,
         modifiedFiles: new Set(),
@@ -139,7 +139,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -159,7 +159,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -181,7 +181,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -206,7 +206,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/image.png', 'image');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -228,7 +228,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/document.pdf', 'pdf');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -250,7 +250,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/file.exe', 'unsupported');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -274,7 +274,7 @@ describe('CodeEditorPanel', () => {
       const openFiles = new Map([[file.path, file]]);
       const modifiedFiles = new Set([file.path]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles,
@@ -299,7 +299,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco', false);
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -326,7 +326,7 @@ describe('CodeEditorPanel', () => {
       const openFiles = new Map([[file1.path, file1], [file2.path, file2]]);
       const modifiedFiles = new Set([file1.path, file2.path]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file1.path,
         modifiedFiles,
@@ -350,7 +350,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco', false);
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -376,7 +376,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -401,7 +401,7 @@ describe('CodeEditorPanel', () => {
       const openFiles = new Map([[file.path, file]]);
       const modifiedFiles = new Set([file.path]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles,
@@ -425,7 +425,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco', true);
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set([file.path]),
@@ -451,7 +451,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -472,7 +472,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -494,7 +494,7 @@ describe('CodeEditorPanel', () => {
       const file = createMockFile('/repo/test.ts', 'monaco');
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),
@@ -518,7 +518,7 @@ describe('CodeEditorPanel', () => {
       (file as any).viewerType = 'invalid';
       const openFiles = new Map([[file.path, file]]);
 
-      (useCodeEditorStore as any).mockReturnValue({
+      vi.mocked(useCodeEditorStore).mockReturnValue({
         openFiles,
         activeFilePath: file.path,
         modifiedFiles: new Set(),

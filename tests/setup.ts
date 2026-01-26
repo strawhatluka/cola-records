@@ -18,6 +18,13 @@ if (typeof performance !== 'undefined' && !(performance as any).memory) {
 
 // Mock window.electronAPI for all tests
 global.window = global.window || ({} as any);
+(global.window as any).electronAPI = {
+  invoke: () => Promise.resolve(),
+  send: () => {},
+  on: () => () => {},
+  platform: 'test',
+  isDevelopment: false,
+};
 
 // Mock DOMMatrix for react-pdf
 if (typeof DOMMatrix === 'undefined') {

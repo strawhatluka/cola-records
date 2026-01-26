@@ -257,28 +257,56 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
 
       toast.success(`Saved: ${path.split(/[/\\]/).pop()}`);
     } catch (error) {
-      toast.error(`Failed to save file: ${error instanceof Error ? error.message : String(error)}`);
+      toast.error('Failed to save file');
     }
   },
 
   saveAllFiles: async () => {
-    const { modifiedFiles } = get();
+    const { openFiles, modifiedFiles } = get();
     if (modifiedFiles.size === 0) {
       toast.info('No modified files to save');
       return;
     }
 
     try {
-      const savePromises = Array.from(modifiedFiles).map(path => get().saveFile(path));
-      await Promise.all(savePromises);
-      toast.success(`Saved ${modifiedFiles.size} file(s)`);
+      const filesToSave = Array.from(modifiedFiles);
+
+      // Save all files in parallel
+      await Promise.all(
+        filesToSave.map(path => {
+          const file = openFiles.get(path);
+          if (!file) return Promise.resolve();
+          return ipc.invoke('fs:write-file', path, file.content);
+        })
+      );
+
+      // Update all files at once to avoid race conditions
+      const newOpenFiles = new Map(openFiles);
+      filesToSave.forEach(path => {
+        const file = openFiles.get(path);
+        if (file) {
+          newOpenFiles.set(path, {
+            ...file,
+            originalContent: file.content,
+            isModified: false,
+            lastModified: new Date(),
+          });
+        }
+      });
+
+      set({
+        openFiles: newOpenFiles,
+        modifiedFiles: new Set(), // Clear all modified files
+      });
+
+      toast.success('All files saved successfully');
     } catch (error) {
       toast.error(`Failed to save all files: ${error instanceof Error ? error.message : String(error)}`);
     }
   },
 
   reloadFile: async (path: string) => {
-    const { openFiles } = get();
+    const { openFiles, modifiedFiles } = get();
     const file = openFiles.get(path);
     if (!file) return;
 
@@ -296,7 +324,13 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
       const newOpenFiles = new Map(openFiles);
       newOpenFiles.set(path, updatedFile);
 
-      set({ openFiles: newOpenFiles });
+      const newModifiedFiles = new Set(modifiedFiles);
+      newModifiedFiles.delete(path);
+
+      set({
+        openFiles: newOpenFiles,
+        modifiedFiles: newModifiedFiles,
+      });
 
       toast.success('File reloaded');
     } catch (error) {

@@ -44,7 +44,7 @@ export function ImageViewer({ filePath }: ImageViewerProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-muted/20 p-8">
+      <div className="flex items-center justify-center h-full bg-muted/20 p-8 overflow-auto">
         <Skeleton className="w-64 h-64" />
       </div>
     );

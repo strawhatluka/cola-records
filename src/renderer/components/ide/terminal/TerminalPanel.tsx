@@ -9,21 +9,20 @@ interface TerminalPanelProps {
 }
 
 export function TerminalPanel({ defaultCwd = process.cwd() }: TerminalPanelProps) {
-  const {
-    sessions,
-    createSession,
-    switchSession,
-    closeSession,
-    clearTerminal,
-    restartTerminal,
-    getActiveSession,
-  } = useTerminalStore();
+  const sessions = useTerminalStore((state) => state.sessions);
+  const createSession = useTerminalStore((state) => state.createSession);
+  const switchSession = useTerminalStore((state) => state.switchSession);
+  const closeSession = useTerminalStore((state) => state.closeSession);
+  const clearTerminal = useTerminalStore((state) => state.clearTerminal);
+  const restartTerminal = useTerminalStore((state) => state.restartTerminal);
+  const getActiveSession = useTerminalStore((state) => state.getActiveSession);
 
   // Create initial session on mount if none exist
   useEffect(() => {
     if (sessions.size === 0) {
       createSession(defaultCwd);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleNewTerminal = () => {

@@ -229,7 +229,12 @@ describe('useFileTreeStore', () => {
       const { result } = renderHook(() => useFileTreeStore());
 
       act(() => {
-        result.current.fileTree = mockFileTree;
+        result.current.root = {
+          name: 'repo',
+          path: '/repo',
+          type: 'directory',
+          children: mockFileTree,
+        };
         result.current.selectedPath = '/repo/package.json';
         result.current.removeNode('/repo/package.json');
       });

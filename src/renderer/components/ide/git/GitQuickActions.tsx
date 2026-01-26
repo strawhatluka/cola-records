@@ -115,7 +115,14 @@ export function GitQuickActions({ repoPath, onCommit }: GitQuickActionsProps) {
         {pullLoading ? 'Pulling...' : 'Pull'}
       </Button>
 
-      <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={loading}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleRefresh}
+        disabled={loading}
+        aria-label="Refresh"
+        title="Refresh status"
+      >
         <svg
           className="w-4 h-4"
           fill="none"

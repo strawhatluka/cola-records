@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { TerminalControls } from '@renderer/components/ide/terminal/TerminalControls';
 
 // Mock Button component
-vi.mock('../../../../renderer/components/ui/Button', () => ({
+vi.mock('@renderer/components/ui/Button', () => ({
   Button: ({ children, onClick, title, ...props }: any) => (
     <button onClick={onClick} title={title} {...props}>
       {children}

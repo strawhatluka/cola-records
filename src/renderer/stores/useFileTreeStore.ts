@@ -143,13 +143,15 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
       if (statusMap.has(relativePath)) {
         node.gitStatus = statusMap.get(relativePath) || null;
       }
-      if (node.children) {
+      if (Array.isArray(node.children)) {
         node.children.forEach(applyStatus);
       }
     };
 
     applyStatus(root);
-    fileTree.forEach(applyStatus);
+    if (Array.isArray(fileTree)) {
+      fileTree.forEach(applyStatus);
+    }
     set({ root: { ...root }, fileTree: [...fileTree] }); // Trigger re-render
   },
 
@@ -162,7 +164,7 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
         cache.set(node.path, isIgnored);
         node.isGitIgnored = isIgnored;
 
-        if (node.children) {
+        if (Array.isArray(node.children)) {
           await Promise.all(node.children.map(checkNode));
         }
       } catch (error) {
@@ -185,20 +187,41 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
     set({ rootPath });
   },
 
-  addNode: async (_path) => {
-    const { root, rootPath } = get();
-    if (!root || !rootPath) return;
+  addNode: async (path) => {
+    const { rootPath, fileTree, expandedPaths } = get();
+    if (!rootPath) return;
 
-    // Refresh the entire tree (simplified)
-    await get().refreshTree();
+    // Create the new node
+    const pathParts = path.split(/[/\\]/);
+    const name = pathParts[pathParts.length - 1];
+    const newNode: FileNode = {
+      name,
+      path,
+      type: 'file',
+    };
+
+    // Add to fileTree array
+    const newFileTree = [...fileTree, newNode];
+
+    // Expand parent directories
+    const newExpandedPaths = new Set(expandedPaths);
+    const parentPath = pathParts.slice(0, -1).join('/');
+    if (parentPath && parentPath !== rootPath) {
+      newExpandedPaths.add(parentPath);
+    }
+
+    set({
+      fileTree: newFileTree,
+      expandedPaths: newExpandedPaths,
+    });
   },
 
   removeNode: (path) => {
-    const { root } = get();
+    const { root, selectedPath } = get();
     if (!root) return;
 
     const removeFromTree = (node: FileNode): boolean => {
-      if (!node.children) return false;
+      if (!Array.isArray(node.children)) return false;
 
       const index = node.children.findIndex((child) => child.path === path);
       if (index !== -1) {
@@ -214,7 +237,15 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
     };
 
     removeFromTree(root);
-    set({ root: { ...root } });
+
+    // Deselect if the removed node was selected
+    const newState: Partial<FileTreeState> = { root: { ...root } };
+    if (selectedPath === path) {
+      newState.selectedPath = null;
+      newState.selectedFile = null; // Legacy compatibility
+    }
+
+    set(newState);
   },
 
   // Legacy compatibility methods

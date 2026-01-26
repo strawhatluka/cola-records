@@ -148,7 +148,7 @@ export function FileIcon({ filename, type, isExpanded = false, className = '' }:
   }
 
   // Extract extension and look up in map
-  const extension = filename.split('.').pop()?.toLowerCase() || '';
+  const extension = filename?.split('.').pop()?.toLowerCase() || '';
   if (extensionIconMap[extension]) {
     const { icon: Icon, color } = extensionIconMap[extension];
     return <Icon className={`h-4 w-4 ${color} ${className}`} />;
