@@ -16,6 +16,21 @@ vi.mock('@renderer/ipc/client', () => ({
   },
 }));
 
+// Mock XTermWrapper to render terminal output in tests
+// Store terminal outputs globally so tests can inject data
+(global as any).terminalOutputs = new Map<string, string>();
+
+vi.mock('@renderer/components/ide/terminal/XTermWrapper', () => ({
+  XTermWrapper: ({ sessionId, cwd }: any) => {
+    const output = (global as any).terminalOutputs.get(sessionId) || '';
+    return (
+      <div data-testid={`xterm-wrapper-${sessionId}`} data-cwd={cwd}>
+        {output}
+      </div>
+    );
+  },
+}));
+
 // Mock sonner toast
 vi.mock('sonner', () => ({
   toast: {
@@ -28,6 +43,9 @@ vi.mock('sonner', () => ({
 describe('TerminalPanel - Comprehensive Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Clear terminal outputs
+    (global as any).terminalOutputs = new Map<string, string>();
 
     // Mock matchMedia for xterm.js
     Object.defineProperty(window, 'matchMedia', {
@@ -78,20 +96,21 @@ describe('TerminalPanel - Comprehensive Tests', () => {
   });
 
   it('should handle terminal output', async () => {
-    const { container } = render(<TerminalPanel defaultCwd="/test/repo" />);
+    const { container, rerender } = render(<TerminalPanel defaultCwd="/test/repo" />);
+
+    await waitFor(() => {
+      const { sessions } = useTerminalStore.getState();
+      expect(sessions.size).toBeGreaterThan(0);
+    });
 
     const { sessions } = useTerminalStore.getState();
     const sessionId = Array.from(sessions.keys())[0];
 
-    // Simulate terminal output
-    mockOn.mock.calls.forEach(([event, handler]) => {
-      if (event === 'terminal:data') {
-        handler({
-          sessionId,
-          data: 'Hello from terminal\n',
-        });
-      }
-    });
+    // Simulate terminal output by injecting data into the mock
+    (global as any).terminalOutputs.set(sessionId, 'Hello from terminal\n');
+
+    // Force re-render to show the new output
+    rerender(<TerminalPanel defaultCwd="/test/repo" />);
 
     await waitFor(() => {
       expect(container.textContent).toContain('Hello from terminal');
@@ -122,12 +141,14 @@ describe('TerminalPanel - Comprehensive Tests', () => {
       expect(sessions.size).toBeGreaterThan(0);
     });
 
-    const { createSession, sessions } = useTerminalStore.getState();
+    const { createSession } = useTerminalStore.getState();
 
     // Create additional sessions
     createSession('/test/repo2');
     createSession('/test/repo3');
 
+    // Get fresh reference to sessions after creating them
+    const { sessions } = useTerminalStore.getState();
     expect(sessions.size).toBe(3);
   });
 

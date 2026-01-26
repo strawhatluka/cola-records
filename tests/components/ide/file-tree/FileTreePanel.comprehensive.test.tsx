@@ -3,9 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel';
 import userEvent from '@testing-library/user-event';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => () => {});
+// Mock IPC with hoisting
+const { mockInvoke, mockOn } = vi.hoisted(() => ({
+  mockInvoke: vi.fn(),
+  mockOn: vi.fn(() => () => {}),
+}));
 
 vi.mock('@renderer/ipc/client', () => ({
   ipc: {

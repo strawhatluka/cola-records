@@ -5,6 +5,21 @@ import { IDELayout } from '@renderer/components/ide/IDELayout';
 import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
 import { useTerminalStore } from '@renderer/stores/useTerminalStore';
 import { useIDEStore } from '@renderer/stores/useIDEStore';
+import { useFileTreeStore } from '@renderer/stores/useFileTreeStore';
+
+// Mock react-window for virtualized list rendering
+vi.mock('react-window', () => ({
+  List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
+    const Inner = InnerElement || 'div';
+    return (
+      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
+        {Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
+          children({ index, style: {} })
+        )}
+      </Inner>
+    );
+  },
+}));
 
 const mockContribution = {
   id: 'test-contribution',
@@ -52,6 +67,20 @@ describe('IDE Workflow - Complete Integration Tests', () => {
         terminal: 40,
       },
       focusedPanel: null,
+    });
+
+    useFileTreeStore.setState({
+      rootPath: null,
+      root: null,
+      fileTree: [],
+      expandedPaths: new Set(),
+      selectedPath: null,
+      gitStatus: null,
+      gitIgnoreCache: new Map(),
+      loading: false,
+      error: null,
+      expandedDirs: new Set(),
+      selectedFile: null,
     });
   });
   it('should complete full workflow: load → edit → save → commit → push', async () => {
@@ -298,17 +327,19 @@ describe('IDE Workflow - Complete Integration Tests', () => {
   it('should maintain state across panel focus changes', async () => {
     const user = userEvent.setup();
 
-    // Mock fs:watch-directory (called first by FileTreePanel on mount)
-    mockInvoke.mockResolvedValueOnce(undefined);
-
+    // Mock IPC calls during component mount
     mockInvoke
-      .mockResolvedValueOnce([
-        { name: 'app.ts', path: '/test/repo/app.ts', type: 'file' },
-      ])
-      .mockResolvedValueOnce({ current: 'main', files: [] })
-      .mockResolvedValueOnce('session-abc');
+      .mockResolvedValueOnce(undefined) // fs:watch-directory
+      .mockResolvedValueOnce([{ name: 'app.ts', path: '/test/repo/app.ts', type: 'file' }]) // fs:read-directory
+      .mockResolvedValueOnce({ current: 'main', files: [] }) // git:status
+      .mockResolvedValueOnce(undefined); // terminal:spawn
 
     render(<IDELayout contribution={mockContribution} />);
+
+    // Wait for file tree to load
+    await waitFor(() => {
+      expect(screen.getByText('app.ts')).toBeInTheDocument();
+    });
 
     // Open file in editor
     mockInvoke.mockResolvedValueOnce({
@@ -316,7 +347,7 @@ describe('IDE Workflow - Complete Integration Tests', () => {
       encoding: 'utf-8',
     });
 
-    const fileNode = await screen.findByText('app.ts');
+    const fileNode = screen.getByText('app.ts');
     await user.click(fileNode);
 
     const { updateContent } = useCodeEditorStore.getState();

@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel';
 
-// Mock IPC
-const mockInvokeIPC = vi.fn();
-const mockOnIPC = vi.fn(() => () => {});
+// Mock IPC with hoisting
+const { mockInvokeIPC, mockOnIPC } = vi.hoisted(() => ({
+  mockInvokeIPC: vi.fn(),
+  mockOnIPC: vi.fn(() => () => {}),
+}));
 
 vi.mock('@renderer/ipc/client', () => ({
   ipc: {

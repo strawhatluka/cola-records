@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { TerminalPanel } from '@renderer/components/ide/terminal/TerminalPanel';
 import { useTerminalStore } from '@renderer/stores/useTerminalStore';
 
@@ -176,15 +177,19 @@ describe('TerminalPanel', () => {
     });
 
     it('should close terminal tab', async () => {
+      const user = userEvent.setup();
       render(<TerminalPanel defaultCwd="/test/path" />);
 
       await waitFor(() => {
         expect(useTerminalStore.getState().sessions.size).toBe(1);
       });
 
+      // Get the first session ID before creating the second one
+      const firstSessionId = Array.from(useTerminalStore.getState().sessions.keys())[0];
+
       // Create second session
       const newButton = screen.getByLabelText('New terminal');
-      fireEvent.click(newButton);
+      await user.click(newButton);
 
       await waitFor(() => {
         expect(useTerminalStore.getState().sessions.size).toBe(2);
@@ -192,11 +197,17 @@ describe('TerminalPanel', () => {
 
       // Close first terminal
       const closeButton = screen.getByLabelText('Close terminal 1');
-      fireEvent.click(closeButton);
+      await user.click(closeButton);
 
+      // Wait for store to update - the first session should be gone
       await waitFor(() => {
         expect(useTerminalStore.getState().sessions.size).toBe(1);
-        expect(screen.queryByText('Terminal 1')).not.toBeInTheDocument();
+        expect(useTerminalStore.getState().sessions.has(firstSessionId)).toBe(false);
+      });
+
+      // The remaining terminal should now be labeled "Terminal 1" (re-indexed)
+      await waitFor(() => {
+        expect(screen.getByText(/Terminal 1/)).toBeInTheDocument();
       });
     });
 

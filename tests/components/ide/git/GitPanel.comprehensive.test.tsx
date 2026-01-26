@@ -111,9 +111,14 @@ describe('GitPanel - Comprehensive Tests', () => {
       .mockResolvedValueOnce({
         current: 'main',
         files: [{ path: 'file1.ts', index: 'M', working_dir: ' ' }],
-      })
+      }) // git:status (fetchStatus on mount)
+      .mockResolvedValueOnce({
+        current: 'main',
+        files: [{ path: 'file1.ts', index: 'M', working_dir: ' ' }],
+      }) // git:status (fetchBranches on mount)
       .mockResolvedValueOnce(undefined) // git:add
-      .mockResolvedValueOnce(undefined); // git:commit
+      .mockResolvedValueOnce(undefined) // git:commit
+      .mockResolvedValueOnce({ current: 'main', files: [] }); // git:status after commit
 
     render(<GitPanel repoPath="/test/repo" />);
 
@@ -132,6 +137,11 @@ describe('GitPanel - Comprehensive Tests', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /commit/i }));
+
+    // Wait for commit dialog to open
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/describe your changes/i)).toBeInTheDocument();
+    });
 
     // Enter commit message
     const messageInput = screen.getByPlaceholderText(/describe your changes/i);
@@ -278,7 +288,9 @@ describe('GitPanel - Comprehensive Tests', () => {
   });
 
   it('should handle git errors gracefully', async () => {
-    mockInvoke.mockRejectedValueOnce(new Error('Git not found'));
+    mockInvoke
+      .mockRejectedValueOnce(new Error('Git not found')) // fetchStatus
+      .mockRejectedValueOnce(new Error('Git not found')); // fetchBranches
 
     render(<GitPanel repoPath="/test/repo" />);
 
