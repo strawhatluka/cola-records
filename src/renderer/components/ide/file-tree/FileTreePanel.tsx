@@ -148,7 +148,7 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
   // Empty state
   if (flattenedNodes.length === 0) {
     return (
-      <div className="h-full border-r p-4">
+      <div className="h-full border-r p-4" role="tree" aria-label="File explorer">
         <p className="text-sm text-muted-foreground">No files found</p>
       </div>
     );

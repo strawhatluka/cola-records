@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { IDELayout } from '@renderer/components/ide/IDELayout';
 import { useIDEStore } from '@renderer/stores/useIDEStore';
+import { useGitStore } from '@renderer/stores/useGitStore';
 
 const mockContribution = {
   id: 'test-contribution',
@@ -28,7 +29,7 @@ describe('IDELayout - Comprehensive Tests', () => {
       on: mockOn,
     };
 
-    // Reset store
+    // Reset stores
     useIDEStore.setState({
       panelSizes: {
         fileTree: 25,
@@ -37,6 +38,14 @@ describe('IDELayout - Comprehensive Tests', () => {
         terminal: 40,
       },
       focusedPanel: null,
+    });
+
+    useGitStore.setState({
+      currentBranch: null,
+      status: null,
+      commits: [],
+      loading: false,
+      error: null,
     });
   });
 
@@ -104,9 +113,15 @@ describe('IDELayout - Comprehensive Tests', () => {
   });
 
   it('should show status bar with git info', () => {
+    // Mock git status to return feature-branch
     mockInvoke.mockResolvedValueOnce({
       current: 'feature-branch',
       files: [],
+    });
+
+    // Set the current branch in git store
+    useGitStore.setState({
+      currentBranch: 'feature-branch',
     });
 
     render(<IDELayout contribution={mockContribution} />);

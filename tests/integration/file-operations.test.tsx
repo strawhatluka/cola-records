@@ -5,6 +5,21 @@ import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel'
 import { CodeEditorPanel } from '@renderer/components/ide/editor/CodeEditorPanel';
 import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
 
+
+
+// Mock react-window to avoid TypeError
+vi.mock('react-window', () => ({
+  List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
+    const Inner = InnerElement || 'div';
+    return (
+      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
+        {Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
+          children({ index, style: {} })
+        )}
+      </Inner>
+    );
+  },
+}));
 describe('File Operations - Integration Tests', () => {
   // Mock IPC
   const mockInvoke = vi.fn();

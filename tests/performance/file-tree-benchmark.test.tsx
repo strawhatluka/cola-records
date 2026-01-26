@@ -2,6 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel';
 
+
+
+// Mock react-window to avoid TypeError
+vi.mock('react-window', () => ({
+  List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
+    const Inner = InnerElement || 'div';
+    return (
+      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
+        {Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
+          children({ index, style: {} })
+        )}
+      </Inner>
+    );
+  },
+}));
 /**
  * Performance Benchmark: File Tree Rendering
  * Target: <3.5 seconds for 10,000+ files

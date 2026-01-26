@@ -271,8 +271,7 @@ describe('useFileTreeStore', () => {
 
   describe('warmGitIgnoreCache', () => {
     it('should populate gitignore cache', async () => {
-      vi.mocked(ipc.invoke);
-      ipc.invoke.mockResolvedValue(true); // File is ignored
+      vi.mocked(ipc.invoke).mockResolvedValue(true);
 
       const { result } = renderHook(() => useFileTreeStore());
       const testNode: FileNode = { name: 'test.ts', path: '/repo/test.ts', type: 'file' };
@@ -287,8 +286,7 @@ describe('useFileTreeStore', () => {
     });
 
     it('should handle directories recursively', async () => {
-      vi.mocked(ipc.invoke);
-      ipc.invoke.mockResolvedValue(false);
+      vi.mocked(ipc.invoke).mockResolvedValue(false);
 
       const { result } = renderHook(() => useFileTreeStore());
 

@@ -121,7 +121,7 @@ describe('GitPanel - Comprehensive Tests', () => {
     await user.click(screen.getByRole('button', { name: /commit/i }));
 
     // Enter commit message
-    const messageInput = screen.getByPlaceholderText(/commit message/i);
+    const messageInput = screen.getByPlaceholderText(/describe your changes/i);
     await user.type(messageInput, 'Test commit');
 
     // Select files

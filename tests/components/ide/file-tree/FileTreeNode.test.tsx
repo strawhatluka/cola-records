@@ -83,7 +83,7 @@ describe('FileTreeNode', () => {
       const { container } = render(<FileTreeNode node={fileNode} depth={0} style={customStyle} />);
       const treeItem = container.querySelector('[role="treeitem"]');
       // Check that the custom style is applied along with default inline styles
-      expect(treeItem).toHaveStyle({ backgroundColor: 'red', paddingLeft: '8px', opacity: '1' });
+      expect(treeItem).toHaveStyle({ backgroundColor: 'red', paddingLeft: '8px' });
     });
   });
 

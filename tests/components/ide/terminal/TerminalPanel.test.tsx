@@ -36,6 +36,29 @@ vi.mock('@renderer/components/ui/Button', () => ({
 describe('TerminalPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Mock electronAPI
+    global.window = global.window || ({} as any);
+    (global.window as any).electronAPI = {
+      invoke: vi.fn(),
+      on: vi.fn(() => vi.fn()), // Return unsubscribe function
+    };
+    
+    // Mock matchMedia for xterm.js
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    
     // Reset store state
     useTerminalStore.setState({
       sessions: new Map(),

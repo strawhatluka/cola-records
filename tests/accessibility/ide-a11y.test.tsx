@@ -10,6 +10,21 @@ import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
 import { useTerminalStore } from '@renderer/stores/useTerminalStore';
 import { useIDEStore } from '@renderer/stores/useIDEStore';
 
+
+
+// Mock react-window to avoid TypeError
+vi.mock('react-window', () => ({
+  List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
+    const Inner = InnerElement || 'div';
+    return (
+      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
+        {Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
+          children({ index, style: {} })
+        )}
+      </Inner>
+    );
+  },
+}));
 const mockContribution = {
   id: 'test-contribution',
   repositoryUrl: 'https://github.com/test/repo',

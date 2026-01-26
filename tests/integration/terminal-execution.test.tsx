@@ -33,7 +33,7 @@ describe('Terminal Execution - Integration Tests', () => {
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith(
-        'terminal:create',
+        'terminal:spawn',
         expect.objectContaining({ cwd: '/test/repo' })
       );
     });

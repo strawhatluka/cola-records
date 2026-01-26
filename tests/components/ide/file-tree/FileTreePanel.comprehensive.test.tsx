@@ -7,6 +7,20 @@ import userEvent from '@testing-library/user-event';
 const mockInvoke = vi.fn();
 const mockOn = vi.fn(() => () => {});
 
+// Mock react-window
+vi.mock('react-window', () => ({
+  List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
+    const Inner = InnerElement || 'div';
+    return (
+      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
+        {Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
+          children({ index, style: {} })
+        )}
+      </Inner>
+    );
+  },
+}));
+
 describe('FileTreePanel - Comprehensive Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
