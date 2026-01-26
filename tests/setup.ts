@@ -88,30 +88,3 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => true,
   }),
 });
-
-// Mock react-window globally to render all items (not just viewport)
-// This fixes virtualization issues where getByText() can't find files outside viewport
-import { vi } from 'vitest';
-
-vi.mock('react-window', () => ({
-  List: ({ children, itemCount, innerElementType }: any) => {
-    const InnerElement = innerElementType || 'div';
-    return (
-      <InnerElement data-testid="virtualized-list" data-row-count={itemCount}>
-        {Array.from({ length: itemCount }).map((_, index) =>
-          children({ index, style: {} })
-        )}
-      </InnerElement>
-    );
-  },
-  FixedSizeList: ({ children, itemCount, innerElementType }: any) => {
-    const InnerElement = innerElementType || 'div';
-    return (
-      <InnerElement data-testid="virtualized-list" data-row-count={itemCount}>
-        {Array.from({ length: itemCount }).map((_, index) =>
-          children({ index, style: {} })
-        )}
-      </InnerElement>
-    );
-  },
-}));
