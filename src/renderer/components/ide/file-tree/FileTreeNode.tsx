@@ -132,15 +132,15 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
 
   const nodeContent = (
     <div
+      className={cn(
+        'flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-accent text-sm select-none',
+        isSelected && 'bg-accent'
+      )}
       style={{
         paddingLeft: `${depth * 16 + 8}px`,
         opacity: node.isGitIgnored ? 0.4 : 1,
         ...style,
       }}
-      className={cn(
-        'flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-accent text-sm select-none',
-        isSelected && 'bg-accent'
-      )}
       onClick={handleClick}
       role="treeitem"
       aria-label={node.name}

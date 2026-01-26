@@ -152,7 +152,10 @@ export const useFileTreeStore = create<FileTreeState>((set, get) => ({
     if (Array.isArray(fileTree)) {
       fileTree.forEach(applyStatus);
     }
-    set({ root: { ...root }, fileTree: [...fileTree] }); // Trigger re-render
+    set({
+      root: { ...root },
+      fileTree: Array.isArray(fileTree) ? [...fileTree] : []
+    }); // Trigger re-render
   },
 
   warmGitIgnoreCache: async (root, repoPath) => {

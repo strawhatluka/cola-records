@@ -101,7 +101,7 @@ describe('FileTreePanel - Comprehensive Tests', () => {
       },
     ]);
 
-    // const { container } = render(<FileTreePanel repoPath="/test/repo" />);
+    const { container } = render(<FileTreePanel repoPath="/test/repo" />);
 
     await waitFor(() => {
       const badges = container.querySelectorAll('[data-git-status]');
@@ -160,14 +160,14 @@ describe('FileTreePanel - Comprehensive Tests', () => {
       },
     ]);
 
-    // const { container } = render(<FileTreePanel repoPath="/test/repo" />);
+    const { container } = render(<FileTreePanel repoPath="/test/repo" />);
 
     await waitFor(() => {
       const ignoredNode = screen.getByText('node_modules').closest('[role="treeitem"]');
       const normalNode = screen.getByText('src').closest('[role="treeitem"]');
 
-      expect(ignoredNode).toHaveClass('opacity-50'); // Dimmed
-      expect(normalNode).not.toHaveClass('opacity-50');
+      expect(ignoredNode).toHaveStyle({ opacity: '0.4' }); // Inline style from component
+      expect(normalNode).toHaveStyle({ opacity: '1' });
     });
   });
 });

@@ -171,14 +171,15 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
   return (
     <div className="h-full border-r" role="tree" aria-label="File explorer">
       <List
-        defaultHeight={height}
-        rowCount={flattenedNodes.length}
-        rowHeight={28}
-        rowComponent={Row}
-        rowProps={{} as any}
+        height={height}
+        width="100%"
+        itemCount={flattenedNodes.length}
+        itemSize={28}
         className="scrollbar-thin"
         innerElementType={InnerElement}
-      />
+      >
+        {Row}
+      </List>
     </div>
   );
 }

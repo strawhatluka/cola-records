@@ -73,3 +73,18 @@ if (typeof ResizeObserver === 'undefined') {
     disconnect() {}
   };
 }
+
+// Mock window.matchMedia for xterm.js
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {}, // Deprecated
+    removeListener: () => {}, // Deprecated
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => true,
+  }),
+});

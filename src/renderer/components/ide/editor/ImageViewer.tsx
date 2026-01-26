@@ -42,14 +42,6 @@ export function ImageViewer({ filePath }: ImageViewerProps) {
     setLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full bg-muted/20 p-8 overflow-auto">
-        <Skeleton className="w-64 h-64" />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -61,15 +53,17 @@ export function ImageViewer({ filePath }: ImageViewerProps) {
 
   return (
     <div className="flex items-center justify-center h-full bg-muted/20 p-8 overflow-auto">
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center relative">
+        {loading && <Skeleton className="w-64 h-64" />}
         <img
           src={imageUrl}
           alt={filePath}
           className="max-w-full max-h-full object-contain"
+          style={{ opacity: loading ? 0 : 1 }}
           onLoad={handleImageLoad}
           onError={() => setError('Failed to load image')}
         />
-        <p className="text-xs text-muted-foreground mt-4">{filePath}</p>
+        {!loading && <p className="text-xs text-muted-foreground mt-4">{filePath}</p>}
       </div>
     </div>
   );

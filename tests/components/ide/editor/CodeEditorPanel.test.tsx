@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CodeEditorPanel } from '@renderer/components/ide/editor/CodeEditorPanel';
 import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
 import type { EditorFile } from '@renderer/stores/useCodeEditorStore';
+import { toast } from 'sonner';
 
 // Mock stores
 vi.mock('@renderer/stores/useCodeEditorStore', () => ({
@@ -295,7 +296,6 @@ describe('CodeEditorPanel', () => {
     });
 
     it('should show info toast on Ctrl+S when file is not modified', async () => {
-      const { toast } = require('sonner');
       const file = createMockFile('/repo/test.ts', 'monaco', false);
       const openFiles = new Map([[file.path, file]]);
 
@@ -315,7 +315,7 @@ describe('CodeEditorPanel', () => {
       fireEvent.keyDown(window, { key: 's', ctrlKey: true });
 
       await waitFor(() => {
-        expect(toast.info).toHaveBeenCalledWith('No changes to save');
+        expect(vi.mocked(toast.info)).toHaveBeenCalledWith('No changes to save');
         expect(mockSaveFile).not.toHaveBeenCalled();
       });
     });
@@ -365,9 +365,8 @@ describe('CodeEditorPanel', () => {
       // Simulate Ctrl+Shift+S
       fireEvent.keyDown(window, { key: 'S', ctrlKey: true, shiftKey: true });
 
-      const { toast } = require('sonner');
       await waitFor(() => {
-        expect(toast.info).toHaveBeenCalledWith('No modified files to save');
+        expect(vi.mocked(toast.info)).toHaveBeenCalledWith('No modified files to save');
         expect(mockSaveAllFiles).not.toHaveBeenCalled();
       });
     });

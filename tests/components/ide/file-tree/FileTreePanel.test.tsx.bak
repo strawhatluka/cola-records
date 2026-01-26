@@ -24,16 +24,13 @@ vi.mock('@renderer/ipc/client', () => ({
 
 // Mock react-window
 vi.mock('react-window', () => ({
-  List: ({ children, itemCount, innerElementType: InnerElement }: any) => {
-    const Inner = InnerElement || 'div';
-    return (
-      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
-        {Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
-          children({ index, style: {} })
-        )}
-      </Inner>
-    );
-  },
+  List: ({ children, rowCount }: any) => (
+    <div data-testid="virtualized-list" data-row-count={rowCount}>
+      {Array.from({ length: Math.min(rowCount, 10) }).map((_, index) =>
+        children({ index, style: {} })
+      )}
+    </div>
+  ),
 }));
 
 describe('FileTreePanel', () => {
