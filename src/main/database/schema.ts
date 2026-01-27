@@ -4,7 +4,7 @@
  * SQLite database schema for Cola Records
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * SQL statements to create all tables
@@ -50,15 +50,22 @@ export const CREATE_TABLES = `
     applied_at INTEGER NOT NULL
   );
 
-  -- Insert initial schema version
+  -- Insert initial schema version (version 1 - base schema)
   INSERT OR IGNORE INTO schema_version (version, applied_at)
-  VALUES (${SCHEMA_VERSION}, ${Date.now()});
+  VALUES (1, ${Date.now()});
 `;
 
 /**
  * Migrations for future schema changes
  */
 export const MIGRATIONS: Record<number, string> = {
-  // Example: Version 2 migration
-  // 2: `ALTER TABLE contributions ADD COLUMN pr_url TEXT;`,
+  // Version 2: Add PR tracking and fork validation columns
+  2: `
+    ALTER TABLE contributions ADD COLUMN pr_url TEXT;
+    ALTER TABLE contributions ADD COLUMN pr_number INTEGER;
+    ALTER TABLE contributions ADD COLUMN pr_status TEXT CHECK(pr_status IN ('open', 'closed', 'merged'));
+    ALTER TABLE contributions ADD COLUMN upstream_url TEXT;
+    ALTER TABLE contributions ADD COLUMN is_fork INTEGER DEFAULT 0;
+    ALTER TABLE contributions ADD COLUMN remotes_valid INTEGER DEFAULT 0;
+  `,
 };

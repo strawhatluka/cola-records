@@ -71,6 +71,9 @@ export function useContributionWorkflow() {
         issueTitle: issue.title,
         branchName,
         status: 'in_progress',
+        upstreamUrl: originalRepoUrl,
+        isFork: true,
+        remotesValid: true, // We just set them up, so they're valid
       });
 
       setState({ status: 'complete', progress: 100, error: null, contribution });

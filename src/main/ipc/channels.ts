@@ -83,6 +83,14 @@ export interface Contribution {
   status: 'in_progress' | 'ready' | 'submitted' | 'merged';
   createdAt: Date;
   updatedAt: Date;
+  // PR tracking fields
+  prUrl?: string;
+  prNumber?: number;
+  prStatus?: 'open' | 'closed' | 'merged';
+  // Fork validation fields
+  upstreamUrl?: string;
+  isFork?: boolean;
+  remotesValid?: boolean;
 }
 
 // Settings Types
@@ -108,6 +116,7 @@ export interface IpcChannels {
   'fs:read-file': (path: string) => FileContent;
   'fs:write-file': (path: string, content: string) => void;
   'fs:delete-file': (path: string) => void;
+  'fs:delete-directory': (path: string) => void;
   'fs:rename-file': (oldPath: string, newPath: string) => void;
   'fs:reveal-in-explorer': (path: string) => void;
   'fs:watch-directory': (path: string) => void;
@@ -119,6 +128,7 @@ export interface IpcChannels {
   'git:log': (repoPath: string, limit?: number) => GitCommit[];
   'git:add': (repoPath: string, files: string[]) => void;
   'git:commit': (repoPath: string, message: string) => void;
+  'git:get-branches': (repoPath: string) => string[];
   'git:push': (repoPath: string, remote?: string, branch?: string) => void;
   'git:pull': (repoPath: string, remote?: string, branch?: string) => void;
   'git:clone': (url: string, targetPath: string) => void;
@@ -136,6 +146,8 @@ export interface IpcChannels {
   'contribution:get-by-id': (id: string) => Contribution | null;
   'contribution:update': (id: string, data: Partial<Contribution>) => Contribution;
   'contribution:delete': (id: string) => void;
+  'contribution:scan-directory': (directoryPath: string) => Contribution[];
+  'contribution:sync-with-github': (contributionId: string) => Contribution;
 
   // Settings Channels
   'settings:get': () => AppSettings;

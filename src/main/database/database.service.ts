@@ -90,14 +90,18 @@ export class DatabaseService {
   /**
    * Create a new contribution
    */
-  createContribution(contribution: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>): Contribution {
+  createContribution(contribution: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>, createdAt?: Date): Contribution {
     const db = this.getDb();
     const id = `contrib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = Date.now();
+    const createdAtTimestamp = createdAt ? createdAt.getTime() : now;
 
     const stmt = db.prepare(`
-      INSERT INTO contributions (id, repository_url, local_path, issue_number, issue_title, branch_name, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO contributions (
+        id, repository_url, local_path, issue_number, issue_title, branch_name, status,
+        created_at, updated_at, pr_url, pr_number, pr_status, upstream_url, is_fork, remotes_valid
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -108,14 +112,20 @@ export class DatabaseService {
       contribution.issueTitle,
       contribution.branchName,
       contribution.status,
+      createdAtTimestamp,
       now,
-      now
+      contribution.prUrl || null,
+      contribution.prNumber || null,
+      contribution.prStatus || null,
+      contribution.upstreamUrl || null,
+      contribution.isFork ? 1 : 0,
+      contribution.remotesValid ? 1 : 0
     );
 
     return {
       id,
       ...contribution,
-      createdAt: new Date(now),
+      createdAt: new Date(createdAtTimestamp),
       updatedAt: new Date(now),
     };
   }
@@ -155,10 +165,13 @@ export class DatabaseService {
 
     const merged = { ...current, ...updates };
     const now = Date.now();
+    const createdAtTimestamp = updates.createdAt ? updates.createdAt.getTime() : current.createdAt.getTime();
 
     const stmt = db.prepare(`
       UPDATE contributions
-      SET repository_url = ?, local_path = ?, issue_number = ?, issue_title = ?, branch_name = ?, status = ?, updated_at = ?
+      SET repository_url = ?, local_path = ?, issue_number = ?, issue_title = ?, branch_name = ?, status = ?,
+          pr_url = ?, pr_number = ?, pr_status = ?, upstream_url = ?, is_fork = ?, remotes_valid = ?,
+          created_at = ?, updated_at = ?
       WHERE id = ?
     `);
 
@@ -169,12 +182,20 @@ export class DatabaseService {
       merged.issueTitle,
       merged.branchName,
       merged.status,
+      merged.prUrl || null,
+      merged.prNumber || null,
+      merged.prStatus || null,
+      merged.upstreamUrl || null,
+      merged.isFork ? 1 : 0,
+      merged.remotesValid ? 1 : 0,
+      createdAtTimestamp,
       now,
       id
     );
 
     return {
       ...merged,
+      createdAt: new Date(createdAtTimestamp),
       updatedAt: new Date(now),
     };
   }
@@ -302,6 +323,12 @@ export class DatabaseService {
       status: row.status,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
+      prUrl: row.pr_url || undefined,
+      prNumber: row.pr_number || undefined,
+      prStatus: row.pr_status || undefined,
+      upstreamUrl: row.upstream_url || undefined,
+      isFork: row.is_fork === 1,
+      remotesValid: row.remotes_valid === 1,
     };
   }
 }

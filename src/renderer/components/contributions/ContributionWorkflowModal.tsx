@@ -69,7 +69,11 @@ export function ContributionWorkflowModal({
       case 'complete':
         return 'Setup complete! Repository is ready for development.';
       case 'error':
-        return `Error: ${state.error}`;
+        // Provide helpful context for common errors
+        if (state.error?.includes('invalid path') || state.error?.includes('checkout failed')) {
+          return 'This repository contains files with Windows-incompatible paths (e.g., trailing spaces, special characters). Please contact the repository maintainer or try a different issue.';
+        }
+        return state.error || 'An unknown error occurred';
       default:
         return 'Initializing...';
     }

@@ -112,7 +112,7 @@ export class GitHubRestService {
         name: response.data.name,
         fullName: response.data.full_name,
         description: response.data.description || '',
-        url: response.data.html_url,
+        url: response.data.clone_url, // Use clone_url instead of html_url for git operations
         language: response.data.language || 'Unknown',
         stars: response.data.stargazers_count,
         forks: response.data.forks_count,
@@ -284,6 +284,144 @@ export class GitHubRestService {
     } catch (error) {
       console.error('GitHub REST rate limit error:', error);
       throw new Error(`Failed to get rate limit: ${error}`);
+    }
+  }
+
+  /**
+   * Get repository details
+   */
+  async getRepository(owner: string, repo: string): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.repos.get({
+        owner,
+        repo,
+      });
+
+      return {
+        id: response.data.id.toString(),
+        name: response.data.name,
+        fullName: response.data.full_name,
+        description: response.data.description || '',
+        url: response.data.html_url,
+        cloneUrl: response.data.clone_url,
+        language: response.data.language || 'Unknown',
+        stars: response.data.stargazers_count,
+        forks: response.data.forks_count,
+        fork: response.data.fork,
+        parent: response.data.parent ? {
+          id: response.data.parent.id.toString(),
+          name: response.data.parent.name,
+          full_name: response.data.parent.full_name,
+          url: response.data.parent.html_url,
+        } : undefined,
+      };
+    } catch (error) {
+      console.error('GitHub REST get repository error:', error);
+      throw new Error(`Failed to get repository ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
+   * Get pull request details
+   */
+  async getPullRequest(owner: string, repo: string, prNumber: number): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.pulls.get({
+        owner,
+        repo,
+        pull_number: prNumber,
+      });
+
+      return {
+        number: response.data.number,
+        title: response.data.title,
+        body: response.data.body || '',
+        url: response.data.html_url,
+        state: response.data.state,
+        merged: response.data.merged,
+        createdAt: new Date(response.data.created_at),
+        updatedAt: new Date(response.data.updated_at),
+        author: response.data.user?.login || 'unknown',
+      };
+    } catch (error) {
+      console.error('GitHub REST get PR error:', error);
+      throw new Error(`Failed to get pull request ${owner}/${repo}#${prNumber}: ${error}`);
+    }
+  }
+
+  /**
+   * List pull requests for a repository
+   */
+  async listPullRequests(
+    owner: string,
+    repo: string,
+    options?: { state?: 'open' | 'closed' | 'all'; head?: string }
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.pulls.list({
+        owner,
+        repo,
+        state: options?.state || 'open',
+        head: options?.head,
+        per_page: 100,
+      });
+
+      return response.data.map((pr: any) => ({
+        number: pr.number,
+        title: pr.title,
+        url: pr.html_url,
+        state: pr.state,
+        merged: pr.merged_at !== null,
+        createdAt: new Date(pr.created_at),
+        updatedAt: new Date(pr.updated_at),
+        author: pr.user?.login || 'unknown',
+        headBranch: pr.head?.ref || '', // Add head branch name
+      }));
+    } catch (error) {
+      console.error('GitHub REST list PRs error:', error);
+      throw new Error(`Failed to list pull requests for ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
+   * Check PR status for a specific branch
+   */
+  async checkPRStatus(
+    owner: string,
+    repo: string,
+    headBranch: string
+  ): Promise<{ number: number; url: string; status: 'open' | 'closed' | 'merged' } | null> {
+    try {
+      const prs = await this.listPullRequests(owner, repo, { state: 'all' });
+
+      console.log(`Checking PR status for ${owner}/${repo} branch: ${headBranch}`);
+      console.log(`Found ${prs.length} PRs total`);
+
+      // Find PR matching the head branch by comparing branch names
+      const pr = prs.find((p) => {
+        console.log(`  PR #${p.number}: head branch = "${p.headBranch}", looking for "${headBranch}"`);
+        return p.headBranch === headBranch;
+      });
+
+      if (!pr) {
+        console.log(`No PR found for branch: ${headBranch}`);
+        return null;
+      }
+
+      const status = pr.merged ? 'merged' : pr.state as 'open' | 'closed';
+
+      console.log(`Found PR #${pr.number} with status: ${status}`);
+      return {
+        number: pr.number,
+        url: pr.url,
+        status,
+      };
+    } catch (error) {
+      console.error('GitHub REST check PR status error:', error);
+      return null;
     }
   }
 }

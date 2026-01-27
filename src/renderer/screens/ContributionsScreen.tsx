@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { ContributionList } from '../components/contributions/ContributionList';
 import { useContributionsStore } from '../stores/useContributionsStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
+import { ipc } from '../ipc/client';
 import type { Contribution } from '../../main/ipc/channels';
 
 interface ContributionsScreenProps {
@@ -8,11 +10,29 @@ interface ContributionsScreenProps {
 }
 
 export function ContributionsScreen({ onOpenIDE }: ContributionsScreenProps) {
-  const { contributions, loading, fetchContributions, deleteContribution } = useContributionsStore();
+  const { contributions, loading, deleteContribution, setContributions } = useContributionsStore();
+  const { defaultClonePath } = useSettingsStore();
+  const [isScanning, setIsScanning] = React.useState(true);
 
+  // ONLY scan contributions directory - don't fetch from database
+  // The scanner will sync with the database automatically
   React.useEffect(() => {
-    fetchContributions();
-  }, [fetchContributions]);
+    const scanContributions = async () => {
+      if (defaultClonePath) {
+        setIsScanning(true);
+        try {
+          const scannedContributions = await ipc.invoke('contribution:scan-directory', defaultClonePath);
+          setContributions(scannedContributions);
+        } catch (error) {
+          console.error('Failed to scan contributions directory:', error);
+        } finally {
+          setIsScanning(false);
+        }
+      }
+    };
+
+    scanContributions();
+  }, [defaultClonePath, setContributions]);
 
   const handleOpenProject = (contribution: Contribution) => {
     if (onOpenIDE) {
@@ -33,7 +53,7 @@ export function ContributionsScreen({ onOpenIDE }: ContributionsScreenProps) {
         contributions={contributions}
         onDelete={deleteContribution}
         onOpenProject={handleOpenProject}
-        loading={loading}
+        loading={isScanning}
       />
     </div>
   );

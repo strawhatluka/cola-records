@@ -12,16 +12,22 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster } from './components/ui/Toaster';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSettingsStore } from './stores/useSettingsStore';
+import { useContributionsStore } from './stores/useContributionsStore';
+import { ipc } from './ipc/client';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
-  const { theme, fetchSettings } = useSettingsStore();
+  const { theme, fetchSettings, defaultClonePath } = useSettingsStore();
+  const { setContributions } = useContributionsStore();
 
   // Fetch settings on mount
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
+
+  // Note: Contributions are scanned on-demand in ContributionsScreen
+  // This ensures we always show the live state of the contributions folder
 
   // Global keyboard shortcuts
   useKeyboardShortcuts({

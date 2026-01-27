@@ -8,6 +8,7 @@ interface ContributionsState {
   error: string | null;
 
   // Actions
+  setContributions: (contributions: Contribution[]) => void;
   fetchContributions: () => Promise<void>;
   createContribution: (data: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Contribution>;
   updateContribution: (id: string, data: Partial<Contribution>) => Promise<Contribution>;
@@ -19,6 +20,10 @@ export const useContributionsStore = create<ContributionsState>((set, get) => ({
   contributions: [],
   loading: false,
   error: null,
+
+  setContributions: (contributions) => {
+    set({ contributions });
+  },
 
   fetchContributions: async () => {
     set({ loading: true, error: null });

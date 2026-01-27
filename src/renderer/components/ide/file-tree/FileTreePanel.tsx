@@ -170,20 +170,17 @@ export function FileTreePanel({ repoPath, height = 800 }: FileTreePanelProps) {
     </div>
   );
 
-  // Virtualized tree
+  // Virtualized tree - use simple scrollable list instead of react-window
   return (
-    <div className="h-full border-r" role="tree" aria-label="File explorer">
-      <List
-        key={`${flattenedNodes.length}-${expandedPaths.size}`}
-        height={height}
-        width="100%"
-        itemCount={flattenedNodes.length}
-        itemSize={28}
-        className="scrollbar-thin"
-        innerElementType={InnerElement}
-      >
-        {Row}
-      </List>
+    <div className="h-full border-r overflow-auto" role="tree" aria-label="File explorer">
+      {flattenedNodes.map(({ node, depth }, index) => (
+        <FileTreeNode
+          key={node.path}
+          node={node}
+          depth={depth}
+          style={{ height: 28 }}
+        />
+      ))}
     </div>
   );
 }

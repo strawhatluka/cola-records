@@ -11,7 +11,13 @@ export class GitService {
    * Get a SimpleGit instance for a repository
    */
   private getGit(repoPath: string): SimpleGit {
-    return simpleGit(repoPath);
+    return simpleGit(repoPath, {
+      config: [
+        'color.branch=false',
+        'color.status=false',
+        'color.ui=false'
+      ]
+    });
   }
 
   /**
@@ -177,7 +183,32 @@ export class GitService {
     try {
       const git = this.getGit(repoPath);
       const branches = await git.branchLocal();
-      return branches.all;
+      console.log('Raw branches from git:', branches);
+      // Strip ANSI color codes and clean branch names
+      const cleanedBranches = branches.all.map(branch =>
+        branch.replace(/\x1b\[\d+m/g, '').trim()
+      );
+      console.log('Cleaned branches:', cleanedBranches);
+
+      // Sort branches with priority:
+      // 1. main (first)
+      // 2. dev (second if main exists, first if main doesn't exist)
+      // 3. All others in alphabetical order
+      const sortedBranches = cleanedBranches.sort((a, b) => {
+        // main always first
+        if (a === 'main') return -1;
+        if (b === 'main') return 1;
+
+        // dev always second (or first if no main)
+        if (a === 'dev') return -1;
+        if (b === 'dev') return 1;
+
+        // Everything else alphabetically
+        return a.localeCompare(b);
+      });
+
+      console.log('Sorted branches:', sortedBranches);
+      return sortedBranches;
     } catch (error) {
       throw new Error(`Failed to get branches for ${repoPath}: ${error}`);
     }

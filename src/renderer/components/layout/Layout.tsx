@@ -13,16 +13,27 @@ const screenTitles: Record<Screen, string> = {
   issues: 'Issue Discovery',
   contributions: 'My Contributions',
   settings: 'Settings',
+  ide: 'Development',
 };
 
 export function Layout({ currentScreen, onScreenChange, children }: LayoutProps) {
-  const [collapsed, setCollapsed] = React.useState(false);
+  const [collapsed, setCollapsed] = React.useState(true); // Start collapsed by default
+
+  // Collapse sidebar when screen changes
+  React.useEffect(() => {
+    setCollapsed(true);
+  }, [currentScreen]);
+
+  const handleScreenChange = (screen: Screen) => {
+    onScreenChange(screen);
+    // Sidebar will auto-collapse via useEffect above
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       <Sidebar
         currentScreen={currentScreen}
-        onScreenChange={onScreenChange}
+        onScreenChange={handleScreenChange}
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
       />
