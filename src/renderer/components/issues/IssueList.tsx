@@ -43,13 +43,15 @@ export function IssueList({ issues, onIssueSelect, loading }: IssueListProps) {
   };
 
   return (
-    <List
-      defaultHeight={600}
-      rowCount={issues.length}
-      rowHeight={140}
-      rowComponent={Row}
-      rowProps={{} as any}
-      className="px-4"
-    />
+    <div className="h-full px-4">
+      <List
+        height={600}
+        itemCount={issues.length}
+        itemSize={140}
+        width="100%"
+      >
+        {Row}
+      </List>
+    </div>
   );
 }

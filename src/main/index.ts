@@ -228,6 +228,15 @@ const initializeServices = async () => {
 };
 
 const createWindow = () => {
+  // Determine preload path based on environment
+  const preloadPath = app.isPackaged
+    ? path.join(__dirname, 'preload.js')
+    : path.join(process.cwd(), '.vite/build/preload.js');
+
+  console.log('Preload path:', preloadPath);
+  console.log('process.cwd():', process.cwd());
+  console.log('app.isPackaged:', app.isPackaged);
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -235,7 +244,7 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: preloadPath,
     },
   });
 

@@ -108,14 +108,29 @@ export class EnvironmentService {
         ? process.cwd()
         : path.dirname(app.getPath('exe'));
 
-      // Try to load .env file
-      const envPath = path.join(rootDir, '.env');
+      // In development, prioritize .env.local over .env
+      if (this.isDevelopment) {
+        const envLocalPath = path.join(rootDir, '.env.local');
+        const envPath = path.join(rootDir, '.env');
 
-      if (fs.existsSync(envPath)) {
-        const envContent = fs.readFileSync(envPath, 'utf-8');
-        this.parseEnvFile(envContent);
-      } else if (this.isDevelopment) {
-        console.warn('.env file not found. Using .env.example as reference.');
+        if (fs.existsSync(envLocalPath)) {
+          console.log('Loading environment from .env.local');
+          const envContent = fs.readFileSync(envLocalPath, 'utf-8');
+          this.parseEnvFile(envContent);
+        } else if (fs.existsSync(envPath)) {
+          console.log('Loading environment from .env');
+          const envContent = fs.readFileSync(envPath, 'utf-8');
+          this.parseEnvFile(envContent);
+        } else {
+          console.warn('.env.local or .env file not found. Please create one from .env.example');
+        }
+      } else {
+        // In production, only use .env
+        const envPath = path.join(rootDir, '.env');
+        if (fs.existsSync(envPath)) {
+          const envContent = fs.readFileSync(envPath, 'utf-8');
+          this.parseEnvFile(envContent);
+        }
       }
 
       // Also load from process.env

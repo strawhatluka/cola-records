@@ -50,8 +50,8 @@ export class GitHubGraphQLService {
 
       const response: any = await client(
         `
-        query searchIssues($query: String!, $first: Int!) {
-          search(query: $query, type: ISSUE, first: $first) {
+        query searchIssues($searchQuery: String!, $first: Int!) {
+          search(query: $searchQuery, type: ISSUE, first: $first) {
             issueCount
             edges {
               node {
@@ -78,7 +78,7 @@ export class GitHubGraphQLService {
         }
         `,
         {
-          query: searchQuery,
+          searchQuery: searchQuery,
           first: 50, // Limit to 50 results
         }
       );
