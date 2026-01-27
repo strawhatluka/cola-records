@@ -28,6 +28,7 @@ interface CodeEditorState {
   saveFile: (path: string) => Promise<void>;
   saveAllFiles: () => Promise<void>;
   reloadFile: (path: string) => Promise<void>;
+  renameFile: (oldPath: string, newPath: string) => void;
   isModified: (path: string) => boolean;
 }
 
@@ -336,6 +337,40 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
     } catch (error) {
       toast.error(`Failed to reload file: ${error instanceof Error ? error.message : String(error)}`);
     }
+  },
+
+  renameFile: (oldPath: string, newPath: string) => {
+    const { openFiles, activeFilePath, modifiedFiles } = get();
+    const file = openFiles.get(oldPath);
+
+    if (!file) return;
+
+    // Create new file entry with updated path
+    const updatedFile: EditorFile = {
+      ...file,
+      path: newPath,
+      extension: getExtension(newPath),
+    };
+
+    const newOpenFiles = new Map(openFiles);
+    newOpenFiles.delete(oldPath);
+    newOpenFiles.set(newPath, updatedFile);
+
+    // Update modified files set
+    const newModifiedFiles = new Set(modifiedFiles);
+    if (modifiedFiles.has(oldPath)) {
+      newModifiedFiles.delete(oldPath);
+      newModifiedFiles.add(newPath);
+    }
+
+    // Update active file path if renamed file was active
+    const newActiveFilePath = activeFilePath === oldPath ? newPath : activeFilePath;
+
+    set({
+      openFiles: newOpenFiles,
+      activeFilePath: newActiveFilePath,
+      modifiedFiles: newModifiedFiles,
+    });
   },
 
   isModified: (path: string) => {

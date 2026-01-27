@@ -9,12 +9,7 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "node -e \"console.log('Test run started at:', new Date().toLocaleString())\" && vitest run 2>&1 | tee test-results.txt",
-    "test:coverage": "vitest run --coverage",
-    "bench": "vitest bench"
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",

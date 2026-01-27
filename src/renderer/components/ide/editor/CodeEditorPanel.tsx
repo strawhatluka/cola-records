@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { FileCode } from 'lucide-react';
 import { useCodeEditorStore } from '../../../stores/useCodeEditorStore';
 import { EditorTabBar } from './EditorTabBar';
@@ -6,7 +6,9 @@ import { MonacoEditor } from './MonacoEditor';
 import { ImageViewer } from './ImageViewer';
 import { PdfViewer } from './PdfViewer';
 import { UnsupportedViewer } from './UnsupportedViewer';
+import { SaveAsDialog } from './SaveAsDialog';
 import { toast } from 'sonner';
+import { ipc } from '../../../ipc/client';
 
 export function CodeEditorPanel() {
   const {
@@ -19,7 +21,25 @@ export function CodeEditorPanel() {
     closeFile,
   } = useCodeEditorStore();
 
+  const [saveAsDialogOpen, setSaveAsDialogOpen] = useState(false);
   const activeFile = activeFilePath ? openFiles.get(activeFilePath) : null;
+
+  const handleSaveAs = async (newPath: string) => {
+    if (!activeFilePath) return;
+
+    const fileData = openFiles.get(activeFilePath);
+    if (!fileData) return;
+
+    try {
+      await ipc.invoke('fs:write-file', newPath, fileData.content);
+      const { openFile } = useCodeEditorStore.getState();
+      await openFile(newPath);
+      toast.success(`Saved as ${newPath}`);
+    } catch (error) {
+      toast.error(`Failed to save: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -35,13 +55,11 @@ export function CodeEditorPanel() {
         return;
       }
 
-      // Ctrl+Shift+S: Save all files
+      // Ctrl+Shift+S: Save As
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
         e.preventDefault();
-        if (modifiedFiles.size > 0) {
-          saveAllFiles();
-        } else {
-          toast.info('No modified files to save');
+        if (activeFilePath) {
+          setSaveAsDialogOpen(true);
         }
         return;
       }
@@ -119,6 +137,14 @@ export function CodeEditorPanel() {
       <div className="flex-1 overflow-hidden">
         {renderViewer()}
       </div>
+      {activeFilePath && (
+        <SaveAsDialog
+          open={saveAsDialogOpen}
+          onOpenChange={setSaveAsDialogOpen}
+          currentFilePath={activeFilePath}
+          onSaveAs={handleSaveAs}
+        />
+      )}
     </div>
   );
 }

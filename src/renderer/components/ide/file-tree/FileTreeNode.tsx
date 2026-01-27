@@ -34,7 +34,7 @@ interface FileTreeNodeProps {
 
 export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
   const { toggleNode, selectNode, selectedPath, expandedPaths, loadTree, removeNode } = useFileTreeStore();
-  const { openFile } = useCodeEditorStore();
+  const { openFile, renameFile, closeFile } = useCodeEditorStore();
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [newFileDialogOpen, setNewFileDialogOpen] = useState(false);
@@ -58,10 +58,10 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
     } else {
       // Open file in editor
       try {
-        const result = await ipc.invoke('fs:read-file', node.path);
-        openFile(node.path, result.content);
+        await openFile(node.path);
       } catch (error) {
-        toast.error(`Failed to open file: ${error}`);
+        // Error already handled by openFile with toast
+        console.error('Failed to open file:', error);
       }
     }
 
@@ -182,6 +182,11 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
 
       await ipc.invoke('fs:rename-file', node.path, newPath);
 
+      // Update editor tabs if file was open
+      if (node.type === 'file') {
+        renameFile(node.path, newPath);
+      }
+
       // Reload the tree to reflect changes
       const repoPath = node.path.split(/[/\\]/)[0]; // Get root path
       await loadTree(repoPath);
@@ -199,6 +204,11 @@ export function FileTreeNode({ node, depth, style }: FileTreeNodeProps) {
     setIsDeleting(true);
     try {
       await ipc.invoke('fs:delete-file', node.path);
+
+      // Close file in editor if it was open
+      if (node.type === 'file') {
+        closeFile(node.path);
+      }
 
       // Remove from tree
       removeNode(node.path);
