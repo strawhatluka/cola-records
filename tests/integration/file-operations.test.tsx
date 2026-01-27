@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { FileTreePanel } from '@renderer/components/ide/file-tree/FileTreePanel';
 import { CodeEditorPanel } from '@renderer/components/ide/editor/CodeEditorPanel';
 import { useCodeEditorStore } from '@renderer/stores/useCodeEditorStore';
+import { useFileTreeStore } from '@renderer/stores/useFileTreeStore';
 
 // Mock IPC - using vi.hoisted() to avoid TDZ violations
 const { mockInvokeIPC, mockOnIPC } = vi.hoisted(() => ({
@@ -27,8 +28,48 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Note: react-window is mocked globally in tests/setup.ts to render all items
-// This ensures all files in the tree are visible for interaction tests
+// Mock ContextMenu components to passthrough children
+vi.mock('@renderer/components/ui/ContextMenu', () => ({
+  ContextMenu: ({ children }: any) => <>{children}</>,
+  ContextMenuTrigger: ({ children }: any) => <>{children}</>,
+  ContextMenuContent: () => null,
+  ContextMenuItem: ({ children, onClick }: any) => (
+    <button role="menuitem" onClick={onClick}>
+      {children}
+    </button>
+  ),
+  ContextMenuSeparator: () => null,
+}));
+
+// Mock Dialog components to work in jsdom
+vi.mock('@renderer/components/ui/Dialog', () => ({
+  Dialog: ({ children, open }: any) => (open ? <div>{children}</div> : null),
+  DialogContent: ({ children }: any) => <div>{children}</div>,
+  DialogHeader: ({ children }: any) => <div>{children}</div>,
+  DialogTitle: ({ children }: any) => <h2>{children}</h2>,
+  DialogDescription: ({ children }: any) => <p>{children}</p>,
+  DialogFooter: ({ children }: any) => <div>{children}</div>,
+}));
+
+// Mock react-window for virtualization
+vi.mock('react-window', () => {
+  const React = require('react');
+
+  const MockList = ({ children, itemCount, innerElementType: InnerElement }: any) => {
+    const Inner = InnerElement || 'div';
+    const items = Array.from({ length: Math.min(itemCount, 10) }).map((_, index) =>
+      children({ index, style: {} })
+    );
+    return (
+      <Inner data-testid="virtualized-list" data-row-count={itemCount}>
+        {items}
+      </Inner>
+    );
+  };
+
+  MockList.displayName = 'MockList';
+  return { List: MockList };
+});
 
 describe('File Operations - Integration Tests', () => {
   beforeEach(() => {
