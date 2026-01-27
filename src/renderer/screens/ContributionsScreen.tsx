@@ -1,33 +1,22 @@
 import * as React from 'react';
 import { ContributionList } from '../components/contributions/ContributionList';
 import { useContributionsStore } from '../stores/useContributionsStore';
-import { ipc } from '../ipc/client';
+import type { Contribution } from '../../main/ipc/channels';
 
-export function ContributionsScreen() {
+interface ContributionsScreenProps {
+  onOpenIDE?: (contribution: Contribution) => void;
+}
+
+export function ContributionsScreen({ onOpenIDE }: ContributionsScreenProps) {
   const { contributions, loading, fetchContributions, deleteContribution } = useContributionsStore();
 
   React.useEffect(() => {
     fetchContributions();
   }, [fetchContributions]);
 
-  const handleOpenFolder = async (path: string) => {
-    try {
-      // Platform-specific shell command to open folder
-      const platform = ipc.platform;
-      let command: string;
-
-      if (platform === 'win32') {
-        command = `explorer.exe /select,"${path}"`;
-      } else if (platform === 'darwin') {
-        command = `open -R "${path}"`;
-      } else {
-        command = `xdg-open "${path}"`;
-      }
-
-      // Execute shell command via IPC
-      await ipc.invoke('shell:execute', command);
-    } catch (error) {
-      console.error('Failed to open folder:', error);
+  const handleOpenProject = (contribution: Contribution) => {
+    if (onOpenIDE) {
+      onOpenIDE(contribution);
     }
   };
 
@@ -43,7 +32,7 @@ export function ContributionsScreen() {
       <ContributionList
         contributions={contributions}
         onDelete={deleteContribution}
-        onOpenFolder={handleOpenFolder}
+        onOpenProject={handleOpenProject}
         loading={loading}
       />
     </div>

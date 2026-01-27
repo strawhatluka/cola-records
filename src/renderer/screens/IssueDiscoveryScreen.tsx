@@ -6,7 +6,11 @@ import { ContributionWorkflowModal } from '../components/contributions/Contribut
 import { useIssuesStore } from '../stores/useIssuesStore';
 import type { GitHubIssue, Contribution } from '../../main/ipc/channels';
 
-export function IssueDiscoveryScreen() {
+interface IssueDiscoveryScreenProps {
+  onOpenIDE?: (contribution: Contribution) => void;
+}
+
+export function IssueDiscoveryScreen({ onOpenIDE }: IssueDiscoveryScreenProps) {
   const { issues, loading, searchIssues } = useIssuesStore();
   const [selectedIssue, setSelectedIssue] = React.useState<GitHubIssue | null>(null);
   const [workflowIssue, setWorkflowIssue] = React.useState<GitHubIssue | null>(null);
@@ -55,6 +59,7 @@ export function IssueDiscoveryScreen() {
         isOpen={workflowIssue !== null}
         onClose={() => setWorkflowIssue(null)}
         onComplete={handleWorkflowComplete}
+        onStartDev={onOpenIDE}
       />
     </div>
   );

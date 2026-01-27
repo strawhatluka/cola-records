@@ -9,6 +9,7 @@ import {
   gitIgnoreService,
   gitHubService,
 } from './services';
+import { gitHubGraphQLService } from './services/github-graphql.service';
 import { terminalService } from './services/terminal.service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
@@ -56,6 +57,11 @@ const setupIpcHandlers = () => {
 
   handleIpc('fs:unwatch-directory', async (_event, dirPath) => {
     await fileWatcherService.unwatchDirectory(dirPath);
+  });
+
+  handleIpc('fs:directory-exists', async (_event, dirPath) => {
+    const fs = await import('fs');
+    return fs.existsSync(dirPath);
   });
 
   // Git handlers
@@ -128,10 +134,27 @@ const setupIpcHandlers = () => {
   // Settings handlers
   handleIpc('settings:get', async () => {
     const settings = database.getAllSettings();
+
+    // Set default clone path to Documents/Contributions if not set
+    let defaultClonePath = settings.defaultClonePath;
+    if (!defaultClonePath) {
+      const documentsPath = app.getPath('documents');
+      defaultClonePath = path.join(documentsPath, 'Contributions');
+
+      // Create the directory if it doesn't exist
+      const fs = await import('fs');
+      if (!fs.existsSync(defaultClonePath)) {
+        fs.mkdirSync(defaultClonePath, { recursive: true });
+      }
+
+      // Save it to database for next time
+      database.setSetting('defaultClonePath', defaultClonePath);
+    }
+
     return {
       githubToken: settings.githubToken,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
-      defaultClonePath: settings.defaultClonePath || '',
+      defaultClonePath: defaultClonePath,
       autoFetch: settings.autoFetch === 'true',
     };
   });
@@ -140,6 +163,8 @@ const setupIpcHandlers = () => {
     // Save each setting to database
     if (updates.githubToken !== undefined) {
       database.setSetting('githubToken', updates.githubToken);
+      // Reset GitHub GraphQL client to use new token
+      gitHubGraphQLService.resetClient();
     }
     if (updates.theme !== undefined) {
       database.setSetting('theme', updates.theme);
@@ -193,11 +218,16 @@ const setupIpcHandlers = () => {
     return result.canceled ? null : result.filePaths[0];
   });
 
-  // Shell handler
+  // Shell handlers
   handleIpc("shell:execute", async (_event, command) => {
     const { shell } = await import("electron");
     await shell.openPath(command);
   });
+
+  handleIpc("shell:open-external", async (_event, url) => {
+    await shell.openExternal(url);
+  });
+
   handleIpc("github:get-repository-tree", async (_event, owner, repo, branch) => {
     return await gitHubService.getRepositoryTree(owner, repo, branch || "main");
   });

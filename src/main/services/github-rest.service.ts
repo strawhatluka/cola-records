@@ -1,6 +1,7 @@
 import type { GitHubRepository } from '../ipc/channels';
 import { Octokit } from '@octokit/rest';
 import { env } from './environment.service';
+import { database } from '../database';
 
 /**
  * GitHub REST Service
@@ -15,9 +16,12 @@ export class GitHubRestService {
    */
   private getClient(): Octokit {
     if (!this.client) {
-      const token = env.get('GITHUB_TOKEN');
+      // First check database settings, then fall back to environment
+      const settings = database.getAllSettings();
+      const token = settings.githubToken || env.get('GITHUB_TOKEN');
+
       if (!token) {
-        throw new Error('GitHub token not configured. Please set GITHUB_TOKEN in settings.');
+        throw new Error('GitHub token not configured. Please set GITHUB_TOKEN in settings or .env file.');
       }
 
       this.client = new Octokit({

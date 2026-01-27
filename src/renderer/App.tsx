@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './providers/ThemeProvider';
 import { Layout } from './components/layout/Layout';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { IssueDiscoveryScreen } from './screens/IssueDiscoveryScreen';
 import { ContributionsScreen } from './screens/ContributionsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { IDEInitializer } from './components/ide/IDEInitializer';
 import type { Screen } from './components/layout/Sidebar';
+import type { Contribution } from '../main/ipc/channels';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster } from './components/ui/Toaster';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useSettingsStore } from './stores/useSettingsStore';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+  const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
+  const { theme, fetchSettings } = useSettingsStore();
+
+  // Fetch settings on mount
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   // Global keyboard shortcuts
   useKeyboardShortcuts({
@@ -29,16 +39,30 @@ const App: React.FC = () => {
     },
   });
 
+  const handleOpenIDE = (contribution: Contribution) => {
+    setSelectedContribution(contribution);
+    setCurrentScreen('ide');
+  };
+
   const renderScreen = () => {
     switch (currentScreen) {
       case 'dashboard':
         return <DashboardScreen />;
       case 'issues':
-        return <IssueDiscoveryScreen />;
+        return <IssueDiscoveryScreen onOpenIDE={handleOpenIDE} />;
       case 'contributions':
-        return <ContributionsScreen />;
+        return <ContributionsScreen onOpenIDE={handleOpenIDE} />;
       case 'settings':
         return <SettingsScreen />;
+      case 'ide':
+        return selectedContribution ? (
+          <IDEInitializer
+            contribution={selectedContribution}
+            onNavigateBack={() => setCurrentScreen('contributions')}
+          />
+        ) : (
+          <DashboardScreen />
+        );
       default:
         return <DashboardScreen />;
     }
@@ -46,7 +70,7 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="system">
+      <ThemeProvider defaultTheme={theme}>
         <Layout currentScreen={currentScreen} onScreenChange={setCurrentScreen}>
           {renderScreen()}
         </Layout>

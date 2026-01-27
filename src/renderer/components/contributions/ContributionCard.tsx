@@ -8,10 +8,10 @@ import type { Contribution } from '../../../main/ipc/channels';
 interface ContributionCardProps {
   contribution: Contribution;
   onDelete: (id: string) => void;
-  onOpenFolder: (path: string) => void;
+  onOpenProject: (contribution: Contribution) => void;
 }
 
-export function ContributionCard({ contribution, onDelete, onOpenFolder }: ContributionCardProps) {
+export function ContributionCard({ contribution, onDelete, onOpenProject }: ContributionCardProps) {
   const repoName = contribution.repositoryUrl.split('/').slice(-1)[0];
 
   const handleDelete = () => {
@@ -51,11 +51,11 @@ export function ContributionCard({ contribution, onDelete, onOpenFolder }: Contr
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onOpenFolder(contribution.localPath)}
+            onClick={() => onOpenProject(contribution)}
             className="flex-1"
           >
             <Folder className="h-4 w-4 mr-2" />
-            Open Folder
+            Open Project
           </Button>
           <Button
             variant="outline"

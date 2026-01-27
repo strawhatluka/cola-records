@@ -39,7 +39,17 @@ export function useContributionWorkflow() {
 
       // Step 2: Clone to local (50% progress)
       setState({ status: 'cloning', progress: 50, error: null, contribution: null });
-      const localPath = `${defaultClonePath}/${fork?.name || 'repo'}`;
+
+      // Determine unique local path
+      let localPath = `${defaultClonePath}/${fork?.name || 'repo'}`;
+      let counter = 1;
+
+      // Check if directory already exists, if so append a number
+      while (await ipc.invoke('fs:directory-exists', localPath)) {
+        localPath = `${defaultClonePath}/${fork?.name || 'repo'}-${counter}`;
+        counter++;
+      }
+
       await ipc.invoke('git:clone', fork?.url || '', localPath);
 
       // Step 3: Setup remotes (75% progress)

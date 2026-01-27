@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/Tooltip';
 
-export type Screen = 'dashboard' | 'issues' | 'contributions' | 'settings';
+export type Screen = 'dashboard' | 'issues' | 'contributions' | 'settings' | 'ide';
 
 interface SidebarProps {
   currentScreen: Screen;

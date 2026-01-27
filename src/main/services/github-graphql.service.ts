@@ -1,6 +1,7 @@
 import { graphql } from '@octokit/graphql';
 import type { GitHubIssue } from '../ipc/channels';
 import { env } from './environment.service';
+import { database } from '../database';
 
 /**
  * GitHub GraphQL Service
@@ -15,9 +16,12 @@ export class GitHubGraphQLService {
    */
   private getClient(): typeof graphql {
     if (!this.client) {
-      const token = env.get('GITHUB_TOKEN');
+      // First check database settings, then fall back to environment
+      const settings = database.getAllSettings();
+      const token = settings.githubToken || env.get('GITHUB_TOKEN');
+
       if (!token) {
-        throw new Error('GitHub token not configured. Please set GITHUB_TOKEN in settings.');
+        throw new Error('GitHub token not configured. Please set GITHUB_TOKEN in settings or .env file.');
       }
 
       this.client = graphql.defaults({

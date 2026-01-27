@@ -1,8 +1,6 @@
-import { List } from 'react-window';
 import { IssueCard } from './IssueCard';
 import { Skeleton } from '../ui/Skeleton';
 import type { GitHubIssue } from '../../../main/ipc/channels';
-import type { CSSProperties } from 'react';
 
 interface IssueListProps {
   issues: GitHubIssue[];
@@ -30,28 +28,17 @@ export function IssueList({ issues, onIssueSelect, loading }: IssueListProps) {
     );
   }
 
-  const Row = ({ index, style }: { index: number; style: CSSProperties }) => {
-    const issue = issues[index];
-    return (
-      <div style={{ ...style, padding: '8px' }}>
-        <IssueCard
-          issue={issue}
-          onViewDetails={() => onIssueSelect(issue)}
-        />
-      </div>
-    );
-  };
-
   return (
-    <div className="h-full px-4">
-      <List
-        height={600}
-        itemCount={issues.length}
-        itemSize={140}
-        width="100%"
-      >
-        {Row}
-      </List>
+    <div className="h-full w-full overflow-auto">
+      <div className="space-y-3 p-4">
+        {issues.map((issue) => (
+          <IssueCard
+            key={issue.id}
+            issue={issue}
+            onViewDetails={() => onIssueSelect(issue)}
+          />
+        ))}
+      </div>
     </div>
   );
 }

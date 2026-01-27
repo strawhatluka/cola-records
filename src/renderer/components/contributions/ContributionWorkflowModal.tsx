@@ -18,6 +18,7 @@ interface ContributionWorkflowModalProps {
   isOpen: boolean;
   onClose: () => void;
   onComplete: (contribution: Contribution) => void;
+  onStartDev?: (contribution: Contribution) => void;
 }
 
 export function ContributionWorkflowModal({
@@ -25,6 +26,7 @@ export function ContributionWorkflowModal({
   isOpen,
   onClose,
   onComplete,
+  onStartDev,
 }: ContributionWorkflowModalProps) {
   const { state, startWorkflow, reset } = useContributionWorkflow();
 
@@ -42,6 +44,14 @@ export function ContributionWorkflowModal({
   const handleComplete = () => {
     if (state.contribution) {
       onComplete(state.contribution);
+      handleClose();
+    }
+  };
+
+  const handleStartDev = () => {
+    if (state.contribution && onStartDev) {
+      onComplete(state.contribution);
+      onStartDev(state.contribution);
       handleClose();
     }
   };
@@ -101,7 +111,7 @@ export function ContributionWorkflowModal({
 
         {state.status === 'complete' && (
           <DialogFooter>
-            <Button onClick={handleComplete}>Open in IDE</Button>
+            <Button onClick={handleStartDev}>Start Dev</Button>
             <Button variant="outline" onClick={handleClose}>
               Done
             </Button>

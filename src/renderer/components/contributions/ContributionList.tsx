@@ -6,14 +6,14 @@ import type { Contribution } from '../../../main/ipc/channels';
 interface ContributionListProps {
   contributions: Contribution[];
   onDelete: (id: string) => void;
-  onOpenFolder: (path: string) => void;
+  onOpenProject: (contribution: Contribution) => void;
   loading: boolean;
 }
 
 export function ContributionList({
   contributions,
   onDelete,
-  onOpenFolder,
+  onOpenProject,
   loading,
 }: ContributionListProps) {
   if (loading) {
@@ -46,7 +46,7 @@ export function ContributionList({
           key={contribution.id}
           contribution={contribution}
           onDelete={onDelete}
-          onOpenFolder={onOpenFolder}
+          onOpenProject={onOpenProject}
         />
       ))}
     </div>

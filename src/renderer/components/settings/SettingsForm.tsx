@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '../ui/Select';
 import { ipc } from '../../ipc/client';
+import { useTheme } from '../../providers/ThemeProvider';
 import type { AppSettings } from '../../../main/ipc/channels';
 
 interface SettingsFormProps {
@@ -21,9 +22,16 @@ interface SettingsFormProps {
 export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
   const [githubToken, setGithubToken] = React.useState('');
   const [defaultClonePath, setDefaultClonePath] = React.useState(settings.defaultClonePath);
-  const [theme, setTheme] = React.useState(settings.theme);
+  const [localTheme, setLocalTheme] = React.useState(settings.theme);
   const [tokenValidating, setTokenValidating] = React.useState(false);
   const [tokenValid, setTokenValid] = React.useState<boolean | null>(null);
+  const { setTheme: setAppTheme } = useTheme();
+
+  // Sync local state with props when settings are loaded
+  React.useEffect(() => {
+    setDefaultClonePath(settings.defaultClonePath);
+    setLocalTheme(settings.theme);
+  }, [settings.defaultClonePath, settings.theme]);
 
   const handleSelectDirectory = async () => {
     try {
@@ -47,11 +55,14 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
       const isValid = await ipc.invoke('github:validate-token', githubToken);
       setTokenValid(isValid);
       if (isValid) {
+        console.log('Token validated, saving:', githubToken);
         await onUpdate({ githubToken });
+        alert('GitHub token validated and saved successfully!');
       }
     } catch (error) {
       setTokenValid(false);
       console.error('Token validation failed:', error);
+      alert('Token validation failed. Please check your token.');
     } finally {
       setTokenValidating(false);
     }
@@ -59,12 +70,19 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
 
   const handleSave = async () => {
     try {
+      console.log('Saving settings:', { defaultClonePath, localTheme });
       await onUpdate({
         defaultClonePath,
-        theme,
+        theme: localTheme,
       });
+      // Apply theme immediately
+      setAppTheme(localTheme);
+      console.log('Settings saved successfully');
+      // TODO: Add toast notification for success
+      alert('Settings saved successfully!');
     } catch (error) {
       console.error('Failed to save settings:', error);
+      alert(`Failed to save settings: ${error}`);
     }
   };
 
@@ -108,7 +126,7 @@ export function SettingsForm({ settings, onUpdate }: SettingsFormProps) {
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium">Theme</label>
-            <Select value={theme} onValueChange={(value: any) => setTheme(value)}>
+            <Select value={localTheme} onValueChange={(value: any) => setLocalTheme(value)}>
               <SelectTrigger className="mt-2">
                 <SelectValue />
               </SelectTrigger>

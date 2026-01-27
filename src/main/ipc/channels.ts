@@ -112,6 +112,7 @@ export interface IpcChannels {
   'fs:reveal-in-explorer': (path: string) => void;
   'fs:watch-directory': (path: string) => void;
   'fs:unwatch-directory': (path: string) => void;
+  'fs:directory-exists': (path: string) => boolean;
 
   // Git Channels
   'git:status': (repoPath: string) => GitStatus;
@@ -148,6 +149,7 @@ export interface IpcChannels {
 
   // Shell Channels (added for WO-MIGRATE-002.1)
   'shell:execute': (command: string) => void;
+  'shell:open-external': (url: string) => void;
 
   // GitHub Additional Channels (added for WO-MIGRATE-002.1)
   'github:fork-repository': (repoFullName: string) => GitHubRepository;

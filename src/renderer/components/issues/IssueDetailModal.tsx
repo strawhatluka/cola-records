@@ -11,6 +11,7 @@ import {
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { RepositoryFileTree } from './RepositoryFileTree';
+import { ipc } from '../../ipc/client';
 import type { GitHubIssue } from '../../../main/ipc/channels';
 
 interface IssueDetailModalProps {
@@ -73,7 +74,13 @@ export function IssueDetailModal({ issue, onClose, onContribute }: IssueDetailMo
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t">
             <Button
-              onClick={() => window.open(issue.url, '_blank')}
+              onClick={async () => {
+                try {
+                  await ipc.invoke('shell:open-external', issue.url);
+                } catch (error) {
+                  console.error('Failed to open URL:', error);
+                }
+              }}
               variant="outline"
               className="flex-1"
             >
