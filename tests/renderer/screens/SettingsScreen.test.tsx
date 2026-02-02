@@ -54,14 +54,15 @@ describe('SettingsScreen', () => {
 
   it('renders all tabs', () => {
     render(<SettingsScreen />);
-    expect(screen.getByText('General')).toBeDefined();
+    // Use getAllByText since 'General' appears both as tab button and card title
+    const generalElements = screen.getAllByText('General');
+    expect(generalElements.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('API')).toBeDefined();
     expect(screen.getByText('Aliases')).toBeDefined();
   });
 
   it('shows General tab content by default', () => {
     render(<SettingsScreen />);
-    // GeneralTab should be visible
     expect(screen.getByText('Default Clone Directory')).toBeDefined();
   });
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock Octokit
+// Mock Octokit method fns
 const mockIssuesGet = vi.fn();
 const mockIssuesCreateComment = vi.fn();
 const mockReposCreateFork = vi.fn();
@@ -16,33 +16,34 @@ const mockActivityStar = vi.fn();
 const mockActivityUnstar = vi.fn();
 const mockRateLimitGet = vi.fn();
 
+// Use a class so `new Octokit(...)` works
 vi.mock('@octokit/rest', () => ({
-  Octokit: vi.fn(() => ({
-    issues: {
+  Octokit: class MockOctokit {
+    issues = {
       get: mockIssuesGet,
       createComment: mockIssuesCreateComment,
-    },
-    repos: {
+    };
+    repos = {
       createFork: mockReposCreateFork,
       getContent: mockReposGetContent,
       listForUser: mockReposListForUser,
       listForAuthenticatedUser: mockReposListForAuthenticatedUser,
       get: mockReposGet,
-    },
-    pulls: {
+    };
+    pulls = {
       create: mockPullsCreate,
       get: mockPullsGet,
       list: mockPullsList,
-    },
-    activity: {
+    };
+    activity = {
       checkRepoIsStarredByAuthenticatedUser: mockActivityCheckStar,
       starRepoForAuthenticatedUser: mockActivityStar,
       unstarRepoForAuthenticatedUser: mockActivityUnstar,
-    },
-    rateLimit: {
+    };
+    rateLimit = {
       get: mockRateLimitGet,
-    },
-  })),
+    };
+  },
 }));
 
 vi.mock('../../../src/main/services/environment.service', () => ({
@@ -231,7 +232,6 @@ describe('GitHubRestService', () => {
   describe('resetClient', () => {
     it('clears cached client', () => {
       service.resetClient();
-      // No error = success
     });
   });
 

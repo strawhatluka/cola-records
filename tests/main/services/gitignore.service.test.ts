@@ -1,5 +1,25 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
+
+// Top-level mock functions for fs
+const mockExistsSync = vi.fn(() => false);
+const mockReadFileSync = vi.fn(() => '');
+const mockReadFile = vi.fn();
+const mockAccess = vi.fn();
+
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs')>();
+  return {
+    ...actual,
+    existsSync: (...args: any[]) => mockExistsSync(...args),
+    readFileSync: (...args: any[]) => mockReadFileSync(...args),
+    promises: {
+      ...actual.promises,
+      readFile: (...args: any[]) => mockReadFile(...args),
+      access: (...args: any[]) => mockAccess(...args),
+    },
+  };
+});
 
 // Mock the 'ignore' package
 const mockIgnoreInstance = {
@@ -28,7 +48,7 @@ describe('GitIgnoreService', () => {
 
   describe('isIgnored', () => {
     it('always ignores .git directory', async () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
       mockIgnoreInstance.ignores.mockReturnValue(true);
 
       const result = await service.isIgnored('/repo', '/repo/.git');
@@ -36,8 +56,8 @@ describe('GitIgnoreService', () => {
     });
 
     it('checks patterns from .gitignore file', async () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-      vi.spyOn(fs.promises, 'readFile').mockResolvedValue('node_modules\n*.log\n# comment\n');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFile.mockResolvedValue('node_modules\n*.log\n# comment\n');
       mockIgnoreInstance.ignores.mockReturnValue(true);
 
       const result = await service.isIgnored('/repo', '/repo/node_modules');
@@ -45,7 +65,7 @@ describe('GitIgnoreService', () => {
     });
 
     it('returns false when file is not ignored', async () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
       mockIgnoreInstance.ignores.mockReturnValue(false);
 
       const result = await service.isIgnored('/repo', '/repo/src/index.ts');
@@ -55,15 +75,15 @@ describe('GitIgnoreService', () => {
 
   describe('getPatterns', () => {
     it('returns patterns from .gitignore', async () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-      vi.spyOn(fs.promises, 'readFile').mockResolvedValue('node_modules\n*.log\n# comment\n\n');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFile.mockResolvedValue('node_modules\n*.log\n# comment\n\n');
 
       const patterns = await service.getPatterns('/repo');
       expect(patterns).toEqual(['node_modules', '*.log']);
     });
 
     it('returns empty array when no .gitignore', async () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
       const patterns = await service.getPatterns('/repo');
       expect(patterns).toEqual([]);
     });
@@ -71,7 +91,7 @@ describe('GitIgnoreService', () => {
 
   describe('filterIgnored', () => {
     it('filters out ignored files', async () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
       mockIgnoreInstance.ignores.mockImplementation((path: string) => {
         return path === 'node_modules' || path.endsWith('.log');
       });
@@ -85,12 +105,12 @@ describe('GitIgnoreService', () => {
 
   describe('hasGitIgnore', () => {
     it('returns true when .gitignore exists', async () => {
-      vi.spyOn(fs.promises, 'access').mockResolvedValue();
+      mockAccess.mockResolvedValue(undefined);
       expect(await service.hasGitIgnore('/repo')).toBe(true);
     });
 
     it('returns false when .gitignore does not exist', async () => {
-      vi.spyOn(fs.promises, 'access').mockRejectedValue(new Error('ENOENT'));
+      mockAccess.mockRejectedValue(new Error('ENOENT'));
       expect(await service.hasGitIgnore('/repo')).toBe(false);
     });
   });
@@ -98,16 +118,14 @@ describe('GitIgnoreService', () => {
   describe('cache management', () => {
     it('clearCache empties the cache', () => {
       service.clearCache();
-      // No error thrown, service still works after clearing
       expect(true).toBe(true);
     });
 
     it('reload invalidates cache for a repo', async () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
-      vi.spyOn(fs.promises, 'readFile').mockResolvedValue('');
+      mockExistsSync.mockReturnValue(false);
+      mockReadFile.mockResolvedValue('');
 
       await service.reload('/repo');
-      // Should not throw
     });
   });
 });

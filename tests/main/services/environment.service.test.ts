@@ -1,6 +1,18 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
+
+// Mock fs module at the top level (ESM exports are non-configurable)
+const mockExistsSync = vi.fn(() => false);
+const mockReadFileSync = vi.fn(() => '');
+
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs')>();
+  return {
+    ...actual,
+    existsSync: (...args: any[]) => mockExistsSync(...args),
+    readFileSync: (...args: any[]) => mockReadFileSync(...args),
+  };
+});
 
 // Mock electron before importing the service
 vi.mock('electron', () => ({
@@ -17,13 +29,13 @@ describe('EnvironmentService', () => {
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
-    vi.spyOn(fs, 'readFileSync').mockReturnValue('');
+    mockExistsSync.mockReturnValue(false);
+    mockReadFileSync.mockReturnValue('');
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('get', () => {
@@ -133,10 +145,8 @@ describe('EnvironmentService', () => {
 
   describe('env file parsing', () => {
     it('parses KEY=VALUE from .env.local in development', () => {
-      vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
-        return String(p).endsWith('.env.local');
-      });
-      vi.spyOn(fs, 'readFileSync').mockReturnValue(
+      mockExistsSync.mockImplementation((p: any) => String(p).endsWith('.env.local'));
+      mockReadFileSync.mockReturnValue(
         'APP_NAME=cola-records\nDEBUG=true\n# comment line\n\nQUOTED="hello world"\nSINGLE=\'single quotes\''
       );
 
@@ -148,10 +158,8 @@ describe('EnvironmentService', () => {
     });
 
     it('skips empty lines and comments', () => {
-      vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
-        return String(p).endsWith('.env.local');
-      });
-      vi.spyOn(fs, 'readFileSync').mockReturnValue('# comment\n\nKEY=value\n');
+      mockExistsSync.mockImplementation((p: any) => String(p).endsWith('.env.local'));
+      mockReadFileSync.mockReturnValue('# comment\n\nKEY=value\n');
 
       const service = new EnvironmentService();
       expect(service.get('KEY')).toBe('value');
@@ -160,10 +168,8 @@ describe('EnvironmentService', () => {
 
   describe('getAll', () => {
     it('returns all loaded config', () => {
-      vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
-        return String(p).endsWith('.env.local');
-      });
-      vi.spyOn(fs, 'readFileSync').mockReturnValue('A=1\nB=2');
+      mockExistsSync.mockImplementation((p: any) => String(p).endsWith('.env.local'));
+      mockReadFileSync.mockReturnValue('A=1\nB=2');
 
       const service = new EnvironmentService();
       const all = service.getAll();
@@ -174,12 +180,8 @@ describe('EnvironmentService', () => {
 
   describe('reload', () => {
     it('clears and reloads config', () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
       const service = new EnvironmentService();
-
-      // After reload with no files, getAll should be empty (except process.env loaded vars)
       service.reload();
-      // It should not throw
       expect(service.getAll()).toBeDefined();
     });
   });

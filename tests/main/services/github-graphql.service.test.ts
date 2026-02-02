@@ -30,6 +30,8 @@ describe('GitHubGraphQLService', () => {
   beforeEach(() => {
     service = new GitHubGraphQLService();
     vi.clearAllMocks();
+    // Reset the default mock so mockGraphql is used for getClient() calls
+    mockGraphqlDefaults.mockReturnValue(mockGraphql);
   });
 
   afterEach(() => {
@@ -122,7 +124,6 @@ describe('GitHubGraphQLService', () => {
 
   describe('validateToken', () => {
     it('returns true for valid token', async () => {
-      // validateToken creates its own client via graphql.defaults
       const mockTestClient = vi.fn().mockResolvedValue({ viewer: { login: 'user' } });
       mockGraphqlDefaults.mockReturnValue(mockTestClient);
 
@@ -141,6 +142,10 @@ describe('GitHubGraphQLService', () => {
 
   describe('getAuthenticatedUser', () => {
     it('returns user info', async () => {
+      // Reset client so it creates a fresh one with the correct mockGraphql
+      service.resetClient();
+      mockGraphqlDefaults.mockReturnValue(mockGraphql);
+
       mockGraphql.mockResolvedValue({
         viewer: {
           login: 'testuser',
@@ -159,13 +164,15 @@ describe('GitHubGraphQLService', () => {
   describe('resetClient', () => {
     it('clears cached client', () => {
       service.resetClient();
-      // Next call should create a new client
-      // No error means success
     });
   });
 
   describe('searchRepositoriesByTopic', () => {
     it('returns mapped repositories', async () => {
+      // Reset client so it creates a fresh one with the correct mockGraphql
+      service.resetClient();
+      mockGraphqlDefaults.mockReturnValue(mockGraphql);
+
       mockGraphql.mockResolvedValue({
         search: {
           edges: [

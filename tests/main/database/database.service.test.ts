@@ -1,6 +1,7 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { CREATE_TABLES } from '../../../src/main/database/schema';
+import { CREATE_TABLES, MIGRATIONS } from '../../../src/main/database/schema';
 
 // Mock electron before importing DatabaseService
 vi.mock('electron', () => ({
@@ -19,6 +20,11 @@ describe('DatabaseService', () => {
     db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
     db.exec(CREATE_TABLES);
+
+    // Apply all migrations (e.g., version 2 adds pr_url, pr_number, etc.)
+    for (const [, sql] of Object.entries(MIGRATIONS)) {
+      db.exec(sql);
+    }
 
     // Dynamically import and create a fresh instance
     const { DatabaseService } = await import('../../../src/main/database/database.service');

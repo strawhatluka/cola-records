@@ -1,8 +1,24 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
 
-// Mock electron
-const mockGetPath = vi.fn(() => '/mock/userData');
+// Top-level mock functions for fs
+const mockExistsSync = vi.fn(() => false);
+const mockReadFileSync = vi.fn(() => '{}');
+const mockWriteFileSync = vi.fn();
+const mockMkdirSync = vi.fn();
+
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs')>();
+  return {
+    ...actual,
+    existsSync: (...args: any[]) => mockExistsSync(...args),
+    readFileSync: (...args: any[]) => mockReadFileSync(...args),
+    writeFileSync: (...args: any[]) => mockWriteFileSync(...args),
+    mkdirSync: (...args: any[]) => mockMkdirSync(...args),
+  };
+});
+
+// Mock electron with inline values (no external variable references due to hoisting)
 const mockIsEncryptionAvailable = vi.fn(() => false);
 const mockEncryptString = vi.fn((value: string) => Buffer.from(`encrypted:${value}`));
 const mockDecryptString = vi.fn((buffer: Buffer) => {
@@ -12,7 +28,7 @@ const mockDecryptString = vi.fn((buffer: Buffer) => {
 
 vi.mock('electron', () => ({
   app: {
-    getPath: (name: string) => mockGetPath(name),
+    getPath: () => '/mock/userData',
   },
   safeStorage: {
     isEncryptionAvailable: () => mockIsEncryptionAvailable(),
@@ -25,10 +41,10 @@ import { SecureStorageService } from '../../../src/main/services/secure-storage.
 
 describe('SecureStorageService', () => {
   beforeEach(() => {
-    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
-    vi.spyOn(fs, 'readFileSync').mockReturnValue('{}');
-    vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-    vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined as any);
+    mockExistsSync.mockReturnValue(false);
+    mockReadFileSync.mockReturnValue('{}');
+    mockWriteFileSync.mockClear();
+    mockMkdirSync.mockClear();
     mockIsEncryptionAvailable.mockReturnValue(false);
   });
 
@@ -42,8 +58,8 @@ describe('SecureStorageService', () => {
   });
 
   it('loads existing data from disk on construction', () => {
-    vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-    vi.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({ key1: 'val1' }));
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ key1: 'val1' }));
 
     const service = new SecureStorageService();
     expect(service.hasItem('key1')).toBe(true);
@@ -64,11 +80,10 @@ describe('SecureStorageService', () => {
     });
 
     it('persists to disk on setItem', async () => {
-      const writeSpy = vi.spyOn(fs, 'writeFileSync');
       const service = new SecureStorageService();
       await service.setItem('key', 'value');
 
-      expect(writeSpy).toHaveBeenCalled();
+      expect(mockWriteFileSync).toHaveBeenCalled();
     });
   });
 
@@ -146,8 +161,8 @@ describe('SecureStorageService', () => {
 
   describe('error handling', () => {
     it('handles corrupt disk data gracefully', () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-      vi.spyOn(fs, 'readFileSync').mockReturnValue('not valid json');
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('not valid json');
 
       // Should not throw, just start with empty cache
       const service = new SecureStorageService();

@@ -1,7 +1,22 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as net from 'net';
+
+// Top-level mock functions for fs
+const mockExistsSync = vi.fn(() => false);
+const mockReadFileSync = vi.fn(() => '');
+const mockWriteFileSync = vi.fn();
+const mockMkdirSync = vi.fn();
+
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs')>();
+  return {
+    ...actual,
+    existsSync: (...args: any[]) => mockExistsSync(...args),
+    readFileSync: (...args: any[]) => mockReadFileSync(...args),
+    writeFileSync: (...args: any[]) => mockWriteFileSync(...args),
+    mkdirSync: (...args: any[]) => mockMkdirSync(...args),
+  };
+});
 
 // Mock electron
 vi.mock('electron', () => ({
@@ -10,20 +25,26 @@ vi.mock('electron', () => ({
   },
 }));
 
-// Mock child_process
-const mockExecFile = vi.fn();
-vi.mock('child_process', () => ({
-  execFile: (...args: unknown[]) => mockExecFile(...args),
-}));
+// Mock child_process with proper default export
+vi.mock('child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('child_process')>();
+  return {
+    ...actual,
+    execFile: vi.fn(),
+  };
+});
 
 // Mock util.promisify to return our mock
-vi.mock('util', () => ({
-  promisify: () => (...args: unknown[]) => {
-    // Return a promise from our mock
-    const dockerArgs = args[1] as string[];
-    return Promise.resolve({ stdout: `mock-output-${dockerArgs?.[0] || ''}`, stderr: '' });
-  },
-}));
+vi.mock('util', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('util')>();
+  return {
+    ...actual,
+    promisify: () => (...args: unknown[]) => {
+      const dockerArgs = args[1] as string[];
+      return Promise.resolve({ stdout: `mock-output-${dockerArgs?.[0] || ''}`, stderr: '' });
+    },
+  };
+});
 
 // Mock database
 vi.mock('../../../src/main/database/database.service', () => ({
@@ -31,10 +52,6 @@ vi.mock('../../../src/main/database/database.service', () => ({
     getSetting: vi.fn(() => null),
   },
 }));
-
-// We need to re-import after mocks are set up
-// But since code-server.service uses promisify at module level,
-// let's test the pure methods directly
 
 import { codeServerService } from '../../../src/main/services/code-server.service';
 
@@ -49,7 +66,6 @@ describe('CodeServerService', () => {
 
   describe('toDockerPath', () => {
     it('converts Windows paths to Docker format', () => {
-      // Save original platform
       const originalPlatform = process.platform;
       Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
 
@@ -110,17 +126,16 @@ describe('CodeServerService', () => {
 
   describe('syncVSCodeSettings', () => {
     it('creates settings directory and writes merged settings', () => {
-      const mkdirSpy = vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined as any);
-      const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockExistsSync.mockReturnValue(false);
 
       codeServerService.syncVSCodeSettings();
 
-      expect(mkdirSpy).toHaveBeenCalled();
-      expect(writeSpy).toHaveBeenCalled();
+      expect(mockMkdirSync).toHaveBeenCalled();
+      expect(mockWriteFileSync).toHaveBeenCalled();
 
-      // Verify required overrides are in the written settings
-      const writtenContent = writeSpy.mock.calls[0]?.[1] as string;
+      const writtenContent = mockWriteFileSync.mock.calls[0]?.[1] as string;
       if (writtenContent) {
         const settings = JSON.parse(writtenContent);
         expect(settings['security.workspace.trust.enabled']).toBe(false);
@@ -129,31 +144,26 @@ describe('CodeServerService', () => {
     });
 
     it('merges existing code-server settings on top of host settings', () => {
-      vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined as any);
-      const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockExistsSync.mockReturnValue(true);
 
       let callCount = 0;
-      vi.spyOn(fs, 'readFileSync').mockImplementation(() => {
+      mockReadFileSync.mockImplementation(() => {
         callCount++;
         if (callCount === 1) {
-          // Host settings
           return JSON.stringify({ 'editor.fontSize': 14, 'workbench.colorTheme': 'One Dark' });
         }
-        // Existing code-server settings (user changed theme inside)
         return JSON.stringify({ 'workbench.colorTheme': 'Monokai', 'editor.tabSize': 4 });
       });
 
       codeServerService.syncVSCodeSettings();
 
-      const writtenContent = writeSpy.mock.calls[0]?.[1] as string;
+      const writtenContent = mockWriteFileSync.mock.calls[0]?.[1] as string;
       if (writtenContent) {
         const settings = JSON.parse(writtenContent);
-        // Existing code-server theme should override host
         expect(settings['workbench.colorTheme']).toBe('Monokai');
-        // Host setting preserved
         expect(settings['editor.fontSize']).toBe(14);
-        // Code-server setting preserved
         expect(settings['editor.tabSize']).toBe(4);
       }
     });
@@ -161,14 +171,14 @@ describe('CodeServerService', () => {
 
   describe('createContainerGitConfig', () => {
     it('creates gitconfig with safe directory and credential helper', () => {
-      vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined as any);
-      const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockExistsSync.mockReturnValue(false);
 
       codeServerService.createContainerGitConfig();
 
-      expect(writeSpy).toHaveBeenCalled();
-      const content = writeSpy.mock.calls[0]?.[1] as string;
+      expect(mockWriteFileSync).toHaveBeenCalled();
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
       if (content) {
         expect(content).toContain('[safe]');
         expect(content).toContain('directory = *');
@@ -180,12 +190,12 @@ describe('CodeServerService', () => {
 
   describe('createContainerBashrc', () => {
     it('creates bashrc with default aliases', () => {
-      vi.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined as any);
-      const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
 
       codeServerService.createContainerBashrc('/test/project');
 
-      const content = writeSpy.mock.calls[0]?.[1] as string;
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
       if (content) {
         expect(content).toContain('alias ll=');
         expect(content).toContain('alias gs=');
@@ -198,13 +208,13 @@ describe('CodeServerService', () => {
 
   describe('getGitMounts', () => {
     it('returns empty when no credentials file', () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
       const mounts = codeServerService.getGitMounts();
       expect(mounts).toEqual([]);
     });
 
     it('returns mount args when credentials exist', () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+      mockExistsSync.mockReturnValue(true);
       const mounts = codeServerService.getGitMounts();
       expect(mounts).toContain('-v');
       expect(mounts.some(m => m.includes('.git-credentials'))).toBe(true);
@@ -213,13 +223,13 @@ describe('CodeServerService', () => {
 
   describe('getClaudeMounts', () => {
     it('returns empty when no Claude files exist', () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
       const mounts = codeServerService.getClaudeMounts();
       expect(mounts).toEqual([]);
     });
 
     it('mounts claude.json and .claude dir when they exist', () => {
-      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+      mockExistsSync.mockReturnValue(true);
       const mounts = codeServerService.getClaudeMounts();
       expect(mounts.some(m => m.includes('.claude.json'))).toBe(true);
       expect(mounts.some(m => m.includes('.claude'))).toBe(true);
@@ -228,7 +238,6 @@ describe('CodeServerService', () => {
 
   describe('stop', () => {
     it('handles stop when no container is running', async () => {
-      // Should not throw
       await codeServerService.stop();
     });
   });
