@@ -374,6 +374,25 @@ class CodeServerService {
     return mounts;
   }
 
+  /**
+   * Build Docker -v arguments for Claude Code config.
+   * Mounts ~/.claude.json (auth) and ~/.claude/ (settings, todos) if they exist.
+   */
+  getClaudeMounts(): string[] {
+    const mounts: string[] = [];
+    const claudeJson = path.join(os.homedir(), '.claude.json');
+    const claudeDir = path.join(os.homedir(), '.claude');
+
+    if (fs.existsSync(claudeJson)) {
+      mounts.push('-v', `${this.toDockerPath(claudeJson)}:/home/coder/.claude.json`);
+    }
+    if (fs.existsSync(claudeDir)) {
+      mounts.push('-v', `${this.toDockerPath(claudeDir)}:/home/coder/.claude`);
+    }
+
+    return mounts;
+  }
+
   // ── Docker Operations ────────────────────────────────────────────
 
   /**
@@ -497,6 +516,8 @@ class CodeServerService {
         '-v', `${this.toDockerPath(extensionsDir)}:/home/coder/extensions`,
         // Git mounts (conditionally included)
         ...gitMounts,
+        // Claude Code config mounts (auth token, settings, etc.)
+        ...this.getClaudeMounts(),
         // Git config env var
         '-e', 'GIT_CONFIG_GLOBAL=/home/coder/.local/share/code-server/gitconfig',
         // Shell profile
