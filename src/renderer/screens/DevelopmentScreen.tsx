@@ -16,13 +16,60 @@ interface DevelopmentScreenProps {
   onNavigateBack: () => void;
 }
 
+type ToolDropdown = 'issues' | 'remotes' | 'pull-requests' | 'tools' | null;
+
+interface GitRemote {
+  name: string;
+  fetchUrl: string;
+  pushUrl: string;
+}
+
 export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentScreenProps) {
   const [state, setState] = useState<ScreenState>('idle');
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<ToolDropdown>(null);
+  const [remotes, setRemotes] = useState<GitRemote[]>([]);
+  const [remotesLoading, setRemotesLoading] = useState(false);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch remotes when the remotes dropdown opens
+  useEffect(() => {
+    if (activeDropdown === 'remotes' && contribution.localPath) {
+      setRemotesLoading(true);
+      ipc.invoke('git:get-remotes', contribution.localPath)
+        .then((result) => {
+          if (isMounted.current) setRemotes(result);
+        })
+        .catch((err) => {
+          console.error('[DevelopmentScreen] Failed to fetch remotes:', err);
+          if (isMounted.current) setRemotes([]);
+        })
+        .finally(() => {
+          if (isMounted.current) setRemotesLoading(false);
+        });
+    }
+  }, [activeDropdown, contribution.localPath]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+    if (activeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeDropdown]);
+
+  const toggleDropdown = (name: ToolDropdown) => {
+    setActiveDropdown((prev) => (prev === name ? null : name));
+  };
 
   const startCodeServer = useCallback(async () => {
     setState('starting');
@@ -128,13 +175,79 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium truncate max-w-md">
-            {contribution.issueTitle || 'Development'}
+            {contribution.repositoryUrl
+              ? contribution.repositoryUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '')
+              : 'Unknown Issue'}
           </span>
-          <span className="text-xs text-muted-foreground truncate max-w-xs">
+          <span className="text-xs text-muted-foreground">
             {contribution.localPath}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2" ref={dropdownRef}>
+          {(['issues', 'remotes', 'pull-requests', 'tools'] as const).map((name) => (
+            <div key={name} className="relative">
+              <button
+                onClick={() => toggleDropdown(name)}
+                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                  name === 'remotes' && contribution.isFork && contribution.remotesValid
+                    ? activeDropdown === name
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
+                    : activeDropdown === name
+                      ? 'border-primary bg-accent'
+                      : 'border-border hover:bg-accent'
+                }`}
+              >
+                {name === 'pull-requests' ? 'Pull Requests' : name.charAt(0).toUpperCase() + name.slice(1)}
+              </button>
+              {activeDropdown === name && name === 'remotes' && (
+                <div className="absolute right-0 top-full mt-1 w-80 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
+                  <p className="text-sm font-medium mb-3">Remotes</p>
+                  {remotesLoading ? (
+                    <p className="text-xs text-muted-foreground">Loading...</p>
+                  ) : remotes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No remotes configured</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {remotes.map((remote) => (
+                        <div key={remote.name} className="text-xs">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-sm">{remote.name}</span>
+                            {remote.name === 'origin' && (
+                              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">
+                                origin
+                              </span>
+                            )}
+                            {remote.name === 'upstream' && (
+                              <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
+                                upstream
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-muted-foreground break-all pl-2">
+                            <span className="text-muted-foreground/60">fetch:</span> {remote.fetchUrl}
+                          </div>
+                          {remote.pushUrl && remote.pushUrl !== remote.fetchUrl && (
+                            <div className="text-muted-foreground break-all pl-2">
+                              <span className="text-muted-foreground/60">push:</span> {remote.pushUrl}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeDropdown === name && name !== 'remotes' && (
+                <div className="absolute right-0 top-full mt-1 w-64 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
+                  <p className="text-sm font-medium mb-1">
+                    {name === 'pull-requests' ? 'Pull Requests' : name.charAt(0).toUpperCase() + name.slice(1)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Under construction</p>
+                </div>
+              )}
+            </div>
+          ))}
           <button
             onClick={stopAndGoBack}
             className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-accent transition-colors"

@@ -327,9 +327,13 @@ const setupIpcHandlers = () => {
     return await gitHubService.forkRepository(owner, repo);
   });
 
-  // Git remote handler
+  // Git remote handlers
   handleIpc("git:add-remote", async (_event, repoPath, remoteName, url) => {
     await gitService.addRemote(repoPath, remoteName, url);
+  });
+
+  handleIpc("git:get-remotes", async (_event, repoPath) => {
+    return await gitService.getRemotes(repoPath);
   });
 
   // Dialog handlers

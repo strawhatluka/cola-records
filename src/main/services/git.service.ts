@@ -240,6 +240,24 @@ export class GitService {
   }
 
   /**
+   * Get all remotes with their URLs
+   */
+  async getRemotes(repoPath: string): Promise<{ name: string; fetchUrl: string; pushUrl: string }[]> {
+    try {
+      const git = this.getGit(repoPath);
+      const remotes = await git.getRemotes(true);
+      return remotes.map((r) => ({
+        name: r.name,
+        fetchUrl: r.refs.fetch || '',
+        pushUrl: r.refs.push || '',
+      }));
+    } catch (error) {
+      console.error(`Failed to get remotes for ${repoPath}:`, error);
+      return [];
+    }
+  }
+
+  /**
    * Get remote URL
    */
   async getRemoteUrl(repoPath: string, remote = 'origin'): Promise<string | null> {

@@ -171,6 +171,7 @@ export interface IpcChannels {
   'github:fork-repository': (repoFullName: string) => GitHubRepository;
   'github:get-repository-tree': (owner: string, repo: string, branch: string) => any;
   'git:add-remote': (repoPath: string, remoteName: string, url: string) => void;
+  'git:get-remotes': (repoPath: string) => { name: string; fetchUrl: string; pushUrl: string }[];
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };
