@@ -11,7 +11,10 @@
     "publish": "electron-forge publish",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "clean": "rimraf dist .vite out"
+    "clean": "rimraf dist .vite out",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
