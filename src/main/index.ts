@@ -4,13 +4,12 @@ import { handleIpc, removeAllIpcHandlers } from './ipc';
 import { database } from './database';
 import {
   fileSystemService,
-  fileWatcherService,
   gitService,
   gitIgnoreService,
   gitHubService,
 } from './services';
 import { gitHubGraphQLService } from './services/github-graphql.service';
-import { terminalService } from './services/terminal.service';
+import { codeServerService } from './services/code-server.service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -49,14 +48,6 @@ const setupIpcHandlers = () => {
 
   handleIpc('fs:reveal-in-explorer', async (_event, filePath) => {
     shell.showItemInFolder(filePath);
-  });
-
-  handleIpc('fs:watch-directory', async (_event, dirPath) => {
-    fileWatcherService.watchDirectory(dirPath);
-  });
-
-  handleIpc('fs:unwatch-directory', async (_event, dirPath) => {
-    await fileWatcherService.unwatchDirectory(dirPath);
   });
 
   handleIpc('fs:directory-exists', async (_event, dirPath) => {
@@ -141,13 +132,7 @@ const setupIpcHandlers = () => {
   handleIpc('contribution:delete', async (_event, id) => {
     const contribution = database.getContributionById(id);
     if (contribution) {
-      // Stop watching the directory first to release file handles
-      await fileWatcherService.unwatchDirectory(contribution.localPath);
-
-      // Small delay to ensure watchers are fully released
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Delete the repository directory from file system
+          // Delete the repository directory from file system
       const fs = await import('fs');
       if (fs.existsSync(contribution.localPath)) {
         try {
@@ -359,21 +344,17 @@ const setupIpcHandlers = () => {
     return await gitHubService.getRepositoryTree(owner, repo, branch || "main");
   });
 
-  // Terminal handlers (added for WO-MIGRATE-003.3)
-  handleIpc('terminal:spawn', async (_event, sessionId, cwd) => {
-    terminalService.spawn(sessionId, cwd);
+  // Code Server handlers
+  handleIpc('code-server:start', async (_event, projectPath) => {
+    return await codeServerService.start(projectPath);
   });
 
-  handleIpc('terminal:write', async (_event, sessionId, data) => {
-    terminalService.write(sessionId, data);
+  handleIpc('code-server:stop', async () => {
+    await codeServerService.stop();
   });
 
-  handleIpc('terminal:resize', async (_event, sessionId, cols, rows) => {
-    terminalService.resize(sessionId, cols, rows);
-  });
-
-  handleIpc('terminal:kill', async (_event, sessionId) => {
-    terminalService.kill(sessionId);
+  handleIpc('code-server:status', async () => {
+    return codeServerService.getStatus();
   });
 
 };
@@ -401,13 +382,12 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      webviewTag: true,
       preload: preloadPath,
     },
   });
 
-  // Set main window reference for file watcher and terminal
-  fileWatcherService.setMainWindow(mainWindow);
-  terminalService.setMainWindow(mainWindow);
+  // Set main window reference
 
   // Load the index.html of the app
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -451,9 +431,8 @@ app.on('activate', () => {
 
 // Clean up IPC handlers, file watchers, terminals, and database before quit
 app.on('will-quit', async () => {
+  await codeServerService.stop();
   removeAllIpcHandlers();
-  await fileWatcherService.unwatchAll();
-  terminalService.killAll();
   database.close();
 });
 

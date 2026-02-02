@@ -5,7 +5,7 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { IssueDiscoveryScreen } from './screens/IssueDiscoveryScreen';
 import { ContributionsScreen } from './screens/ContributionsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { IDEInitializer } from './components/ide/IDEInitializer';
+import { DevelopmentScreen } from './screens/DevelopmentScreen';
 import type { Screen } from './components/layout/Sidebar';
 import type { Contribution } from '../main/ipc/channels';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -62,12 +62,14 @@ const App: React.FC = () => {
         return <SettingsScreen />;
       case 'ide':
         return selectedContribution ? (
-          <IDEInitializer
+          <DevelopmentScreen
             contribution={selectedContribution}
             onNavigateBack={() => setCurrentScreen('contributions')}
           />
         ) : (
-          <DashboardScreen />
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No project selected. Go to Contributions to open a project.
+          </div>
         );
       default:
         return <DashboardScreen />;

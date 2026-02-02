@@ -119,8 +119,6 @@ export interface IpcChannels {
   'fs:delete-directory': (path: string) => void;
   'fs:rename-file': (oldPath: string, newPath: string) => void;
   'fs:reveal-in-explorer': (path: string) => void;
-  'fs:watch-directory': (path: string) => void;
-  'fs:unwatch-directory': (path: string) => void;
   'fs:directory-exists': (path: string) => boolean;
 
   // Git Channels
@@ -168,12 +166,10 @@ export interface IpcChannels {
   'github:get-repository-tree': (owner: string, repo: string, branch: string) => any;
   'git:add-remote': (repoPath: string, remoteName: string, url: string) => void;
 
-  // Terminal Channels (added for WO-MIGRATE-003.3)
-  'terminal:spawn': (sessionId: string, cwd: string) => void;
-  'terminal:write': (sessionId: string, data: string) => void;
-  'terminal:resize': (sessionId: string, cols: number, rows: number) => void;
-  'terminal:kill': (sessionId: string) => void;
-
+  // Code Server Channels
+  'code-server:start': (projectPath: string) => { port: number; url: string };
+  'code-server:stop': () => void;
+  'code-server:status': () => { running: boolean; port: number | null; url: string | null };
 }
 
 /**
@@ -182,12 +178,6 @@ export interface IpcChannels {
  * These are one-way events sent from main to renderer
  */
 export interface IpcEvents {
-  'fs:file-changed': (path: string) => void;
-  'fs:file-added': (path: string) => void;
-  'fs:file-deleted': (path: string) => void;
   'git:status-changed': (repoPath: string) => void;
-  'terminal:data': (event: { sessionId: string; data: string }) => void;
-  'terminal:exit': (event: { sessionId: string; exitCode: number; signal?: number }) => void;
-  'terminal:error': (event: { sessionId: string; error: string }) => void;
 }
 

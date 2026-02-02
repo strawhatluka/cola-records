@@ -75,6 +75,7 @@ credentials.json
 
 # Node.js / Electron build artifacts
 dist/
+coverage/
 out/
 .vite/
 

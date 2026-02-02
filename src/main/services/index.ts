@@ -1,7 +1,6 @@
 export * from './secure-storage.service';
 export * from './environment.service';
 export * from './filesystem.service';
-export * from './filewatcher.service';
 export * from './git.service';
 export * from './gitignore.service';
 export * from './github-graphql.service';
