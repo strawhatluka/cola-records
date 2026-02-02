@@ -94,11 +94,17 @@ export interface Contribution {
 }
 
 // Settings Types
+export interface Alias {
+  name: string;
+  command: string;
+}
+
 export interface AppSettings {
   githubToken?: string;
   theme: 'light' | 'dark' | 'system';
   defaultClonePath: string;
   autoFetch: boolean;
+  aliases?: Alias[];
 }
 
 /**

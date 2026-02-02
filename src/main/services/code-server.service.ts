@@ -13,6 +13,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as net from 'net';
+import { database } from '../database/database.service';
+import type { Alias } from '../ipc/channels';
 const execFileAsync = promisify(execFile);
 
 interface CodeServerStatus {
@@ -161,18 +163,38 @@ class CodeServerService {
     try {
       fs.mkdirSync(codeServerSettingsDir, { recursive: true });
 
-      // Start with host settings or empty object
-      let settings: Record<string, unknown> = {};
+      // Start with host settings as the base layer
+      let hostSettings: Record<string, unknown> = {};
       if (fs.existsSync(hostSettingsPath)) {
         const raw = fs.readFileSync(hostSettingsPath, 'utf-8');
         const cleanJson = this.stripJsonc(raw);
-        settings = JSON.parse(cleanJson);
+        hostSettings = JSON.parse(cleanJson);
         console.log('[code-server] Loaded host VS Code settings');
       } else {
         console.log('[code-server] No host VS Code settings found, using defaults');
       }
 
-      // Inject required overrides
+      // Load existing code-server settings (preserves theme, font size, etc.
+      // changed by the user inside the embedded VS Code)
+      let existingSettings: Record<string, unknown> = {};
+      if (fs.existsSync(codeServerSettingsPath)) {
+        try {
+          const raw = fs.readFileSync(codeServerSettingsPath, 'utf-8');
+          existingSettings = JSON.parse(raw);
+          console.log('[code-server] Loaded existing code-server settings');
+        } catch {
+          console.warn('[code-server] Could not parse existing settings, starting fresh');
+        }
+      }
+
+      // Merge: host settings as base, existing code-server settings on top
+      // (so user changes inside code-server are preserved), then required overrides last
+      const settings: Record<string, unknown> = {
+        ...hostSettings,
+        ...existingSettings,
+      };
+
+      // Required overrides (always applied regardless of user changes)
       settings['security.workspace.trust.enabled'] = false;
       settings['git.enabled'] = true;
       settings['git.path'] = '/usr/bin/git';
@@ -187,7 +209,7 @@ class CodeServerService {
       };
 
       fs.writeFileSync(codeServerSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-      console.log('[code-server] Wrote settings with trust disabled and git enabled');
+      console.log('[code-server] Wrote merged settings (host + existing + overrides)');
     } catch (error) {
       console.error('[code-server] Failed to sync VS Code settings:', error);
     }
@@ -290,13 +312,37 @@ class CodeServerService {
       '# Prompt: username project-name/subdir (branch)$',
       `PS1='\\[\\033[01;32m\\]${username}\\[\\033[00m\\] \\[\\033[01;34m\\]$(__project_path)\\[\\033[00m\\]\\[\\033[33m\\]$(b=$(__git_branch); [ -n "$b" ] && echo " ($b)")\\[\\033[00m\\]\\$ '`,
       '',
-      '# Useful aliases',
-      'alias ll="ls -la --color=auto"',
-      'alias gs="git status"',
-      'alias gd="git diff"',
-      'alias gl="git log --oneline -20"',
-      '',
+      '# Aliases (defaults + user-defined from Settings)',
     ];
+
+    // Build alias map: defaults first, then user aliases override by name
+    const aliasMap = new Map<string, string>([
+      ['ll', 'ls -la --color=auto'],
+      ['gs', 'git status'],
+      ['gd', 'git diff'],
+      ['gl', 'git log --oneline -20'],
+    ]);
+
+    // Read user aliases from database
+    try {
+      const aliasesJson = database.getSetting('aliases');
+      if (aliasesJson) {
+        const userAliases: Alias[] = JSON.parse(aliasesJson);
+        for (const a of userAliases) {
+          if (a.name && a.command) {
+            aliasMap.set(a.name, a.command);
+          }
+        }
+        console.log(`[code-server] Loaded ${userAliases.length} user aliases from settings`);
+      }
+    } catch (error) {
+      console.error('[code-server] Failed to read user aliases:', error);
+    }
+
+    for (const [name, command] of aliasMap) {
+      lines.push(`alias ${name}="${command}"`);
+    }
+    lines.push('');
 
     const content = lines.join('\n');
 

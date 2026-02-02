@@ -19,6 +19,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   theme: 'system',
   defaultClonePath: '',
   autoFetch: true,
+  aliases: [],
   loading: false,
   error: null,
 

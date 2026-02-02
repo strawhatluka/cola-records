@@ -263,11 +263,15 @@ const setupIpcHandlers = () => {
       database.setSetting('defaultClonePath', defaultClonePath);
     }
 
+    let aliases: import('./ipc/channels').Alias[] = [];
+    try { aliases = JSON.parse(settings.aliases || '[]'); } catch { aliases = []; }
+
     return {
       githubToken: settings.githubToken,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: defaultClonePath,
       autoFetch: settings.autoFetch === 'true',
+      aliases,
     };
   });
 
@@ -287,14 +291,21 @@ const setupIpcHandlers = () => {
     if (updates.autoFetch !== undefined) {
       database.setSetting('autoFetch', String(updates.autoFetch));
     }
+    if (updates.aliases !== undefined) {
+      database.setSetting('aliases', JSON.stringify(updates.aliases));
+    }
 
     // Return updated settings
     const settings = database.getAllSettings();
+    let aliases: import('./ipc/channels').Alias[] = [];
+    try { aliases = JSON.parse(settings.aliases || '[]'); } catch { aliases = []; }
+
     return {
       githubToken: settings.githubToken,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: settings.defaultClonePath || '',
       autoFetch: settings.autoFetch === 'true',
+      aliases,
     };
   });
 
@@ -429,12 +440,35 @@ app.on('activate', () => {
   }
 });
 
-// Clean up IPC handlers, file watchers, terminals, and database before quit
-app.on('will-quit', async () => {
-  await codeServerService.stop();
+// Clean up code-server container, IPC handlers, and database before quit.
+// Uses a shared cleanup function for both will-quit and process signals (Ctrl+C).
+let cleanupDone = false;
+async function cleanup(): Promise<void> {
+  if (cleanupDone) return;
+  cleanupDone = true;
+  try {
+    await codeServerService.stop();
+  } catch (err) {
+    console.error('[cleanup] Failed to stop code-server:', err);
+  }
   removeAllIpcHandlers();
   database.close();
+}
+
+app.on('will-quit', (e) => {
+  if (cleanupDone) return; // Already cleaned up — let it quit
+  e.preventDefault();
+  cleanup().finally(() => app.quit());
 });
+
+// Handle Ctrl+C / SIGTERM so the container is stopped even when
+// the app is killed from the terminal.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    console.log(`[cleanup] Received ${signal}`);
+    cleanup().finally(() => process.exit(0));
+  });
+}
 
 // Declare Vite environment variables for TypeScript
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
