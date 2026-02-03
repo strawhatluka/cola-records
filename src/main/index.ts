@@ -367,6 +367,27 @@ const setupIpcHandlers = () => {
     await gitHubRestService.createIssueComment(owner, repo, prNumber, body);
   });
 
+  // Issue Detail handlers (WO-005)
+  handleIpc("github:list-issues", async (_event, owner, repo, state) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listIssues(owner, repo, { state: state || 'open' });
+  });
+
+  handleIpc("github:get-issue", async (_event, owner, repo, issueNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.getIssue(owner, repo, issueNumber);
+  });
+
+  handleIpc("github:list-issue-comments", async (_event, owner, repo, issueNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listIssueComments(owner, repo, issueNumber);
+  });
+
+  handleIpc("github:create-issue-comment", async (_event, owner, repo, issueNumber, body) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    await gitHubRestService.createIssueComment(owner, repo, issueNumber, body);
+  });
+
   // Dialog handlers
   handleIpc("dialog:open-directory", async () => {
     const { dialog } = await import("electron");

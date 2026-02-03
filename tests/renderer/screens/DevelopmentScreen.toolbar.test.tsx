@@ -24,6 +24,16 @@ vi.mock('../../../src/renderer/components/pull-requests/PullRequestDetailModal',
   ),
 }));
 
+// Mock DevelopmentIssueDetailModal to avoid nested IPC complexity
+vi.mock('../../../src/renderer/components/issues/DevelopmentIssueDetailModal', () => ({
+  DevelopmentIssueDetailModal: ({ issue, onClose }: { issue: any; onClose: () => void }) => (
+    <div data-testid="issue-detail-modal">
+      <span>Issue Modal: #{issue?.number}</span>
+      <button onClick={onClose}>Close Issue Modal</button>
+    </div>
+  ),
+}));
+
 import { DevelopmentScreen } from '../../../src/renderer/screens/DevelopmentScreen';
 import type { Contribution } from '../../../src/main/ipc/channels';
 
@@ -79,6 +89,33 @@ function setupRunningState() {
             updatedAt: new Date('2026-01-02'),
             author: 'testuser',
             headBranch: 'old-branch',
+          },
+        ];
+      case 'github:list-issues':
+        return [
+          {
+            number: 10,
+            title: 'Fix login bug',
+            body: 'Login is broken',
+            url: 'https://github.com/upstream/repo/issues/10',
+            state: 'open',
+            labels: ['bug'],
+            createdAt: new Date('2026-01-01'),
+            updatedAt: new Date('2026-01-02'),
+            author: 'reporter',
+            authorAvatarUrl: 'https://avatar.url/reporter',
+          },
+          {
+            number: 1,
+            title: 'Matching branch issue',
+            body: 'This matches the branch',
+            url: 'https://github.com/upstream/repo/issues/1',
+            state: 'open',
+            labels: ['enhancement'],
+            createdAt: new Date('2026-01-01'),
+            updatedAt: new Date('2026-01-02'),
+            author: 'contributor',
+            authorAvatarUrl: '',
           },
         ];
       default:
@@ -335,6 +372,178 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       await user.click(screen.getByText('Close Modal'));
       await waitFor(() => {
         expect(screen.queryByTestId('pr-detail-modal')).toBeNull();
+      });
+    });
+  });
+
+  describe('Issues button styling', () => {
+    it('has green styling when branched issue is open', async () => {
+      // branchName 'fix-10-login' matches issue #10 which is open
+      await renderInRunningState({ branchName: 'fix-10-login' });
+
+      // Wait for issues to be fetched eagerly on mount
+      await waitFor(() => {
+        const issuesBtn = screen.getByRole('button', { name: 'Issues' });
+        expect(issuesBtn.className).toContain('bg-green-500');
+      });
+    });
+
+    it('has red styling when branched issue is closed', async () => {
+      setupRunningState();
+      // Override to return a closed branched issue
+      const originalImpl = mockInvoke.getMockImplementation()!;
+      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+        if (channel === 'github:list-issues') return [
+          {
+            number: 10,
+            title: 'Closed issue',
+            body: '',
+            url: 'https://github.com/upstream/repo/issues/10',
+            state: 'closed',
+            labels: [],
+            createdAt: new Date('2026-01-01'),
+            updatedAt: new Date('2026-01-02'),
+            author: 'reporter',
+            authorAvatarUrl: '',
+          },
+        ];
+        return (originalImpl as Function)(channel, ...args);
+      });
+
+      render(<DevelopmentScreen contribution={{ ...baseContribution, branchName: 'fix-10-login' }} onNavigateBack={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByText('Stop & Back')).toBeDefined();
+      });
+
+      await waitFor(() => {
+        const issuesBtn = screen.getByRole('button', { name: 'Issues' });
+        expect(issuesBtn.className).toContain('bg-red-500');
+      });
+    });
+
+    it('has default styling when no branched issue', async () => {
+      await renderInRunningState({ branchName: 'unrelated-branch' });
+
+      await waitFor(() => {
+        const issuesBtn = screen.getByRole('button', { name: 'Issues' });
+        expect(issuesBtn.className).toContain('border-border');
+      });
+    });
+  });
+
+  describe('Issues dropdown', () => {
+    it('shows issues after clicking button', async () => {
+      await renderInRunningState();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Issues'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Fix login bug')).toBeDefined();
+        expect(screen.getByText('#10')).toBeDefined();
+        expect(screen.getByText('Matching branch issue')).toBeDefined();
+      });
+    });
+
+    it('shows "No issues found" when empty', async () => {
+      setupRunningState();
+      const originalImpl = mockInvoke.getMockImplementation()!;
+      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+        if (channel === 'github:list-issues') return [];
+        return (originalImpl as Function)(channel, ...args);
+      });
+
+      render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByText('Stop & Back')).toBeDefined();
+      });
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Issues'));
+
+      await waitFor(() => {
+        expect(screen.getByText('No issues found')).toBeDefined();
+      });
+    });
+
+    it('shows error when fetch fails', async () => {
+      setupRunningState();
+      const originalImpl = mockInvoke.getMockImplementation()!;
+      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+        if (channel === 'github:list-issues') throw new Error('Issues fetch failed');
+        return (originalImpl as Function)(channel, ...args);
+      });
+
+      render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByText('Stop & Back')).toBeDefined();
+      });
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Issues'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Issues fetch failed')).toBeDefined();
+      });
+    });
+
+    it('shows blue "branched" badge when branch matches issue number', async () => {
+      await renderInRunningState({ branchName: 'fix-10-login' });
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Issues'));
+
+      await waitFor(() => {
+        expect(screen.getByText('branched')).toBeDefined();
+      });
+    });
+
+    it('does not show "branched" badge when branch does not match', async () => {
+      await renderInRunningState({ branchName: 'unrelated-branch' });
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Issues'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Fix login bug')).toBeDefined();
+      });
+      expect(screen.queryByText('branched')).toBeNull();
+    });
+
+    it('clicking an issue opens the detail modal', async () => {
+      await renderInRunningState();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Issues'));
+      await waitFor(() => {
+        expect(screen.getByText('Fix login bug')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Fix login bug'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('issue-detail-modal')).toBeDefined();
+        expect(screen.getByText('Issue Modal: #10')).toBeDefined();
+      });
+    });
+
+    it('closing issue modal clears selectedIssue', async () => {
+      await renderInRunningState();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Issues'));
+      await waitFor(() => {
+        expect(screen.getByText('Fix login bug')).toBeDefined();
+      });
+      await user.click(screen.getByText('Fix login bug'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('issue-detail-modal')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Close Issue Modal'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('issue-detail-modal')).toBeNull();
       });
     });
   });

@@ -16,6 +16,7 @@ const mockActivityStar = vi.fn();
 const mockActivityUnstar = vi.fn();
 const mockRateLimitGet = vi.fn();
 const mockIssuesListComments = vi.fn();
+const mockIssuesListForRepo = vi.fn();
 const mockPullsListReviews = vi.fn();
 const mockPullsListReviewComments = vi.fn();
 
@@ -26,6 +27,7 @@ vi.mock('@octokit/rest', () => ({
       get: mockIssuesGet,
       createComment: mockIssuesCreateComment,
       listComments: mockIssuesListComments,
+      listForRepo: mockIssuesListForRepo,
     };
     repos = {
       createFork: mockReposCreateFork,
@@ -519,6 +521,141 @@ describe('GitHubRestService', () => {
       mockPullsListReviewComments.mockRejectedValue(new Error('API failure'));
       await expect(service.listPRReviewComments('org', 'repo', 10)).rejects.toThrow(
         'Failed to list review comments'
+      );
+    });
+  });
+
+  describe('listIssues', () => {
+    it('maps fields correctly and filters out PRs', async () => {
+      mockIssuesListForRepo.mockResolvedValue({
+        data: [
+          {
+            number: 1,
+            title: 'Bug report',
+            body: 'Something broke',
+            html_url: 'https://github.com/org/repo/issues/1',
+            state: 'open',
+            labels: [{ name: 'bug' }],
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-02T00:00:00Z',
+            user: { login: 'reporter', avatar_url: 'https://avatar.url/1' },
+          },
+          {
+            number: 2,
+            title: 'A PR disguised as issue',
+            body: 'PR body',
+            html_url: 'https://github.com/org/repo/issues/2',
+            state: 'open',
+            labels: [],
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-02T00:00:00Z',
+            user: { login: 'author' },
+            pull_request: { url: 'https://api.github.com/repos/org/repo/pulls/2' },
+          },
+        ],
+      });
+
+      const issues = await service.listIssues('org', 'repo');
+      expect(issues).toHaveLength(1);
+      expect(issues[0].number).toBe(1);
+      expect(issues[0].title).toBe('Bug report');
+      expect(issues[0].body).toBe('Something broke');
+      expect(issues[0].url).toBe('https://github.com/org/repo/issues/1');
+      expect(issues[0].state).toBe('open');
+      expect(issues[0].labels).toEqual(['bug']);
+      expect(issues[0].author).toBe('reporter');
+      expect(issues[0].authorAvatarUrl).toBe('https://avatar.url/1');
+      expect(issues[0].createdAt).toBeInstanceOf(Date);
+    });
+
+    it('handles null user and string labels', async () => {
+      mockIssuesListForRepo.mockResolvedValue({
+        data: [
+          {
+            number: 3,
+            title: 'Ghost issue',
+            body: null,
+            html_url: 'https://github.com/org/repo/issues/3',
+            state: 'open',
+            labels: ['enhancement'],
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-02T00:00:00Z',
+            user: null,
+          },
+        ],
+      });
+
+      const issues = await service.listIssues('org', 'repo');
+      expect(issues[0].author).toBe('unknown');
+      expect(issues[0].authorAvatarUrl).toBe('');
+      expect(issues[0].body).toBe('');
+      expect(issues[0].labels).toEqual(['enhancement']);
+    });
+
+    it('passes state option to API', async () => {
+      mockIssuesListForRepo.mockResolvedValue({ data: [] });
+
+      await service.listIssues('org', 'repo', { state: 'closed' });
+      expect(mockIssuesListForRepo).toHaveBeenCalledWith(
+        expect.objectContaining({ state: 'closed' })
+      );
+    });
+
+    it('throws on API error', async () => {
+      mockIssuesListForRepo.mockRejectedValue(new Error('API failure'));
+      await expect(service.listIssues('org', 'repo')).rejects.toThrow(
+        'Failed to list issues'
+      );
+    });
+  });
+
+  describe('listIssueComments', () => {
+    it('maps fields correctly', async () => {
+      mockIssuesListComments.mockResolvedValue({
+        data: [
+          {
+            id: 501,
+            body: 'issue comment body',
+            user: { login: 'commenter', avatar_url: 'https://avatar.url/5' },
+            created_at: '2026-01-03T00:00:00Z',
+            updated_at: '2026-01-04T00:00:00Z',
+          },
+        ],
+      });
+
+      const comments = await service.listIssueComments('org', 'repo', 1);
+      expect(comments).toHaveLength(1);
+      expect(comments[0].id).toBe(501);
+      expect(comments[0].body).toBe('issue comment body');
+      expect(comments[0].author).toBe('commenter');
+      expect(comments[0].authorAvatarUrl).toBe('https://avatar.url/5');
+      expect(comments[0].createdAt).toBeInstanceOf(Date);
+      expect(comments[0].updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('handles null user', async () => {
+      mockIssuesListComments.mockResolvedValue({
+        data: [
+          {
+            id: 502,
+            body: null,
+            user: null,
+            created_at: '2026-01-03T00:00:00Z',
+            updated_at: '2026-01-04T00:00:00Z',
+          },
+        ],
+      });
+
+      const comments = await service.listIssueComments('org', 'repo', 1);
+      expect(comments[0].author).toBe('unknown');
+      expect(comments[0].authorAvatarUrl).toBe('');
+      expect(comments[0].body).toBe('');
+    });
+
+    it('throws on API error', async () => {
+      mockIssuesListComments.mockRejectedValue(new Error('API failure'));
+      await expect(service.listIssueComments('org', 'repo', 1)).rejects.toThrow(
+        'Failed to list comments'
       );
     });
   });

@@ -57,6 +57,8 @@ export interface GitHubIssue {
   labels: string[];
   createdAt: Date;
   updatedAt: Date;
+  author?: string;
+  authorAvatarUrl?: string;
 }
 
 export interface GitHubRepository {
@@ -223,6 +225,41 @@ export interface IpcChannels {
     inReplyToId: number | null;
   }[];
   'github:create-pr-comment': (owner: string, repo: string, prNumber: number, body: string) => void;
+
+  // Issue Detail Channels (WO-005)
+  'github:list-issues': (owner: string, repo: string, state?: 'open' | 'closed' | 'all') => {
+    number: number;
+    title: string;
+    body: string;
+    url: string;
+    state: string;
+    labels: string[];
+    createdAt: Date;
+    updatedAt: Date;
+    author: string;
+    authorAvatarUrl: string;
+  }[];
+  'github:get-issue': (owner: string, repo: string, issueNumber: number) => {
+    number: number;
+    title: string;
+    body: string;
+    url: string;
+    state: string;
+    labels: string[];
+    createdAt: Date;
+    updatedAt: Date;
+    author: string;
+    authorAvatarUrl: string;
+  };
+  'github:list-issue-comments': (owner: string, repo: string, issueNumber: number) => {
+    id: number;
+    body: string;
+    author: string;
+    authorAvatarUrl: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  'github:create-issue-comment': (owner: string, repo: string, issueNumber: number, body: string) => void;
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };

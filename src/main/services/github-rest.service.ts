@@ -66,6 +66,7 @@ export class GitHubRestService {
         createdAt: new Date(response.data.created_at),
         updatedAt: new Date(response.data.updated_at),
         author: response.data.user?.login || 'unknown',
+        authorAvatarUrl: response.data.user?.avatar_url || '',
       };
     } catch (error) {
       console.error('GitHub REST get issue error:', error);
@@ -93,6 +94,79 @@ export class GitHubRestService {
     } catch (error) {
       console.error('GitHub REST create comment error:', error);
       throw new Error(`Failed to create comment on ${owner}/${repo}#${issueNumber}: ${error}`);
+    }
+  }
+
+  /**
+   * List issues for a repository (excludes pull requests)
+   */
+  async listIssues(
+    owner: string,
+    repo: string,
+    options: { state?: 'open' | 'closed' | 'all' } = {}
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.issues.listForRepo({
+        owner,
+        repo,
+        state: options.state || 'open',
+        per_page: 100,
+        sort: 'updated',
+        direction: 'desc',
+      });
+
+      // Filter out pull requests (GitHub includes PRs in the issues endpoint)
+      return response.data
+        .filter((item: any) => !item.pull_request)
+        .map((issue: any) => ({
+          number: issue.number,
+          title: issue.title,
+          body: issue.body || '',
+          url: issue.html_url,
+          state: issue.state,
+          labels: issue.labels.map((label: any) =>
+            typeof label === 'string' ? label : label.name
+          ),
+          createdAt: new Date(issue.created_at),
+          updatedAt: new Date(issue.updated_at),
+          author: issue.user?.login || 'unknown',
+          authorAvatarUrl: issue.user?.avatar_url || '',
+        }));
+    } catch (error) {
+      console.error('GitHub REST list issues error:', error);
+      throw new Error(`Failed to list issues for ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
+   * List comments on an issue
+   */
+  async listIssueComments(
+    owner: string,
+    repo: string,
+    issueNumber: number
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.issues.listComments({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        per_page: 100,
+      });
+
+      return response.data.map((comment: any) => ({
+        id: comment.id,
+        body: comment.body || '',
+        author: comment.user?.login || 'unknown',
+        authorAvatarUrl: comment.user?.avatar_url || '',
+        createdAt: new Date(comment.created_at),
+        updatedAt: new Date(comment.updated_at),
+      }));
+    } catch (error) {
+      console.error('GitHub REST list issue comments error:', error);
+      throw new Error(`Failed to list comments for ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
 

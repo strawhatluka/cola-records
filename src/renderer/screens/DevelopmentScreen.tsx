@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ipc } from '../ipc/client';
 import type { Contribution } from '../../main/ipc/channels';
 import { PullRequestDetailModal } from '../components/pull-requests/PullRequestDetailModal';
+import { DevelopmentIssueDetailModal } from '../components/issues/DevelopmentIssueDetailModal';
 
 type ScreenState = 'idle' | 'starting' | 'running' | 'error';
 
@@ -37,6 +38,19 @@ interface PullRequest {
   headBranch: string;
 }
 
+interface Issue {
+  number: number;
+  title: string;
+  body: string;
+  url: string;
+  state: string;
+  labels: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  author: string;
+  authorAvatarUrl: string;
+}
+
 export function extractOwnerRepo(repoUrl: string): { owner: string; repo: string } | null {
   const match = repoUrl.match(/github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/);
   if (!match) return null;
@@ -54,6 +68,10 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [prsLoading, setPrsLoading] = useState(false);
   const [prsError, setPrsError] = useState<string | null>(null);
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [issuesLoading, setIssuesLoading] = useState(false);
+  const [issuesError, setIssuesError] = useState<string | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
@@ -103,6 +121,36 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       })
       .finally(() => {
         if (isMounted.current) setPrsLoading(false);
+      });
+  }, [activeDropdown, contribution.upstreamUrl, contribution.repositoryUrl]);
+
+  // Fetch issues eagerly on mount (so button color reflects branched issue state)
+  // and refresh when the dropdown opens
+  useEffect(() => {
+    const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+    if (!targetUrl) return;
+
+    const parsed = extractOwnerRepo(targetUrl);
+    if (!parsed) return;
+
+    // Skip if we already have issues and the dropdown isn't open (avoid re-fetch on every render)
+    if (issues.length > 0 && activeDropdown !== 'issues') return;
+
+    setIssuesLoading(true);
+    setIssuesError(null);
+    ipc.invoke('github:list-issues', parsed.owner, parsed.repo, 'open')
+      .then((result) => {
+        if (isMounted.current) setIssues(result);
+      })
+      .catch((err) => {
+        console.error('[DevelopmentScreen] Failed to fetch issues:', err);
+        if (isMounted.current) {
+          setIssuesError(err instanceof Error ? err.message : String(err));
+          setIssues([]);
+        }
+      })
+      .finally(() => {
+        if (isMounted.current) setIssuesLoading(false);
       });
   }, [activeDropdown, contribution.upstreamUrl, contribution.repositoryUrl]);
 
@@ -221,6 +269,10 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   }
 
   // ── Running State ────────────────────────────────────────────────
+  const branchedIssue = issues.find((i) =>
+    contribution.branchName && new RegExp(`\\b${i.number}\\b`).test(contribution.branchName)
+  ) || null;
+
   return (
     <div className="flex flex-col h-full">
       {/* Header bar */}
@@ -241,7 +293,15 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
               <button
                 onClick={() => toggleDropdown(name)}
                 className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                  name === 'remotes' && contribution.isFork && contribution.remotesValid
+                  name === 'issues' && branchedIssue
+                    ? branchedIssue.state === 'open'
+                      ? activeDropdown === name
+                        ? 'border-green-500 bg-green-500 text-white'
+                        : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
+                      : activeDropdown === name
+                        ? 'border-red-500 bg-red-500 text-white'
+                        : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
+                    : name === 'remotes' && contribution.isFork && contribution.remotesValid
                     ? activeDropdown === name
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
@@ -346,11 +406,61 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                   )}
                 </div>
               )}
-              {activeDropdown === name && name !== 'remotes' && name !== 'pull-requests' && (
+              {activeDropdown === name && name === 'issues' && (
+                <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto">
+                  <p className="text-sm font-medium mb-3">Issues</p>
+                  {issuesLoading ? (
+                    <p className="text-xs text-muted-foreground">Loading...</p>
+                  ) : issuesError ? (
+                    <p className="text-xs text-destructive">{issuesError}</p>
+                  ) : issues.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No issues found</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {issues.map((issue) => {
+                        const branchMatches = contribution.branchName
+                          ? new RegExp(`\\b${issue.number}\\b`).test(contribution.branchName)
+                          : false;
+                        return (
+                          <div
+                            key={issue.number}
+                            onClick={() => { setSelectedIssue(issue); setActiveDropdown(null); }}
+                            className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs"
+                          >
+                            <span className={`mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              issue.state === 'open'
+                                ? 'bg-green-500/10 text-green-500'
+                                : 'bg-muted text-muted-foreground'
+                            }`}>
+                              {issue.state}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-sm truncate">{issue.title}</span>
+                                <span className="text-muted-foreground shrink-0">#{issue.number}</span>
+                                {branchMatches && (
+                                  <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
+                                    branched
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-muted-foreground mt-0.5">
+                                {issue.author}
+                                {issue.labels.length > 0 && (
+                                  <span> &middot; {issue.labels.slice(0, 3).join(', ')}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeDropdown === name && name === 'tools' && (
                 <div className="absolute right-0 top-full mt-1 w-64 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
-                  <p className="text-sm font-medium mb-1">
-                    {name.charAt(0).toUpperCase() + name.slice(1)}
-                  </p>
+                  <p className="text-sm font-medium mb-1">Tools</p>
                   <p className="text-xs text-muted-foreground">Under construction</p>
                 </div>
               )}
@@ -384,6 +494,24 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             owner={parsed.owner}
             repo={parsed.repo}
             onClose={() => setSelectedPR(null)}
+          />
+        ) : null;
+      })()}
+
+      {/* Issue Detail Modal */}
+      {selectedIssue && (() => {
+        const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+        const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
+        const branchMatches = contribution.branchName
+          ? new RegExp(`\\b${selectedIssue.number}\\b`).test(contribution.branchName)
+          : false;
+        return parsed ? (
+          <DevelopmentIssueDetailModal
+            issue={selectedIssue}
+            owner={parsed.owner}
+            repo={parsed.repo}
+            isBranched={branchMatches}
+            onClose={() => setSelectedIssue(null)}
           />
         ) : null;
       })()}
