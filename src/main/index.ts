@@ -243,6 +243,53 @@ const setupIpcHandlers = () => {
     return updated;
   });
 
+  // Project scanning handler (mirrors contribution:scan-directory with type='project')
+  handleIpc('project:scan-directory', async (_event, directoryPath) => {
+    const { contributionScannerService } = await import('./services/contribution-scanner.service');
+    const scanned = await contributionScannerService.scanDirectory(directoryPath);
+
+    const projects: any[] = [];
+    const existingProjects = database.getContributionsByType('project');
+
+    for (const scannedItem of scanned) {
+      const existing = existingProjects.find(
+        (c: any) => c.localPath === scannedItem.localPath
+      );
+
+      if (existing) {
+        const updated = database.updateContribution(existing.id, {
+          isFork: scannedItem.isFork,
+          remotesValid: scannedItem.remotesValid,
+          upstreamUrl: scannedItem.upstreamUrl,
+          prUrl: scannedItem.prUrl,
+          prNumber: scannedItem.prNumber,
+          prStatus: scannedItem.prStatus,
+          createdAt: scannedItem.createdAt,
+        });
+        projects.push(updated);
+      } else {
+        const created = database.createContribution({
+          repositoryUrl: scannedItem.repositoryUrl,
+          localPath: scannedItem.localPath,
+          issueNumber: scannedItem.issueNumber || 0,
+          issueTitle: scannedItem.issueTitle || '',
+          branchName: scannedItem.branchName,
+          status: 'in_progress',
+          type: 'project',
+          isFork: scannedItem.isFork,
+          remotesValid: scannedItem.remotesValid,
+          upstreamUrl: scannedItem.upstreamUrl,
+          prUrl: scannedItem.prUrl,
+          prNumber: scannedItem.prNumber,
+          prStatus: scannedItem.prStatus,
+        }, scannedItem.createdAt);
+        projects.push(created);
+      }
+    }
+
+    return projects;
+  });
+
   // Settings handlers
   handleIpc('settings:get', async () => {
     const settings = database.getAllSettings();
@@ -263,6 +310,22 @@ const setupIpcHandlers = () => {
       database.setSetting('defaultClonePath', defaultClonePath);
     }
 
+    // Set default projects path to Documents/My Projects if not set
+    let defaultProjectsPath = settings.defaultProjectsPath;
+    if (!defaultProjectsPath) {
+      const documentsPath = app.getPath('documents');
+      defaultProjectsPath = path.join(documentsPath, 'My Projects');
+
+      // Create the directory if it doesn't exist
+      const fs2 = await import('fs');
+      if (!fs2.existsSync(defaultProjectsPath)) {
+        fs2.mkdirSync(defaultProjectsPath, { recursive: true });
+      }
+
+      // Save it to database for next time
+      database.setSetting('defaultProjectsPath', defaultProjectsPath);
+    }
+
     let aliases: import('./ipc/channels').Alias[] = [];
     try { aliases = JSON.parse(settings.aliases || '[]'); } catch { aliases = []; }
 
@@ -270,6 +333,7 @@ const setupIpcHandlers = () => {
       githubToken: settings.githubToken,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: defaultClonePath,
+      defaultProjectsPath: defaultProjectsPath,
       autoFetch: settings.autoFetch === 'true',
       aliases,
     };
@@ -294,6 +358,9 @@ const setupIpcHandlers = () => {
     if (updates.aliases !== undefined) {
       database.setSetting('aliases', JSON.stringify(updates.aliases));
     }
+    if (updates.defaultProjectsPath !== undefined) {
+      database.setSetting('defaultProjectsPath', updates.defaultProjectsPath);
+    }
 
     // Return updated settings
     const settings = database.getAllSettings();
@@ -304,6 +371,7 @@ const setupIpcHandlers = () => {
       githubToken: settings.githubToken,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: settings.defaultClonePath || '',
+      defaultProjectsPath: settings.defaultProjectsPath || '',
       autoFetch: settings.autoFetch === 'true',
       aliases,
     };

@@ -8,6 +8,7 @@ interface ContributionListProps {
   onDelete: (id: string) => void;
   onOpenProject: (contribution: Contribution) => void;
   loading: boolean;
+  emptyMessage?: { title: string; subtitle: string };
 }
 
 export function ContributionList({
@@ -15,6 +16,7 @@ export function ContributionList({
   onDelete,
   onOpenProject,
   loading,
+  emptyMessage,
 }: ContributionListProps) {
   if (loading) {
     return (
@@ -30,9 +32,9 @@ export function ContributionList({
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-2">
-          <p className="text-muted-foreground">No contributions yet</p>
+          <p className="text-muted-foreground">{emptyMessage?.title || 'No contributions yet'}</p>
           <p className="text-sm text-muted-foreground">
-            Start by finding an issue in the <strong>Issues</strong> tab
+            {emptyMessage?.subtitle || <>Start by finding an issue in the <strong>Issues</strong> tab</>}
           </p>
         </div>
       </div>

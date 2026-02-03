@@ -18,7 +18,7 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
   const [syncing, setSyncing] = React.useState(false);
   const [branches, setBranches] = React.useState<string[]>([contribution.branchName]);
   const [loadingBranches, setLoadingBranches] = React.useState(false);
-  const repoName = contribution.repositoryUrl.split('/').slice(-1)[0];
+  const repoName = contribution.repositoryUrl.split('/').slice(-1)[0].replace(/\.git$/, '');
 
   // Extract owner/repo from repository URL
   const getRepoInfo = (url: string) => {

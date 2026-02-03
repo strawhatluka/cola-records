@@ -79,12 +79,14 @@ export interface Contribution {
   id: string;
   repositoryUrl: string;
   localPath: string;
-  issueNumber: number;
-  issueTitle: string;
+  issueNumber?: number;
+  issueTitle?: string;
   branchName: string;
   status: 'in_progress' | 'ready' | 'submitted' | 'merged';
   createdAt: Date;
   updatedAt: Date;
+  // Type discriminator: 'contribution' (default) or 'project'
+  type?: 'project' | 'contribution';
   // PR tracking fields
   prUrl?: string;
   prNumber?: number;
@@ -105,6 +107,7 @@ export interface AppSettings {
   githubToken?: string;
   theme: 'light' | 'dark' | 'system';
   defaultClonePath: string;
+  defaultProjectsPath: string;
   autoFetch: boolean;
   aliases?: Alias[];
 }
@@ -154,6 +157,9 @@ export interface IpcChannels {
   'contribution:delete': (id: string) => void;
   'contribution:scan-directory': (directoryPath: string) => Contribution[];
   'contribution:sync-with-github': (contributionId: string) => Contribution;
+
+  // Project Channels
+  'project:scan-directory': (directoryPath: string) => Contribution[];
 
   // Settings Channels
   'settings:get': () => AppSettings;

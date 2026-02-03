@@ -72,13 +72,20 @@ export class DatabaseService {
     // Get current schema version
     const currentVersion = db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number } | undefined;
     const version = currentVersion?.version || 0;
+    console.log(`Current schema version: ${version}, target: ${SCHEMA_VERSION}`);
 
     // Run all migrations after current version
     for (let v = version + 1; v <= SCHEMA_VERSION; v++) {
       if (MIGRATIONS[v]) {
-        console.log(`Running migration to version ${v}`);
-        db.exec(MIGRATIONS[v]);
-        db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(v, Date.now());
+        try {
+          console.log(`Running migration to version ${v}...`);
+          db.exec(MIGRATIONS[v]);
+          db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(v, Date.now());
+          console.log(`Migration to version ${v} complete`);
+        } catch (err) {
+          console.error(`Migration to version ${v} failed:`, err);
+          throw err;
+        }
       }
     }
   }
@@ -99,17 +106,17 @@ export class DatabaseService {
     const stmt = db.prepare(`
       INSERT INTO contributions (
         id, repository_url, local_path, issue_number, issue_title, branch_name, status,
-        created_at, updated_at, pr_url, pr_number, pr_status, upstream_url, is_fork, remotes_valid
+        created_at, updated_at, pr_url, pr_number, pr_status, upstream_url, is_fork, remotes_valid, type
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
       id,
       contribution.repositoryUrl,
       contribution.localPath,
-      contribution.issueNumber,
-      contribution.issueTitle,
+      contribution.issueNumber ?? 0,
+      contribution.issueTitle ?? '',
       contribution.branchName,
       contribution.status,
       createdAtTimestamp,
@@ -119,7 +126,8 @@ export class DatabaseService {
       contribution.prStatus || null,
       contribution.upstreamUrl || null,
       contribution.isFork ? 1 : 0,
-      contribution.remotesValid ? 1 : 0
+      contribution.remotesValid ? 1 : 0,
+      contribution.type || 'contribution'
     );
 
     return {
@@ -171,15 +179,15 @@ export class DatabaseService {
       UPDATE contributions
       SET repository_url = ?, local_path = ?, issue_number = ?, issue_title = ?, branch_name = ?, status = ?,
           pr_url = ?, pr_number = ?, pr_status = ?, upstream_url = ?, is_fork = ?, remotes_valid = ?,
-          created_at = ?, updated_at = ?
+          created_at = ?, updated_at = ?, type = ?
       WHERE id = ?
     `);
 
     stmt.run(
       merged.repositoryUrl,
       merged.localPath,
-      merged.issueNumber,
-      merged.issueTitle,
+      merged.issueNumber ?? 0,
+      merged.issueTitle ?? '',
       merged.branchName,
       merged.status,
       merged.prUrl || null,
@@ -190,6 +198,7 @@ export class DatabaseService {
       merged.remotesValid ? 1 : 0,
       createdAtTimestamp,
       now,
+      merged.type || 'contribution',
       id
     );
 
@@ -312,17 +321,29 @@ export class DatabaseService {
   /**
    * Convert database row to Contribution object
    */
+  /**
+   * Get contributions filtered by type
+   */
+  getContributionsByType(type: 'project' | 'contribution'): Contribution[] {
+    const db = this.getDb();
+    const stmt = db.prepare('SELECT * FROM contributions WHERE type = ? ORDER BY created_at DESC');
+    const rows = stmt.all(type) as any[];
+
+    return rows.map(this.rowToContribution);
+  }
+
   private rowToContribution(row: any): Contribution {
     return {
       id: row.id,
       repositoryUrl: row.repository_url,
       localPath: row.local_path,
-      issueNumber: row.issue_number,
-      issueTitle: row.issue_title,
+      issueNumber: row.issue_number || undefined,
+      issueTitle: row.issue_title || undefined,
       branchName: row.branch_name,
       status: row.status,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
+      type: row.type || 'contribution',
       prUrl: row.pr_url || undefined,
       prNumber: row.pr_number || undefined,
       prStatus: row.pr_status || undefined,

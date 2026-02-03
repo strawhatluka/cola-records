@@ -11,6 +11,7 @@ interface LayoutProps {
 const screenTitles: Record<Screen, string> = {
   dashboard: 'Dashboard',
   issues: 'Issue Discovery',
+  projects: 'My Projects',
   contributions: 'My Contributions',
   settings: 'Settings',
   ide: 'Development',

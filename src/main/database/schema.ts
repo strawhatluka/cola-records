@@ -4,7 +4,7 @@
  * SQLite database schema for Cola Records
  */
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /**
  * SQL statements to create all tables
@@ -67,5 +67,9 @@ export const MIGRATIONS: Record<number, string> = {
     ALTER TABLE contributions ADD COLUMN upstream_url TEXT;
     ALTER TABLE contributions ADD COLUMN is_fork INTEGER DEFAULT 0;
     ALTER TABLE contributions ADD COLUMN remotes_valid INTEGER DEFAULT 0;
+  `,
+  // Version 3: Add type column to distinguish projects from contributions
+  3: `
+    ALTER TABLE contributions ADD COLUMN type TEXT DEFAULT 'contribution';
   `,
 };

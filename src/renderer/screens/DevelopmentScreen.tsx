@@ -76,6 +76,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [showCreateIssue, setShowCreateIssue] = useState(false);
   const [showCreatePR, setShowCreatePR] = useState(false);
+  const [branches, setBranches] = useState<string[]>([]);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
@@ -127,6 +128,18 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         if (isMounted.current) setPrsLoading(false);
       });
   }, [activeDropdown, contribution.upstreamUrl, contribution.repositoryUrl]);
+
+  // Fetch all branches on mount (for issue-button color logic)
+  useEffect(() => {
+    if (!contribution.localPath) return;
+    ipc.invoke('git:get-branches', contribution.localPath)
+      .then((result) => {
+        if (isMounted.current) setBranches(result);
+      })
+      .catch((err) => {
+        console.error('[DevelopmentScreen] Failed to fetch branches:', err);
+      });
+  }, [contribution.localPath]);
 
   // Fetch issues eagerly on mount (so button color reflects branched issue state)
   // and refresh when the dropdown opens
@@ -273,9 +286,19 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   }
 
   // ── Running State ────────────────────────────────────────────────
-  const branchedIssue = issues.find((i) =>
-    contribution.branchName && new RegExp(`\\b${i.number}\\b`).test(contribution.branchName)
-  ) || null;
+
+  // Issues button color priority:
+  // Green: no open issues on the repo
+  // Yellow: open issues exist AND at least one has a branch matching its number
+  // Red: open issues exist but NONE have a branch matching their number
+  const openIssues = issues.filter((i) => i.state === 'open');
+  const hasBranchedIssue = openIssues.length > 0 && openIssues.some((i) =>
+    branches.some((b) => new RegExp(`\\b${i.number}\\b`).test(b))
+  );
+  const issueButtonColor: 'red' | 'yellow' | 'green' =
+    openIssues.length === 0 ? 'green'
+    : hasBranchedIssue ? 'yellow'
+    : 'red';
 
   return (
     <div className="flex flex-col h-full">
@@ -297,15 +320,19 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
               <button
                 onClick={() => toggleDropdown(name)}
                 className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                  name === 'issues' && branchedIssue
-                    ? branchedIssue.state === 'open'
-                      ? activeDropdown === name
-                        ? 'border-green-500 bg-green-500 text-white'
-                        : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
-                      : activeDropdown === name
-                        ? 'border-red-500 bg-red-500 text-white'
-                        : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
-                    : name === 'remotes' && contribution.isFork && contribution.remotesValid
+                  name === 'issues' && issueButtonColor === 'red'
+                    ? activeDropdown === name
+                      ? 'border-red-500 bg-red-500 text-white'
+                      : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
+                  : name === 'issues' && issueButtonColor === 'yellow'
+                    ? activeDropdown === name
+                      ? 'border-yellow-500 bg-yellow-500 text-white'
+                      : 'border-yellow-500 bg-yellow-500 text-white hover:bg-yellow-500/80'
+                  : name === 'issues' && issueButtonColor === 'green'
+                    ? activeDropdown === name
+                      ? 'border-green-500 bg-green-500 text-white'
+                      : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
+                    : name === 'remotes' && contribution.remotesValid
                     ? activeDropdown === name
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
@@ -556,7 +583,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
         const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
         const forkParsed = contribution.repositoryUrl ? extractOwnerRepo(contribution.repositoryUrl) : null;
-        const headBranch = forkParsed && contribution.branchName
+        const headBranch = contribution.isFork && forkParsed && contribution.branchName
           ? `${forkParsed.owner}:${contribution.branchName}`
           : contribution.branchName || '';
         return parsed ? (

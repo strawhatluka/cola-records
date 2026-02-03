@@ -21,15 +21,17 @@ interface GeneralTabProps {
 
 export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
   const [defaultClonePath, setDefaultClonePath] = React.useState(settings.defaultClonePath);
+  const [defaultProjectsPath, setDefaultProjectsPath] = React.useState(settings.defaultProjectsPath);
   const [localTheme, setLocalTheme] = React.useState(settings.theme);
   const { setTheme: setAppTheme } = useTheme();
 
   React.useEffect(() => {
     setDefaultClonePath(settings.defaultClonePath);
+    setDefaultProjectsPath(settings.defaultProjectsPath);
     setLocalTheme(settings.theme);
-  }, [settings.defaultClonePath, settings.theme]);
+  }, [settings.defaultClonePath, settings.defaultProjectsPath, settings.theme]);
 
-  const handleSelectDirectory = async () => {
+  const handleSelectCloneDirectory = async () => {
     try {
       const result = await ipc.invoke('dialog:open-directory');
       if (result) {
@@ -40,10 +42,22 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
     }
   };
 
+  const handleSelectProjectsDirectory = async () => {
+    try {
+      const result = await ipc.invoke('dialog:open-directory');
+      if (result) {
+        setDefaultProjectsPath(result);
+      }
+    } catch (error) {
+      console.error('Failed to select directory:', error);
+    }
+  };
+
   const handleSave = async () => {
     try {
       await onUpdate({
         defaultClonePath,
+        defaultProjectsPath,
         theme: localTheme,
       });
       setAppTheme(localTheme);
@@ -63,7 +77,7 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Default Clone Directory</label>
+            <label className="text-sm font-medium">Default Contributions Directory</label>
             <div className="flex gap-2 mt-2">
               <Input
                 value={defaultClonePath}
@@ -72,13 +86,33 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
                 readOnly
                 className="flex-1"
               />
-              <Button variant="outline" onClick={handleSelectDirectory}>
+              <Button variant="outline" onClick={handleSelectCloneDirectory}>
                 <Folder className="h-4 w-4 mr-2" />
                 Browse
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Where repositories will be cloned by default
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Default Projects Directory</label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                value={defaultProjectsPath}
+                onChange={(e) => setDefaultProjectsPath(e.target.value)}
+                placeholder="Select a directory..."
+                readOnly
+                className="flex-1"
+              />
+              <Button variant="outline" onClick={handleSelectProjectsDirectory}>
+                <Folder className="h-4 w-4 mr-2" />
+                Browse
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Where your personal projects are stored
             </p>
           </div>
         </CardContent>

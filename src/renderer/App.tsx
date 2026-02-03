@@ -4,6 +4,7 @@ import { Layout } from './components/layout/Layout';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { IssueDiscoveryScreen } from './screens/IssueDiscoveryScreen';
 import { ContributionsScreen } from './screens/ContributionsScreen';
+import { ProjectsScreen } from './screens/ProjectsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { DevelopmentScreen } from './screens/DevelopmentScreen';
 import type { Screen } from './components/layout/Sidebar';
@@ -18,6 +19,7 @@ import { ipc } from './ipc/client';
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
+  const [ideOrigin, setIdeOrigin] = useState<Screen>('contributions');
   const { theme, fetchSettings, defaultClonePath } = useSettingsStore();
   const { setContributions } = useContributionsStore();
 
@@ -45,8 +47,9 @@ const App: React.FC = () => {
     },
   });
 
-  const handleOpenIDE = (contribution: Contribution) => {
+  const handleOpenIDE = (contribution: Contribution, origin: Screen = 'contributions') => {
     setSelectedContribution(contribution);
+    setIdeOrigin(origin);
     setCurrentScreen('ide');
   };
 
@@ -56,15 +59,17 @@ const App: React.FC = () => {
         return <DashboardScreen />;
       case 'issues':
         return <IssueDiscoveryScreen onOpenIDE={handleOpenIDE} />;
+      case 'projects':
+        return <ProjectsScreen onOpenIDE={(c) => handleOpenIDE(c, 'projects')} />;
       case 'contributions':
-        return <ContributionsScreen onOpenIDE={handleOpenIDE} />;
+        return <ContributionsScreen onOpenIDE={(c) => handleOpenIDE(c, 'contributions')} />;
       case 'settings':
         return <SettingsScreen />;
       case 'ide':
         return selectedContribution ? (
           <DevelopmentScreen
             contribution={selectedContribution}
-            onNavigateBack={() => setCurrentScreen('contributions')}
+            onNavigateBack={() => setCurrentScreen(ideOrigin)}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">

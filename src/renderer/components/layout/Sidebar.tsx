@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { Home, Search, GitPullRequest, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Search, GitPullRequest, FolderGit2, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/Tooltip';
 
-export type Screen = 'dashboard' | 'issues' | 'contributions' | 'settings' | 'ide';
+export type Screen = 'dashboard' | 'issues' | 'projects' | 'contributions' | 'settings' | 'ide';
 
 interface SidebarProps {
   currentScreen: Screen;
@@ -22,6 +22,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'issues', label: 'Issues', icon: Search },
+  { id: 'projects', label: 'My Projects', icon: FolderGit2 },
   { id: 'contributions', label: 'Contributions', icon: GitPullRequest },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
