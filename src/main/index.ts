@@ -336,6 +336,37 @@ const setupIpcHandlers = () => {
     return await gitService.getRemotes(repoPath);
   });
 
+  handleIpc("github:list-pull-requests", async (_event, owner, repo, state) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listPullRequests(owner, repo, { state: state || 'all' });
+  });
+
+  // PR Detail handlers (WO-004)
+  handleIpc("github:get-pull-request", async (_event, owner, repo, prNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.getPullRequest(owner, repo, prNumber);
+  });
+
+  handleIpc("github:list-pr-comments", async (_event, owner, repo, prNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listPRComments(owner, repo, prNumber);
+  });
+
+  handleIpc("github:list-pr-reviews", async (_event, owner, repo, prNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listPRReviews(owner, repo, prNumber);
+  });
+
+  handleIpc("github:list-pr-review-comments", async (_event, owner, repo, prNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listPRReviewComments(owner, repo, prNumber);
+  });
+
+  handleIpc("github:create-pr-comment", async (_event, owner, repo, prNumber, body) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    await gitHubRestService.createIssueComment(owner, repo, prNumber, body);
+  });
+
   // Dialog handlers
   handleIpc("dialog:open-directory", async () => {
     const { dialog } = await import("electron");

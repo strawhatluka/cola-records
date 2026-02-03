@@ -172,6 +172,57 @@ export interface IpcChannels {
   'github:get-repository-tree': (owner: string, repo: string, branch: string) => any;
   'git:add-remote': (repoPath: string, remoteName: string, url: string) => void;
   'git:get-remotes': (repoPath: string) => { name: string; fetchUrl: string; pushUrl: string }[];
+  'github:list-pull-requests': (owner: string, repo: string, state?: 'open' | 'closed' | 'all') => {
+    number: number;
+    title: string;
+    url: string;
+    state: string;
+    merged: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    author: string;
+    headBranch: string;
+  }[];
+
+  // PR Detail Channels (WO-004)
+  'github:get-pull-request': (owner: string, repo: string, prNumber: number) => {
+    number: number;
+    title: string;
+    body: string;
+    url: string;
+    state: string;
+    merged: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    author: string;
+  };
+  'github:list-pr-comments': (owner: string, repo: string, prNumber: number) => {
+    id: number;
+    body: string;
+    author: string;
+    authorAvatarUrl: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  'github:list-pr-reviews': (owner: string, repo: string, prNumber: number) => {
+    id: number;
+    body: string;
+    state: string;
+    author: string;
+    authorAvatarUrl: string;
+    submittedAt: Date;
+  }[];
+  'github:list-pr-review-comments': (owner: string, repo: string, prNumber: number) => {
+    id: number;
+    body: string;
+    author: string;
+    authorAvatarUrl: string;
+    path: string;
+    line: number | null;
+    createdAt: Date;
+    inReplyToId: number | null;
+  }[];
+  'github:create-pr-comment': (owner: string, repo: string, prNumber: number, body: string) => void;
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };

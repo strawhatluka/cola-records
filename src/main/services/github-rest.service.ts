@@ -424,6 +424,100 @@ export class GitHubRestService {
       return null;
     }
   }
+  /**
+   * List comments on a pull request (uses issues API - GitHub treats PR comments as issue comments)
+   */
+  async listPRComments(
+    owner: string,
+    repo: string,
+    prNumber: number
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.issues.listComments({
+        owner,
+        repo,
+        issue_number: prNumber,
+        per_page: 100,
+      });
+
+      return response.data.map((comment: any) => ({
+        id: comment.id,
+        body: comment.body || '',
+        author: comment.user?.login || 'unknown',
+        authorAvatarUrl: comment.user?.avatar_url || '',
+        createdAt: new Date(comment.created_at),
+        updatedAt: new Date(comment.updated_at),
+      }));
+    } catch (error) {
+      console.error('GitHub REST list PR comments error:', error);
+      throw new Error(`Failed to list comments for ${owner}/${repo}#${prNumber}: ${error}`);
+    }
+  }
+
+  /**
+   * List reviews on a pull request
+   */
+  async listPRReviews(
+    owner: string,
+    repo: string,
+    prNumber: number
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.pulls.listReviews({
+        owner,
+        repo,
+        pull_number: prNumber,
+        per_page: 100,
+      });
+
+      return response.data.map((review: any) => ({
+        id: review.id,
+        body: review.body || '',
+        state: review.state,
+        author: review.user?.login || 'unknown',
+        authorAvatarUrl: review.user?.avatar_url || '',
+        submittedAt: review.submitted_at ? new Date(review.submitted_at) : new Date(),
+      }));
+    } catch (error) {
+      console.error('GitHub REST list PR reviews error:', error);
+      throw new Error(`Failed to list reviews for ${owner}/${repo}#${prNumber}: ${error}`);
+    }
+  }
+
+  /**
+   * List review comments (inline code comments) on a pull request
+   */
+  async listPRReviewComments(
+    owner: string,
+    repo: string,
+    prNumber: number
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.pulls.listReviewComments({
+        owner,
+        repo,
+        pull_number: prNumber,
+        per_page: 100,
+      });
+
+      return response.data.map((comment: any) => ({
+        id: comment.id,
+        body: comment.body || '',
+        author: comment.user?.login || 'unknown',
+        authorAvatarUrl: comment.user?.avatar_url || '',
+        path: comment.path,
+        line: comment.line || comment.original_line || null,
+        createdAt: new Date(comment.created_at),
+        inReplyToId: comment.in_reply_to_id || null,
+      }));
+    } catch (error) {
+      console.error('GitHub REST list PR review comments error:', error);
+      throw new Error(`Failed to list review comments for ${owner}/${repo}#${prNumber}: ${error}`);
+    }
+  }
 }
 
 // Export singleton instance

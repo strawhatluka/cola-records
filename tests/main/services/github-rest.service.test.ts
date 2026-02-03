@@ -15,6 +15,9 @@ const mockActivityCheckStar = vi.fn();
 const mockActivityStar = vi.fn();
 const mockActivityUnstar = vi.fn();
 const mockRateLimitGet = vi.fn();
+const mockIssuesListComments = vi.fn();
+const mockPullsListReviews = vi.fn();
+const mockPullsListReviewComments = vi.fn();
 
 // Use a class so `new Octokit(...)` works
 vi.mock('@octokit/rest', () => ({
@@ -22,6 +25,7 @@ vi.mock('@octokit/rest', () => ({
     issues = {
       get: mockIssuesGet,
       createComment: mockIssuesCreateComment,
+      listComments: mockIssuesListComments,
     };
     repos = {
       createFork: mockReposCreateFork,
@@ -34,6 +38,8 @@ vi.mock('@octokit/rest', () => ({
       create: mockPullsCreate,
       get: mockPullsGet,
       list: mockPullsList,
+      listReviews: mockPullsListReviews,
+      listReviewComments: mockPullsListReviewComments,
     };
     activity = {
       checkRepoIsStarredByAuthenticatedUser: mockActivityCheckStar,
@@ -266,6 +272,254 @@ describe('GitHubRestService', () => {
 
       const status = await service.checkPRStatus('org', 'repo', 'no-pr-branch');
       expect(status).toBeNull();
+    });
+  });
+
+  describe('getPullRequest', () => {
+    it('maps fields correctly', async () => {
+      mockPullsGet.mockResolvedValue({
+        data: {
+          number: 10,
+          title: 'PR Title',
+          body: 'PR Body',
+          html_url: 'https://github.com/org/repo/pull/10',
+          state: 'open',
+          merged: false,
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-02T00:00:00Z',
+          user: { login: 'author' },
+        },
+      });
+
+      const pr = await service.getPullRequest('org', 'repo', 10);
+      expect(pr.number).toBe(10);
+      expect(pr.title).toBe('PR Title');
+      expect(pr.body).toBe('PR Body');
+      expect(pr.url).toBe('https://github.com/org/repo/pull/10');
+      expect(pr.state).toBe('open');
+      expect(pr.merged).toBe(false);
+      expect(pr.author).toBe('author');
+      expect(pr.createdAt).toBeInstanceOf(Date);
+      expect(pr.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('handles null body', async () => {
+      mockPullsGet.mockResolvedValue({
+        data: {
+          number: 11,
+          title: 'No Body PR',
+          body: null,
+          html_url: 'https://github.com/org/repo/pull/11',
+          state: 'open',
+          merged: false,
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-02T00:00:00Z',
+          user: { login: 'author' },
+        },
+      });
+
+      const pr = await service.getPullRequest('org', 'repo', 11);
+      expect(pr.body).toBe('');
+    });
+
+    it('handles null user', async () => {
+      mockPullsGet.mockResolvedValue({
+        data: {
+          number: 12,
+          title: 'Ghost PR',
+          body: '',
+          html_url: 'https://github.com/org/repo/pull/12',
+          state: 'closed',
+          merged: true,
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-02T00:00:00Z',
+          user: null,
+        },
+      });
+
+      const pr = await service.getPullRequest('org', 'repo', 12);
+      expect(pr.author).toBe('unknown');
+    });
+  });
+
+  describe('listPRComments', () => {
+    it('maps fields correctly', async () => {
+      mockIssuesListComments.mockResolvedValue({
+        data: [
+          {
+            id: 101,
+            body: 'comment body',
+            user: { login: 'commenter', avatar_url: 'https://avatar.url/1' },
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-02T00:00:00Z',
+          },
+        ],
+      });
+
+      const comments = await service.listPRComments('org', 'repo', 10);
+      expect(comments).toHaveLength(1);
+      expect(comments[0].id).toBe(101);
+      expect(comments[0].body).toBe('comment body');
+      expect(comments[0].author).toBe('commenter');
+      expect(comments[0].authorAvatarUrl).toBe('https://avatar.url/1');
+      expect(comments[0].createdAt).toBeInstanceOf(Date);
+      expect(comments[0].updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('handles null user', async () => {
+      mockIssuesListComments.mockResolvedValue({
+        data: [
+          {
+            id: 102,
+            body: 'ghost comment',
+            user: null,
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-02T00:00:00Z',
+          },
+        ],
+      });
+
+      const comments = await service.listPRComments('org', 'repo', 10);
+      expect(comments[0].author).toBe('unknown');
+      expect(comments[0].authorAvatarUrl).toBe('');
+    });
+
+    it('throws on API error', async () => {
+      mockIssuesListComments.mockRejectedValue(new Error('API failure'));
+      await expect(service.listPRComments('org', 'repo', 10)).rejects.toThrow(
+        'Failed to list comments'
+      );
+    });
+  });
+
+  describe('listPRReviews', () => {
+    it('maps fields correctly', async () => {
+      mockPullsListReviews.mockResolvedValue({
+        data: [
+          {
+            id: 201,
+            body: 'review body',
+            state: 'APPROVED',
+            user: { login: 'reviewer', avatar_url: 'https://avatar.url/2' },
+            submitted_at: '2026-01-03T00:00:00Z',
+          },
+        ],
+      });
+
+      const reviews = await service.listPRReviews('org', 'repo', 10);
+      expect(reviews).toHaveLength(1);
+      expect(reviews[0].id).toBe(201);
+      expect(reviews[0].body).toBe('review body');
+      expect(reviews[0].state).toBe('APPROVED');
+      expect(reviews[0].author).toBe('reviewer');
+      expect(reviews[0].authorAvatarUrl).toBe('https://avatar.url/2');
+      expect(reviews[0].submittedAt).toBeInstanceOf(Date);
+    });
+
+    it('handles null submitted_at with current date fallback', async () => {
+      const before = Date.now();
+      mockPullsListReviews.mockResolvedValue({
+        data: [
+          {
+            id: 202,
+            body: '',
+            state: 'PENDING',
+            user: { login: 'reviewer' },
+            submitted_at: null,
+          },
+        ],
+      });
+
+      const reviews = await service.listPRReviews('org', 'repo', 10);
+      const after = Date.now();
+      expect(reviews[0].submittedAt).toBeInstanceOf(Date);
+      expect(reviews[0].submittedAt.getTime()).toBeGreaterThanOrEqual(before);
+      expect(reviews[0].submittedAt.getTime()).toBeLessThanOrEqual(after);
+    });
+
+    it('throws on API error', async () => {
+      mockPullsListReviews.mockRejectedValue(new Error('API failure'));
+      await expect(service.listPRReviews('org', 'repo', 10)).rejects.toThrow(
+        'Failed to list reviews'
+      );
+    });
+  });
+
+  describe('listPRReviewComments', () => {
+    it('maps fields correctly', async () => {
+      mockPullsListReviewComments.mockResolvedValue({
+        data: [
+          {
+            id: 301,
+            body: 'inline comment',
+            user: { login: 'reviewer', avatar_url: 'https://avatar.url/3' },
+            path: 'src/foo.ts',
+            line: 42,
+            original_line: 40,
+            created_at: '2026-01-04T00:00:00Z',
+            in_reply_to_id: null,
+          },
+        ],
+      });
+
+      const comments = await service.listPRReviewComments('org', 'repo', 10);
+      expect(comments).toHaveLength(1);
+      expect(comments[0].id).toBe(301);
+      expect(comments[0].body).toBe('inline comment');
+      expect(comments[0].author).toBe('reviewer');
+      expect(comments[0].authorAvatarUrl).toBe('https://avatar.url/3');
+      expect(comments[0].path).toBe('src/foo.ts');
+      expect(comments[0].line).toBe(42);
+      expect(comments[0].createdAt).toBeInstanceOf(Date);
+      expect(comments[0].inReplyToId).toBeNull();
+    });
+
+    it('uses original_line fallback when line is null', async () => {
+      mockPullsListReviewComments.mockResolvedValue({
+        data: [
+          {
+            id: 302,
+            body: 'outdated comment',
+            user: { login: 'reviewer' },
+            path: 'src/bar.ts',
+            line: null,
+            original_line: 40,
+            created_at: '2026-01-04T00:00:00Z',
+            in_reply_to_id: null,
+          },
+        ],
+      });
+
+      const comments = await service.listPRReviewComments('org', 'repo', 10);
+      expect(comments[0].line).toBe(40);
+    });
+
+    it('returns null line when both line and original_line are null', async () => {
+      mockPullsListReviewComments.mockResolvedValue({
+        data: [
+          {
+            id: 303,
+            body: 'no line info',
+            user: { login: 'reviewer' },
+            path: 'src/baz.ts',
+            line: null,
+            original_line: null,
+            created_at: '2026-01-04T00:00:00Z',
+            in_reply_to_id: 301,
+          },
+        ],
+      });
+
+      const comments = await service.listPRReviewComments('org', 'repo', 10);
+      expect(comments[0].line).toBeNull();
+      expect(comments[0].inReplyToId).toBe(301);
+    });
+
+    it('throws on API error', async () => {
+      mockPullsListReviewComments.mockRejectedValue(new Error('API failure'));
+      await expect(service.listPRReviewComments('org', 'repo', 10)).rejects.toThrow(
+        'Failed to list review comments'
+      );
     });
   });
 });

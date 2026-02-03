@@ -8,6 +8,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ipc } from '../ipc/client';
 import type { Contribution } from '../../main/ipc/channels';
+import { PullRequestDetailModal } from '../components/pull-requests/PullRequestDetailModal';
 
 type ScreenState = 'idle' | 'starting' | 'running' | 'error';
 
@@ -24,6 +25,24 @@ interface GitRemote {
   pushUrl: string;
 }
 
+interface PullRequest {
+  number: number;
+  title: string;
+  url: string;
+  state: string;
+  merged: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  author: string;
+  headBranch: string;
+}
+
+export function extractOwnerRepo(repoUrl: string): { owner: string; repo: string } | null {
+  const match = repoUrl.match(/github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/);
+  if (!match) return null;
+  return { owner: match[1], repo: match[2] };
+}
+
 export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentScreenProps) {
   const [state, setState] = useState<ScreenState>('idle');
   const [url, setUrl] = useState<string | null>(null);
@@ -31,6 +50,10 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [activeDropdown, setActiveDropdown] = useState<ToolDropdown>(null);
   const [remotes, setRemotes] = useState<GitRemote[]>([]);
   const [remotesLoading, setRemotesLoading] = useState(false);
+  const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
+  const [prsLoading, setPrsLoading] = useState(false);
+  const [prsError, setPrsError] = useState<string | null>(null);
+  const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
@@ -53,6 +76,35 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         });
     }
   }, [activeDropdown, contribution.localPath]);
+
+  // Fetch pull requests when the pull-requests dropdown opens
+  useEffect(() => {
+    if (activeDropdown !== 'pull-requests') return;
+
+    // Use upstream repo (where PRs are submitted) if available, else origin
+    const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+    if (!targetUrl) return;
+
+    const parsed = extractOwnerRepo(targetUrl);
+    if (!parsed) return;
+
+    setPrsLoading(true);
+    setPrsError(null);
+    ipc.invoke('github:list-pull-requests', parsed.owner, parsed.repo, 'all')
+      .then((result) => {
+        if (isMounted.current) setPullRequests(result);
+      })
+      .catch((err) => {
+        console.error('[DevelopmentScreen] Failed to fetch PRs:', err);
+        if (isMounted.current) {
+          setPrsError(err instanceof Error ? err.message : String(err));
+          setPullRequests([]);
+        }
+      })
+      .finally(() => {
+        if (isMounted.current) setPrsLoading(false);
+      });
+  }, [activeDropdown, contribution.upstreamUrl, contribution.repositoryUrl]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -193,9 +245,21 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                     ? activeDropdown === name
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
-                    : activeDropdown === name
-                      ? 'border-primary bg-accent'
-                      : 'border-border hover:bg-accent'
+                    : name === 'pull-requests' && contribution.prStatus
+                      ? contribution.prStatus === 'merged'
+                        ? activeDropdown === name
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
+                        : contribution.prStatus === 'open'
+                          ? activeDropdown === name
+                            ? 'border-green-500 bg-green-500 text-white'
+                            : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
+                          : activeDropdown === name
+                            ? 'border-primary bg-accent'
+                            : 'border-border hover:bg-accent'
+                      : activeDropdown === name
+                        ? 'border-primary bg-accent'
+                        : 'border-border hover:bg-accent'
                 }`}
               >
                 {name === 'pull-requests' ? 'Pull Requests' : name.charAt(0).toUpperCase() + name.slice(1)}
@@ -238,10 +302,54 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                   )}
                 </div>
               )}
-              {activeDropdown === name && name !== 'remotes' && (
+              {activeDropdown === name && name === 'pull-requests' && (
+                <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto">
+                  <p className="text-sm font-medium mb-3">Pull Requests</p>
+                  {prsLoading ? (
+                    <p className="text-xs text-muted-foreground">Loading...</p>
+                  ) : prsError ? (
+                    <p className="text-xs text-destructive">{prsError}</p>
+                  ) : pullRequests.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No pull requests found</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {pullRequests.map((pr) => {
+                        const status = pr.merged ? 'merged' : pr.state;
+                        return (
+                          <div
+                            key={pr.number}
+                            onClick={() => { setSelectedPR(pr); setActiveDropdown(null); }}
+                            className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs"
+                          >
+                            <span className={`mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              status === 'merged'
+                                ? 'bg-primary/10 text-primary'
+                                : status === 'open'
+                                  ? 'bg-green-500/10 text-green-500'
+                                  : 'bg-muted text-muted-foreground'
+                            }`}>
+                              {status}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-sm truncate">{pr.title}</span>
+                                <span className="text-muted-foreground shrink-0">#{pr.number}</span>
+                              </div>
+                              <div className="text-muted-foreground mt-0.5">
+                                {pr.headBranch} &middot; {pr.author}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeDropdown === name && name !== 'remotes' && name !== 'pull-requests' && (
                 <div className="absolute right-0 top-full mt-1 w-64 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
                   <p className="text-sm font-medium mb-1">
-                    {name === 'pull-requests' ? 'Pull Requests' : name.charAt(0).toUpperCase() + name.slice(1)}
+                    {name.charAt(0).toUpperCase() + name.slice(1)}
                   </p>
                   <p className="text-xs text-muted-foreground">Under construction</p>
                 </div>
@@ -265,6 +373,20 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         // @ts-expect-error - webview attributes not in React types
         allowpopups="true"
       />
+
+      {/* PR Detail Modal */}
+      {selectedPR && (() => {
+        const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+        const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
+        return parsed ? (
+          <PullRequestDetailModal
+            pr={selectedPR}
+            owner={parsed.owner}
+            repo={parsed.repo}
+            onClose={() => setSelectedPR(null)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
