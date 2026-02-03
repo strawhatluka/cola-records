@@ -9,7 +9,9 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ipc } from '../ipc/client';
 import type { Contribution } from '../../main/ipc/channels';
 import { PullRequestDetailModal } from '../components/pull-requests/PullRequestDetailModal';
+import { CreatePullRequestModal } from '../components/pull-requests/CreatePullRequestModal';
 import { DevelopmentIssueDetailModal } from '../components/issues/DevelopmentIssueDetailModal';
+import { CreateIssueModal } from '../components/issues/CreateIssueModal';
 
 type ScreenState = 'idle' | 'starting' | 'running' | 'error';
 
@@ -72,6 +74,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [issuesLoading, setIssuesLoading] = useState(false);
   const [issuesError, setIssuesError] = useState<string | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [showCreateIssue, setShowCreateIssue] = useState(false);
+  const [showCreatePR, setShowCreatePR] = useState(false);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
@@ -364,7 +368,15 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
               )}
               {activeDropdown === name && name === 'pull-requests' && (
                 <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto">
-                  <p className="text-sm font-medium mb-3">Pull Requests</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium">Pull Requests</p>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowCreatePR(true); setActiveDropdown(null); }}
+                      className="px-2 py-1 text-xs rounded-md border border-border hover:bg-accent transition-colors"
+                    >
+                      + New PR
+                    </button>
+                  </div>
                   {prsLoading ? (
                     <p className="text-xs text-muted-foreground">Loading...</p>
                   ) : prsError ? (
@@ -408,7 +420,15 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
               )}
               {activeDropdown === name && name === 'issues' && (
                 <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto">
-                  <p className="text-sm font-medium mb-3">Issues</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium">Issues</p>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowCreateIssue(true); setActiveDropdown(null); }}
+                      className="px-2 py-1 text-xs rounded-md border border-border hover:bg-accent transition-colors"
+                    >
+                      + New Issue
+                    </button>
+                  </div>
                   {issuesLoading ? (
                     <p className="text-xs text-muted-foreground">Loading...</p>
                   ) : issuesError ? (
@@ -512,6 +532,41 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             repo={parsed.repo}
             isBranched={branchMatches}
             onClose={() => setSelectedIssue(null)}
+          />
+        ) : null;
+      })()}
+
+      {/* Create Issue Modal */}
+      {showCreateIssue && (() => {
+        const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+        const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
+        return parsed ? (
+          <CreateIssueModal
+            open={showCreateIssue}
+            owner={parsed.owner}
+            repo={parsed.repo}
+            onClose={() => setShowCreateIssue(false)}
+            onCreated={() => setIssues([])}
+          />
+        ) : null;
+      })()}
+
+      {/* Create PR Modal */}
+      {showCreatePR && (() => {
+        const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+        const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
+        const forkParsed = contribution.repositoryUrl ? extractOwnerRepo(contribution.repositoryUrl) : null;
+        const headBranch = forkParsed && contribution.branchName
+          ? `${forkParsed.owner}:${contribution.branchName}`
+          : contribution.branchName || '';
+        return parsed ? (
+          <CreatePullRequestModal
+            open={showCreatePR}
+            owner={parsed.owner}
+            repo={parsed.repo}
+            defaultHead={headBranch}
+            onClose={() => setShowCreatePR(false)}
+            onCreated={() => setPullRequests([])}
           />
         ) : null;
       })()}

@@ -260,6 +260,15 @@ export interface IpcChannels {
     updatedAt: Date;
   }[];
   'github:create-issue-comment': (owner: string, repo: string, issueNumber: number, body: string) => void;
+  'github:create-issue': (owner: string, repo: string, title: string, body: string, labels?: string[]) => {
+    number: number;
+    url: string;
+  };
+  'github:create-pull-request': (owner: string, repo: string, title: string, head: string, base: string, body: string) => {
+    number: number;
+    url: string;
+    state: string;
+  };
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };

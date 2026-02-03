@@ -34,6 +34,30 @@ vi.mock('../../../src/renderer/components/issues/DevelopmentIssueDetailModal', (
   ),
 }));
 
+// Mock CreateIssueModal
+vi.mock('../../../src/renderer/components/issues/CreateIssueModal', () => ({
+  CreateIssueModal: ({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) =>
+    open ? (
+      <div data-testid="create-issue-modal">
+        <span>Create Issue Modal</span>
+        <button onClick={onClose}>Close Create Issue</button>
+        <button onClick={() => { onCreated(); onClose(); }}>Submit Issue</button>
+      </div>
+    ) : null,
+}));
+
+// Mock CreatePullRequestModal
+vi.mock('../../../src/renderer/components/pull-requests/CreatePullRequestModal', () => ({
+  CreatePullRequestModal: ({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) =>
+    open ? (
+      <div data-testid="create-pr-modal">
+        <span>Create PR Modal</span>
+        <button onClick={onClose}>Close Create PR</button>
+        <button onClick={() => { onCreated(); onClose(); }}>Submit PR</button>
+      </div>
+    ) : null,
+}));
+
 import { DevelopmentScreen } from '../../../src/renderer/screens/DevelopmentScreen';
 import type { Contribution } from '../../../src/main/ipc/channels';
 
@@ -544,6 +568,62 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       await user.click(screen.getByText('Close Issue Modal'));
       await waitFor(() => {
         expect(screen.queryByTestId('issue-detail-modal')).toBeNull();
+      });
+    });
+  });
+
+  describe('Create buttons', () => {
+    it('shows "+ New Issue" button in Issues dropdown', async () => {
+      await renderInRunningState();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Issues'));
+
+      await waitFor(() => {
+        expect(screen.getByText('+ New Issue')).toBeDefined();
+      });
+    });
+
+    it('clicking "+ New Issue" opens the CreateIssueModal', async () => {
+      await renderInRunningState();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Issues'));
+      await waitFor(() => {
+        expect(screen.getByText('+ New Issue')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('+ New Issue'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-issue-modal')).toBeDefined();
+      });
+    });
+
+    it('shows "+ New PR" button in Pull Requests dropdown', async () => {
+      await renderInRunningState();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Pull Requests'));
+
+      await waitFor(() => {
+        expect(screen.getByText('+ New PR')).toBeDefined();
+      });
+    });
+
+    it('clicking "+ New PR" opens the CreatePullRequestModal', async () => {
+      await renderInRunningState();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByText('Pull Requests'));
+      await waitFor(() => {
+        expect(screen.getByText('+ New PR')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('+ New PR'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-pr-modal')).toBeDefined();
       });
     });
   });

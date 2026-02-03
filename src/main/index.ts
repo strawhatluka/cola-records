@@ -388,6 +388,16 @@ const setupIpcHandlers = () => {
     await gitHubRestService.createIssueComment(owner, repo, issueNumber, body);
   });
 
+  handleIpc("github:create-issue", async (_event, owner, repo, title, body, labels) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.createIssue(owner, repo, title, body, labels);
+  });
+
+  handleIpc("github:create-pull-request", async (_event, owner, repo, title, head, base, body) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.createPullRequest(owner, repo, title, head, base, body);
+  });
+
   // Dialog handlers
   handleIpc("dialog:open-directory", async () => {
     const { dialog } = await import("electron");

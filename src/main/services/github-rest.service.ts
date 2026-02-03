@@ -98,6 +98,36 @@ export class GitHubRestService {
   }
 
   /**
+   * Create a new issue
+   */
+  async createIssue(
+    owner: string,
+    repo: string,
+    title: string,
+    body: string,
+    labels?: string[]
+  ): Promise<{ number: number; url: string }> {
+    try {
+      const client = this.getClient();
+      const response = await client.issues.create({
+        owner,
+        repo,
+        title,
+        body,
+        labels,
+      });
+
+      return {
+        number: response.data.number,
+        url: response.data.html_url,
+      };
+    } catch (error) {
+      console.error('GitHub REST create issue error:', error);
+      throw new Error(`Failed to create issue on ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
    * List issues for a repository (excludes pull requests)
    */
   async listIssues(
