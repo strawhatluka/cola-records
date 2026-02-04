@@ -77,6 +77,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [showCreateIssue, setShowCreateIssue] = useState(false);
   const [showCreatePR, setShowCreatePR] = useState(false);
   const [branches, setBranches] = useState<string[]>([]);
+  const [githubUsername, setGithubUsername] = useState<string>('');
+  const [awaitingResponse, setAwaitingResponse] = useState(false);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
@@ -100,16 +102,27 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
     }
   }, [activeDropdown, contribution.localPath]);
 
-  // Fetch pull requests when the pull-requests dropdown opens
+  // Fetch authenticated user on mount
   useEffect(() => {
-    if (activeDropdown !== 'pull-requests') return;
+    ipc.invoke('github:get-authenticated-user')
+      .then((user) => {
+        if (isMounted.current) setGithubUsername(user.login);
+      })
+      .catch((err) => {
+        console.error('[DevelopmentScreen] Failed to fetch authenticated user:', err);
+      });
+  }, []);
 
-    // Use upstream repo (where PRs are submitted) if available, else origin
+  // Fetch pull requests eagerly on mount (for button color) and refresh on dropdown open
+  useEffect(() => {
     const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
     if (!targetUrl) return;
 
     const parsed = extractOwnerRepo(targetUrl);
     if (!parsed) return;
+
+    // Skip if we already have PRs and the dropdown isn't open
+    if (pullRequests.length > 0 && activeDropdown !== 'pull-requests') return;
 
     setPrsLoading(true);
     setPrsError(null);
@@ -141,17 +154,66 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       });
   }, [contribution.localPath]);
 
-  // Fetch issues eagerly on mount (so button color reflects branched issue state)
-  // and refresh when the dropdown opens
+  // Check if any of the user's open PRs have a response awaiting action (for orange indicator)
   useEffect(() => {
+    if (contribution.type === 'project' || !githubUsername || pullRequests.length === 0) {
+      setAwaitingResponse(false);
+      return;
+    }
+
+    const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+    if (!targetUrl) return;
+    const parsed = extractOwnerRepo(targetUrl);
+    if (!parsed) return;
+
+    const myOpenPRs = pullRequests.filter(
+      (pr) => !pr.merged && pr.state === 'open' && pr.author === githubUsername
+    );
+    if (myOpenPRs.length === 0) {
+      setAwaitingResponse(false);
+      return;
+    }
+
+    // For each of user's open PRs, check if the latest activity is from someone else
+    Promise.all(
+      myOpenPRs.map(async (pr) => {
+        const [comments, reviews] = await Promise.all([
+          ipc.invoke('github:list-pr-comments', parsed.owner, parsed.repo, pr.number),
+          ipc.invoke('github:list-pr-reviews', parsed.owner, parsed.repo, pr.number),
+        ]);
+
+        // Combine all activity and find the latest from user and from others
+        const allActivity = [
+          ...comments.map((c: any) => ({ author: c.author, date: new Date(c.updatedAt || c.createdAt).getTime() })),
+          ...reviews.map((r: any) => ({ author: r.author, date: new Date(r.submittedAt).getTime() })),
+        ];
+
+        const latestFromOther = allActivity
+          .filter((a) => a.author !== githubUsername)
+          .reduce((max, a) => Math.max(max, a.date), 0);
+
+        const latestFromUser = allActivity
+          .filter((a) => a.author === githubUsername)
+          .reduce((max, a) => Math.max(max, a.date), 0);
+
+        return latestFromOther > latestFromUser;
+      })
+    )
+      .then((results) => {
+        if (isMounted.current) setAwaitingResponse(results.some(Boolean));
+      })
+      .catch((err) => {
+        console.error('[DevelopmentScreen] Failed to check PR responses:', err);
+      });
+  }, [pullRequests, githubUsername, contribution.type, contribution.upstreamUrl, contribution.repositoryUrl]);
+
+  // Reusable function to fetch issues
+  const fetchIssues = useCallback(() => {
     const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
     if (!targetUrl) return;
 
     const parsed = extractOwnerRepo(targetUrl);
     if (!parsed) return;
-
-    // Skip if we already have issues and the dropdown isn't open (avoid re-fetch on every render)
-    if (issues.length > 0 && activeDropdown !== 'issues') return;
 
     setIssuesLoading(true);
     setIssuesError(null);
@@ -169,7 +231,15 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       .finally(() => {
         if (isMounted.current) setIssuesLoading(false);
       });
-  }, [activeDropdown, contribution.upstreamUrl, contribution.repositoryUrl]);
+  }, [contribution.upstreamUrl, contribution.repositoryUrl]);
+
+  // Fetch issues eagerly on mount and refresh when the dropdown opens
+  useEffect(() => {
+    // Skip if we already have issues and the dropdown isn't open (avoid re-fetch on every render)
+    if (issues.length > 0 && activeDropdown !== 'issues') return;
+
+    fetchIssues();
+  }, [activeDropdown, fetchIssues]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -300,6 +370,22 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
     : hasBranchedIssue ? 'yellow'
     : 'red';
 
+  // PR button color logic — differs between contributions and projects
+  const openPRs = pullRequests.filter((pr) => !pr.merged && pr.state === 'open');
+  const prButtonColor: 'red' | 'orange' | 'blue' | 'green' | null = (() => {
+    if (contribution.type === 'project') {
+      // Projects: green = no open PRs, red = any open PRs
+      return openPRs.length === 0 ? 'green' : 'red';
+    }
+    // Contributions: null = no user PRs, orange = awaiting response, blue = has open PR
+    const myOpenPRs = githubUsername
+      ? openPRs.filter((pr) => pr.author === githubUsername)
+      : [];
+    if (myOpenPRs.length === 0) return null;
+    if (awaitingResponse) return 'orange';
+    return 'blue';
+  })();
+
   return (
     <div className="flex flex-col h-full">
       {/* Header bar */}
@@ -336,18 +422,22 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                     ? activeDropdown === name
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
-                    : name === 'pull-requests' && contribution.prStatus
-                      ? contribution.prStatus === 'merged'
-                        ? activeDropdown === name
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
-                        : contribution.prStatus === 'open'
-                          ? activeDropdown === name
-                            ? 'border-green-500 bg-green-500 text-white'
-                            : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
-                          : activeDropdown === name
-                            ? 'border-primary bg-accent'
-                            : 'border-border hover:bg-accent'
+                    : name === 'pull-requests' && prButtonColor === 'red'
+                    ? activeDropdown === name
+                      ? 'border-red-500 bg-red-500 text-white'
+                      : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
+                  : name === 'pull-requests' && prButtonColor === 'orange'
+                    ? activeDropdown === name
+                      ? 'border-orange-500 bg-orange-500 text-white'
+                      : 'border-orange-500 bg-orange-500 text-white hover:bg-orange-500/80'
+                  : name === 'pull-requests' && prButtonColor === 'blue'
+                    ? activeDropdown === name
+                      ? 'border-blue-500 bg-blue-500 text-white'
+                      : 'border-blue-500 bg-blue-500 text-white hover:bg-blue-500/80'
+                  : name === 'pull-requests' && prButtonColor === 'green'
+                    ? activeDropdown === name
+                      ? 'border-green-500 bg-green-500 text-white'
+                      : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
                       : activeDropdown === name
                         ? 'border-primary bg-accent'
                         : 'border-border hover:bg-accent'
@@ -558,7 +648,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             owner={parsed.owner}
             repo={parsed.repo}
             isBranched={branchMatches}
-            onClose={() => setSelectedIssue(null)}
+            onClose={() => { setSelectedIssue(null); fetchIssues(); }}
           />
         ) : null;
       })()}

@@ -145,6 +145,7 @@ export interface IpcChannels {
   'git:create-branch': (repoPath: string, branchName: string) => void;
 
   // GitHub Channels
+  'github:get-authenticated-user': () => { login: string; name: string; email: string };
   'github:search-issues': (query: string, labels: string[]) => GitHubIssue[];
   'github:get-repository': (owner: string, repo: string) => GitHubRepository;
   'github:validate-token': (token: string) => boolean;
@@ -266,6 +267,7 @@ export interface IpcChannels {
     updatedAt: Date;
   }[];
   'github:create-issue-comment': (owner: string, repo: string, issueNumber: number, body: string) => void;
+  'github:update-issue': (owner: string, repo: string, issueNumber: number, updates: { state?: 'open' | 'closed'; state_reason?: 'completed' | 'not_planned' | 'reopened' }) => void;
   'github:create-issue': (owner: string, repo: string, title: string, body: string, labels?: string[]) => {
     number: number;
     url: string;

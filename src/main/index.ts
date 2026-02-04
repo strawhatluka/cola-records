@@ -378,6 +378,10 @@ const setupIpcHandlers = () => {
   });
 
   // GitHub handlers
+  handleIpc('github:get-authenticated-user', async () => {
+    return await gitHubService.getAuthenticatedUser();
+  });
+
   handleIpc('github:search-issues', async (_event, query, labels) => {
     return await gitHubService.searchIssues(query, labels);
   });
@@ -454,6 +458,11 @@ const setupIpcHandlers = () => {
   handleIpc("github:create-issue-comment", async (_event, owner, repo, issueNumber, body) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     await gitHubRestService.createIssueComment(owner, repo, issueNumber, body);
+  });
+
+  handleIpc("github:update-issue", async (_event, owner, repo, issueNumber, updates) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    await gitHubRestService.updateIssue(owner, repo, issueNumber, updates);
   });
 
   handleIpc("github:create-issue", async (_event, owner, repo, title, body, labels) => {

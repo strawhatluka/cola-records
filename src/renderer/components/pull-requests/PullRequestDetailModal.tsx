@@ -206,12 +206,15 @@ export function PullRequestDetailModal({ pr, owner, repo, onClose }: PullRequest
                 {prDetail?.title || pr.title}
                 <span className="text-muted-foreground font-normal ml-2">#{pr.number}</span>
               </DialogTitle>
-              <DialogDescription className="mt-2 flex items-center gap-2">
+              <DialogDescription className="sr-only">
+                Pull request #{pr.number} details
+              </DialogDescription>
+              <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
                 {statusBadge(pr.state, pr.merged)}
                 <span>{pr.author}</span>
                 <span>wants to merge</span>
                 <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{pr.headBranch}</code>
-              </DialogDescription>
+              </div>
             </div>
           </div>
         </DialogHeader>

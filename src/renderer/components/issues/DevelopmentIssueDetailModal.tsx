@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ExternalLink, MessageSquare, Send } from 'lucide-react';
+import { ExternalLink, MessageSquare, Send, ChevronDown, Search, CheckCircle2, Ban, Copy } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
 } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 import { ipc } from '../../ipc/client';
 
 interface IssueSummary {
@@ -78,7 +79,15 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, on
   const [error, setError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [issueState, setIssueState] = useState<string>('open');
+  const [closeMenuOpen, setCloseMenuOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [duplicateSearchOpen, setDuplicateSearchOpen] = useState(false);
+  const [duplicateSearchQuery, setDuplicateSearchQuery] = useState('');
+  const [allIssues, setAllIssues] = useState<IssueSummary[]>([]);
+  const [allIssuesLoading, setAllIssuesLoading] = useState(false);
   const isMounted = useRef(true);
+  const closeMenuRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async (issueNumber: number) => {
     setLoading(true);
@@ -128,6 +137,93 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, on
     }
   };
 
+  // Sync issue state
+  useEffect(() => {
+    if (issue) setIssueState(issue.state);
+  }, [issue?.state]);
+
+  // Close menu outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (closeMenuRef.current && !closeMenuRef.current.contains(e.target as Node)) {
+        setCloseMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleCloseIssue = async (reason: 'completed' | 'not_planned', duplicateOfNumber?: number) => {
+    if (!issue) return;
+    setClosing(true);
+    setCloseMenuOpen(false);
+    try {
+      // If closing as duplicate, post a comment linking the duplicate
+      if (reason === 'not_planned' && duplicateOfNumber) {
+        await ipc.invoke(
+          'github:create-issue-comment',
+          owner, repo, issue.number,
+          `Duplicate of #${duplicateOfNumber}`
+        );
+      }
+      await ipc.invoke('github:update-issue', owner, repo, issue.number, {
+        state: 'closed',
+        state_reason: reason,
+      });
+      if (isMounted.current) {
+        setIssueState('closed');
+        setDuplicateSearchOpen(false);
+        // Refresh comments to show the duplicate comment
+        const updatedComments = await ipc.invoke('github:list-issue-comments', owner, repo, issue.number);
+        if (isMounted.current) setComments(updatedComments);
+      }
+    } catch (err) {
+      console.error('[DevelopmentIssueDetailModal] Failed to close issue:', err);
+    } finally {
+      if (isMounted.current) setClosing(false);
+    }
+  };
+
+  const handleReopenIssue = async () => {
+    if (!issue) return;
+    setClosing(true);
+    try {
+      await ipc.invoke('github:update-issue', owner, repo, issue.number, {
+        state: 'open',
+        state_reason: 'reopened',
+      });
+      if (isMounted.current) setIssueState('open');
+    } catch (err) {
+      console.error('[DevelopmentIssueDetailModal] Failed to reopen issue:', err);
+    } finally {
+      if (isMounted.current) setClosing(false);
+    }
+  };
+
+  const handleOpenDuplicateSearch = async () => {
+    setDuplicateSearchOpen(true);
+    setCloseMenuOpen(false);
+    setDuplicateSearchQuery('');
+    if (allIssues.length === 0) {
+      setAllIssuesLoading(true);
+      try {
+        const issues = await ipc.invoke('github:list-issues', owner, repo, 'all');
+        if (isMounted.current) setAllIssues(issues.filter((i: any) => i.number !== issue?.number));
+      } catch (err) {
+        console.error('[DevelopmentIssueDetailModal] Failed to fetch issues for duplicate search:', err);
+      } finally {
+        if (isMounted.current) setAllIssuesLoading(false);
+      }
+    }
+  };
+
+  const filteredDuplicateIssues = allIssues.filter((i) =>
+    duplicateSearchQuery.trim() === ''
+      ? true
+      : i.title.toLowerCase().includes(duplicateSearchQuery.toLowerCase()) ||
+        String(i.number).includes(duplicateSearchQuery)
+  );
+
   if (!issue) return null;
 
   return (
@@ -140,14 +236,17 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, on
                 {issueDetail?.title || issue.title}
                 <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
               </DialogTitle>
-              <DialogDescription className="mt-2 flex items-center gap-2">
-                {issueStatusBadge(issue.state)}
+              <DialogDescription className="sr-only">
+                Issue #{issue.number} details
+              </DialogDescription>
+              <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
+                {issueStatusBadge(issueState)}
                 {isBranched && (
                   <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">branched</Badge>
                 )}
                 <span>{issue.author}</span>
                 <span>opened this issue</span>
-              </DialogDescription>
+              </div>
             </div>
           </div>
         </DialogHeader>
@@ -233,6 +332,53 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, on
               </p>
             )}
 
+            {/* Duplicate Search Panel */}
+            {duplicateSearchOpen && (
+              <div className="border rounded-md p-4 bg-muted/30">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    Select duplicate issue
+                  </h3>
+                  <Button variant="ghost" size="sm" onClick={() => setDuplicateSearchOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+                <Input
+                  value={duplicateSearchQuery}
+                  onChange={(e) => setDuplicateSearchQuery(e.target.value)}
+                  placeholder="Search issues by title or number..."
+                  className="mb-3"
+                />
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {allIssuesLoading ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Loading issues...</p>
+                  ) : filteredDuplicateIssues.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No issues found</p>
+                  ) : (
+                    filteredDuplicateIssues.map((di) => (
+                      <button
+                        key={di.number}
+                        onClick={() => handleCloseIssue('not_planned', di.number)}
+                        disabled={closing}
+                        className="w-full text-left flex items-center gap-2 p-2 rounded-md hover:bg-accent text-xs transition-colors"
+                      >
+                        <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          di.state === 'open'
+                            ? 'bg-green-500/10 text-green-500'
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {di.state}
+                        </span>
+                        <span className="truncate flex-1">{di.title}</span>
+                        <span className="text-muted-foreground shrink-0">#{di.number}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Comment Input */}
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-2">Leave a comment</h3>
@@ -258,14 +404,78 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, on
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View on GitHub
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSubmitComment}
-                  disabled={!newComment.trim() || submitting}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {submitting ? 'Submitting...' : 'Comment'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {issueState === 'open' ? (
+                    <div className="relative" ref={closeMenuRef}>
+                      <div className="flex">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleSubmitComment}
+                          disabled={!newComment.trim() || submitting}
+                        >
+                          <Send className="h-4 w-4 mr-2" />
+                          {submitting ? 'Submitting...' : 'Comment'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="ml-2 pr-1.5"
+                          onClick={() => setCloseMenuOpen(!closeMenuOpen)}
+                          disabled={closing}
+                        >
+                          {closing ? 'Closing...' : 'Close'}
+                          <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                        </Button>
+                      </div>
+                      {closeMenuOpen && (
+                        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md border border-border bg-popover shadow-lg z-50">
+                          <button
+                            onClick={() => handleCloseIssue('completed')}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                          >
+                            <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                            Close as completed
+                          </button>
+                          <button
+                            onClick={() => handleCloseIssue('not_planned')}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                          >
+                            <Ban className="h-4 w-4 text-muted-foreground" />
+                            Close as not planned
+                          </button>
+                          <button
+                            onClick={handleOpenDuplicateSearch}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors border-t border-border"
+                          >
+                            <Copy className="h-4 w-4 text-muted-foreground" />
+                            Close as duplicate
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSubmitComment}
+                        disabled={!newComment.trim() || submitting}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        {submitting ? 'Submitting...' : 'Comment'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleReopenIssue}
+                        disabled={closing}
+                      >
+                        {closing ? 'Reopening...' : 'Reopen'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -98,6 +98,29 @@ export class GitHubRestService {
   }
 
   /**
+   * Update an issue (close, reopen, change state reason)
+   */
+  async updateIssue(
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    updates: { state?: 'open' | 'closed'; state_reason?: 'completed' | 'not_planned' | 'reopened' }
+  ): Promise<void> {
+    try {
+      const client = this.getClient();
+      await client.issues.update({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        ...updates,
+      });
+    } catch (error) {
+      console.error('GitHub REST update issue error:', error);
+      throw new Error(`Failed to update issue ${owner}/${repo}#${issueNumber}: ${error}`);
+    }
+  }
+
+  /**
    * Create a new issue
    */
   async createIssue(
