@@ -6,3 +6,4 @@ export * from './gitignore.service';
 export * from './github-graphql.service';
 export * from './github-rest.service';
 export * from './github.service';
+export * from './spotify.service';

@@ -15,6 +15,8 @@ export function APITab({ settings, onUpdate }: APITabProps) {
   const [githubToken, setGithubToken] = React.useState('');
   const [tokenValidating, setTokenValidating] = React.useState(false);
   const [tokenValid, setTokenValid] = React.useState<boolean | null>(null);
+  const [spotifyClientId, setSpotifyClientId] = React.useState(settings.spotifyClientId || '');
+  const [spotifySaved, setSpotifySaved] = React.useState(false);
 
   const handleValidateToken = async () => {
     if (!githubToken) return;
@@ -80,6 +82,55 @@ export function APITab({ settings, onUpdate }: APITabProps) {
             {tokenValid === false && (
               <p className="text-xs text-destructive mt-1">Invalid token. Please check and try again.</p>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Spotify</CardTitle>
+          <CardDescription>Configure your Spotify integration for music playback</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Client ID</label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                type="password"
+                value={spotifyClientId}
+                onChange={(e) => {
+                  setSpotifyClientId(e.target.value);
+                  setSpotifySaved(false);
+                }}
+                placeholder="Your Spotify Client ID"
+                className="flex-1"
+              />
+              <Button
+                onClick={async () => {
+                  await onUpdate({ spotifyClientId });
+                  setSpotifySaved(true);
+                  setTimeout(() => setSpotifySaved(false), 3000);
+                }}
+                disabled={!spotifyClientId}
+                variant={spotifySaved ? 'default' : 'outline'}
+              >
+                {spotifySaved ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Saved
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Create an app at{' '}
+              <span className="font-medium">developer.spotify.com</span>{' '}
+              and copy the Client ID. Add{' '}
+              <code className="bg-muted px-1">http://127.0.0.1:3001/api/spotify/callback</code>{' '}
+              as a redirect URI.
+            </p>
           </div>
         </CardContent>
       </Card>

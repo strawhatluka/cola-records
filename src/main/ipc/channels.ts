@@ -132,6 +132,36 @@ export interface Contribution {
   remotesValid?: boolean;
 }
 
+// Spotify Types
+export interface SpotifyTrack {
+  id: string;
+  name: string;
+  uri: string;
+  artists: { name: string }[];
+  album: {
+    name: string;
+    images: { url: string; width: number; height: number }[];
+  };
+  durationMs: number;
+}
+
+export interface SpotifyPlaybackState {
+  isPlaying: boolean;
+  track: SpotifyTrack | null;
+  progressMs: number;
+  shuffleState: boolean;
+  volumePercent: number;
+  deviceName: string;
+}
+
+export interface SpotifyPlaylist {
+  id: string;
+  name: string;
+  uri: string;
+  trackCount: number;
+  images: { url: string; width: number; height: number }[];
+}
+
 // Settings Types
 export interface Alias {
   name: string;
@@ -140,6 +170,7 @@ export interface Alias {
 
 export interface AppSettings {
   githubToken?: string;
+  spotifyClientId?: string;
   theme: 'light' | 'dark' | 'system';
   defaultClonePath: string;
   defaultProjectsPath: string;
@@ -329,6 +360,26 @@ export interface IpcChannels {
   'github:list-sub-issues': (owner: string, repo: string, issueNumber: number) => SubIssue[];
   'github:create-sub-issue': (owner: string, repo: string, parentIssueNumber: number, title: string, body: string, labels?: string[]) => { number: number; url: string };
   'github:add-existing-sub-issue': (owner: string, repo: string, parentIssueNumber: number, subIssueId: number) => void;
+
+  // Spotify Channels
+  'spotify:is-connected': () => boolean;
+  'spotify:start-auth': () => void;
+  'spotify:disconnect': () => void;
+  'spotify:get-playback-state': () => SpotifyPlaybackState | null;
+  'spotify:play': (uri?: string, contextUri?: string) => void;
+  'spotify:pause': () => void;
+  'spotify:next': () => void;
+  'spotify:previous': () => void;
+  'spotify:set-shuffle': (state: boolean) => void;
+  'spotify:set-volume': (volumePercent: number) => void;
+  'spotify:get-playlists': () => SpotifyPlaylist[];
+  'spotify:play-playlist': (playlistUri: string) => void;
+  'spotify:search': (query: string) => { tracks: SpotifyTrack[] };
+  'spotify:add-to-queue': (trackUri: string) => void;
+  'spotify:save-track': (trackId: string) => void;
+  'spotify:remove-track': (trackId: string) => void;
+  'spotify:is-track-saved': (trackId: string) => boolean;
+  'spotify:seek': (positionMs: number) => void;
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };

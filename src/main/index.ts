@@ -10,6 +10,7 @@ import {
 } from './services';
 import { gitHubGraphQLService } from './services/github-graphql.service';
 import { codeServerService } from './services/code-server.service';
+import { spotifyService } from './services/spotify.service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -353,6 +354,7 @@ const setupIpcHandlers = () => {
 
     return {
       githubToken: settings.githubToken,
+      spotifyClientId: settings.spotifyClientId,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: defaultClonePath,
       defaultProjectsPath: defaultProjectsPath,
@@ -364,6 +366,9 @@ const setupIpcHandlers = () => {
 
   handleIpc('settings:update', async (_event, updates) => {
     // Save each setting to database
+    if (updates.spotifyClientId !== undefined) {
+      database.setSetting('spotifyClientId', updates.spotifyClientId || '');
+    }
     if (updates.githubToken !== undefined) {
       database.setSetting('githubToken', updates.githubToken);
       // Reset GitHub GraphQL client to use new token
@@ -395,6 +400,7 @@ const setupIpcHandlers = () => {
 
     return {
       githubToken: settings.githubToken,
+      spotifyClientId: settings.spotifyClientId,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: settings.defaultClonePath || '',
       defaultProjectsPath: settings.defaultProjectsPath || '',
@@ -585,6 +591,79 @@ const setupIpcHandlers = () => {
     return await gitHubService.getRepositoryTree(owner, repo, branch || "main");
   });
 
+  // Spotify handlers
+  handleIpc('spotify:is-connected', async () => {
+    return await spotifyService.isConnected();
+  });
+
+  handleIpc('spotify:start-auth', async () => {
+    await spotifyService.startAuthFlow();
+  });
+
+  handleIpc('spotify:disconnect', async () => {
+    await spotifyService.disconnect();
+  });
+
+  handleIpc('spotify:get-playback-state', async () => {
+    return await spotifyService.getPlaybackState();
+  });
+
+  handleIpc('spotify:play', async (_event, uri, contextUri) => {
+    await spotifyService.play(uri, contextUri);
+  });
+
+  handleIpc('spotify:pause', async () => {
+    await spotifyService.pause();
+  });
+
+  handleIpc('spotify:next', async () => {
+    await spotifyService.next();
+  });
+
+  handleIpc('spotify:previous', async () => {
+    await spotifyService.previous();
+  });
+
+  handleIpc('spotify:set-shuffle', async (_event, state) => {
+    await spotifyService.setShuffle(state);
+  });
+
+  handleIpc('spotify:set-volume', async (_event, volumePercent) => {
+    await spotifyService.setVolume(volumePercent);
+  });
+
+  handleIpc('spotify:get-playlists', async () => {
+    return await spotifyService.getPlaylists();
+  });
+
+  handleIpc('spotify:play-playlist', async (_event, playlistUri) => {
+    await spotifyService.playPlaylist(playlistUri);
+  });
+
+  handleIpc('spotify:search', async (_event, query) => {
+    return await spotifyService.search(query);
+  });
+
+  handleIpc('spotify:add-to-queue', async (_event, trackUri) => {
+    await spotifyService.addToQueue(trackUri);
+  });
+
+  handleIpc('spotify:save-track', async (_event, trackId) => {
+    await spotifyService.saveTrack(trackId);
+  });
+
+  handleIpc('spotify:remove-track', async (_event, trackId) => {
+    await spotifyService.removeTrack(trackId);
+  });
+
+  handleIpc('spotify:is-track-saved', async (_event, trackId) => {
+    return await spotifyService.isTrackSaved(trackId);
+  });
+
+  handleIpc('spotify:seek', async (_event, positionMs) => {
+    await spotifyService.seek(positionMs);
+  });
+
   // Code Server handlers
   handleIpc('code-server:start', async (_event, projectPath) => {
     return await codeServerService.start(projectPath);
@@ -676,6 +755,7 @@ async function cleanup(): Promise<void> {
   } catch {
     // Cleanup stop failure is non-critical
   }
+  spotifyService.cleanup();
   removeAllIpcHandlers();
   database.close();
 }
