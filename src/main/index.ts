@@ -103,6 +103,14 @@ const setupIpcHandlers = () => {
     return await gitService.getBranches(repoPath);
   });
 
+  handleIpc('git:get-current-branch', async (_event, repoPath) => {
+    return await gitService.getCurrentBranch(repoPath);
+  });
+
+  handleIpc('git:compare-branches', async (_event, repoPath, base, head) => {
+    return await gitService.compareBranches(repoPath, base, head);
+  });
+
   // GitIgnore handlers
   handleIpc('gitignore:is-ignored', async (_event, repoPath, filePath) => {
     return await gitIgnoreService.isIgnored(repoPath, filePath);
@@ -473,6 +481,53 @@ const setupIpcHandlers = () => {
   handleIpc("github:create-pull-request", async (_event, owner, repo, title, head, base, body) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.createPullRequest(owner, repo, title, head, base, body);
+  });
+
+  // Reaction handlers
+  handleIpc("github:list-issue-reactions", async (_event, owner, repo, issueNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listIssueReactions(owner, repo, issueNumber);
+  });
+
+  handleIpc("github:add-issue-reaction", async (_event, owner, repo, issueNumber, content) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.addIssueReaction(owner, repo, issueNumber, content);
+  });
+
+  handleIpc("github:delete-issue-reaction", async (_event, owner, repo, issueNumber, reactionId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    await gitHubRestService.deleteIssueReaction(owner, repo, issueNumber, reactionId);
+  });
+
+  handleIpc("github:list-comment-reactions", async (_event, owner, repo, commentId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listCommentReactions(owner, repo, commentId);
+  });
+
+  handleIpc("github:add-comment-reaction", async (_event, owner, repo, commentId, content) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.addCommentReaction(owner, repo, commentId, content);
+  });
+
+  handleIpc("github:delete-comment-reaction", async (_event, owner, repo, commentId, reactionId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    await gitHubRestService.deleteCommentReaction(owner, repo, commentId, reactionId);
+  });
+
+  // Sub-issue handlers
+  handleIpc("github:list-sub-issues", async (_event, owner, repo, issueNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listSubIssues(owner, repo, issueNumber);
+  });
+
+  handleIpc("github:create-sub-issue", async (_event, owner, repo, parentIssueNumber, title, body, labels) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.createSubIssue(owner, repo, parentIssueNumber, title, body, labels);
+  });
+
+  handleIpc("github:add-existing-sub-issue", async (_event, owner, repo, parentIssueNumber, subIssueId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    await gitHubRestService.addExistingSubIssue(owner, repo, parentIssueNumber, subIssueId);
   });
 
   // Dialog handlers

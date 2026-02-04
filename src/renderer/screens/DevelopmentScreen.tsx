@@ -113,16 +113,12 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       });
   }, []);
 
-  // Fetch pull requests eagerly on mount (for button color) and refresh on dropdown open
-  useEffect(() => {
+  const fetchPullRequests = useCallback(() => {
     const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
     if (!targetUrl) return;
 
     const parsed = extractOwnerRepo(targetUrl);
     if (!parsed) return;
-
-    // Skip if we already have PRs and the dropdown isn't open
-    if (pullRequests.length > 0 && activeDropdown !== 'pull-requests') return;
 
     setPrsLoading(true);
     setPrsError(null);
@@ -140,7 +136,15 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       .finally(() => {
         if (isMounted.current) setPrsLoading(false);
       });
-  }, [activeDropdown, contribution.upstreamUrl, contribution.repositoryUrl]);
+  }, [contribution.upstreamUrl, contribution.repositoryUrl]);
+
+  // Fetch pull requests eagerly on mount (for button color) and refresh on dropdown open
+  useEffect(() => {
+    // Skip if we already have PRs and the dropdown isn't open
+    if (pullRequests.length > 0 && activeDropdown !== 'pull-requests') return;
+
+    fetchPullRequests();
+  }, [activeDropdown, fetchPullRequests]);
 
   // Fetch all branches on mount (for issue-button color logic)
   useEffect(() => {
@@ -630,6 +634,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             pr={selectedPR}
             owner={parsed.owner}
             repo={parsed.repo}
+            githubUsername={githubUsername}
             onClose={() => setSelectedPR(null)}
           />
         ) : null;
@@ -649,6 +654,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             repo={parsed.repo}
             localPath={contribution.localPath}
             isBranched={branchMatches}
+            githubUsername={githubUsername}
             onClose={() => { setSelectedIssue(null); fetchIssues(); }}
           />
         ) : null;
@@ -664,7 +670,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             owner={parsed.owner}
             repo={parsed.repo}
             onClose={() => setShowCreateIssue(false)}
-            onCreated={() => setIssues([])}
+            onCreated={() => fetchIssues()}
           />
         ) : null;
       })()}
@@ -674,17 +680,18 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
         const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
         const forkParsed = contribution.repositoryUrl ? extractOwnerRepo(contribution.repositoryUrl) : null;
-        const headBranch = contribution.isFork && forkParsed && contribution.branchName
-          ? `${forkParsed.owner}:${contribution.branchName}`
-          : contribution.branchName || '';
         return parsed ? (
           <CreatePullRequestModal
             open={showCreatePR}
             owner={parsed.owner}
             repo={parsed.repo}
-            defaultHead={headBranch}
+            localPath={contribution.localPath}
+            branches={branches}
+            isFork={contribution.isFork}
+            forkOwner={forkParsed?.owner}
+            defaultBranchName={contribution.branchName}
             onClose={() => setShowCreatePR(false)}
-            onCreated={() => setPullRequests([])}
+            onCreated={() => fetchPullRequests()}
           />
         ) : null;
       })()}

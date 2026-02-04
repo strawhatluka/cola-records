@@ -12,15 +12,23 @@ import { Input } from '../ui/Input';
 import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
 import { ipc } from '../../ipc/client';
 
-interface CreateIssueModalProps {
+interface CreateSubIssueModalProps {
   open: boolean;
   owner: string;
   repo: string;
+  parentIssueNumber: number;
   onClose: () => void;
   onCreated: () => void;
 }
 
-export function CreateIssueModal({ open, owner, repo, onClose, onCreated }: CreateIssueModalProps) {
+export function CreateSubIssueModal({
+  open,
+  owner,
+  repo,
+  parentIssueNumber,
+  onClose,
+  onCreated,
+}: CreateSubIssueModalProps) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [labels, setLabels] = useState('');
@@ -40,9 +48,10 @@ export function CreateIssueModal({ open, owner, repo, onClose, onCreated }: Crea
         .filter(Boolean);
 
       await ipc.invoke(
-        'github:create-issue',
+        'github:create-sub-issue',
         owner,
         repo,
+        parentIssueNumber,
         title.trim(),
         body.trim(),
         labelList.length > 0 ? labelList : undefined
@@ -64,29 +73,31 @@ export function CreateIssueModal({ open, owner, repo, onClose, onCreated }: Crea
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create New Issue</DialogTitle>
+          <DialogTitle>Create Sub-Issue</DialogTitle>
           <DialogDescription>
-            Submit a new issue to {owner}/{repo}
+            Create a new sub-issue in {owner}/{repo} linked to #{parentIssueNumber}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Title</label>
+            <label className="text-sm font-medium mb-1.5 block">
+              Add a title <span className="text-destructive">*</span>
+            </label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Issue title"
+              placeholder="Title"
               disabled={submitting}
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Description</label>
+            <label className="text-sm font-medium mb-1.5 block">Add a description</label>
             <MarkdownEditor
               value={body}
               onChange={setBody}
-              placeholder="Describe the issue..."
+              placeholder="Type your description here..."
               disabled={submitting}
               minHeight="160px"
             />
@@ -112,7 +123,7 @@ export function CreateIssueModal({ open, owner, repo, onClose, onCreated }: Crea
             </Button>
             <Button onClick={handleSubmit} disabled={!title.trim() || submitting}>
               <Send className="h-4 w-4 mr-2" />
-              {submitting ? 'Creating...' : 'Create Issue'}
+              {submitting ? 'Creating...' : 'Create'}
             </Button>
           </div>
         </div>

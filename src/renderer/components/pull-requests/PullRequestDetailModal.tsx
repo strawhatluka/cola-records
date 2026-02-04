@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ExternalLink, MessageSquare, FileCode, Send } from 'lucide-react';
+import { MarkdownEditor } from './MarkdownEditor';
+import { ReactionDisplay } from '../ui/ReactionPicker';
+import type { Reaction, ReactionContent } from '../../../main/ipc/channels';
 import {
   Dialog,
   DialogContent,
@@ -74,6 +77,7 @@ interface PullRequestDetailModalProps {
   pr: PullRequestSummary | null;
   owner: string;
   repo: string;
+  githubUsername: string;
   onClose: () => void;
 }
 
@@ -112,7 +116,7 @@ export function formatDate(date: Date): string {
   });
 }
 
-export function PullRequestDetailModal({ pr, owner, repo, onClose }: PullRequestDetailModalProps) {
+export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClose }: PullRequestDetailModalProps) {
   const [prDetail, setPrDetail] = useState<PRDetail | null>(null);
   const [comments, setComments] = useState<PRComment[]>([]);
   const [reviews, setReviews] = useState<PRReview[]>([]);
@@ -121,7 +125,32 @@ export function PullRequestDetailModal({ pr, owner, repo, onClose }: PullRequest
   const [error, setError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Reactions state — PRs use the issues reactions API (PRs are issues in GitHub)
+  const [prReactions, setPrReactions] = useState<Reaction[]>([]);
+  const [commentReactions, setCommentReactions] = useState<Record<number, Reaction[]>>({});
   const isMounted = useRef(true);
+
+  const fetchReactions = async (prNumber: number, cmts: PRComment[]) => {
+    try {
+      const rx = await ipc.invoke('github:list-issue-reactions', owner, repo, prNumber);
+      if (isMounted.current) setPrReactions(rx);
+    } catch {
+      // Reactions may fail
+    }
+
+    const commentRxMap: Record<number, Reaction[]> = {};
+    await Promise.all(
+      cmts.map(async (c) => {
+        try {
+          const rx = await ipc.invoke('github:list-comment-reactions', owner, repo, c.id);
+          commentRxMap[c.id] = rx;
+        } catch {
+          commentRxMap[c.id] = [];
+        }
+      })
+    );
+    if (isMounted.current) setCommentReactions(commentRxMap);
+  };
 
   const fetchData = async (prNumber: number) => {
     setLoading(true);
@@ -141,6 +170,9 @@ export function PullRequestDetailModal({ pr, owner, repo, onClose }: PullRequest
         setReviews(revs);
         setReviewComments(revCmts);
       }
+
+      // Fetch reactions in background
+      fetchReactions(prNumber, cmts);
     } catch (err) {
       if (isMounted.current) {
         setError(err instanceof Error ? err.message : String(err));
@@ -173,6 +205,33 @@ export function PullRequestDetailModal({ pr, owner, repo, onClose }: PullRequest
     } finally {
       if (isMounted.current) setSubmitting(false);
     }
+  };
+
+  // Reaction handlers (PRs use issue reactions API)
+  const handleAddPrReaction = async (content: ReactionContent) => {
+    if (!pr) return;
+    await ipc.invoke('github:add-issue-reaction', owner, repo, pr.number, content);
+    const updated = await ipc.invoke('github:list-issue-reactions', owner, repo, pr.number);
+    if (isMounted.current) setPrReactions(updated);
+  };
+
+  const handleRemovePrReaction = async (reactionId: number) => {
+    if (!pr) return;
+    await ipc.invoke('github:delete-issue-reaction', owner, repo, pr.number, reactionId);
+    const updated = await ipc.invoke('github:list-issue-reactions', owner, repo, pr.number);
+    if (isMounted.current) setPrReactions(updated);
+  };
+
+  const handleAddCommentReaction = async (commentId: number, content: ReactionContent) => {
+    await ipc.invoke('github:add-comment-reaction', owner, repo, commentId, content);
+    const updated = await ipc.invoke('github:list-comment-reactions', owner, repo, commentId);
+    if (isMounted.current) setCommentReactions((prev) => ({ ...prev, [commentId]: updated }));
+  };
+
+  const handleRemoveCommentReaction = async (commentId: number, reactionId: number) => {
+    await ipc.invoke('github:delete-comment-reaction', owner, repo, commentId, reactionId);
+    const updated = await ipc.invoke('github:list-comment-reactions', owner, repo, commentId);
+    if (isMounted.current) setCommentReactions((prev) => ({ ...prev, [commentId]: updated }));
   };
 
   if (!pr) return null;
@@ -249,6 +308,12 @@ export function PullRequestDetailModal({ pr, owner, repo, onClose }: PullRequest
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown>{prDetail.body}</ReactMarkdown>
                 </div>
+                <ReactionDisplay
+                  reactions={prReactions}
+                  currentUser={githubUsername}
+                  onAdd={handleAddPrReaction}
+                  onRemove={handleRemovePrReaction}
+                />
               </div>
             )}
 
@@ -279,6 +344,12 @@ export function PullRequestDetailModal({ pr, owner, repo, onClose }: PullRequest
                         <div className="prose prose-sm dark:prose-invert max-w-none">
                           <ReactMarkdown>{c.body}</ReactMarkdown>
                         </div>
+                        <ReactionDisplay
+                          reactions={commentReactions[c.id] || []}
+                          currentUser={githubUsername}
+                          onAdd={(content) => handleAddCommentReaction(c.id, content)}
+                          onRemove={(reactionId) => handleRemoveCommentReaction(c.id, reactionId)}
+                        />
                       </div>
                     );
                   }
@@ -348,12 +419,12 @@ export function PullRequestDetailModal({ pr, owner, repo, onClose }: PullRequest
             {/* Comment Input */}
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-2">Leave a comment</h3>
-              <textarea
+              <MarkdownEditor
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={setNewComment}
                 placeholder="Write a comment... (Markdown supported)"
-                className="w-full min-h-[80px] rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
                 disabled={submitting}
+                minHeight="80px"
               />
               <div className="flex justify-between items-center mt-2">
                 <Button

@@ -46,6 +46,41 @@ export interface GitCommit {
   date: Date;
 }
 
+// Branch Comparison Types
+export interface DiffFileSummary {
+  file: string;
+  insertions: number;
+  deletions: number;
+  binary: boolean;
+}
+
+export interface BranchComparison {
+  commits: GitCommit[];
+  files: DiffFileSummary[];
+  totalInsertions: number;
+  totalDeletions: number;
+  totalFilesChanged: number;
+  rawDiff: string;
+}
+
+// Reaction Types
+export type ReactionContent = '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket' | 'eyes';
+
+export interface Reaction {
+  id: number;
+  content: ReactionContent;
+  user: string;
+}
+
+// Sub-Issue Types
+export interface SubIssue {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  url: string;
+}
+
 // GitHub Types
 export interface GitHubIssue {
   id: string;
@@ -143,6 +178,8 @@ export interface IpcChannels {
   'git:clone': (url: string, targetPath: string) => void;
   'git:checkout': (repoPath: string, branch: string) => void;
   'git:create-branch': (repoPath: string, branchName: string) => void;
+  'git:get-current-branch': (repoPath: string) => string | null;
+  'git:compare-branches': (repoPath: string, base: string, head: string) => BranchComparison;
 
   // GitHub Channels
   'github:get-authenticated-user': () => { login: string; name: string; email: string };
@@ -277,6 +314,19 @@ export interface IpcChannels {
     url: string;
     state: string;
   };
+
+  // Reaction Channels
+  'github:list-issue-reactions': (owner: string, repo: string, issueNumber: number) => Reaction[];
+  'github:add-issue-reaction': (owner: string, repo: string, issueNumber: number, content: ReactionContent) => Reaction;
+  'github:delete-issue-reaction': (owner: string, repo: string, issueNumber: number, reactionId: number) => void;
+  'github:list-comment-reactions': (owner: string, repo: string, commentId: number) => Reaction[];
+  'github:add-comment-reaction': (owner: string, repo: string, commentId: number, content: ReactionContent) => Reaction;
+  'github:delete-comment-reaction': (owner: string, repo: string, commentId: number, reactionId: number) => void;
+
+  // Sub-Issue Channels
+  'github:list-sub-issues': (owner: string, repo: string, issueNumber: number) => SubIssue[];
+  'github:create-sub-issue': (owner: string, repo: string, parentIssueNumber: number, title: string, body: string, labels?: string[]) => { number: number; url: string };
+  'github:add-existing-sub-issue': (owner: string, repo: string, parentIssueNumber: number, subIssueId: number) => void;
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };

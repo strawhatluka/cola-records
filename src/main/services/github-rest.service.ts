@@ -645,6 +645,243 @@ export class GitHubRestService {
       throw new Error(`Failed to list review comments for ${owner}/${repo}#${prNumber}: ${error}`);
     }
   }
+  // ─── Reactions ───────────────────────────────────────────────
+
+  async listIssueReactions(
+    owner: string,
+    repo: string,
+    issueNumber: number
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.reactions.listForIssue({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        per_page: 100,
+      });
+
+      return response.data.map((r: any) => ({
+        id: r.id,
+        content: r.content,
+        user: r.user?.login || 'unknown',
+      }));
+    } catch (error) {
+      console.error('GitHub REST list issue reactions error:', error);
+      throw new Error(`Failed to list reactions for ${owner}/${repo}#${issueNumber}: ${error}`);
+    }
+  }
+
+  async addIssueReaction(
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    content: string
+  ): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.reactions.createForIssue({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        content: content as any,
+      });
+
+      return {
+        id: response.data.id,
+        content: response.data.content,
+        user: response.data.user?.login || 'unknown',
+      };
+    } catch (error) {
+      console.error('GitHub REST add issue reaction error:', error);
+      throw new Error(`Failed to add reaction to ${owner}/${repo}#${issueNumber}: ${error}`);
+    }
+  }
+
+  async deleteIssueReaction(
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    reactionId: number
+  ): Promise<void> {
+    try {
+      const client = this.getClient();
+      await client.reactions.deleteForIssue({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        reaction_id: reactionId,
+      });
+    } catch (error) {
+      console.error('GitHub REST delete issue reaction error:', error);
+      throw new Error(`Failed to delete reaction from ${owner}/${repo}#${issueNumber}: ${error}`);
+    }
+  }
+
+  async listCommentReactions(
+    owner: string,
+    repo: string,
+    commentId: number
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.reactions.listForIssueComment({
+        owner,
+        repo,
+        comment_id: commentId,
+        per_page: 100,
+      });
+
+      return response.data.map((r: any) => ({
+        id: r.id,
+        content: r.content,
+        user: r.user?.login || 'unknown',
+      }));
+    } catch (error) {
+      console.error('GitHub REST list comment reactions error:', error);
+      throw new Error(`Failed to list reactions for comment ${commentId}: ${error}`);
+    }
+  }
+
+  async addCommentReaction(
+    owner: string,
+    repo: string,
+    commentId: number,
+    content: string
+  ): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.reactions.createForIssueComment({
+        owner,
+        repo,
+        comment_id: commentId,
+        content: content as any,
+      });
+
+      return {
+        id: response.data.id,
+        content: response.data.content,
+        user: response.data.user?.login || 'unknown',
+      };
+    } catch (error) {
+      console.error('GitHub REST add comment reaction error:', error);
+      throw new Error(`Failed to add reaction to comment ${commentId}: ${error}`);
+    }
+  }
+
+  async deleteCommentReaction(
+    owner: string,
+    repo: string,
+    commentId: number,
+    reactionId: number
+  ): Promise<void> {
+    try {
+      const client = this.getClient();
+      await client.reactions.deleteForIssueComment({
+        owner,
+        repo,
+        comment_id: commentId,
+        reaction_id: reactionId,
+      });
+    } catch (error) {
+      console.error('GitHub REST delete comment reaction error:', error);
+      throw new Error(`Failed to delete reaction from comment ${commentId}: ${error}`);
+    }
+  }
+
+  // ─── Sub-Issues ─────────────────────────────────────────────
+
+  async listSubIssues(
+    owner: string,
+    repo: string,
+    issueNumber: number
+  ): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.request('GET /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
+        owner,
+        repo,
+        issue_number: issueNumber,
+        per_page: 100,
+      });
+
+      return (response.data as any[]).map((item: any) => ({
+        id: item.id,
+        number: item.number,
+        title: item.title,
+        state: item.state,
+        url: item.html_url,
+      }));
+    } catch (error: any) {
+      // Sub-issues API may not be available for all repos
+      if (error.status === 404 || error.status === 403) {
+        console.warn(`Sub-issues not available for ${owner}/${repo}#${issueNumber}`);
+        return [];
+      }
+      console.error('GitHub REST list sub-issues error:', error);
+      throw new Error(`Failed to list sub-issues for ${owner}/${repo}#${issueNumber}: ${error}`);
+    }
+  }
+
+  async createSubIssue(
+    owner: string,
+    repo: string,
+    parentIssueNumber: number,
+    title: string,
+    body: string,
+    labels?: string[]
+  ): Promise<{ number: number; url: string }> {
+    try {
+      const client = this.getClient();
+
+      // 1. Create the issue
+      const issueResponse = await client.issues.create({
+        owner,
+        repo,
+        title,
+        body,
+        labels,
+      });
+
+      const subIssueId = issueResponse.data.id;
+
+      // 2. Link as sub-issue
+      await client.request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
+        owner,
+        repo,
+        issue_number: parentIssueNumber,
+        sub_issue_id: subIssueId,
+      });
+
+      return {
+        number: issueResponse.data.number,
+        url: issueResponse.data.html_url,
+      };
+    } catch (error) {
+      console.error('GitHub REST create sub-issue error:', error);
+      throw new Error(`Failed to create sub-issue for ${owner}/${repo}#${parentIssueNumber}: ${error}`);
+    }
+  }
+
+  async addExistingSubIssue(
+    owner: string,
+    repo: string,
+    parentIssueNumber: number,
+    subIssueId: number
+  ): Promise<void> {
+    try {
+      const client = this.getClient();
+      await client.request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
+        owner,
+        repo,
+        issue_number: parentIssueNumber,
+        sub_issue_id: subIssueId,
+      });
+    } catch (error) {
+      console.error('GitHub REST add existing sub-issue error:', error);
+      throw new Error(`Failed to add sub-issue to ${owner}/${repo}#${parentIssueNumber}: ${error}`);
+    }
+  }
 }
 
 // Export singleton instance

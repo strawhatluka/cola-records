@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ExternalLink, MessageSquare, Send, ChevronDown, Search, CheckCircle2, Ban, Copy, GitBranch } from 'lucide-react';
+import { ExternalLink, MessageSquare, Send, ChevronDown, Search, CheckCircle2, Ban, Copy, GitBranch, Plus, Link2 } from 'lucide-react';
+import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
+import { ReactionDisplay } from '../ui/ReactionPicker';
+import { CreateSubIssueModal } from './CreateSubIssueModal';
+import { AddExistingSubIssueModal } from './AddExistingSubIssueModal';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +16,7 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { ipc } from '../../ipc/client';
+import type { Reaction, ReactionContent, SubIssue } from '../../../main/ipc/channels';
 
 interface IssueSummary {
   number: number;
@@ -53,6 +58,7 @@ interface DevelopmentIssueDetailModalProps {
   repo: string;
   localPath: string;
   isBranched?: boolean;
+  githubUsername: string;
   onClose: () => void;
 }
 
@@ -73,7 +79,7 @@ export function formatDate(date: Date): string {
   });
 }
 
-export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isBranched, onClose }: DevelopmentIssueDetailModalProps) {
+export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isBranched, githubUsername, onClose }: DevelopmentIssueDetailModalProps) {
   const [issueDetail, setIssueDetail] = useState<IssueDetail | null>(null);
   const [comments, setComments] = useState<IssueComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,8 +94,50 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
   const [allIssues, setAllIssues] = useState<IssueSummary[]>([]);
   const [allIssuesLoading, setAllIssuesLoading] = useState(false);
   const [creatingBranch, setCreatingBranch] = useState(false);
+  // Reactions state
+  const [issueReactions, setIssueReactions] = useState<Reaction[]>([]);
+  const [commentReactions, setCommentReactions] = useState<Record<number, Reaction[]>>({});
+  // Sub-issues state
+  const [subIssues, setSubIssues] = useState<SubIssue[]>([]);
+  const [subIssueMenuOpen, setSubIssueMenuOpen] = useState(false);
+  const [showCreateSubIssue, setShowCreateSubIssue] = useState(false);
+  const [showAddExistingSubIssue, setShowAddExistingSubIssue] = useState(false);
   const isMounted = useRef(true);
   const closeMenuRef = useRef<HTMLDivElement>(null);
+  const subIssueMenuRef = useRef<HTMLDivElement>(null);
+
+  const fetchReactions = async (issueNumber: number, cmts: IssueComment[]) => {
+    try {
+      const issueRx = await ipc.invoke('github:list-issue-reactions', owner, repo, issueNumber);
+      if (isMounted.current) setIssueReactions(issueRx);
+    } catch {
+      // Reactions may not be available
+    }
+
+    // Fetch comment reactions in parallel
+    const commentRxMap: Record<number, Reaction[]> = {};
+    await Promise.all(
+      cmts.map(async (c) => {
+        try {
+          const rx = await ipc.invoke('github:list-comment-reactions', owner, repo, c.id);
+          commentRxMap[c.id] = rx;
+        } catch {
+          commentRxMap[c.id] = [];
+        }
+      })
+    );
+    if (isMounted.current) setCommentReactions(commentRxMap);
+  };
+
+  const fetchSubIssues = async (issueNumber: number) => {
+    try {
+      const subs = await ipc.invoke('github:list-sub-issues', owner, repo, issueNumber);
+      if (isMounted.current) setSubIssues(subs);
+    } catch {
+      // Sub-issues API may not be available
+      if (isMounted.current) setSubIssues([]);
+    }
+  };
 
   const fetchData = async (issueNumber: number) => {
     setLoading(true);
@@ -105,6 +153,10 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
         setIssueDetail(detail);
         setComments(cmts);
       }
+
+      // Fetch reactions and sub-issues in background (non-blocking)
+      fetchReactions(issueNumber, cmts);
+      fetchSubIssues(issueNumber);
     } catch (err) {
       if (isMounted.current) {
         setError(err instanceof Error ? err.message : String(err));
@@ -149,6 +201,9 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
     const handleClick = (e: MouseEvent) => {
       if (closeMenuRef.current && !closeMenuRef.current.contains(e.target as Node)) {
         setCloseMenuOpen(false);
+      }
+      if (subIssueMenuRef.current && !subIssueMenuRef.current.contains(e.target as Node)) {
+        setSubIssueMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -243,6 +298,33 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
     }
   };
 
+  // Reaction handlers
+  const handleAddIssueReaction = async (content: ReactionContent) => {
+    if (!issue) return;
+    await ipc.invoke('github:add-issue-reaction', owner, repo, issue.number, content);
+    const updated = await ipc.invoke('github:list-issue-reactions', owner, repo, issue.number);
+    if (isMounted.current) setIssueReactions(updated);
+  };
+
+  const handleRemoveIssueReaction = async (reactionId: number) => {
+    if (!issue) return;
+    await ipc.invoke('github:delete-issue-reaction', owner, repo, issue.number, reactionId);
+    const updated = await ipc.invoke('github:list-issue-reactions', owner, repo, issue.number);
+    if (isMounted.current) setIssueReactions(updated);
+  };
+
+  const handleAddCommentReaction = async (commentId: number, content: ReactionContent) => {
+    await ipc.invoke('github:add-comment-reaction', owner, repo, commentId, content);
+    const updated = await ipc.invoke('github:list-comment-reactions', owner, repo, commentId);
+    if (isMounted.current) setCommentReactions((prev) => ({ ...prev, [commentId]: updated }));
+  };
+
+  const handleRemoveCommentReaction = async (commentId: number, reactionId: number) => {
+    await ipc.invoke('github:delete-comment-reaction', owner, repo, commentId, reactionId);
+    const updated = await ipc.invoke('github:list-comment-reactions', owner, repo, commentId);
+    if (isMounted.current) setCommentReactions((prev) => ({ ...prev, [commentId]: updated }));
+  };
+
   const filteredDuplicateIssues = allIssues.filter((i) =>
     duplicateSearchQuery.trim() === ''
       ? true
@@ -320,6 +402,70 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown>{issueDetail.body}</ReactMarkdown>
                 </div>
+                {/* Reactions on issue body */}
+                <ReactionDisplay
+                  reactions={issueReactions}
+                  currentUser={githubUsername}
+                  onAdd={handleAddIssueReaction}
+                  onRemove={handleRemoveIssueReaction}
+                />
+                {/* Sub-issue dropdown */}
+                <div className="mt-3 pt-2 border-t border-border/30">
+                  <div className="relative inline-block" ref={subIssueMenuRef}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs pr-1.5"
+                      onClick={() => setSubIssueMenuOpen(!subIssueMenuOpen)}
+                    >
+                      Create sub-issue
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                    {subIssueMenuOpen && (
+                      <div className="absolute left-0 top-full mt-1 w-52 rounded-md border border-border bg-popover shadow-lg z-50">
+                        <button
+                          onClick={() => { setSubIssueMenuOpen(false); setShowCreateSubIssue(true); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Create sub-issue
+                        </button>
+                        <button
+                          onClick={() => { setSubIssueMenuOpen(false); setShowAddExistingSubIssue(true); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                        >
+                          <Link2 className="h-4 w-4" />
+                          Add existing issue
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-issues list */}
+            {subIssues.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Sub-issues ({subIssues.length})</h3>
+                <div className="space-y-1">
+                  {subIssues.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm"
+                    >
+                      <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        sub.state === 'open'
+                          ? 'bg-green-500/10 text-green-500'
+                          : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {sub.state}
+                      </span>
+                      <span className="truncate flex-1">{sub.title}</span>
+                      <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -347,6 +493,12 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown>{c.body}</ReactMarkdown>
                     </div>
+                    <ReactionDisplay
+                      reactions={commentReactions[c.id] || []}
+                      currentUser={githubUsername}
+                      onAdd={(content) => handleAddCommentReaction(c.id, content)}
+                      onRemove={(reactionId) => handleRemoveCommentReaction(c.id, reactionId)}
+                    />
                   </div>
                 ))}
               </div>
@@ -408,12 +560,12 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
             {/* Comment Input */}
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-2">Leave a comment</h3>
-              <textarea
+              <MarkdownEditor
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={setNewComment}
                 placeholder="Write a comment... (Markdown supported)"
-                className="w-full min-h-[80px] rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
                 disabled={submitting}
+                minHeight="80px"
               />
               <div className="flex justify-between items-center mt-2">
                 <div className="flex items-center gap-2">
@@ -519,6 +671,28 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
           </div>
         )}
       </DialogContent>
+
+      {/* Sub-issue modals */}
+      {issue && (
+        <>
+          <CreateSubIssueModal
+            open={showCreateSubIssue}
+            owner={owner}
+            repo={repo}
+            parentIssueNumber={issue.number}
+            onClose={() => setShowCreateSubIssue(false)}
+            onCreated={() => fetchSubIssues(issue.number)}
+          />
+          <AddExistingSubIssueModal
+            open={showAddExistingSubIssue}
+            owner={owner}
+            repo={repo}
+            parentIssueNumber={issue.number}
+            onClose={() => setShowAddExistingSubIssue(false)}
+            onAdded={() => fetchSubIssues(issue.number)}
+          />
+        </>
+      )}
     </Dialog>
   );
 }

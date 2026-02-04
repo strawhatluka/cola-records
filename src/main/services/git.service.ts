@@ -1,5 +1,5 @@
 import simpleGit, { SimpleGit, StatusResult, LogResult } from 'simple-git';
-import type { GitStatus, GitCommit } from '../ipc/channels';
+import type { GitStatus, GitCommit, BranchComparison } from '../ipc/channels';
 
 /**
  * Git Service
@@ -292,6 +292,47 @@ export class GitService {
       await git.addRemote(remoteName, url);
     } catch (error) {
       throw new Error(`Failed to add remote ${remoteName} in ${repoPath}: ${error}`);
+    }
+  }
+
+  /**
+   * Compare two branches — returns commits and file diff summary
+   */
+  async compareBranches(repoPath: string, base: string, head: string): Promise<BranchComparison> {
+    try {
+      const git = this.getGit(repoPath);
+
+      // Get commits between branches
+      const log: LogResult = await git.log({ from: base, to: head });
+      const commits = log.all.map((commit) => ({
+        hash: commit.hash,
+        message: commit.message,
+        author: `${commit.author_name} <${commit.author_email}>`,
+        date: new Date(commit.date),
+      }));
+
+      // Get file-level diff summary
+      const diffSummary = await git.diffSummary([`${base}...${head}`]);
+      const files = diffSummary.files.map((f) => ({
+        file: f.file,
+        insertions: (f as any).insertions || 0,
+        deletions: (f as any).deletions || 0,
+        binary: f.binary || false,
+      }));
+
+      // Get raw unified diff for display
+      const rawDiff = await git.diff([`${base}...${head}`]);
+
+      return {
+        commits,
+        files,
+        totalInsertions: diffSummary.insertions,
+        totalDeletions: diffSummary.deletions,
+        totalFilesChanged: diffSummary.changed,
+        rawDiff,
+      };
+    } catch (error) {
+      throw new Error(`Failed to compare branches ${base}...${head} in ${repoPath}: ${error}`);
     }
   }
 }
