@@ -568,6 +568,19 @@ const setupIpcHandlers = () => {
     await shell.openExternal(url);
   });
 
+  handleIpc("shell:launch-app", async (_event, appName) => {
+    const { exec } = await import("child_process");
+    const allowedApps: Record<string, string> = {
+      chrome: 'start chrome',
+      spotify: 'start spotify:',
+      discord: 'start discord:',
+    };
+    const command = allowedApps[appName.toLowerCase()];
+    if (command) {
+      exec(command);
+    }
+  });
+
   handleIpc("github:get-repository-tree", async (_event, owner, repo, branch) => {
     return await gitHubService.getRepositoryTree(owner, repo, branch || "main");
   });

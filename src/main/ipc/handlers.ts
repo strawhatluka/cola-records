@@ -106,6 +106,7 @@ export function removeAllIpcHandlers(): void {
     // Shell
     'shell:execute',
     'shell:open-external',
+    'shell:launch-app',
     // Code Server
     'code-server:start',
     'code-server:stop',
