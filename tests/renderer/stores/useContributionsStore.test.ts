@@ -88,5 +88,119 @@ describe('useContributionsStore', () => {
       expect(mockInvoke).toHaveBeenCalledWith('contribution:delete', 'delete-me');
       expect(useContributionsStore.getState().contributions).toHaveLength(0);
     });
+
+    it('sets error on failure and re-throws', async () => {
+      const contrib = createMockContribution({ id: 'fail-delete' });
+      useContributionsStore.setState({ contributions: [contrib] });
+      mockInvoke.mockRejectedValueOnce(new Error('Delete failed'));
+
+      await expect(
+        act(async () => {
+          await useContributionsStore.getState().deleteContribution('fail-delete');
+        })
+      ).rejects.toThrow('Delete failed');
+
+      expect(useContributionsStore.getState().error).toContain('Delete failed');
+      // Contribution should still be in the list
+      expect(useContributionsStore.getState().contributions).toHaveLength(1);
+    });
+  });
+
+  describe('createContribution', () => {
+    it('creates contribution via IPC and prepends to list', async () => {
+      const existing = createMockContribution({ id: 'existing' });
+      useContributionsStore.setState({ contributions: [existing] });
+
+      const newContrib = createMockContribution({ id: 'new-one' });
+      mockInvoke.mockResolvedValueOnce(newContrib);
+
+      let result: any;
+      await act(async () => {
+        result = await useContributionsStore.getState().createContribution({
+          repositoryUrl: newContrib.repositoryUrl,
+          localPath: newContrib.localPath,
+          issueNumber: newContrib.issueNumber,
+          issueTitle: newContrib.issueTitle,
+          branchName: newContrib.branchName,
+          status: newContrib.status,
+        });
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('contribution:create', expect.any(Object));
+      expect(result.id).toBe('new-one');
+      const state = useContributionsStore.getState();
+      expect(state.contributions).toHaveLength(2);
+      expect(state.contributions[0].id).toBe('new-one'); // prepended
+      expect(state.loading).toBe(false);
+    });
+
+    it('sets error on failure and re-throws', async () => {
+      mockInvoke.mockRejectedValueOnce(new Error('Create failed'));
+
+      await expect(
+        act(async () => {
+          await useContributionsStore.getState().createContribution({
+            repositoryUrl: 'url',
+            localPath: '/path',
+            issueNumber: 1,
+            issueTitle: 'Title',
+            branchName: 'branch',
+            status: 'in_progress',
+          });
+        })
+      ).rejects.toThrow('Create failed');
+
+      expect(useContributionsStore.getState().error).toContain('Create failed');
+    });
+  });
+
+  describe('updateContribution', () => {
+    it('updates contribution via IPC and replaces in list', async () => {
+      const contrib = createMockContribution({ id: 'update-me', status: 'in_progress' });
+      useContributionsStore.setState({ contributions: [contrib] });
+
+      const updated = { ...contrib, status: 'ready' as const };
+      mockInvoke.mockResolvedValueOnce(updated);
+
+      let result: any;
+      await act(async () => {
+        result = await useContributionsStore.getState().updateContribution('update-me', { status: 'ready' });
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('contribution:update', 'update-me', { status: 'ready' });
+      expect(result.status).toBe('ready');
+      expect(useContributionsStore.getState().contributions[0].status).toBe('ready');
+    });
+
+    it('sets error on failure and re-throws', async () => {
+      const contrib = createMockContribution({ id: 'fail-update' });
+      useContributionsStore.setState({ contributions: [contrib] });
+      mockInvoke.mockRejectedValueOnce(new Error('Update failed'));
+
+      await expect(
+        act(async () => {
+          await useContributionsStore.getState().updateContribution('fail-update', { status: 'ready' });
+        })
+      ).rejects.toThrow('Update failed');
+
+      expect(useContributionsStore.getState().error).toContain('Update failed');
+    });
+  });
+
+  describe('getContributionById', () => {
+    it('returns contribution by id', () => {
+      const contrib = createMockContribution({ id: 'find-me' });
+      useContributionsStore.setState({ contributions: [contrib] });
+
+      const found = useContributionsStore.getState().getContributionById('find-me');
+      expect(found).toBeDefined();
+      expect(found!.id).toBe('find-me');
+    });
+
+    it('returns undefined for non-existent id', () => {
+      useContributionsStore.setState({ contributions: [] });
+      const found = useContributionsStore.getState().getContributionById('nope');
+      expect(found).toBeUndefined();
+    });
   });
 });

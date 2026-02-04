@@ -17,17 +17,37 @@ const mockActivityUnstar = vi.fn();
 const mockRateLimitGet = vi.fn();
 const mockIssuesListComments = vi.fn();
 const mockIssuesListForRepo = vi.fn();
-const mockPullsListReviews = vi.fn();
 const mockPullsListReviewComments = vi.fn();
+const mockPullsListReviews = vi.fn();
+const mockIssuesUpdate = vi.fn();
+const mockIssuesCreate = vi.fn();
+const mockReactionsListForIssue = vi.fn();
+const mockReactionsCreateForIssue = vi.fn();
+const mockReactionsDeleteForIssue = vi.fn();
+const mockReactionsListForIssueComment = vi.fn();
+const mockReactionsCreateForIssueComment = vi.fn();
+const mockReactionsDeleteForIssueComment = vi.fn();
+const mockRequest = vi.fn();
 
 // Use a class so `new Octokit(...)` works
 vi.mock('@octokit/rest', () => ({
   Octokit: class MockOctokit {
+    request = mockRequest;
     issues = {
       get: mockIssuesGet,
+      create: mockIssuesCreate,
+      update: mockIssuesUpdate,
       createComment: mockIssuesCreateComment,
       listComments: mockIssuesListComments,
       listForRepo: mockIssuesListForRepo,
+    };
+    reactions = {
+      listForIssue: mockReactionsListForIssue,
+      createForIssue: mockReactionsCreateForIssue,
+      deleteForIssue: mockReactionsDeleteForIssue,
+      listForIssueComment: mockReactionsListForIssueComment,
+      createForIssueComment: mockReactionsCreateForIssueComment,
+      deleteForIssueComment: mockReactionsDeleteForIssueComment,
     };
     repos = {
       createFork: mockReposCreateFork,
@@ -656,6 +676,514 @@ describe('GitHubRestService', () => {
       mockIssuesListComments.mockRejectedValue(new Error('API failure'));
       await expect(service.listIssueComments('org', 'repo', 1)).rejects.toThrow(
         'Failed to list comments'
+      );
+    });
+  });
+
+  describe('updateIssue', () => {
+    it('calls issues.update with correct params', async () => {
+      mockIssuesUpdate.mockResolvedValue({});
+      await service.updateIssue('org', 'repo', 42, { state: 'closed', state_reason: 'completed' });
+      expect(mockIssuesUpdate).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        issue_number: 42,
+        state: 'closed',
+        state_reason: 'completed',
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockIssuesUpdate.mockRejectedValue(new Error('API failure'));
+      await expect(service.updateIssue('org', 'repo', 42, { state: 'closed' })).rejects.toThrow(
+        'Failed to update issue'
+      );
+    });
+  });
+
+  describe('createIssue', () => {
+    it('returns created issue number and url', async () => {
+      mockIssuesCreate.mockResolvedValue({
+        data: {
+          number: 99,
+          html_url: 'https://github.com/org/repo/issues/99',
+          id: 12345,
+        },
+      });
+
+      const result = await service.createIssue('org', 'repo', 'New Issue', 'Issue body', ['bug']);
+      expect(result.number).toBe(99);
+      expect(result.url).toBe('https://github.com/org/repo/issues/99');
+      expect(mockIssuesCreate).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        title: 'New Issue',
+        body: 'Issue body',
+        labels: ['bug'],
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockIssuesCreate.mockRejectedValue(new Error('API failure'));
+      await expect(service.createIssue('org', 'repo', 'Title', 'Body')).rejects.toThrow(
+        'Failed to create issue'
+      );
+    });
+  });
+
+  describe('getRepository', () => {
+    it('maps repository fields correctly', async () => {
+      mockReposGet.mockResolvedValue({
+        data: {
+          id: 123,
+          name: 'repo',
+          full_name: 'org/repo',
+          description: 'A repo',
+          html_url: 'https://github.com/org/repo',
+          clone_url: 'https://github.com/org/repo.git',
+          language: 'TypeScript',
+          stargazers_count: 50,
+          forks_count: 10,
+          fork: false,
+          parent: null,
+        },
+      });
+
+      const repo = await service.getRepository('org', 'repo');
+      expect(repo.id).toBe('123');
+      expect(repo.name).toBe('repo');
+      expect(repo.fullName).toBe('org/repo');
+      expect(repo.description).toBe('A repo');
+      expect(repo.cloneUrl).toBe('https://github.com/org/repo.git');
+      expect(repo.language).toBe('TypeScript');
+      expect(repo.stars).toBe(50);
+      expect(repo.forks).toBe(10);
+      expect(repo.fork).toBe(false);
+      expect(repo.parent).toBeUndefined();
+    });
+
+    it('maps parent when repo is a fork', async () => {
+      mockReposGet.mockResolvedValue({
+        data: {
+          id: 456,
+          name: 'forked-repo',
+          full_name: 'user/forked-repo',
+          description: null,
+          html_url: 'https://github.com/user/forked-repo',
+          clone_url: 'https://github.com/user/forked-repo.git',
+          language: null,
+          stargazers_count: 0,
+          forks_count: 0,
+          fork: true,
+          parent: {
+            id: 123,
+            name: 'repo',
+            full_name: 'org/repo',
+            html_url: 'https://github.com/org/repo',
+          },
+        },
+      });
+
+      const repo = await service.getRepository('user', 'forked-repo');
+      expect(repo.fork).toBe(true);
+      expect(repo.parent).toEqual({
+        id: '123',
+        name: 'repo',
+        full_name: 'org/repo',
+        url: 'https://github.com/org/repo',
+      });
+      expect(repo.description).toBe('');
+      expect(repo.language).toBe('Unknown');
+    });
+
+    it('throws on API error', async () => {
+      mockReposGet.mockRejectedValue(new Error('API failure'));
+      await expect(service.getRepository('org', 'repo')).rejects.toThrow(
+        'Failed to get repository'
+      );
+    });
+  });
+
+  describe('getRepositoryContents', () => {
+    it('maps directory contents', async () => {
+      mockReposGetContent.mockResolvedValue({
+        data: [
+          {
+            name: 'src',
+            path: 'src',
+            type: 'dir',
+            size: 0,
+            html_url: 'https://github.com/org/repo/tree/main/src',
+          },
+          {
+            name: 'README.md',
+            path: 'README.md',
+            type: 'file',
+            size: 1024,
+            html_url: 'https://github.com/org/repo/blob/main/README.md',
+          },
+        ],
+      });
+
+      const contents = await service.getRepositoryContents('org', 'repo', '');
+      expect(contents).toHaveLength(2);
+      expect(contents[0].name).toBe('src');
+      expect(contents[0].type).toBe('dir');
+      expect(contents[1].name).toBe('README.md');
+      expect(contents[1].size).toBe(1024);
+    });
+
+    it('returns empty array for single file response', async () => {
+      mockReposGetContent.mockResolvedValue({
+        data: { name: 'file.ts', path: 'file.ts', type: 'file', size: 100, html_url: '' },
+      });
+
+      const contents = await service.getRepositoryContents('org', 'repo', 'file.ts');
+      expect(contents).toEqual([]);
+    });
+
+    it('throws on API error', async () => {
+      mockReposGetContent.mockRejectedValue(new Error('API failure'));
+      await expect(service.getRepositoryContents('org', 'repo')).rejects.toThrow(
+        'Failed to get contents'
+      );
+    });
+  });
+
+  describe('starRepository', () => {
+    it('calls star API', async () => {
+      mockActivityStar.mockResolvedValue({});
+      await service.starRepository('org', 'repo');
+      expect(mockActivityStar).toHaveBeenCalledWith({ owner: 'org', repo: 'repo' });
+    });
+
+    it('throws on API error', async () => {
+      mockActivityStar.mockRejectedValue(new Error('API failure'));
+      await expect(service.starRepository('org', 'repo')).rejects.toThrow('Failed to star');
+    });
+  });
+
+  describe('unstarRepository', () => {
+    it('calls unstar API', async () => {
+      mockActivityUnstar.mockResolvedValue({});
+      await service.unstarRepository('org', 'repo');
+      expect(mockActivityUnstar).toHaveBeenCalledWith({ owner: 'org', repo: 'repo' });
+    });
+
+    it('throws on API error', async () => {
+      mockActivityUnstar.mockRejectedValue(new Error('API failure'));
+      await expect(service.unstarRepository('org', 'repo')).rejects.toThrow('Failed to unstar');
+    });
+  });
+
+  describe('listPullRequests', () => {
+    it('maps PR list fields correctly', async () => {
+      mockPullsList.mockResolvedValue({
+        data: [
+          {
+            number: 1,
+            title: 'PR 1',
+            html_url: 'https://github.com/org/repo/pull/1',
+            state: 'open',
+            merged_at: null,
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-02T00:00:00Z',
+            user: { login: 'dev' },
+            head: { ref: 'feature' },
+          },
+        ],
+      });
+
+      const prs = await service.listPullRequests('org', 'repo');
+      expect(prs).toHaveLength(1);
+      expect(prs[0].number).toBe(1);
+      expect(prs[0].title).toBe('PR 1');
+      expect(prs[0].merged).toBe(false);
+      expect(prs[0].headBranch).toBe('feature');
+      expect(prs[0].author).toBe('dev');
+    });
+
+    it('detects merged PRs via merged_at', async () => {
+      mockPullsList.mockResolvedValue({
+        data: [
+          {
+            number: 2,
+            title: 'Merged PR',
+            html_url: 'https://github.com/org/repo/pull/2',
+            state: 'closed',
+            merged_at: '2026-01-03T00:00:00Z',
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-03T00:00:00Z',
+            user: null,
+            head: null,
+          },
+        ],
+      });
+
+      const prs = await service.listPullRequests('org', 'repo', { state: 'closed' });
+      expect(prs[0].merged).toBe(true);
+      expect(prs[0].author).toBe('unknown');
+      expect(prs[0].headBranch).toBe('');
+    });
+
+    it('throws on API error', async () => {
+      mockPullsList.mockRejectedValue(new Error('API failure'));
+      await expect(service.listPullRequests('org', 'repo')).rejects.toThrow(
+        'Failed to list pull requests'
+      );
+    });
+  });
+
+  // ─── Reactions ───────────────────────────────────────────────
+
+  describe('listIssueReactions', () => {
+    it('maps reaction fields', async () => {
+      mockReactionsListForIssue.mockResolvedValue({
+        data: [
+          { id: 1, content: '+1', user: { login: 'user1' } },
+          { id: 2, content: 'heart', user: null },
+        ],
+      });
+
+      const reactions = await service.listIssueReactions('org', 'repo', 42);
+      expect(reactions).toHaveLength(2);
+      expect(reactions[0]).toEqual({ id: 1, content: '+1', user: 'user1' });
+      expect(reactions[1]).toEqual({ id: 2, content: 'heart', user: 'unknown' });
+    });
+
+    it('throws on API error', async () => {
+      mockReactionsListForIssue.mockRejectedValue(new Error('API failure'));
+      await expect(service.listIssueReactions('org', 'repo', 42)).rejects.toThrow(
+        'Failed to list reactions'
+      );
+    });
+  });
+
+  describe('addIssueReaction', () => {
+    it('returns created reaction', async () => {
+      mockReactionsCreateForIssue.mockResolvedValue({
+        data: { id: 10, content: 'rocket', user: { login: 'me' } },
+      });
+
+      const reaction = await service.addIssueReaction('org', 'repo', 42, 'rocket');
+      expect(reaction).toEqual({ id: 10, content: 'rocket', user: 'me' });
+      expect(mockReactionsCreateForIssue).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        issue_number: 42,
+        content: 'rocket',
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockReactionsCreateForIssue.mockRejectedValue(new Error('API failure'));
+      await expect(service.addIssueReaction('org', 'repo', 42, '+1')).rejects.toThrow(
+        'Failed to add reaction'
+      );
+    });
+  });
+
+  describe('deleteIssueReaction', () => {
+    it('calls delete API', async () => {
+      mockReactionsDeleteForIssue.mockResolvedValue({});
+      await service.deleteIssueReaction('org', 'repo', 42, 10);
+      expect(mockReactionsDeleteForIssue).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        issue_number: 42,
+        reaction_id: 10,
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockReactionsDeleteForIssue.mockRejectedValue(new Error('API failure'));
+      await expect(service.deleteIssueReaction('org', 'repo', 42, 10)).rejects.toThrow(
+        'Failed to delete reaction'
+      );
+    });
+  });
+
+  describe('listCommentReactions', () => {
+    it('maps reaction fields', async () => {
+      mockReactionsListForIssueComment.mockResolvedValue({
+        data: [
+          { id: 3, content: 'laugh', user: { login: 'user2' } },
+        ],
+      });
+
+      const reactions = await service.listCommentReactions('org', 'repo', 501);
+      expect(reactions).toHaveLength(1);
+      expect(reactions[0]).toEqual({ id: 3, content: 'laugh', user: 'user2' });
+    });
+
+    it('throws on API error', async () => {
+      mockReactionsListForIssueComment.mockRejectedValue(new Error('API failure'));
+      await expect(service.listCommentReactions('org', 'repo', 501)).rejects.toThrow(
+        'Failed to list reactions for comment'
+      );
+    });
+  });
+
+  describe('addCommentReaction', () => {
+    it('returns created reaction', async () => {
+      mockReactionsCreateForIssueComment.mockResolvedValue({
+        data: { id: 20, content: 'eyes', user: { login: 'me' } },
+      });
+
+      const reaction = await service.addCommentReaction('org', 'repo', 501, 'eyes');
+      expect(reaction).toEqual({ id: 20, content: 'eyes', user: 'me' });
+      expect(mockReactionsCreateForIssueComment).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        comment_id: 501,
+        content: 'eyes',
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockReactionsCreateForIssueComment.mockRejectedValue(new Error('API failure'));
+      await expect(service.addCommentReaction('org', 'repo', 501, '+1')).rejects.toThrow(
+        'Failed to add reaction to comment'
+      );
+    });
+  });
+
+  describe('deleteCommentReaction', () => {
+    it('calls delete API', async () => {
+      mockReactionsDeleteForIssueComment.mockResolvedValue({});
+      await service.deleteCommentReaction('org', 'repo', 501, 20);
+      expect(mockReactionsDeleteForIssueComment).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        comment_id: 501,
+        reaction_id: 20,
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockReactionsDeleteForIssueComment.mockRejectedValue(new Error('API failure'));
+      await expect(service.deleteCommentReaction('org', 'repo', 501, 20)).rejects.toThrow(
+        'Failed to delete reaction from comment'
+      );
+    });
+  });
+
+  // ─── Sub-Issues ─────────────────────────────────────────────
+
+  describe('listSubIssues', () => {
+    it('maps sub-issue fields', async () => {
+      mockRequest.mockResolvedValue({
+        data: [
+          {
+            id: 100,
+            number: 43,
+            title: 'Sub-issue 1',
+            state: 'open',
+            html_url: 'https://github.com/org/repo/issues/43',
+          },
+        ],
+      });
+
+      const subIssues = await service.listSubIssues('org', 'repo', 42);
+      expect(subIssues).toHaveLength(1);
+      expect(subIssues[0]).toEqual({
+        id: 100,
+        number: 43,
+        title: 'Sub-issue 1',
+        state: 'open',
+        url: 'https://github.com/org/repo/issues/43',
+      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        'GET /repos/{owner}/{repo}/issues/{issue_number}/sub_issues',
+        expect.objectContaining({
+          owner: 'org',
+          repo: 'repo',
+          issue_number: 42,
+        })
+      );
+    });
+
+    it('returns empty array on 404 (sub-issues not available)', async () => {
+      mockRequest.mockRejectedValue({ status: 404 });
+      const subIssues = await service.listSubIssues('org', 'repo', 42);
+      expect(subIssues).toEqual([]);
+    });
+
+    it('returns empty array on 403', async () => {
+      mockRequest.mockRejectedValue({ status: 403 });
+      const subIssues = await service.listSubIssues('org', 'repo', 42);
+      expect(subIssues).toEqual([]);
+    });
+
+    it('throws on other errors', async () => {
+      mockRequest.mockRejectedValue({ status: 500 });
+      await expect(service.listSubIssues('org', 'repo', 42)).rejects.toThrow(
+        'Failed to list sub-issues'
+      );
+    });
+  });
+
+  describe('createSubIssue', () => {
+    it('creates issue and links as sub-issue', async () => {
+      mockIssuesCreate.mockResolvedValue({
+        data: {
+          id: 999,
+          number: 44,
+          html_url: 'https://github.com/org/repo/issues/44',
+        },
+      });
+      mockRequest.mockResolvedValue({});
+
+      const result = await service.createSubIssue('org', 'repo', 42, 'Sub Title', 'Sub Body', ['enhancement']);
+      expect(result).toEqual({
+        number: 44,
+        url: 'https://github.com/org/repo/issues/44',
+      });
+      expect(mockIssuesCreate).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        title: 'Sub Title',
+        body: 'Sub Body',
+        labels: ['enhancement'],
+      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        'POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues',
+        expect.objectContaining({
+          owner: 'org',
+          repo: 'repo',
+          issue_number: 42,
+          sub_issue_id: 999,
+        })
+      );
+    });
+
+    it('throws on API error', async () => {
+      mockIssuesCreate.mockRejectedValue(new Error('API failure'));
+      await expect(
+        service.createSubIssue('org', 'repo', 42, 'Title', 'Body')
+      ).rejects.toThrow('Failed to create sub-issue');
+    });
+  });
+
+  describe('addExistingSubIssue', () => {
+    it('links existing issue as sub-issue', async () => {
+      mockRequest.mockResolvedValue({});
+      await service.addExistingSubIssue('org', 'repo', 42, 999);
+      expect(mockRequest).toHaveBeenCalledWith(
+        'POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues',
+        expect.objectContaining({
+          owner: 'org',
+          repo: 'repo',
+          issue_number: 42,
+          sub_issue_id: 999,
+        })
+      );
+    });
+
+    it('throws on API error', async () => {
+      mockRequest.mockRejectedValue(new Error('API failure'));
+      await expect(service.addExistingSubIssue('org', 'repo', 42, 999)).rejects.toThrow(
+        'Failed to add sub-issue'
       );
     });
   });

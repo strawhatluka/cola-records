@@ -5,12 +5,7 @@ vi.mock('react-markdown', () => ({
   default: () => null,
 }));
 
-vi.mock('lucide-react', () => ({
-  ExternalLink: () => null,
-  MessageSquare: () => null,
-  Send: () => null,
-  X: () => null,
-}));
+vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
 import {
   issueStatusBadge,

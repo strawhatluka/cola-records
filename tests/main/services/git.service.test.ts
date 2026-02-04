@@ -16,6 +16,9 @@ const mockFetch = vi.fn();
 const mockInit = vi.fn();
 const mockAddRemote = vi.fn();
 
+const mockDiffSummary = vi.fn();
+const mockDiff = vi.fn();
+
 const mockGitInstance = {
   status: mockStatus,
   log: mockLog,
@@ -31,6 +34,8 @@ const mockGitInstance = {
   fetch: mockFetch,
   init: mockInit,
   addRemote: mockAddRemote,
+  diffSummary: mockDiffSummary,
+  diff: mockDiff,
 };
 
 vi.mock('simple-git', () => ({
@@ -250,6 +255,98 @@ describe('GitService', () => {
       mockAddRemote.mockResolvedValue(undefined);
       await service.addRemote('/repo', 'upstream', 'https://github.com/upstream/repo.git');
       expect(mockAddRemote).toHaveBeenCalledWith('upstream', 'https://github.com/upstream/repo.git');
+    });
+
+    it('throws on error', async () => {
+      mockAddRemote.mockRejectedValue(new Error('remote exists'));
+      await expect(service.addRemote('/repo', 'upstream', 'url')).rejects.toThrow('Failed to add remote');
+    });
+  });
+
+  describe('clone', () => {
+    it('clones repository to target path', async () => {
+      mockClone.mockResolvedValue(undefined);
+      await service.clone('https://github.com/org/repo.git', '/target/repo');
+      expect(mockClone).toHaveBeenCalledWith('https://github.com/org/repo.git', '/target/repo');
+    });
+
+    it('throws on error', async () => {
+      mockClone.mockRejectedValue(new Error('clone failed'));
+      await expect(service.clone('url', '/path')).rejects.toThrow('Failed to clone');
+    });
+  });
+
+  describe('init', () => {
+    it('initializes git repo', async () => {
+      mockInit.mockResolvedValue(undefined);
+      await service.init('/new-repo');
+      expect(mockInit).toHaveBeenCalled();
+    });
+
+    it('throws on error', async () => {
+      mockInit.mockRejectedValue(new Error('init failed'));
+      await expect(service.init('/bad-path')).rejects.toThrow('Failed to initialize');
+    });
+  });
+
+  describe('getRemotes', () => {
+    it('returns mapped remotes', async () => {
+      mockGetRemotes.mockResolvedValue([
+        { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
+        { name: 'upstream', refs: { fetch: 'https://github.com/org/repo.git', push: '' } },
+      ]);
+
+      const remotes = await service.getRemotes('/repo');
+      expect(remotes).toHaveLength(2);
+      expect(remotes[0].name).toBe('origin');
+      expect(remotes[0].fetchUrl).toBe('https://github.com/user/repo.git');
+      expect(remotes[1].pushUrl).toBe('');
+    });
+
+    it('returns empty array on error', async () => {
+      mockGetRemotes.mockRejectedValue(new Error('not a repo'));
+      const remotes = await service.getRemotes('/not-repo');
+      expect(remotes).toEqual([]);
+    });
+  });
+
+  describe('compareBranches', () => {
+    it('returns commits, files, and raw diff', async () => {
+      mockLog.mockResolvedValue({
+        all: [
+          {
+            hash: 'def456',
+            message: 'Add feature',
+            author_name: 'Dev',
+            author_email: 'dev@test.com',
+            date: '2026-01-02T00:00:00Z',
+          },
+        ],
+      });
+      mockDiffSummary.mockResolvedValue({
+        files: [
+          { file: 'src/new.ts', insertions: 10, deletions: 2, binary: false },
+        ],
+        insertions: 10,
+        deletions: 2,
+        changed: 1,
+      });
+      mockDiff.mockResolvedValue('diff --git a/src/new.ts b/src/new.ts\n+new line');
+
+      const result = await service.compareBranches('/repo', 'main', 'feature');
+      expect(result.commits).toHaveLength(1);
+      expect(result.commits[0].hash).toBe('def456');
+      expect(result.files).toHaveLength(1);
+      expect(result.files[0].file).toBe('src/new.ts');
+      expect(result.totalInsertions).toBe(10);
+      expect(result.totalDeletions).toBe(2);
+      expect(result.totalFilesChanged).toBe(1);
+      expect(result.rawDiff).toContain('+new line');
+    });
+
+    it('throws on error', async () => {
+      mockLog.mockRejectedValue(new Error('bad ref'));
+      await expect(service.compareBranches('/repo', 'main', 'bad')).rejects.toThrow('Failed to compare branches');
     });
   });
 });

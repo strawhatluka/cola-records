@@ -241,4 +241,19 @@ describe('CodeServerService', () => {
       await codeServerService.stop();
     });
   });
+
+  describe('checkDockerAvailable', () => {
+    it('resolves when docker info succeeds', async () => {
+      // Default mock returns successful output
+      await expect(codeServerService.checkDockerAvailable()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('dockerExec', () => {
+    it('returns trimmed stdout from docker command', async () => {
+      const result = await codeServerService.dockerExec(['info']);
+      expect(typeof result).toBe('string');
+      expect(result).toContain('mock-output');
+    });
+  });
 });

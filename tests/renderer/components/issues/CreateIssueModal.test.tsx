@@ -19,11 +19,8 @@ vi.mock('react-markdown', () => ({
   default: () => null,
 }));
 
-// Mock lucide-react icons (including X used by Dialog close button)
-vi.mock('lucide-react', () => ({
-  Send: () => <span data-testid="icon-send" />,
-  X: () => <span data-testid="icon-x" />,
-}));
+// Mock lucide-react
+vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
 import { CreateIssueModal } from '../../../../src/renderer/components/issues/CreateIssueModal';
 

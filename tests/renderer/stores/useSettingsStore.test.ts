@@ -23,6 +23,8 @@ describe('useSettingsStore', () => {
     useSettingsStore.setState({
       theme: 'system',
       defaultClonePath: '',
+      defaultProjectsPath: '',
+      defaultProfessionalProjectsPath: '',
       autoFetch: true,
       aliases: [],
       loading: false,
@@ -36,6 +38,8 @@ describe('useSettingsStore', () => {
       const state = useSettingsStore.getState();
       expect(state.theme).toBe('system');
       expect(state.defaultClonePath).toBe('');
+      expect(state.defaultProjectsPath).toBe('');
+      expect(state.defaultProfessionalProjectsPath).toBe('');
       expect(state.autoFetch).toBe(true);
       expect(state.aliases).toEqual([]);
       expect(state.loading).toBe(false);
@@ -146,6 +150,34 @@ describe('useSettingsStore', () => {
       });
 
       expect(mockInvoke).toHaveBeenCalledWith('settings:update', { autoFetch: false });
+    });
+  });
+
+  describe('setDefaultProjectsPath', () => {
+    it('delegates to updateSettings', async () => {
+      const updatedSettings = createMockSettings({ defaultProjectsPath: '/projects' });
+      mockInvoke.mockResolvedValueOnce(updatedSettings);
+
+      await act(async () => {
+        await useSettingsStore.getState().setDefaultProjectsPath('/projects');
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('settings:update', { defaultProjectsPath: '/projects' });
+      expect(useSettingsStore.getState().defaultProjectsPath).toBe('/projects');
+    });
+  });
+
+  describe('setDefaultProfessionalProjectsPath', () => {
+    it('delegates to updateSettings', async () => {
+      const updatedSettings = createMockSettings({ defaultProfessionalProjectsPath: '/professional' });
+      mockInvoke.mockResolvedValueOnce(updatedSettings);
+
+      await act(async () => {
+        await useSettingsStore.getState().setDefaultProfessionalProjectsPath('/professional');
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('settings:update', { defaultProfessionalProjectsPath: '/professional' });
+      expect(useSettingsStore.getState().defaultProfessionalProjectsPath).toBe('/professional');
     });
   });
 });

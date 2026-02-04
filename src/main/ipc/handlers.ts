@@ -30,37 +30,86 @@ export function removeAllIpcHandlers(): void {
   // Get all channels from IpcChannels interface
   const channels: (keyof IpcChannels)[] = [
     'echo',
+    // File System
     'fs:read-directory',
     'fs:read-file',
     'fs:write-file',
     'fs:delete-file',
-    'fs:watch-directory',
-    'fs:unwatch-directory',
+    'fs:delete-directory',
+    'fs:rename-file',
+    'fs:reveal-in-explorer',
+    'fs:directory-exists',
+    // Git
     'git:status',
     'git:log',
     'git:add',
     'git:commit',
+    'git:get-branches',
     'git:push',
     'git:pull',
     'git:clone',
     'git:checkout',
     'git:create-branch',
+    'git:get-current-branch',
+    'git:compare-branches',
+    'git:add-remote',
+    'git:get-remotes',
+    // GitHub
+    'github:get-authenticated-user',
     'github:search-issues',
     'github:get-repository',
     'github:validate-token',
+    'github:fork-repository',
+    'github:get-repository-tree',
+    'github:list-pull-requests',
+    'github:get-pull-request',
+    'github:list-pr-comments',
+    'github:list-pr-reviews',
+    'github:list-pr-review-comments',
+    'github:create-pr-comment',
+    'github:list-issues',
+    'github:get-issue',
+    'github:list-issue-comments',
+    'github:create-issue-comment',
+    'github:update-issue',
+    'github:create-issue',
+    'github:create-pull-request',
+    // Reactions
+    'github:list-issue-reactions',
+    'github:add-issue-reaction',
+    'github:delete-issue-reaction',
+    'github:list-comment-reactions',
+    'github:add-comment-reaction',
+    'github:delete-comment-reaction',
+    // Sub-Issues
+    'github:list-sub-issues',
+    'github:create-sub-issue',
+    'github:add-existing-sub-issue',
+    // Contributions
     'contribution:create',
     'contribution:get-all',
     'contribution:get-by-id',
     'contribution:update',
     'contribution:delete',
+    'contribution:scan-directory',
+    'contribution:sync-with-github',
+    // Projects
+    'project:scan-directory',
+    // Settings
     'settings:get',
     'settings:update',
+    // GitIgnore
     'gitignore:is-ignored',
     'gitignore:get-patterns',
-    'terminal:spawn',
-    'terminal:write',
-    'terminal:resize',
-    'terminal:kill',
+    // Dialog
+    'dialog:open-directory',
+    // Shell
+    'shell:execute',
+    'shell:open-external',
+    // Code Server
+    'code-server:start',
+    'code-server:stop',
+    'code-server:status',
   ];
 
   channels.forEach((channel) => {

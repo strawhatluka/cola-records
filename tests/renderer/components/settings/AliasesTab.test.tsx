@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+
+// Mock lucide-react
+vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
+
 import { AliasesTab } from '../../../../src/renderer/components/settings/AliasesTab';
 import { createMockSettings, createMockAlias } from '../../../mocks/factories';
 
@@ -77,5 +80,40 @@ describe('AliasesTab', () => {
   it('shows default aliases info text', () => {
     render(<AliasesTab settings={createMockSettings()} onUpdate={mockOnUpdate} />);
     expect(screen.getByText(/Default aliases.*ll, gs, gd, gl.*are always included/)).toBeDefined();
+  });
+
+  it('shows error for duplicate alias name', async () => {
+    const user = userEvent.setup();
+    const settings = createMockSettings({
+      aliases: [createMockAlias({ name: 'gp', command: 'git push' })],
+    });
+    render(<AliasesTab settings={settings} onUpdate={mockOnUpdate} />);
+
+    await user.type(screen.getByPlaceholderText('name (e.g. gp)'), 'gp');
+    await user.type(screen.getByPlaceholderText('command (e.g. git push)'), 'git pull');
+    await user.click(screen.getByText('Add'));
+
+    expect(screen.getByText('Alias "gp" already exists')).toBeDefined();
+    expect(mockOnUpdate).not.toHaveBeenCalled();
+  });
+
+  it('deletes an alias when trash icon is clicked', async () => {
+    const user = userEvent.setup();
+    const settings = createMockSettings({
+      aliases: [
+        createMockAlias({ name: 'gp', command: 'git push' }),
+        createMockAlias({ name: 'll', command: 'ls -la' }),
+      ],
+    });
+    render(<AliasesTab settings={settings} onUpdate={mockOnUpdate} />);
+
+    const deleteButtons = screen.getAllByTestId('icon-trash2');
+    await user.click(deleteButtons[0].closest('button')!);
+
+    await waitFor(() => {
+      expect(mockOnUpdate).toHaveBeenCalledWith({
+        aliases: [{ name: 'll', command: 'ls -la' }],
+      });
+    });
   });
 });

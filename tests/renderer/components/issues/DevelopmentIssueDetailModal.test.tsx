@@ -18,13 +18,8 @@ vi.mock('react-markdown', () => ({
   default: ({ children }: { children: string }) => <div data-testid="markdown">{children}</div>,
 }));
 
-// Mock lucide-react icons (including X used by Dialog close button)
-vi.mock('lucide-react', () => ({
-  ExternalLink: () => <span data-testid="icon-external-link" />,
-  MessageSquare: () => <span data-testid="icon-message-square" />,
-  Send: () => <span data-testid="icon-send" />,
-  X: () => <span data-testid="icon-x" />,
-}));
+// Mock lucide-react
+vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
 import { DevelopmentIssueDetailModal } from '../../../../src/renderer/components/issues/DevelopmentIssueDetailModal';
 

@@ -33,6 +33,8 @@ describe('SettingsScreen', () => {
     useSettingsStore.setState({
       theme: 'system',
       defaultClonePath: '/mock/path',
+      defaultProjectsPath: '/mock/projects',
+      defaultProfessionalProjectsPath: '/mock/professional',
       autoFetch: true,
       aliases: [],
       loading: false,
@@ -42,6 +44,8 @@ describe('SettingsScreen', () => {
     mockInvoke.mockResolvedValue({
       theme: 'system',
       defaultClonePath: '/mock/path',
+      defaultProjectsPath: '/mock/projects',
+      defaultProfessionalProjectsPath: '/mock/professional',
       autoFetch: true,
       aliases: [],
     });
@@ -63,7 +67,7 @@ describe('SettingsScreen', () => {
 
   it('shows General tab content by default', () => {
     render(<SettingsScreen />);
-    expect(screen.getByText('Default Clone Directory')).toBeDefined();
+    expect(screen.getByText('Default Contributions Directory')).toBeDefined();
   });
 
   it('switches to API tab', async () => {

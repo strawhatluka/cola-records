@@ -96,6 +96,8 @@ export function createMockSettings(
   return {
     theme: 'system',
     defaultClonePath: '/mock/contributions',
+    defaultProjectsPath: '/mock/projects',
+    defaultProfessionalProjectsPath: '/mock/professional-projects',
     autoFetch: true,
     aliases: [],
     ...overrides,

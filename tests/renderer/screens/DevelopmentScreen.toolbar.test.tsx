@@ -90,6 +90,10 @@ function setupRunningState() {
           { name: 'origin', fetchUrl: 'https://github.com/user/repo.git', pushUrl: 'https://github.com/user/repo.git' },
           { name: 'upstream', fetchUrl: 'https://github.com/upstream/repo.git', pushUrl: 'https://github.com/upstream/repo.git' },
         ];
+      case 'git:get-branches':
+        return ['main', 'feature-branch'];
+      case 'github:get-authenticated-user':
+        return { login: 'testuser', name: 'Test User', email: 'test@example.com' };
       case 'github:list-pull-requests':
         return [
           {
@@ -115,6 +119,10 @@ function setupRunningState() {
             headBranch: 'old-branch',
           },
         ];
+      case 'github:list-pr-comments':
+        return [];
+      case 'github:list-pr-reviews':
+        return [];
       case 'github:list-issues':
         return [
           {
@@ -190,28 +198,65 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
   });
 
   describe('Pull Requests button styling', () => {
-    it('has default styling with no prStatus', async () => {
-      await renderInRunningState({ prStatus: undefined });
-      const prBtn = screen.getByText('Pull Requests');
-      expect(prBtn.className).toContain('border-border');
+    it('has default styling when user has no open PRs', async () => {
+      // Override to return no PRs — user has no open PRs → null color → default styling
+      setupRunningState();
+      const originalImpl = mockInvoke.getMockImplementation()!;
+      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+        if (channel === 'github:list-pull-requests') return [];
+        return (originalImpl as Function)(channel, ...args);
+      });
+
+      render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByText('Stop & Back')).toBeDefined();
+      });
+
+      await waitFor(() => {
+        const prBtn = screen.getByRole('button', { name: 'Pull Requests' });
+        expect(prBtn.className).not.toContain('bg-blue-500');
+        expect(prBtn.className).not.toContain('bg-red-500');
+        expect(prBtn.className).not.toContain('bg-orange-500');
+      });
     });
 
-    it('has green styling when prStatus is open', async () => {
-      await renderInRunningState({ prStatus: 'open' });
-      const prBtn = screen.getByText('Pull Requests');
-      expect(prBtn.className).toContain('bg-green-500');
+    it('has blue styling when user has an open PR (contribution)', async () => {
+      // Default mock has PR#1 open by testuser → blue
+      await renderInRunningState();
+
+      await waitFor(() => {
+        const prBtn = screen.getByRole('button', { name: 'Pull Requests' });
+        expect(prBtn.className).toContain('bg-blue-500');
+      });
     });
 
-    it('has primary styling when prStatus is merged', async () => {
-      await renderInRunningState({ prStatus: 'merged' });
-      const prBtn = screen.getByText('Pull Requests');
-      expect(prBtn.className).toContain('bg-primary');
+    it('has green styling for project type with no open PRs', async () => {
+      setupRunningState();
+      const originalImpl = mockInvoke.getMockImplementation()!;
+      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+        if (channel === 'github:list-pull-requests') return [];
+        return (originalImpl as Function)(channel, ...args);
+      });
+
+      render(<DevelopmentScreen contribution={{ ...baseContribution, type: 'project' }} onNavigateBack={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByText('Stop & Back')).toBeDefined();
+      });
+
+      await waitFor(() => {
+        const prBtn = screen.getByRole('button', { name: 'Pull Requests' });
+        expect(prBtn.className).toContain('bg-green-500');
+      });
     });
 
-    it('has default styling when prStatus is closed', async () => {
-      await renderInRunningState({ prStatus: 'closed' });
-      const prBtn = screen.getByText('Pull Requests');
-      expect(prBtn.className).toContain('border-border');
+    it('has red styling for project type with open PRs', async () => {
+      // Default mock has open PRs → project type → red
+      await renderInRunningState({ type: 'project' });
+
+      await waitFor(() => {
+        const prBtn = screen.getByRole('button', { name: 'Pull Requests' });
+        expect(prBtn.className).toContain('bg-red-500');
+      });
     });
   });
 
@@ -401,36 +446,14 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
   });
 
   describe('Issues button styling', () => {
-    it('has green styling when branched issue is open', async () => {
-      // branchName 'fix-10-login' matches issue #10 which is open
-      await renderInRunningState({ branchName: 'fix-10-login' });
-
-      // Wait for issues to be fetched eagerly on mount
-      await waitFor(() => {
-        const issuesBtn = screen.getByRole('button', { name: 'Issues' });
-        expect(issuesBtn.className).toContain('bg-green-500');
-      });
-    });
-
-    it('has red styling when branched issue is closed', async () => {
+    it('has yellow styling when open issues exist and branch matches an issue number', async () => {
+      // Default setup has issues #10 and #1, branches include 'feature-branch'
+      // Issue #1 exists and branch 'feature-branch' doesn't match, but let's use a branch that matches
+      // Branch 'fix-10-login' matches issue #10 which is open → yellow
       setupRunningState();
-      // Override to return a closed branched issue
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
-        if (channel === 'github:list-issues') return [
-          {
-            number: 10,
-            title: 'Closed issue',
-            body: '',
-            url: 'https://github.com/upstream/repo/issues/10',
-            state: 'closed',
-            labels: [],
-            createdAt: new Date('2026-01-01'),
-            updatedAt: new Date('2026-01-02'),
-            author: 'reporter',
-            authorAvatarUrl: '',
-          },
-        ];
+        if (channel === 'git:get-branches') return ['main', 'fix-10-login'];
         return (originalImpl as Function)(channel, ...args);
       });
 
@@ -441,16 +464,46 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
 
       await waitFor(() => {
         const issuesBtn = screen.getByRole('button', { name: 'Issues' });
+        expect(issuesBtn.className).toContain('bg-yellow-500');
+      });
+    });
+
+    it('has red styling when open issues exist but no branch matches any issue number', async () => {
+      // Open issues exist (#10 and #1) but no branch name contains those numbers
+      setupRunningState();
+      const originalImpl = mockInvoke.getMockImplementation()!;
+      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+        if (channel === 'git:get-branches') return ['main', 'unrelated-branch'];
+        return (originalImpl as Function)(channel, ...args);
+      });
+
+      render(<DevelopmentScreen contribution={{ ...baseContribution, branchName: 'unrelated-branch' }} onNavigateBack={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByText('Stop & Back')).toBeDefined();
+      });
+
+      await waitFor(() => {
+        const issuesBtn = screen.getByRole('button', { name: 'Issues' });
         expect(issuesBtn.className).toContain('bg-red-500');
       });
     });
 
-    it('has default styling when no branched issue', async () => {
-      await renderInRunningState({ branchName: 'unrelated-branch' });
+    it('has green styling when no open issues exist', async () => {
+      setupRunningState();
+      const originalImpl = mockInvoke.getMockImplementation()!;
+      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+        if (channel === 'github:list-issues') return [];
+        return (originalImpl as Function)(channel, ...args);
+      });
+
+      render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByText('Stop & Back')).toBeDefined();
+      });
 
       await waitFor(() => {
         const issuesBtn = screen.getByRole('button', { name: 'Issues' });
-        expect(issuesBtn.className).toContain('border-border');
+        expect(issuesBtn.className).toContain('bg-green-500');
       });
     });
   });

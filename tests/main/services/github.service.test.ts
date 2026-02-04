@@ -172,4 +172,111 @@ describe('GitHubService', () => {
       expect(mockResetRestClient).toHaveBeenCalled();
     });
   });
+
+  describe('getAuthenticatedUser', () => {
+    it('fetches and caches authenticated user', async () => {
+      const user = { login: 'testuser', name: 'Test', email: 'test@example.com' };
+      mockGetAuthenticatedUser.mockResolvedValue(user);
+
+      const result = await service.getAuthenticatedUser();
+      expect(result).toEqual(user);
+      expect(mockGetAuthenticatedUser).toHaveBeenCalled();
+      expect(mockSetCacheValue).toHaveBeenCalled();
+    });
+
+    it('returns cached user when available', async () => {
+      const cached = { login: 'cached', name: 'Cached', email: 'cached@example.com' };
+      mockGetCacheValue.mockReturnValue(JSON.stringify(cached));
+
+      const result = await service.getAuthenticatedUser();
+      expect(result).toEqual(cached);
+      expect(mockGetAuthenticatedUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getIssue', () => {
+    it('fetches and caches issue', async () => {
+      const issue = { number: 42, title: 'Bug' };
+      mockRestGetIssue.mockResolvedValue(issue);
+
+      const result = await service.getIssue('org', 'repo', 42);
+      expect(result).toEqual(issue);
+      expect(mockRestGetIssue).toHaveBeenCalledWith('org', 'repo', 42);
+    });
+
+    it('skips cache when requested', async () => {
+      const cached = { number: 42, title: 'Cached Bug' };
+      mockGetCacheValue.mockReturnValue(JSON.stringify(cached));
+      const fresh = { number: 42, title: 'Fresh Bug' };
+      mockRestGetIssue.mockResolvedValue(fresh);
+
+      const result = await service.getIssue('org', 'repo', 42, true);
+      expect(result).toEqual(fresh);
+      expect(mockRestGetIssue).toHaveBeenCalled();
+    });
+  });
+
+  describe('createPullRequest', () => {
+    it('delegates to REST service', async () => {
+      const pr = { number: 1, url: 'https://github.com/org/repo/pull/1', state: 'open' };
+      mockRestCreatePullRequest.mockResolvedValue(pr);
+
+      const result = await service.createPullRequest('org', 'repo', 'Title', 'feature', 'main', 'Body');
+      expect(result).toEqual(pr);
+      expect(mockRestCreatePullRequest).toHaveBeenCalledWith('org', 'repo', 'Title', 'feature', 'main', 'Body');
+    });
+  });
+
+  describe('getUserRepositories', () => {
+    it('fetches and caches user repos', async () => {
+      const repos = [{ id: 'R_1', name: 'repo1' }];
+      mockRestGetUserRepositories.mockResolvedValue(repos);
+
+      const result = await service.getUserRepositories('user1');
+      expect(result).toEqual(repos);
+      expect(mockRestGetUserRepositories).toHaveBeenCalledWith('user1');
+    });
+
+    it('uses authenticated user repos when no username', async () => {
+      const repos = [{ id: 'R_2', name: 'my-repo' }];
+      mockRestGetUserRepositories.mockResolvedValue(repos);
+
+      const result = await service.getUserRepositories();
+      expect(result).toEqual(repos);
+      expect(mockRestGetUserRepositories).toHaveBeenCalledWith(undefined);
+    });
+  });
+
+  describe('searchRepositoriesByTopic', () => {
+    it('fetches and caches topic search results', async () => {
+      const repos = [{ id: 'R_3', name: 'topic-repo' }];
+      mockSearchRepositoriesByTopic.mockResolvedValue(repos);
+
+      const result = await service.searchRepositoriesByTopic('react');
+      expect(result).toEqual(repos);
+      expect(mockSearchRepositoriesByTopic).toHaveBeenCalledWith('react', 20);
+    });
+  });
+
+  describe('getRateLimit', () => {
+    it('delegates to REST service without caching', async () => {
+      const rateLimit = { limit: 5000, remaining: 4999 };
+      mockRestGetRateLimit.mockResolvedValue(rateLimit);
+
+      const result = await service.getRateLimit();
+      expect(result).toEqual(rateLimit);
+      expect(mockRestGetRateLimit).toHaveBeenCalled();
+    });
+  });
+
+  describe('getRepositoryTree', () => {
+    it('fetches and caches repository tree', async () => {
+      const tree = { entries: [{ name: 'src', type: 'tree' }] };
+      mockGetRepositoryTree.mockResolvedValue(tree);
+
+      const result = await service.getRepositoryTree('org', 'repo', 'main');
+      expect(result).toEqual(tree);
+      expect(mockGetRepositoryTree).toHaveBeenCalledWith('org', 'repo', 'main');
+    });
+  });
 });
