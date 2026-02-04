@@ -143,6 +143,7 @@ export interface AppSettings {
   theme: 'light' | 'dark' | 'system';
   defaultClonePath: string;
   defaultProjectsPath: string;
+  defaultProfessionalProjectsPath: string;
   autoFetch: boolean;
   aliases?: Alias[];
 }

@@ -5,6 +5,7 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { IssueDiscoveryScreen } from './screens/IssueDiscoveryScreen';
 import { ContributionsScreen } from './screens/ContributionsScreen';
 import { ProjectsScreen } from './screens/ProjectsScreen';
+import { ProfessionalProjectsScreen } from './screens/ProfessionalProjectsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { DevelopmentScreen } from './screens/DevelopmentScreen';
 import type { Screen } from './components/layout/Sidebar';
@@ -61,6 +62,8 @@ const App: React.FC = () => {
         return <IssueDiscoveryScreen onOpenIDE={handleOpenIDE} />;
       case 'projects':
         return <ProjectsScreen onOpenIDE={(c) => handleOpenIDE(c, 'projects')} />;
+      case 'professional':
+        return <ProfessionalProjectsScreen onOpenIDE={(c) => handleOpenIDE(c, 'professional')} />;
       case 'contributions':
         return <ContributionsScreen onOpenIDE={(c) => handleOpenIDE(c, 'contributions')} />;
       case 'settings':

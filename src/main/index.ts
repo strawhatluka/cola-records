@@ -334,6 +334,22 @@ const setupIpcHandlers = () => {
       database.setSetting('defaultProjectsPath', defaultProjectsPath);
     }
 
+    // Set default professional projects path to Documents/Professional Projects if not set
+    let defaultProfessionalProjectsPath = settings.defaultProfessionalProjectsPath;
+    if (!defaultProfessionalProjectsPath) {
+      const documentsPath3 = app.getPath('documents');
+      defaultProfessionalProjectsPath = path.join(documentsPath3, 'Professional Projects');
+
+      // Create the directory if it doesn't exist
+      const fs3 = await import('fs');
+      if (!fs3.existsSync(defaultProfessionalProjectsPath)) {
+        fs3.mkdirSync(defaultProfessionalProjectsPath, { recursive: true });
+      }
+
+      // Save it to database for next time
+      database.setSetting('defaultProfessionalProjectsPath', defaultProfessionalProjectsPath);
+    }
+
     let aliases: import('./ipc/channels').Alias[] = [];
     try { aliases = JSON.parse(settings.aliases || '[]'); } catch { aliases = []; }
 
@@ -342,6 +358,7 @@ const setupIpcHandlers = () => {
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: defaultClonePath,
       defaultProjectsPath: defaultProjectsPath,
+      defaultProfessionalProjectsPath: defaultProfessionalProjectsPath,
       autoFetch: settings.autoFetch === 'true',
       aliases,
     };
@@ -369,6 +386,9 @@ const setupIpcHandlers = () => {
     if (updates.defaultProjectsPath !== undefined) {
       database.setSetting('defaultProjectsPath', updates.defaultProjectsPath);
     }
+    if (updates.defaultProfessionalProjectsPath !== undefined) {
+      database.setSetting('defaultProfessionalProjectsPath', updates.defaultProfessionalProjectsPath);
+    }
 
     // Return updated settings
     const settings = database.getAllSettings();
@@ -380,6 +400,7 @@ const setupIpcHandlers = () => {
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: settings.defaultClonePath || '',
       defaultProjectsPath: settings.defaultProjectsPath || '',
+      defaultProfessionalProjectsPath: settings.defaultProfessionalProjectsPath || '',
       autoFetch: settings.autoFetch === 'true',
       aliases,
     };

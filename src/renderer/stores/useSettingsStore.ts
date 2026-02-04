@@ -13,6 +13,7 @@ interface SettingsState extends AppSettings {
   setDefaultClonePath: (path: string) => Promise<void>;
   setAutoFetch: (enabled: boolean) => Promise<void>;
   setDefaultProjectsPath: (path: string) => Promise<void>;
+  setDefaultProfessionalProjectsPath: (path: string) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -20,6 +21,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   theme: 'system',
   defaultClonePath: '',
   defaultProjectsPath: '',
+  defaultProfessionalProjectsPath: '',
   autoFetch: true,
   aliases: [],
   loading: false,
@@ -60,5 +62,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setDefaultProjectsPath: async (defaultProjectsPath) => {
     await get().updateSettings({ defaultProjectsPath });
+  },
+
+  setDefaultProfessionalProjectsPath: async (defaultProfessionalProjectsPath) => {
+    await get().updateSettings({ defaultProfessionalProjectsPath });
   },
 }));
