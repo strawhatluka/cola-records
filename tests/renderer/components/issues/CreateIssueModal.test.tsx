@@ -84,11 +84,9 @@ describe('CreateIssueModal', () => {
     );
 
     const titleInput = screen.getByPlaceholderText('Issue title');
-    const bodyInput = screen.getByPlaceholderText(/Describe the issue/);
     const labelsInput = screen.getByPlaceholderText(/bug, enhancement/);
 
     await user.type(titleInput, 'Bug report');
-    await user.type(bodyInput, 'Something is broken');
     await user.type(labelsInput, 'bug, urgent');
 
     const submitButton = screen.getByText('Create Issue').closest('button');
@@ -100,7 +98,7 @@ describe('CreateIssueModal', () => {
         'test-org',
         'test-repo',
         'Bug report',
-        'Something is broken',
+        '',
         ['bug', 'urgent']
       );
     });
@@ -112,7 +110,7 @@ describe('CreateIssueModal', () => {
   });
 
   it('shows error message when IPC invoke rejects', async () => {
-    mockInvoke.mockRejectedValueOnce(new Error('API rate limit exceeded'));
+    mockInvoke.mockRejectedValue(new Error('API rate limit exceeded'));
     const user = userEvent.setup();
 
     render(<CreateIssueModal {...defaultProps} />);

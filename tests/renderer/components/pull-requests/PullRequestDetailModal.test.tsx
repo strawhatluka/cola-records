@@ -100,6 +100,10 @@ function setupMockIPC(overrides: {
         return overrides.reviewComments ?? [];
       case 'github:create-pr-comment':
         return undefined;
+      case 'github:list-issue-reactions':
+        return [];
+      case 'github:list-comment-reactions':
+        return [];
       case 'shell:open-external':
         return undefined;
       default:

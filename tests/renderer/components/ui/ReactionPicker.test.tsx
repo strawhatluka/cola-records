@@ -50,8 +50,8 @@ describe('ReactionDisplay', () => {
     render(<ReactionDisplay {...defaultProps} />);
 
     await user.click(screen.getByText('😀'));
-    // Picker should show 8 emoji options
-    expect(screen.getByText('👍')).toBeDefined();
+    // Picker should show 8 emoji options (👍 appears twice: pill + picker)
+    expect(screen.getAllByText('👍').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('👎')).toBeDefined();
     expect(screen.getByText('😄')).toBeDefined();
     expect(screen.getByText('🚀')).toBeDefined();

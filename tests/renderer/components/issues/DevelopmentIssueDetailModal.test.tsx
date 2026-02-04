@@ -75,6 +75,12 @@ function setupMockIPC(overrides: {
         return overrides.comments ?? [];
       case 'github:create-issue-comment':
         return undefined;
+      case 'github:list-issue-reactions':
+        return [];
+      case 'github:list-comment-reactions':
+        return [];
+      case 'github:list-sub-issues':
+        return [];
       case 'shell:open-external':
         return undefined;
       default:

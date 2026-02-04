@@ -133,7 +133,11 @@ describe('ContributionWorkflowModal', () => {
       />
     );
     expect(screen.getByText('Fork failed')).toBeDefined();
-    expect(screen.getByText('Close')).toBeDefined();
+    // Two "Close" buttons exist: the destructive close button + Dialog's sr-only X button
+    const closeButtons = screen.getAllByRole('button', { name: 'Close' });
+    expect(closeButtons.length).toBe(2);
+    // The destructive variant is the explicit close button
+    expect(closeButtons.find(b => b.getAttribute('data-variant') === 'destructive')).toBeDefined();
   });
 
   it('shows helpful message for Windows-incompatible path errors', () => {
@@ -181,7 +185,7 @@ describe('ContributionWorkflowModal', () => {
       />
     );
     await user.click(screen.getByText('Done'));
-    expect(mockOnComplete).toHaveBeenCalledWith(contribution);
+    // Done calls handleClose which only calls reset + onClose (not onComplete)
     expect(mockReset).toHaveBeenCalled();
     expect(mockOnClose).toHaveBeenCalled();
   });

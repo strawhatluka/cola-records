@@ -105,12 +105,16 @@ describe('useContributionWorkflow', () => {
 
     const { result } = renderHook(() => useContributionWorkflow());
 
-    await expect(
-      act(async () => {
+    let caughtError: Error | undefined;
+    await act(async () => {
+      try {
         await result.current.startWorkflow(mockIssue);
-      })
-    ).rejects.toThrow('Fork failed');
+      } catch (e) {
+        caughtError = e as Error;
+      }
+    });
 
+    expect(caughtError?.message).toBe('Fork failed');
     expect(result.current.state.status).toBe('error');
     expect(result.current.state.error).toBe('Fork failed');
   });
@@ -126,12 +130,16 @@ describe('useContributionWorkflow', () => {
 
     const { result } = renderHook(() => useContributionWorkflow());
 
-    await expect(
-      act(async () => {
+    let caughtError: Error | undefined;
+    await act(async () => {
+      try {
         await result.current.startWorkflow(mockIssue);
-      })
-    ).rejects.toThrow('Clone failed');
+      } catch (e) {
+        caughtError = e as Error;
+      }
+    });
 
+    expect(caughtError?.message).toBe('Clone failed');
     expect(result.current.state.status).toBe('error');
     expect(result.current.state.error).toBe('Clone failed');
   });

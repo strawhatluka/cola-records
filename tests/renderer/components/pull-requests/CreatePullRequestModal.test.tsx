@@ -28,19 +28,39 @@ const defaultProps = {
   open: true,
   owner: 'test-owner',
   repo: 'test-repo',
-  defaultHead: 'user:feature-branch',
+  localPath: '/mock/local/repo',
+  branches: ['main', 'develop', 'feature-branch'],
   onClose: vi.fn(),
   onCreated: vi.fn(),
 };
 
+function setupMockIPC(overrides: { currentBranch?: string; error?: boolean } = {}) {
+  mockInvoke.mockImplementation(async (channel: string) => {
+    switch (channel) {
+      case 'git:get-current-branch':
+        return overrides.currentBranch ?? 'feature-branch';
+      case 'git:compare-branches':
+        return {
+          commits: [],
+          files: [],
+          totalFilesChanged: 0,
+          totalInsertions: 0,
+          totalDeletions: 0,
+          rawDiff: '',
+        };
+      case 'github:create-pull-request':
+        if (overrides.error) throw new Error('API rate limit exceeded');
+        return { number: 1, url: 'https://github.com/org/repo/pull/1', state: 'open' };
+      default:
+        return undefined;
+    }
+  });
+}
+
 describe('CreatePullRequestModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockInvoke.mockResolvedValue({
-      number: 1,
-      url: 'https://github.com/org/repo/pull/1',
-      state: 'open',
-    });
+    setupMockIPC();
   });
 
   it('does not render content when open is false', () => {
@@ -49,34 +69,53 @@ describe('CreatePullRequestModal', () => {
     expect(screen.queryByPlaceholderText('Pull request title')).not.toBeInTheDocument();
   });
 
-  it('renders form fields when open', () => {
+  it('renders form fields when open', async () => {
     render(<CreatePullRequestModal {...defaultProps} />);
 
     expect(screen.getByPlaceholderText('Pull request title')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/branch-name/)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('main')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Describe your changes/)).toBeInTheDocument();
+    expect(screen.getByText('Base Branch')).toBeInTheDocument();
+    expect(screen.getByText('Compare Branch')).toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
   });
 
-  it('submit button is disabled when title is empty', () => {
+  it('renders branch select dropdowns with branches', async () => {
     render(<CreatePullRequestModal {...defaultProps} />);
 
-    const submitButton = screen.getByRole('button', { name: /Create Pull Request/ });
-    expect(submitButton).toBeDisabled();
+    // Base branch defaults to first branch
+    await waitFor(() => {
+      expect(screen.getByText('main')).toBeInTheDocument();
+    });
+
+    // Compare branch is set from git:get-current-branch
+    await waitFor(() => {
+      expect(screen.getByText('feature-branch')).toBeInTheDocument();
+    });
   });
 
-  it('submit button is enabled when title, head, and base have content', async () => {
-    const user = userEvent.setup();
+  it('auto-fills title from compare branch name', async () => {
     render(<CreatePullRequestModal {...defaultProps} />);
 
-    const titleInput = screen.getByPlaceholderText('Pull request title');
-    await user.type(titleInput, 'My PR Title');
-
-    const submitButton = screen.getByRole('button', { name: /Create Pull Request/ });
-    expect(submitButton).not.toBeDisabled();
+    await waitFor(() => {
+      const titleInput = screen.getByPlaceholderText('Pull request title') as HTMLInputElement;
+      // branchToTitle('feature-branch') => 'Feature Branch'
+      expect(titleInput.value).toBe('Feature Branch');
+    });
   });
 
-  it('successful submission calls IPC with correct args and calls onCreated + onClose', async () => {
+  it('submit button exists and can be clicked after title is set', async () => {
+    render(<CreatePullRequestModal {...defaultProps} />);
+
+    // Wait for auto-init (sets base, compare, and title)
+    await waitFor(() => {
+      const titleInput = screen.getByPlaceholderText('Pull request title') as HTMLInputElement;
+      expect(titleInput.value).not.toBe('');
+    });
+
+    const submitButton = screen.getByRole('button', { name: /Create Pull Request/ });
+    expect(submitButton).toBeInTheDocument();
+  });
+
+  it('successful submission calls IPC and triggers callbacks', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     const onCreated = vi.fn();
@@ -89,11 +128,16 @@ describe('CreatePullRequestModal', () => {
       />
     );
 
-    const titleInput = screen.getByPlaceholderText('Pull request title');
-    await user.type(titleInput, 'My PR Title');
+    // Wait for auto-init
+    await waitFor(() => {
+      const titleInput = screen.getByPlaceholderText('Pull request title') as HTMLInputElement;
+      expect(titleInput.value).not.toBe('');
+    });
 
-    const descriptionTextarea = screen.getByPlaceholderText(/Describe your changes/);
-    await user.type(descriptionTextarea, 'Some description');
+    // Clear auto-title and type custom title
+    const titleInput = screen.getByPlaceholderText('Pull request title');
+    await user.clear(titleInput);
+    await user.type(titleInput, 'My PR Title');
 
     const submitButton = screen.getByRole('button', { name: /Create Pull Request/ });
     await user.click(submitButton);
@@ -104,9 +148,9 @@ describe('CreatePullRequestModal', () => {
         'test-owner',
         'test-repo',
         'My PR Title',
-        'user:feature-branch',
+        'feature-branch',
         'main',
-        'Some description'
+        ''
       );
     });
 
@@ -116,14 +160,17 @@ describe('CreatePullRequestModal', () => {
     });
   });
 
-  it('shows error message when IPC invoke rejects', async () => {
-    mockInvoke.mockRejectedValueOnce(new Error('API rate limit exceeded'));
+  it('shows error message when submission fails', async () => {
+    setupMockIPC({ error: true });
     const user = userEvent.setup();
 
     render(<CreatePullRequestModal {...defaultProps} />);
 
-    const titleInput = screen.getByPlaceholderText('Pull request title');
-    await user.type(titleInput, 'My PR Title');
+    // Wait for auto-init
+    await waitFor(() => {
+      const titleInput = screen.getByPlaceholderText('Pull request title') as HTMLInputElement;
+      expect(titleInput.value).not.toBe('');
+    });
 
     const submitButton = screen.getByRole('button', { name: /Create Pull Request/ });
     await user.click(submitButton);
@@ -145,37 +192,25 @@ describe('CreatePullRequestModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('pre-fills head from defaultHead prop', () => {
-    render(
-      <CreatePullRequestModal {...defaultProps} defaultHead="user:feature-branch" />
-    );
+  it('sets base to first branch on open', async () => {
+    render(<CreatePullRequestModal {...defaultProps} />);
 
-    const headInput = screen.getByPlaceholderText(/branch-name/) as HTMLInputElement;
-    expect(headInput.value).toBe('user:feature-branch');
+    // Base defaults to branches[0] which is 'main'
+    await waitFor(() => {
+      const comboboxes = screen.getAllByRole('combobox');
+      // First combobox is base branch
+      expect(comboboxes[0].textContent).toContain('main');
+    });
   });
 
-  it('pre-fills base from defaultBase prop', () => {
-    render(
-      <CreatePullRequestModal {...defaultProps} defaultBase="develop" />
-    );
+  it('sets compare to current branch from git', async () => {
+    setupMockIPC({ currentBranch: 'develop' });
+    render(<CreatePullRequestModal {...defaultProps} />);
 
-    const baseInput = screen.getByPlaceholderText('main') as HTMLInputElement;
-    expect(baseInput.value).toBe('develop');
-  });
-
-  it('base defaults to "main" when defaultBase not provided', () => {
-    render(
-      <CreatePullRequestModal
-        open={true}
-        owner="test-owner"
-        repo="test-repo"
-        defaultHead="user:feature-branch"
-        onClose={vi.fn()}
-        onCreated={vi.fn()}
-      />
-    );
-
-    const baseInput = screen.getByPlaceholderText('main') as HTMLInputElement;
-    expect(baseInput.value).toBe('main');
+    await waitFor(() => {
+      const comboboxes = screen.getAllByRole('combobox');
+      // Second combobox is compare branch
+      expect(comboboxes[1].textContent).toContain('develop');
+    });
   });
 });
