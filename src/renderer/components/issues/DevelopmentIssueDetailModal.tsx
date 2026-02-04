@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ExternalLink, MessageSquare, Send, ChevronDown, Search, CheckCircle2, Ban, Copy } from 'lucide-react';
+import { ExternalLink, MessageSquare, Send, ChevronDown, Search, CheckCircle2, Ban, Copy, GitBranch } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,7 @@ interface DevelopmentIssueDetailModalProps {
   issue: IssueSummary | null;
   owner: string;
   repo: string;
+  localPath: string;
   isBranched?: boolean;
   onClose: () => void;
 }
@@ -72,7 +73,7 @@ export function formatDate(date: Date): string {
   });
 }
 
-export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, onClose }: DevelopmentIssueDetailModalProps) {
+export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isBranched, onClose }: DevelopmentIssueDetailModalProps) {
   const [issueDetail, setIssueDetail] = useState<IssueDetail | null>(null);
   const [comments, setComments] = useState<IssueComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +87,7 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, on
   const [duplicateSearchQuery, setDuplicateSearchQuery] = useState('');
   const [allIssues, setAllIssues] = useState<IssueSummary[]>([]);
   const [allIssuesLoading, setAllIssuesLoading] = useState(false);
+  const [creatingBranch, setCreatingBranch] = useState(false);
   const isMounted = useRef(true);
   const closeMenuRef = useRef<HTMLDivElement>(null);
 
@@ -214,6 +216,30 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, on
       } finally {
         if (isMounted.current) setAllIssuesLoading(false);
       }
+    }
+  };
+
+  const handleFixIssue = async () => {
+    if (!issue || !localPath) return;
+    setCreatingBranch(true);
+    try {
+      const branchName = `fix-issue-${issue.number}`;
+      // Determine the default branch (main or master)
+      const branches = await ipc.invoke('git:get-branches', localPath);
+      const defaultBranch = branches.find((b: string) => b === 'main')
+        ? 'main'
+        : branches.find((b: string) => b === 'master')
+          ? 'master'
+          : branches[0];
+      // Checkout the default branch first, then create the fix branch from it
+      await ipc.invoke('git:checkout', localPath, defaultBranch);
+      await ipc.invoke('git:create-branch', localPath, branchName);
+      onClose();
+    } catch (err) {
+      console.error('[DevelopmentIssueDetailModal] Failed to create branch:', err);
+      alert(`Failed to create branch: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      if (isMounted.current) setCreatingBranch(false);
     }
   };
 
@@ -390,20 +416,32 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, isBranched, on
                 disabled={submitting}
               />
               <div className="flex justify-between items-center mt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      await ipc.invoke('shell:open-external', issue.url);
-                    } catch (err) {
-                      console.error('Failed to open URL:', err);
-                    }
-                  }}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View on GitHub
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await ipc.invoke('shell:open-external', issue.url);
+                      } catch (err) {
+                        console.error('Failed to open URL:', err);
+                      }
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View on GitHub
+                  </Button>
+                  {issueState === 'open' && !isBranched && (
+                    <Button
+                      size="sm"
+                      onClick={handleFixIssue}
+                      disabled={creatingBranch}
+                    >
+                      <GitBranch className="h-4 w-4 mr-2" />
+                      {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
+                    </Button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   {issueState === 'open' ? (
                     <div className="relative" ref={closeMenuRef}>

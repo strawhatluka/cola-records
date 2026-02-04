@@ -647,6 +647,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             issue={selectedIssue}
             owner={parsed.owner}
             repo={parsed.repo}
+            localPath={contribution.localPath}
             isBranched={branchMatches}
             onClose={() => { setSelectedIssue(null); fetchIssues(); }}
           />
