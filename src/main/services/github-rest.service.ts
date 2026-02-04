@@ -69,7 +69,6 @@ export class GitHubRestService {
         authorAvatarUrl: response.data.user?.avatar_url || '',
       };
     } catch (error) {
-      console.error('GitHub REST get issue error:', error);
       throw new Error(`Failed to get issue ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
@@ -92,7 +91,6 @@ export class GitHubRestService {
         body,
       });
     } catch (error) {
-      console.error('GitHub REST create comment error:', error);
       throw new Error(`Failed to create comment on ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
@@ -115,7 +113,6 @@ export class GitHubRestService {
         ...updates,
       });
     } catch (error) {
-      console.error('GitHub REST update issue error:', error);
       throw new Error(`Failed to update issue ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
@@ -145,7 +142,6 @@ export class GitHubRestService {
         url: response.data.html_url,
       };
     } catch (error) {
-      console.error('GitHub REST create issue error:', error);
       throw new Error(`Failed to create issue on ${owner}/${repo}: ${error}`);
     }
   }
@@ -187,7 +183,6 @@ export class GitHubRestService {
           authorAvatarUrl: issue.user?.avatar_url || '',
         }));
     } catch (error) {
-      console.error('GitHub REST list issues error:', error);
       throw new Error(`Failed to list issues for ${owner}/${repo}: ${error}`);
     }
   }
@@ -218,7 +213,6 @@ export class GitHubRestService {
         updatedAt: new Date(comment.updated_at),
       }));
     } catch (error) {
-      console.error('GitHub REST list issue comments error:', error);
       throw new Error(`Failed to list comments for ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
@@ -245,7 +239,6 @@ export class GitHubRestService {
         forks: response.data.forks_count,
       };
     } catch (error) {
-      console.error('GitHub REST fork error:', error);
       throw new Error(`Failed to fork ${owner}/${repo}: ${error}`);
     }
   }
@@ -278,7 +271,6 @@ export class GitHubRestService {
         state: response.data.state,
       };
     } catch (error) {
-      console.error('GitHub REST create PR error:', error);
       throw new Error(`Failed to create pull request on ${owner}/${repo}: ${error}`);
     }
   }
@@ -311,7 +303,6 @@ export class GitHubRestService {
 
       return [];
     } catch (error) {
-      console.error('GitHub REST get contents error:', error);
       throw new Error(`Failed to get contents of ${owner}/${repo}/${filePath}: ${error}`);
     }
   }
@@ -339,7 +330,6 @@ export class GitHubRestService {
         private: repo.private,
       }));
     } catch (error) {
-      console.error('GitHub REST get repositories error:', error);
       throw new Error(`Failed to get repositories: ${error}`);
     }
   }
@@ -374,7 +364,6 @@ export class GitHubRestService {
         repo,
       });
     } catch (error) {
-      console.error('GitHub REST star error:', error);
       throw new Error(`Failed to star ${owner}/${repo}: ${error}`);
     }
   }
@@ -390,7 +379,6 @@ export class GitHubRestService {
         repo,
       });
     } catch (error) {
-      console.error('GitHub REST unstar error:', error);
       throw new Error(`Failed to unstar ${owner}/${repo}: ${error}`);
     }
   }
@@ -409,7 +397,6 @@ export class GitHubRestService {
         reset: new Date(response.data.rate.reset * 1000),
       };
     } catch (error) {
-      console.error('GitHub REST rate limit error:', error);
       throw new Error(`Failed to get rate limit: ${error}`);
     }
   }
@@ -444,7 +431,6 @@ export class GitHubRestService {
         } : undefined,
       };
     } catch (error) {
-      console.error('GitHub REST get repository error:', error);
       throw new Error(`Failed to get repository ${owner}/${repo}: ${error}`);
     }
   }
@@ -473,7 +459,6 @@ export class GitHubRestService {
         author: response.data.user?.login || 'unknown',
       };
     } catch (error) {
-      console.error('GitHub REST get PR error:', error);
       throw new Error(`Failed to get pull request ${owner}/${repo}#${prNumber}: ${error}`);
     }
   }
@@ -508,7 +493,6 @@ export class GitHubRestService {
         headBranch: pr.head?.ref || '', // Add head branch name
       }));
     } catch (error) {
-      console.error('GitHub REST list PRs error:', error);
       throw new Error(`Failed to list pull requests for ${owner}/${repo}: ${error}`);
     }
   }
@@ -524,30 +508,20 @@ export class GitHubRestService {
     try {
       const prs = await this.listPullRequests(owner, repo, { state: 'all' });
 
-      console.log(`Checking PR status for ${owner}/${repo} branch: ${headBranch}`);
-      console.log(`Found ${prs.length} PRs total`);
-
       // Find PR matching the head branch by comparing branch names
-      const pr = prs.find((p) => {
-        console.log(`  PR #${p.number}: head branch = "${p.headBranch}", looking for "${headBranch}"`);
-        return p.headBranch === headBranch;
-      });
+      const pr = prs.find((p) => p.headBranch === headBranch);
 
       if (!pr) {
-        console.log(`No PR found for branch: ${headBranch}`);
         return null;
       }
 
       const status = pr.merged ? 'merged' : pr.state as 'open' | 'closed';
-
-      console.log(`Found PR #${pr.number} with status: ${status}`);
       return {
         number: pr.number,
         url: pr.url,
         status,
       };
-    } catch (error) {
-      console.error('GitHub REST check PR status error:', error);
+    } catch {
       return null;
     }
   }
@@ -577,7 +551,6 @@ export class GitHubRestService {
         updatedAt: new Date(comment.updated_at),
       }));
     } catch (error) {
-      console.error('GitHub REST list PR comments error:', error);
       throw new Error(`Failed to list comments for ${owner}/${repo}#${prNumber}: ${error}`);
     }
   }
@@ -608,7 +581,6 @@ export class GitHubRestService {
         submittedAt: review.submitted_at ? new Date(review.submitted_at) : new Date(),
       }));
     } catch (error) {
-      console.error('GitHub REST list PR reviews error:', error);
       throw new Error(`Failed to list reviews for ${owner}/${repo}#${prNumber}: ${error}`);
     }
   }
@@ -641,7 +613,6 @@ export class GitHubRestService {
         inReplyToId: comment.in_reply_to_id || null,
       }));
     } catch (error) {
-      console.error('GitHub REST list PR review comments error:', error);
       throw new Error(`Failed to list review comments for ${owner}/${repo}#${prNumber}: ${error}`);
     }
   }
@@ -667,7 +638,6 @@ export class GitHubRestService {
         user: r.user?.login || 'unknown',
       }));
     } catch (error) {
-      console.error('GitHub REST list issue reactions error:', error);
       throw new Error(`Failed to list reactions for ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
@@ -693,7 +663,6 @@ export class GitHubRestService {
         user: response.data.user?.login || 'unknown',
       };
     } catch (error) {
-      console.error('GitHub REST add issue reaction error:', error);
       throw new Error(`Failed to add reaction to ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
@@ -713,7 +682,6 @@ export class GitHubRestService {
         reaction_id: reactionId,
       });
     } catch (error) {
-      console.error('GitHub REST delete issue reaction error:', error);
       throw new Error(`Failed to delete reaction from ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
@@ -738,7 +706,6 @@ export class GitHubRestService {
         user: r.user?.login || 'unknown',
       }));
     } catch (error) {
-      console.error('GitHub REST list comment reactions error:', error);
       throw new Error(`Failed to list reactions for comment ${commentId}: ${error}`);
     }
   }
@@ -764,7 +731,6 @@ export class GitHubRestService {
         user: response.data.user?.login || 'unknown',
       };
     } catch (error) {
-      console.error('GitHub REST add comment reaction error:', error);
       throw new Error(`Failed to add reaction to comment ${commentId}: ${error}`);
     }
   }
@@ -784,7 +750,6 @@ export class GitHubRestService {
         reaction_id: reactionId,
       });
     } catch (error) {
-      console.error('GitHub REST delete comment reaction error:', error);
       throw new Error(`Failed to delete reaction from comment ${commentId}: ${error}`);
     }
   }
@@ -815,10 +780,8 @@ export class GitHubRestService {
     } catch (error: any) {
       // Sub-issues API may not be available for all repos
       if (error.status === 404 || error.status === 403) {
-        console.warn(`Sub-issues not available for ${owner}/${repo}#${issueNumber}`);
         return [];
       }
-      console.error('GitHub REST list sub-issues error:', error);
       throw new Error(`Failed to list sub-issues for ${owner}/${repo}#${issueNumber}: ${error}`);
     }
   }
@@ -858,7 +821,6 @@ export class GitHubRestService {
         url: issueResponse.data.html_url,
       };
     } catch (error) {
-      console.error('GitHub REST create sub-issue error:', error);
       throw new Error(`Failed to create sub-issue for ${owner}/${repo}#${parentIssueNumber}: ${error}`);
     }
   }
@@ -878,7 +840,6 @@ export class GitHubRestService {
         sub_issue_id: subIssueId,
       });
     } catch (error) {
-      console.error('GitHub REST add existing sub-issue error:', error);
       throw new Error(`Failed to add sub-issue to ${owner}/${repo}#${parentIssueNumber}: ${error}`);
     }
   }

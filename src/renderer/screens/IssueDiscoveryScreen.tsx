@@ -24,10 +24,8 @@ export function IssueDiscoveryScreen({ onOpenIDE }: IssueDiscoveryScreenProps) {
     setSelectedIssue(null);
   };
 
-  const handleWorkflowComplete = (contribution: Contribution) => {
+  const handleWorkflowComplete = () => {
     setWorkflowIssue(null);
-    // TODO: Show success toast or navigate to Contributions screen
-    console.log('Contribution created:', contribution);
   };
 
   return (

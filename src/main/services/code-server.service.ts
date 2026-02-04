@@ -169,9 +169,7 @@ class CodeServerService {
         const raw = fs.readFileSync(hostSettingsPath, 'utf-8');
         const cleanJson = this.stripJsonc(raw);
         hostSettings = JSON.parse(cleanJson);
-        console.log('[code-server] Loaded host VS Code settings');
       } else {
-        console.log('[code-server] No host VS Code settings found, using defaults');
       }
 
       // Load existing code-server settings (preserves theme, font size, etc.
@@ -181,9 +179,7 @@ class CodeServerService {
         try {
           const raw = fs.readFileSync(codeServerSettingsPath, 'utf-8');
           existingSettings = JSON.parse(raw);
-          console.log('[code-server] Loaded existing code-server settings');
         } catch {
-          console.warn('[code-server] Could not parse existing settings, starting fresh');
         }
       }
 
@@ -209,9 +205,8 @@ class CodeServerService {
       };
 
       fs.writeFileSync(codeServerSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-      console.log('[code-server] Wrote merged settings (host + existing + overrides)');
-    } catch (error) {
-      console.error('[code-server] Failed to sync VS Code settings:', error);
+    } catch {
+      // Settings sync is best-effort
     }
   }
 
@@ -242,12 +237,8 @@ class CodeServerService {
         parts.push('# --- Host .gitconfig (embedded) ---');
         parts.push(normalized.trimEnd());
         parts.push('');
-        console.log('[code-server] Embedded host .gitconfig content');
-      } catch (error) {
-        console.error('[code-server] Failed to read host .gitconfig:', error);
+      } catch {
       }
-    } else {
-      console.log('[code-server] No host .gitconfig found, skipping embed');
     }
 
     // Append our required overrides
@@ -267,9 +258,8 @@ class CodeServerService {
     try {
       fs.mkdirSync(this.getUserDataDir(), { recursive: true });
       fs.writeFileSync(gitconfigPath, content, 'utf-8');
-      console.log('[code-server] Created container gitconfig at:', gitconfigPath);
-    } catch (error) {
-      console.error('[code-server] Failed to create container gitconfig:', error);
+    } catch {
+      // Gitconfig creation is best-effort
     }
   }
 
@@ -333,10 +323,9 @@ class CodeServerService {
             aliasMap.set(a.name, a.command);
           }
         }
-        console.log(`[code-server] Loaded ${userAliases.length} user aliases from settings`);
       }
-    } catch (error) {
-      console.error('[code-server] Failed to read user aliases:', error);
+    } catch {
+      // Alias loading is best-effort
     }
 
     for (const [name, command] of aliasMap) {
@@ -349,9 +338,8 @@ class CodeServerService {
     try {
       fs.mkdirSync(this.getUserDataDir(), { recursive: true });
       fs.writeFileSync(bashrcPath, content, 'utf-8');
-      console.log(`[code-server] Created container bashrc for user: ${username}`);
-    } catch (error) {
-      console.error('[code-server] Failed to create container bashrc:', error);
+    } catch {
+      // Bashrc creation is best-effort
     }
   }
 
@@ -367,8 +355,6 @@ class CodeServerService {
 
     if (fs.existsSync(gitCredentials)) {
       mounts.push('-v', `${this.toDockerPath(gitCredentials)}:/home/coder/.git-credentials:ro`);
-    } else {
-      console.log('[code-server] No host .git-credentials found, git push/pull will prompt for auth');
     }
 
     return mounts;
@@ -402,8 +388,7 @@ class CodeServerService {
   async checkDockerAvailable(): Promise<void> {
     try {
       await this.dockerExec(['info', '--format', '{{.ServerVersion}}']);
-      console.log('[code-server] Docker is available');
-    } catch (error) {
+    } catch {
       throw new Error(
         'Docker Desktop is not running. Please start Docker Desktop and try again.\n\n' +
         'If Docker is not installed, download it from: https://www.docker.com/products/docker-desktop/'
@@ -415,7 +400,6 @@ class CodeServerService {
    * Execute a Docker CLI command and return stdout.
    */
   async dockerExec(args: string[]): Promise<string> {
-    console.log('[code-server] docker', args.join(' '));
     const { stdout } = await execFileAsync('docker', args, {
       timeout: 120_000, // 2 minute timeout for slow operations like image pull
     });
@@ -434,7 +418,6 @@ class CodeServerService {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/healthz`);
         if (response.ok) {
-          console.log(`[code-server] Ready after ${attempt} attempt(s)`);
           return;
         }
       } catch {
@@ -463,7 +446,6 @@ class CodeServerService {
   async start(projectPath: string): Promise<CodeServerStartResult> {
     // Guard against concurrent starts (React strict mode double-mount)
     if (this.starting) {
-      console.log('[code-server] Start already in progress, waiting...');
       // Wait for the in-progress start to finish
       while (this.starting) {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -486,8 +468,6 @@ class CodeServerService {
       // Step 2: Find free port
       const port = await this.findFreePort();
       const containerName = `cola-code-server-${port}`;
-
-      console.log(`[code-server] Starting on port ${port} for project: ${projectPath}`);
 
       // Step 3: Sync settings
       this.syncVSCodeSettings();
@@ -544,8 +524,6 @@ class CodeServerService {
       this.running = true;
 
       const url = `http://127.0.0.1:${port}`;
-      console.log(`[code-server] Running at ${url}`);
-
       return { port, url };
     } finally {
       this.starting = false;
@@ -558,23 +536,19 @@ class CodeServerService {
    */
   async stop(): Promise<void> {
     if (!this.containerName) {
-      console.log('[code-server] No container to stop');
       this.running = false;
       return;
     }
 
     const name = this.containerName;
-    console.log(`[code-server] Stopping container: ${name}`);
 
     try {
       await this.dockerExec(['stop', '-t', '5', name]);
-      console.log(`[code-server] Container stopped: ${name}`);
-    } catch (error) {
-      console.error(`[code-server] Graceful stop failed, force removing: ${name}`);
+    } catch {
       try {
         await this.dockerExec(['rm', '-f', name]);
-      } catch (rmError) {
-        console.error('[code-server] Force remove also failed:', rmError);
+      } catch {
+        // Force remove also failed — container may already be gone
       }
     }
 

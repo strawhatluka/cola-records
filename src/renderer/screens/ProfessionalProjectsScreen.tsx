@@ -21,8 +21,8 @@ export function ProfessionalProjectsScreen({ onOpenIDE }: ProfessionalProjectsSc
         try {
           const scannedProjects = await ipc.invoke('project:scan-directory', defaultProfessionalProjectsPath);
           setProjects(scannedProjects);
-        } catch (error) {
-          console.error('Failed to scan professional projects directory:', error);
+        } catch {
+          // Scan failure handled by empty state
         } finally {
           setIsScanning(false);
         }

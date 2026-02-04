@@ -37,7 +37,6 @@ class ContributionScannerService {
 
     // Check if directory exists
     if (!fs.existsSync(directoryPath)) {
-      console.warn(`Contributions directory does not exist: ${directoryPath}`);
       return contributions;
     }
 
@@ -45,23 +44,16 @@ class ContributionScannerService {
     const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
     const directories = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
-    console.log(`[Scanner] Found ${directories.length} directories in ${directoryPath}:`, directories);
-
     // Check each directory for git repository
     for (const dir of directories) {
       const repoPath = path.join(directoryPath, dir);
-      console.log(`[Scanner] Checking directory: ${repoPath}`);
       const contribution = await this.scanRepository(repoPath);
 
       if (contribution) {
-        console.log(`[Scanner] ✓ Valid git repository found: ${dir}`);
         contributions.push(contribution);
-      } else {
-        console.log(`[Scanner] ✗ Not a valid git repository: ${dir}`);
       }
     }
 
-    console.log(`[Scanner] Total contributions found: ${contributions.length}`);
     return contributions;
   }
 
@@ -84,11 +76,9 @@ class ContributionScannerService {
         try {
           const branch = await git.revparse(['--abbrev-ref', 'HEAD']);
           branchName = branch.trim();
-        } catch (error) {
-          console.log(`[Scanner] Could not get branch for ${repoPath}, using default`);
+        } catch {
+          // Could not get branch, use default
         }
-      } else {
-        console.log(`[Scanner] Not a git repo, but will still add to contributions: ${repoPath}`);
       }
 
       // Get remotes (only if it's a git repo)
@@ -100,8 +90,8 @@ class ContributionScannerService {
 
           originUrl = originRemote?.refs.fetch || '';
           upstreamUrl = upstreamRemote?.refs.fetch || '';
-        } catch (error) {
-          console.log(`[Scanner] Could not get remotes for ${repoPath}`);
+        } catch {
+          // Could not get remotes
         }
       }
 
@@ -113,8 +103,8 @@ class ContributionScannerService {
         const validation = await this.validateRemotes(originUrl, upstreamUrl);
         isFork = validation.isFork;
         remotesValid = validation.remotesValid;
-      } catch (error) {
-        console.warn(`Could not validate remotes for ${repoPath}:`, error);
+      } catch {
+        // Remote validation is best-effort
       }
 
       // Try to extract issue number from branch name (e.g., issue-123, feature/issue-456)
@@ -150,8 +140,8 @@ class ContributionScannerService {
               prStatus = prInfo.status;
             }
           }
-        } catch (error) {
-          console.warn(`Could not check PR status for ${repoPath}:`, error);
+        } catch {
+          // PR status check is best-effort
         }
       }
 
@@ -173,8 +163,7 @@ class ContributionScannerService {
         prStatus,
         createdAt,
       };
-    } catch (error) {
-      console.error(`Error scanning repository at ${repoPath}:`, error);
+    } catch {
       return null;
     }
   }
@@ -215,8 +204,7 @@ class ContributionScannerService {
         repoInfo.parent?.full_name?.toLowerCase() === `${upstreamRepo.owner}/${upstreamRepo.repo}`.toLowerCase();
 
       return { isFork, remotesValid };
-    } catch (error) {
-      console.error('Error validating remotes:', error);
+    } catch {
       // If we can't validate via API, assume it's set up correctly if both remotes exist
       return { isFork: true, remotesValid: true };
     }
@@ -238,8 +226,7 @@ class ContributionScannerService {
         };
       }
       return null;
-    } catch (error) {
-      console.error('Error extracting repo info from URL:', url, error);
+    } catch {
       return null;
     }
   }
@@ -251,8 +238,7 @@ class ContributionScannerService {
     try {
       const issue = await gitHubRestService.getIssue(owner, repo, issueNumber);
       return issue.title;
-    } catch (error) {
-      console.error(`Error fetching issue #${issueNumber}:`, error);
+    } catch {
       return undefined;
     }
   }

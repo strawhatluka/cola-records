@@ -39,8 +39,8 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
       if (result) {
         setDefaultClonePath(result);
       }
-    } catch (error) {
-      console.error('Failed to select directory:', error);
+    } catch {
+      // Directory selection cancelled or failed
     }
   };
 
@@ -50,8 +50,8 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
       if (result) {
         setDefaultProjectsPath(result);
       }
-    } catch (error) {
-      console.error('Failed to select directory:', error);
+    } catch {
+      // Directory selection cancelled or failed
     }
   };
 
@@ -61,8 +61,8 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
       if (result) {
         setDefaultProfessionalProjectsPath(result);
       }
-    } catch (error) {
-      console.error('Failed to select directory:', error);
+    } catch {
+      // Directory selection cancelled or failed
     }
   };
 
@@ -77,7 +77,6 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
       setAppTheme(localTheme);
       alert('Settings saved successfully!');
     } catch (error) {
-      console.error('Failed to save settings:', error);
       alert(`Failed to save settings: ${error}`);
     }
   };

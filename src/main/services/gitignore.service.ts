@@ -34,8 +34,8 @@ export class GitIgnoreService {
 
         ig.add(patterns);
       }
-    } catch (error) {
-      console.warn(`Failed to load .gitignore from ${repoPath}:`, error);
+    } catch {
+      // .gitignore loading is best-effort
     }
 
     return ig;
@@ -67,8 +67,7 @@ export class GitIgnoreService {
       const normalizedPath = relativePath.split(path.sep).join('/');
 
       return ig.ignores(normalizedPath);
-    } catch (error) {
-      console.error(`Failed to check if ${filePath} is ignored:`, error);
+    } catch {
       return false;
     }
   }
@@ -88,8 +87,7 @@ export class GitIgnoreService {
           .filter((line) => line && !line.startsWith('#'));
       }
       return [];
-    } catch (error) {
-      console.error(`Failed to get patterns from ${repoPath}:`, error);
+    } catch {
       return [];
     }
   }

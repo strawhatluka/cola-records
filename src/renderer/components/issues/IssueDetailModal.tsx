@@ -77,8 +77,8 @@ export function IssueDetailModal({ issue, onClose, onContribute }: IssueDetailMo
               onClick={async () => {
                 try {
                   await ipc.invoke('shell:open-external', issue.url);
-                } catch (error) {
-                  console.error('Failed to open URL:', error);
+                } catch {
+                  // URL open failed
                 }
               }}
               variant="outline"

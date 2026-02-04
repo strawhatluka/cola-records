@@ -92,7 +92,6 @@ export function useContributionWorkflow() {
     // TODO: Implement rollback logic
     // - Delete partially cloned repository
     // - Remove database entry if created
-    console.warn('Rollback not yet implemented');
   };
 
   const reset = () => {

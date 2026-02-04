@@ -37,7 +37,7 @@ export class DatabaseService {
       // Run migrations if needed
       await this.runMigrations();
 
-      console.log('Database initialized at:', this.dbPath);
+      // Database initialized
     } catch (error) {
       throw new Error(`Failed to initialize database: ${error}`);
     }
@@ -72,18 +72,15 @@ export class DatabaseService {
     // Get current schema version
     const currentVersion = db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number } | undefined;
     const version = currentVersion?.version || 0;
-    console.log(`Current schema version: ${version}, target: ${SCHEMA_VERSION}`);
+    // Run migrations from current version to target
 
     // Run all migrations after current version
     for (let v = version + 1; v <= SCHEMA_VERSION; v++) {
       if (MIGRATIONS[v]) {
         try {
-          console.log(`Running migration to version ${v}...`);
           db.exec(MIGRATIONS[v]);
           db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(v, Date.now());
-          console.log(`Migration to version ${v} complete`);
         } catch (err) {
-          console.error(`Migration to version ${v} failed:`, err);
           throw err;
         }
       }

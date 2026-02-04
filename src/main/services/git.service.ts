@@ -183,12 +183,10 @@ export class GitService {
     try {
       const git = this.getGit(repoPath);
       const branches = await git.branchLocal();
-      console.log('Raw branches from git:', branches);
       // Strip ANSI color codes and clean branch names
       const cleanedBranches = branches.all.map(branch =>
         branch.replace(/\x1b\[\d+m/g, '').trim()
       );
-      console.log('Cleaned branches:', cleanedBranches);
 
       // Sort branches with priority:
       // 1. main (first)
@@ -207,7 +205,6 @@ export class GitService {
         return a.localeCompare(b);
       });
 
-      console.log('Sorted branches:', sortedBranches);
       return sortedBranches;
     } catch (error) {
       throw new Error(`Failed to get branches for ${repoPath}: ${error}`);
@@ -251,8 +248,7 @@ export class GitService {
         fetchUrl: r.refs.fetch || '',
         pushUrl: r.refs.push || '',
       }));
-    } catch (error) {
-      console.error(`Failed to get remotes for ${repoPath}:`, error);
+    } catch {
       return [];
     }
   }
@@ -266,8 +262,7 @@ export class GitService {
       const remotes = await git.getRemotes(true);
       const remoteObj = remotes.find((r) => r.name === remote);
       return remoteObj?.refs.fetch || null;
-    } catch (error) {
-      console.error(`Failed to get remote URL for ${repoPath}:`, error);
+    } catch {
       return null;
     }
   }

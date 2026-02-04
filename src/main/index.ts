@@ -21,7 +21,6 @@ let mainWindow: BrowserWindow | null = null;
 const setupIpcHandlers = () => {
   // Echo test handler
   handleIpc('echo', async (_event, message) => {
-    console.log('Echo received:', message);
     return `Echo: ${message}`;
   });
 
@@ -145,8 +144,7 @@ const setupIpcHandlers = () => {
       if (fs.existsSync(contribution.localPath)) {
         try {
           fs.rmSync(contribution.localPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
-        } catch (error) {
-          console.error('Failed to delete directory:', error);
+        } catch {
           // If immediate deletion fails, try with rimraf-style deletion
           const path = await import('path');
           const deleteRecursive = async (dirPath: string) => {
@@ -592,7 +590,6 @@ const setupIpcHandlers = () => {
 const initializeServices = async () => {
   // Initialize database
   await database.initialize();
-  console.log('Database initialized');
 };
 
 const createWindow = () => {
@@ -600,10 +597,6 @@ const createWindow = () => {
   const preloadPath = app.isPackaged
     ? path.join(__dirname, 'preload.js')
     : path.join(process.cwd(), '.vite/build/preload.js');
-
-  console.log('Preload path:', preloadPath);
-  console.log('process.cwd():', process.cwd());
-  console.log('app.isPackaged:', app.isPackaged);
 
   // Create the browser window
   mainWindow = new BrowserWindow({
@@ -667,8 +660,8 @@ async function cleanup(): Promise<void> {
   cleanupDone = true;
   try {
     await codeServerService.stop();
-  } catch (err) {
-    console.error('[cleanup] Failed to stop code-server:', err);
+  } catch {
+    // Cleanup stop failure is non-critical
   }
   removeAllIpcHandlers();
   database.close();
@@ -684,7 +677,6 @@ app.on('will-quit', (e) => {
 // the app is killed from the terminal.
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
-    console.log(`[cleanup] Received ${signal}`);
     cleanup().finally(() => process.exit(0));
   });
 }

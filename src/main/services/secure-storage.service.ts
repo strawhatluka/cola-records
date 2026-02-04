@@ -42,7 +42,6 @@ export class SecureStorageService {
         encrypted = buffer.toString('base64');
       } else {
         // Fallback to base64 (not secure, for development only)
-        console.warn('Encryption not available, using base64 encoding (NOT SECURE)');
         encrypted = Buffer.from(value).toString('base64');
       }
 
@@ -71,8 +70,7 @@ export class SecureStorageService {
         // Fallback from base64
         return Buffer.from(encrypted, 'base64').toString('utf-8');
       }
-    } catch (error) {
-      console.error(`Failed to retrieve secure item: ${error}`);
+    } catch {
       return null;
     }
   }
@@ -117,8 +115,7 @@ export class SecureStorageService {
         const parsed = JSON.parse(data);
         this.cache = new Map(Object.entries(parsed));
       }
-    } catch (error) {
-      console.error('Failed to load secure storage from disk:', error);
+    } catch {
       this.cache = new Map();
     }
   }

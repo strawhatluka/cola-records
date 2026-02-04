@@ -40,8 +40,8 @@ export class GitHubService {
       if (cached) {
         try {
           return JSON.parse(cached) as T;
-        } catch (error) {
-          console.error('Failed to parse cached value:', error);
+        } catch {
+          // Corrupted cache entry — fall through to re-fetch
         }
       }
     }
@@ -53,8 +53,8 @@ export class GitHubService {
     if (this.cacheEnabled) {
       try {
         database.setCacheValue(cacheKey, JSON.stringify(result), this.cacheTTL);
-      } catch (error) {
-        console.error('Failed to cache value:', error);
+      } catch {
+        // Cache write failure is non-critical
       }
     }
 
@@ -212,7 +212,6 @@ export class GitHubService {
   clearCache(): void {
     // Note: This would need a more sophisticated implementation
     // to only clear GitHub-related cache entries
-    console.log('Cache clearing not fully implemented - cleaning expired cache');
     database.cleanupExpiredCache();
   }
 

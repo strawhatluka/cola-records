@@ -36,9 +36,8 @@ export class FileSystemService {
           }
 
           nodes.push(node);
-        } catch (error) {
+        } catch {
           // Skip files/directories we can't access
-          console.warn(`Unable to access ${fullPath}:`, error);
         }
       }
 

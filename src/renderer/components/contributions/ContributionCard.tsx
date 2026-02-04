@@ -35,10 +35,8 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
       setLoadingBranches(true);
       try {
         const allBranches = await ipc.invoke('git:get-branches', contribution.localPath);
-        console.log('Fetched branches for', contribution.localPath, ':', allBranches);
         setBranches(allBranches);
-      } catch (error) {
-        console.log('Failed to fetch branches, falling back to current branch:', contribution.branchName);
+      } catch {
         // Silently fall back to showing just the current branch if directory doesn't exist
         setBranches([contribution.branchName]);
       } finally {
@@ -56,7 +54,6 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
       // Trigger a refresh of the contributions list
       window.location.reload();
     } catch (error) {
-      console.error('Failed to sync PR status:', error);
       alert('Failed to sync PR status. Make sure your GitHub token is valid.');
     } finally {
       setSyncing(false);

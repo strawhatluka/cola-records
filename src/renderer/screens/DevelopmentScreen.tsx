@@ -92,8 +92,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         .then((result) => {
           if (isMounted.current) setRemotes(result);
         })
-        .catch((err) => {
-          console.error('[DevelopmentScreen] Failed to fetch remotes:', err);
+        .catch(() => {
           if (isMounted.current) setRemotes([]);
         })
         .finally(() => {
@@ -108,8 +107,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       .then((user) => {
         if (isMounted.current) setGithubUsername(user.login);
       })
-      .catch((err) => {
-        console.error('[DevelopmentScreen] Failed to fetch authenticated user:', err);
+      .catch(() => {
+        // Auth user fetch is best-effort
       });
   }, []);
 
@@ -127,7 +126,6 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         if (isMounted.current) setPullRequests(result);
       })
       .catch((err) => {
-        console.error('[DevelopmentScreen] Failed to fetch PRs:', err);
         if (isMounted.current) {
           setPrsError(err instanceof Error ? err.message : String(err));
           setPullRequests([]);
@@ -153,8 +151,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       .then((result) => {
         if (isMounted.current) setBranches(result);
       })
-      .catch((err) => {
-        console.error('[DevelopmentScreen] Failed to fetch branches:', err);
+      .catch(() => {
+        // Branch fetch is best-effort
       });
   }, [contribution.localPath]);
 
@@ -206,8 +204,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       .then((results) => {
         if (isMounted.current) setAwaitingResponse(results.some(Boolean));
       })
-      .catch((err) => {
-        console.error('[DevelopmentScreen] Failed to check PR responses:', err);
+      .catch(() => {
+        // PR response check is best-effort
       });
   }, [pullRequests, githubUsername, contribution.type, contribution.upstreamUrl, contribution.repositoryUrl]);
 
@@ -226,7 +224,6 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         if (isMounted.current) setIssues(result);
       })
       .catch((err) => {
-        console.error('[DevelopmentScreen] Failed to fetch issues:', err);
         if (isMounted.current) {
           setIssuesError(err instanceof Error ? err.message : String(err));
           setIssues([]);
@@ -283,8 +280,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const stopAndGoBack = useCallback(async () => {
     try {
       await ipc.invoke('code-server:stop');
-    } catch (err) {
-      console.error('[DevelopmentScreen] Failed to stop code-server:', err);
+    } catch {
+      // Stop failure is non-critical — navigating away anyway
     }
     onNavigateBack();
   }, [onNavigateBack]);
@@ -301,8 +298,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
     return () => {
       isMounted.current = false;
       // Cleanup: stop container on unmount
-      ipc.invoke('code-server:stop').catch((err) => {
-        console.error('[DevelopmentScreen] Cleanup stop failed:', err);
+      ipc.invoke('code-server:stop').catch(() => {
+        // Cleanup stop failure is non-critical
       });
     };
   }, [startCodeServer]);

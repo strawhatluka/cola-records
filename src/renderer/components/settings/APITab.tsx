@@ -31,7 +31,6 @@ export function APITab({ settings, onUpdate }: APITabProps) {
       }
     } catch (error) {
       setTokenValid(false);
-      console.error('Token validation failed:', error);
       alert('Token validation failed. Please check your token.');
     } finally {
       setTokenValidating(false);

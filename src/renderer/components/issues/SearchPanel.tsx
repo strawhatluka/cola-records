@@ -48,7 +48,6 @@ export function SearchPanel({ onSearch, loading }: SearchPanelProps) {
   const [selectedLabels, setSelectedLabels] = React.useState<string[]>(['good first issue']);
 
   const handleSearch = () => {
-    console.log('Search button clicked');
     let query = searchText;
     if (language !== 'All') {
       query += ` language:${language}`;
@@ -56,7 +55,6 @@ export function SearchPanel({ onSearch, loading }: SearchPanelProps) {
     if (minStars) {
       query += ` stars:>=${minStars}`;
     }
-    console.log('Search query:', query, 'Labels:', selectedLabels);
     onSearch(query, selectedLabels);
   };
 

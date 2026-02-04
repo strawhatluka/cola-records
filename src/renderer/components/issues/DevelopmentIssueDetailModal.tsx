@@ -184,8 +184,8 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
       // Refresh comments to show the new one
       const updatedComments = await ipc.invoke('github:list-issue-comments', owner, repo, issue.number);
       if (isMounted.current) setComments(updatedComments);
-    } catch (err) {
-      console.error('[DevelopmentIssueDetailModal] Failed to submit comment:', err);
+    } catch {
+      // Comment submission failed — user can retry
     } finally {
       if (isMounted.current) setSubmitting(false);
     }
@@ -234,8 +234,8 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
         const updatedComments = await ipc.invoke('github:list-issue-comments', owner, repo, issue.number);
         if (isMounted.current) setComments(updatedComments);
       }
-    } catch (err) {
-      console.error('[DevelopmentIssueDetailModal] Failed to close issue:', err);
+    } catch {
+      // Close issue failed
     } finally {
       if (isMounted.current) setClosing(false);
     }
@@ -250,8 +250,8 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
         state_reason: 'reopened',
       });
       if (isMounted.current) setIssueState('open');
-    } catch (err) {
-      console.error('[DevelopmentIssueDetailModal] Failed to reopen issue:', err);
+    } catch {
+      // Reopen issue failed
     } finally {
       if (isMounted.current) setClosing(false);
     }
@@ -266,8 +266,8 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
       try {
         const issues = await ipc.invoke('github:list-issues', owner, repo, 'all');
         if (isMounted.current) setAllIssues(issues.filter((i: any) => i.number !== issue?.number));
-      } catch (err) {
-        console.error('[DevelopmentIssueDetailModal] Failed to fetch issues for duplicate search:', err);
+      } catch {
+        // Duplicate search fetch failed
       } finally {
         if (isMounted.current) setAllIssuesLoading(false);
       }
@@ -291,7 +291,6 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
       await ipc.invoke('git:create-branch', localPath, branchName);
       onClose();
     } catch (err) {
-      console.error('[DevelopmentIssueDetailModal] Failed to create branch:', err);
       alert(`Failed to create branch: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       if (isMounted.current) setCreatingBranch(false);
@@ -575,8 +574,8 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                     onClick={async () => {
                       try {
                         await ipc.invoke('shell:open-external', issue.url);
-                      } catch (err) {
-                        console.error('Failed to open URL:', err);
+                      } catch {
+                        // URL open failed
                       }
                     }}
                   >

@@ -200,8 +200,8 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
       // Refresh comments to show the new one
       const updatedComments = await ipc.invoke('github:list-pr-comments', owner, repo, pr.number);
       if (isMounted.current) setComments(updatedComments);
-    } catch (err) {
-      console.error('[PullRequestDetailModal] Failed to submit comment:', err);
+    } catch {
+      // Comment submission failed — user can retry
     } finally {
       if (isMounted.current) setSubmitting(false);
     }
@@ -433,8 +433,8 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                   onClick={async () => {
                     try {
                       await ipc.invoke('shell:open-external', pr.url);
-                    } catch (err) {
-                      console.error('Failed to open URL:', err);
+                    } catch {
+                      // URL open failed
                     }
                   }}
                 >

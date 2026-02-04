@@ -24,15 +24,11 @@ export const useIssuesStore = create<IssuesState>((set) => ({
   selectedLabels: ['good first issue'],
 
   searchIssues: async (query, labels) => {
-    console.log('searchIssues called with:', query, labels);
     set({ loading: true, error: null });
     try {
-      console.log('Invoking IPC: github:search-issues');
       const issues = await ipc.invoke('github:search-issues', query, labels);
-      console.log('Received issues:', issues.length);
       set({ issues, loading: false, searchQuery: query, selectedLabels: labels });
     } catch (error) {
-      console.error('Search error:', error);
       set({ error: String(error), loading: false });
     }
   },

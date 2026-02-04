@@ -21,8 +21,8 @@ export function ProjectsScreen({ onOpenIDE }: ProjectsScreenProps) {
         try {
           const scannedProjects = await ipc.invoke('project:scan-directory', defaultProjectsPath);
           setProjects(scannedProjects);
-        } catch (error) {
-          console.error('Failed to scan projects directory:', error);
+        } catch {
+          // Scan failure handled by empty state
         } finally {
           setIsScanning(false);
         }

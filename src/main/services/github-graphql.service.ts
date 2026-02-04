@@ -102,7 +102,6 @@ export class GitHubGraphQLService {
         };
       });
     } catch (error) {
-      console.error('GitHub GraphQL search error:', error);
       throw new Error(`Failed to search GitHub issues: ${error}`);
     }
   }
@@ -157,7 +156,6 @@ export class GitHubGraphQLService {
         defaultBranch: repository.defaultBranchRef?.name || 'main',
       };
     } catch (error) {
-      console.error('GitHub GraphQL repository error:', error);
       throw new Error(`Failed to get repository ${owner}/${repo}: ${error}`);
     }
   }
@@ -184,8 +182,7 @@ export class GitHubGraphQLService {
       );
 
       return true;
-    } catch (error) {
-      console.error('GitHub token validation error:', error);
+    } catch {
       return false;
     }
   }
@@ -215,7 +212,6 @@ export class GitHubGraphQLService {
         email: response.viewer.email || '',
       };
     } catch (error) {
-      console.error('GitHub user info error:', error);
       throw new Error(`Failed to get authenticated user: ${error}`);
     }
   }
@@ -270,7 +266,6 @@ export class GitHubGraphQLService {
         };
       });
     } catch (error) {
-      console.error('GitHub repository search error:', error);
       throw new Error(`Failed to search repositories: ${error}`);
     }
   }
@@ -319,7 +314,6 @@ export class GitHubGraphQLService {
 
       return result.repository?.object?.entries || [];
     } catch (error) {
-      console.error('GitHub get repository tree error:', error);
       throw new Error(`Failed to get repository tree for ${owner}/${repo}: ${error}`);
     }
   }

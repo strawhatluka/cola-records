@@ -114,15 +114,11 @@ export class EnvironmentService {
         const envPath = path.join(rootDir, '.env');
 
         if (fs.existsSync(envLocalPath)) {
-          console.log('Loading environment from .env.local');
           const envContent = fs.readFileSync(envLocalPath, 'utf-8');
           this.parseEnvFile(envContent);
         } else if (fs.existsSync(envPath)) {
-          console.log('Loading environment from .env');
           const envContent = fs.readFileSync(envPath, 'utf-8');
           this.parseEnvFile(envContent);
-        } else {
-          console.warn('.env.local or .env file not found. Please create one from .env.example');
         }
       } else {
         // In production, only use .env
@@ -135,8 +131,8 @@ export class EnvironmentService {
 
       // Also load from process.env
       this.loadFromProcessEnv();
-    } catch (error) {
-      console.error('Failed to load environment variables:', error);
+    } catch {
+      // Environment loading failed — will use defaults
     }
   }
 

@@ -23,8 +23,8 @@ export function ContributionsScreen({ onOpenIDE }: ContributionsScreenProps) {
         try {
           const scannedContributions = await ipc.invoke('contribution:scan-directory', defaultClonePath);
           setContributions(scannedContributions);
-        } catch (error) {
-          console.error('Failed to scan contributions directory:', error);
+        } catch {
+          // Scan failure handled by empty state
         } finally {
           setIsScanning(false);
         }
