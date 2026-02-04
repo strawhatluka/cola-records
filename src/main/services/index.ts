@@ -7,3 +7,4 @@ export * from './github-graphql.service';
 export * from './github-rest.service';
 export * from './github.service';
 export * from './spotify.service';
+export * from './discord.service';

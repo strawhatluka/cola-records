@@ -17,6 +17,8 @@ export function APITab({ settings, onUpdate }: APITabProps) {
   const [tokenValid, setTokenValid] = React.useState<boolean | null>(null);
   const [spotifyClientId, setSpotifyClientId] = React.useState(settings.spotifyClientId || '');
   const [spotifySaved, setSpotifySaved] = React.useState(false);
+  const [discordToken, setDiscordToken] = React.useState(settings.discordToken || '');
+  const [discordSaved, setDiscordSaved] = React.useState(false);
 
   const handleValidateToken = async () => {
     if (!githubToken) return;
@@ -130,6 +132,57 @@ export function APITab({ settings, onUpdate }: APITabProps) {
               and copy the Client ID. Add{' '}
               <code className="bg-muted px-1">http://127.0.0.1:3001/api/spotify/callback</code>{' '}
               as a redirect URI.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Discord</CardTitle>
+          <CardDescription>Connect to Discord for messaging within Cola Records</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Token</label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                type="password"
+                value={discordToken}
+                onChange={(e) => {
+                  setDiscordToken(e.target.value);
+                  setDiscordSaved(false);
+                }}
+                placeholder="Your Discord token"
+                className="flex-1"
+              />
+              <Button
+                onClick={async () => {
+                  await onUpdate({ discordToken });
+                  setDiscordSaved(true);
+                  setTimeout(() => setDiscordSaved(false), 3000);
+                }}
+                disabled={!discordToken}
+                variant={discordSaved ? 'default' : 'outline'}
+              >
+                {discordSaved ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Saved
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Open Discord in a browser (discord.com/app), press{' '}
+              <code className="bg-muted px-1">F12</code>{' '}
+              to open DevTools → <code className="bg-muted px-1">Network</code>{' '}
+              tab → filter by <code className="bg-muted px-1">XHR</code>{' '}
+              → click any request → find the{' '}
+              <code className="bg-muted px-1">Authorization</code>{' '}
+              header value in the Request Headers.
             </p>
           </div>
         </CardContent>

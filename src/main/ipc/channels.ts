@@ -162,6 +162,90 @@ export interface SpotifyPlaylist {
   images: { url: string; width: number; height: number }[];
 }
 
+// Discord Types
+export interface DiscordUser {
+  id: string;
+  username: string;
+  discriminator: string;
+  globalName: string | null;
+  avatar: string | null;
+}
+
+export interface DiscordGuild {
+  id: string;
+  name: string;
+  icon: string | null;
+  ownerId: string;
+  channels: DiscordChannel[];
+}
+
+export interface DiscordChannel {
+  id: string;
+  name: string;
+  type: number; // 0=text, 2=voice, 4=category, 5=announcement, 13=stage, 15=forum
+  parentId: string | null;
+  position: number;
+  topic: string | null;
+}
+
+export interface DiscordDMChannel {
+  id: string;
+  type: number; // 1=DM, 3=group DM
+  recipients: DiscordUser[];
+  lastMessageId: string | null;
+}
+
+export interface DiscordMessage {
+  id: string;
+  content: string;
+  author: DiscordUser;
+  timestamp: string;
+  editedTimestamp: string | null;
+  attachments: DiscordAttachment[];
+  embeds: DiscordEmbed[];
+  reactions: DiscordReaction[];
+  referencedMessage: DiscordMessage | null;
+  mentionEveryone: boolean;
+  mentions: DiscordUser[];
+  pinned: boolean;
+  type: number;
+}
+
+export interface DiscordAttachment {
+  id: string;
+  filename: string;
+  url: string;
+  proxyUrl: string;
+  size: number;
+  contentType: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+export interface DiscordEmbed {
+  title: string | null;
+  description: string | null;
+  url: string | null;
+  color: number | null;
+  thumbnail: { url: string; width: number; height: number } | null;
+  image: { url: string; width: number; height: number } | null;
+  author: { name: string; url: string | null; iconUrl: string | null } | null;
+  fields: { name: string; value: string; inline: boolean }[];
+}
+
+export interface DiscordReaction {
+  emoji: { id: string | null; name: string };
+  count: number;
+  me: boolean;
+}
+
+export interface DiscordEmoji {
+  id: string;
+  name: string;
+  animated: boolean;
+  guildId: string;
+}
+
 // Settings Types
 export interface Alias {
   name: string;
@@ -171,6 +255,7 @@ export interface Alias {
 export interface AppSettings {
   githubToken?: string;
   spotifyClientId?: string;
+  discordToken?: string;
   theme: 'light' | 'dark' | 'system';
   defaultClonePath: string;
   defaultProjectsPath: string;
@@ -380,6 +465,26 @@ export interface IpcChannels {
   'spotify:remove-track': (trackId: string) => void;
   'spotify:is-track-saved': (trackId: string) => boolean;
   'spotify:seek': (positionMs: number) => void;
+
+  // Discord Channels
+  'discord:is-connected': () => boolean;
+  'discord:connect': () => DiscordUser;
+  'discord:disconnect': () => void;
+  'discord:get-user': () => DiscordUser | null;
+  'discord:get-guilds': () => DiscordGuild[];
+  'discord:get-guild-channels': (guildId: string) => DiscordChannel[];
+  'discord:get-guild-emojis': (guildId: string) => DiscordEmoji[];
+  'discord:get-dm-channels': () => DiscordDMChannel[];
+  'discord:get-messages': (channelId: string, before?: string, limit?: number) => DiscordMessage[];
+  'discord:send-message': (channelId: string, content: string) => DiscordMessage;
+  'discord:edit-message': (channelId: string, messageId: string, content: string) => DiscordMessage;
+  'discord:delete-message': (channelId: string, messageId: string) => void;
+  'discord:add-reaction': (channelId: string, messageId: string, emoji: string) => void;
+  'discord:remove-reaction': (channelId: string, messageId: string, emoji: string) => void;
+  'discord:get-channel': (channelId: string) => DiscordChannel;
+  'discord:typing': (channelId: string) => void;
+  'discord:get-pinned-messages': (channelId: string) => DiscordMessage[];
+  'discord:create-dm': (userId: string) => DiscordDMChannel;
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };

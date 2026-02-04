@@ -11,6 +11,7 @@ import {
 import { gitHubGraphQLService } from './services/github-graphql.service';
 import { codeServerService } from './services/code-server.service';
 import { spotifyService } from './services/spotify.service';
+import { discordService } from './services/discord.service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -355,6 +356,7 @@ const setupIpcHandlers = () => {
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
+      discordToken: settings.discordToken,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: defaultClonePath,
       defaultProjectsPath: defaultProjectsPath,
@@ -368,6 +370,9 @@ const setupIpcHandlers = () => {
     // Save each setting to database
     if (updates.spotifyClientId !== undefined) {
       database.setSetting('spotifyClientId', updates.spotifyClientId || '');
+    }
+    if (updates.discordToken !== undefined) {
+      database.setSetting('discordToken', updates.discordToken || '');
     }
     if (updates.githubToken !== undefined) {
       database.setSetting('githubToken', updates.githubToken);
@@ -401,6 +406,7 @@ const setupIpcHandlers = () => {
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
+      discordToken: settings.discordToken,
       theme: (settings.theme as 'light' | 'dark' | 'system') || 'system',
       defaultClonePath: settings.defaultClonePath || '',
       defaultProjectsPath: settings.defaultProjectsPath || '',
@@ -664,6 +670,79 @@ const setupIpcHandlers = () => {
     await spotifyService.seek(positionMs);
   });
 
+  // Discord handlers
+  handleIpc('discord:is-connected', async () => {
+    return await discordService.isConnected();
+  });
+
+  handleIpc('discord:connect', async () => {
+    return await discordService.connect();
+  });
+
+  handleIpc('discord:disconnect', async () => {
+    await discordService.disconnect();
+  });
+
+  handleIpc('discord:get-user', async () => {
+    return await discordService.getUser();
+  });
+
+  handleIpc('discord:get-guilds', async () => {
+    return await discordService.getGuilds();
+  });
+
+  handleIpc('discord:get-guild-channels', async (_event, guildId) => {
+    return await discordService.getGuildChannels(guildId);
+  });
+
+  handleIpc('discord:get-guild-emojis', async (_event, guildId) => {
+    return await discordService.getGuildEmojis(guildId);
+  });
+
+  handleIpc('discord:get-dm-channels', async () => {
+    return await discordService.getDMChannels();
+  });
+
+  handleIpc('discord:get-messages', async (_event, channelId, before, limit) => {
+    return await discordService.getMessages(channelId, before, limit);
+  });
+
+  handleIpc('discord:send-message', async (_event, channelId, content) => {
+    return await discordService.sendMessage(channelId, content);
+  });
+
+  handleIpc('discord:edit-message', async (_event, channelId, messageId, content) => {
+    return await discordService.editMessage(channelId, messageId, content);
+  });
+
+  handleIpc('discord:delete-message', async (_event, channelId, messageId) => {
+    await discordService.deleteMessage(channelId, messageId);
+  });
+
+  handleIpc('discord:add-reaction', async (_event, channelId, messageId, emoji) => {
+    await discordService.addReaction(channelId, messageId, emoji);
+  });
+
+  handleIpc('discord:remove-reaction', async (_event, channelId, messageId, emoji) => {
+    await discordService.removeReaction(channelId, messageId, emoji);
+  });
+
+  handleIpc('discord:get-channel', async (_event, channelId) => {
+    return await discordService.getChannel(channelId);
+  });
+
+  handleIpc('discord:typing', async (_event, channelId) => {
+    await discordService.triggerTyping(channelId);
+  });
+
+  handleIpc('discord:get-pinned-messages', async (_event, channelId) => {
+    return await discordService.getPinnedMessages(channelId);
+  });
+
+  handleIpc('discord:create-dm', async (_event, userId) => {
+    return await discordService.createDM(userId);
+  });
+
   // Code Server handlers
   handleIpc('code-server:start', async (_event, projectPath) => {
     return await codeServerService.start(projectPath);
@@ -756,6 +835,7 @@ async function cleanup(): Promise<void> {
     // Cleanup stop failure is non-critical
   }
   spotifyService.cleanup();
+  discordService.cleanup();
   removeAllIpcHandlers();
   database.close();
 }
