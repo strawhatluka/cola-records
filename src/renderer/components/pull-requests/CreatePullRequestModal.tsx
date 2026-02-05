@@ -20,14 +20,19 @@ import { ipc } from '../../ipc/client';
 import { MarkdownEditor } from './MarkdownEditor';
 import type { BranchComparison } from '../../../main/ipc/channels';
 
+interface GitRemote {
+  name: string;
+  fetchUrl: string;
+  pushUrl: string;
+}
+
 interface CreatePullRequestModalProps {
   open: boolean;
   owner: string;
   repo: string;
   localPath: string;
   branches: string[];
-  isFork?: boolean;
-  forkOwner?: string;
+  remotes: GitRemote[];
   defaultBranchName?: string;
   onClose: () => void;
   onCreated: () => void;
@@ -119,8 +124,7 @@ export function CreatePullRequestModal({
   repo,
   localPath,
   branches,
-  isFork,
-  forkOwner,
+  remotes,
   defaultBranchName,
   onClose,
   onCreated,
@@ -229,8 +233,33 @@ export function CreatePullRequestModal({
     setError(null);
 
     try {
-      // For forks, prefix head with fork owner
-      const head = isFork && forkOwner ? `${forkOwner}:${compare}` : compare;
+      // Check if branch exists on remote, push if not
+      const remoteBranches = await ipc.invoke('git:get-remote-branches', localPath, 'origin');
+      const branchExistsOnRemote = remoteBranches.some(
+        (rb: string) => rb === compare || rb === `origin/${compare}`
+      );
+
+      if (!branchExistsOnRemote) {
+        // Push the branch to remote first
+        await ipc.invoke('git:push', localPath, 'origin', compare, true); // true = set upstream
+      }
+
+      // Determine if this is a fork by checking if origin URL differs from upstream target
+      // When creating PR to upstream, we need head as "forkOwner:branch"
+      let head = compare;
+      const originRemote = remotes.find(r => r.name === 'origin');
+
+      if (originRemote) {
+        // Extract owner from origin URL
+        const originMatch = originRemote.fetchUrl.match(/github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/);
+        if (originMatch) {
+          const originOwner = originMatch[1];
+          // If origin owner differs from target owner, this is a fork
+          if (originOwner !== owner) {
+            head = `${originOwner}:${compare}`;
+          }
+        }
+      }
 
       await ipc.invoke(
         'github:create-pull-request',

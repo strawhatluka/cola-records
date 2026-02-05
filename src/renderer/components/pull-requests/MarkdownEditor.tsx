@@ -186,7 +186,7 @@ export function MarkdownEditor({
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none resize-y disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none resize-y disabled:cursor-not-allowed disabled:opacity-50 styled-scroll"
             style={{ minHeight }}
           />
         ) : (

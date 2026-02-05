@@ -93,12 +93,14 @@ export class GitService {
   async push(
     repoPath: string,
     remote = 'origin',
-    branch?: string
+    branch?: string,
+    setUpstream = false
   ): Promise<void> {
     try {
       const git = this.getGit(repoPath);
       if (branch) {
-        await git.push(remote, branch);
+        const options = setUpstream ? ['-u'] : [];
+        await git.push(remote, branch, options);
       } else {
         await git.push();
       }
@@ -208,6 +210,27 @@ export class GitService {
       return sortedBranches;
     } catch (error) {
       throw new Error(`Failed to get branches for ${repoPath}: ${error}`);
+    }
+  }
+
+  /**
+   * Get remote branches from a specific remote
+   */
+  async getRemoteBranches(repoPath: string, remote: string): Promise<string[]> {
+    try {
+      const git = this.getGit(repoPath);
+      // Fetch latest remote refs
+      await git.fetch(remote, undefined, ['--prune']);
+      // Get remote branches
+      const result = await git.branch(['-r']);
+      // Filter to just branches from the specified remote and strip prefix
+      const remoteBranches = result.all
+        .filter(b => b.startsWith(`${remote}/`))
+        .map(b => b.replace(`${remote}/`, '').replace(/\x1b\[\d+m/g, '').trim())
+        .filter(b => b !== 'HEAD');
+      return remoteBranches;
+    } catch (error) {
+      throw new Error(`Failed to get remote branches for ${repoPath}: ${error}`);
     }
   }
 

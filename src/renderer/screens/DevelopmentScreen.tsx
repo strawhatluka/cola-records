@@ -84,22 +84,21 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const hasStarted = useRef(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch remotes when the remotes dropdown opens
+  // Fetch remotes on mount (needed for PR creation fork detection)
   useEffect(() => {
-    if (activeDropdown === 'remotes' && contribution.localPath) {
-      setRemotesLoading(true);
-      ipc.invoke('git:get-remotes', contribution.localPath)
-        .then((result) => {
-          if (isMounted.current) setRemotes(result);
-        })
-        .catch(() => {
-          if (isMounted.current) setRemotes([]);
-        })
-        .finally(() => {
-          if (isMounted.current) setRemotesLoading(false);
-        });
-    }
-  }, [activeDropdown, contribution.localPath]);
+    if (!contribution.localPath) return;
+    setRemotesLoading(true);
+    ipc.invoke('git:get-remotes', contribution.localPath)
+      .then((result) => {
+        if (isMounted.current) setRemotes(result);
+      })
+      .catch(() => {
+        if (isMounted.current) setRemotes([]);
+      })
+      .finally(() => {
+        if (isMounted.current) setRemotesLoading(false);
+      });
+  }, [contribution.localPath]);
 
   // Fetch authenticated user on mount
   useEffect(() => {
@@ -503,8 +502,18 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                     <p className="text-xs text-muted-foreground">No pull requests found</p>
                   ) : (
                     <div className="space-y-2">
-                      {pullRequests.map((pr) => {
+                      {[...pullRequests]
+                        .sort((a, b) => {
+                          // Sort user's own PRs to the top
+                          const aIsMine = githubUsername && a.author === githubUsername;
+                          const bIsMine = githubUsername && b.author === githubUsername;
+                          if (aIsMine && !bIsMine) return -1;
+                          if (!aIsMine && bIsMine) return 1;
+                          return 0;
+                        })
+                        .map((pr) => {
                         const status = pr.merged ? 'merged' : pr.state;
+                        const isMine = githubUsername && pr.author === githubUsername;
                         return (
                           <div
                             key={pr.number}
@@ -524,6 +533,11 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                               <div className="flex items-center gap-1.5">
                                 <span className="font-medium text-sm truncate">{pr.title}</span>
                                 <span className="text-muted-foreground shrink-0">#{pr.number}</span>
+                                {isMine && (
+                                  <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
+                                    submitted
+                                  </span>
+                                )}
                               </div>
                               <div className="text-muted-foreground mt-0.5">
                                 {pr.headBranch} &middot; {pr.author}
@@ -681,7 +695,6 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       {showCreatePR && (() => {
         const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
         const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-        const forkParsed = contribution.repositoryUrl ? extractOwnerRepo(contribution.repositoryUrl) : null;
         return parsed ? (
           <CreatePullRequestModal
             open={showCreatePR}
@@ -689,8 +702,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             repo={parsed.repo}
             localPath={contribution.localPath}
             branches={branches}
-            isFork={contribution.isFork}
-            forkOwner={forkParsed?.owner}
+            remotes={remotes}
             defaultBranchName={contribution.branchName}
             onClose={() => setShowCreatePR(false)}
             onCreated={() => fetchPullRequests()}

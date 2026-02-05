@@ -81,6 +81,14 @@ class CodeServerService {
     return 'cola-npm-global';
   }
 
+  /**
+   * Named Docker volume for Python installation.
+   * Using standalone Python build to persist across container restarts.
+   */
+  getPythonVolumeName(): string {
+    return 'cola-python';
+  }
+
   // ── Path Utilities ───────────────────────────────────────────────
 
   /**
@@ -290,8 +298,8 @@ class CodeServerService {
     const lines = [
       '# Cola Records container shell profile',
       '',
-      '# Add npm global bin and code-server node to PATH',
-      'export PATH="/home/coder/.npm-global/bin:/usr/lib/code-server/lib:$PATH"',
+      '# Add Python, npm global bin, and code-server node to PATH',
+      'export PATH="/home/coder/.python/bin:/home/coder/.npm-global/bin:/usr/lib/code-server/lib:$PATH"',
       '',
       '# Alias node to code-server bundled node for CLI tools',
       'alias node="/usr/lib/code-server/lib/node"',
@@ -448,6 +456,69 @@ class CodeServerService {
     }
 
     throw new Error(`code-server did not become ready within ${maxAttempts} seconds`);
+  }
+
+  /**
+   * Bootstrap Python into a persistent named volume.
+   * Uses standalone Python build from python-build-standalone project.
+   */
+  async bootstrapPython(containerName: string): Promise<void> {
+    const pythonDir = '/home/coder/.python';
+    const pythonVersion = '3.12.1';
+
+    console.log('[CodeServer] Setting up Python...');
+
+    // Fix ownership of named volume (Docker creates it as root)
+    try {
+      await this.dockerExec([
+        'exec', '-u', 'root', containerName,
+        'chown', '-R', 'coder:coder', pythonDir,
+      ]);
+    } catch {
+      // Best effort - may already be correct
+    }
+
+    // Check if Python is already bootstrapped
+    try {
+      await this.dockerExec([
+        'exec', containerName,
+        'test', '-f', `${pythonDir}/bin/python3`,
+      ]);
+      console.log('[CodeServer] Python already bootstrapped');
+      return;
+    } catch {
+      // Python not found - need to bootstrap
+    }
+
+    console.log('[CodeServer] Bootstrapping Python into persistent volume...');
+    try {
+      // Download standalone Python build (python-build-standalone project)
+      // Using the install_only variant which is smaller and pre-built
+      await this.dockerExec([
+        'exec', containerName,
+        'bash', '-c', `
+          set -e
+          cd ${pythonDir}
+
+          # Download standalone Python build for Linux x86_64
+          curl -sL "https://github.com/indygreg/python-build-standalone/releases/download/20240107/cpython-${pythonVersion}+20240107-x86_64-unknown-linux-gnu-install_only.tar.gz" -o python.tar.gz
+
+          # Extract (creates a 'python' directory)
+          tar -xzf python.tar.gz
+
+          # Move contents up and cleanup
+          mv python/* .
+          rmdir python
+          rm python.tar.gz
+
+          # Create pip wrapper that uses our Python
+          ./bin/python3 -m ensurepip --upgrade 2>/dev/null || true
+        `,
+      ]);
+      console.log('[CodeServer] Python bootstrapped successfully');
+    } catch (err) {
+      console.error('[CodeServer] Failed to bootstrap Python:', err);
+    }
   }
 
   /**
@@ -612,6 +683,7 @@ NPXSCRIPT
       // Step 6: Build Docker run args
       const gitMounts = this.getGitMounts();
       const npmGlobalVolume = this.getNpmGlobalVolumeName();
+      const pythonVolume = this.getPythonVolumeName();
       const args = [
         'run', '--rm', '-d',
         '--name', containerName,
@@ -629,6 +701,8 @@ NPXSCRIPT
         // npm global packages - named Docker volume for better performance
         // (avoids slow Windows filesystem bridge through WSL2)
         '-v', `${npmGlobalVolume}:/home/coder/.npm-global`,
+        // Python installation - named Docker volume for persistence
+        '-v', `${pythonVolume}:/home/coder/.python`,
         // Git mounts (conditionally included)
         ...gitMounts,
         // Claude Code config mounts (auth token, settings, etc.)
@@ -662,8 +736,11 @@ NPXSCRIPT
       this.port = port;
       this.running = true;
 
-      // Step 8: Install/update global packages in background (don't block startup)
-      this.installGlobalPackages(containerName).catch(() => {
+      // Step 8: Bootstrap Python and npm packages in background (don't block startup)
+      Promise.all([
+        this.bootstrapPython(containerName),
+        this.installGlobalPackages(containerName),
+      ]).catch(() => {
         // Silent fail - packages are best-effort
       });
 

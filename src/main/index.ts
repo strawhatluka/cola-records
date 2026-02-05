@@ -86,8 +86,8 @@ const setupIpcHandlers = () => {
     await gitService.commit(repoPath, message);
   });
 
-  handleIpc('git:push', async (_event, repoPath, remote, branch) => {
-    await gitService.push(repoPath, remote, branch);
+  handleIpc('git:push', async (_event, repoPath, remote, branch, setUpstream) => {
+    await gitService.push(repoPath, remote, branch, setUpstream);
   });
 
   handleIpc('git:pull', async (_event, repoPath, remote, branch) => {
@@ -108,6 +108,10 @@ const setupIpcHandlers = () => {
 
   handleIpc('git:get-branches', async (_event, repoPath) => {
     return await gitService.getBranches(repoPath);
+  });
+
+  handleIpc('git:get-remote-branches', async (_event, repoPath, remote) => {
+    return await gitService.getRemoteBranches(repoPath, remote);
   });
 
   handleIpc('git:get-current-branch', async (_event, repoPath) => {

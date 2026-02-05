@@ -361,7 +361,8 @@ export interface IpcChannels {
   'git:add': (repoPath: string, files: string[]) => void;
   'git:commit': (repoPath: string, message: string) => void;
   'git:get-branches': (repoPath: string) => string[];
-  'git:push': (repoPath: string, remote?: string, branch?: string) => void;
+  'git:get-remote-branches': (repoPath: string, remote: string) => string[];
+  'git:push': (repoPath: string, remote?: string, branch?: string, setUpstream?: boolean) => void;
   'git:pull': (repoPath: string, remote?: string, branch?: string) => void;
   'git:clone': (url: string, targetPath: string) => void;
   'git:checkout': (repoPath: string, branch: string) => void;

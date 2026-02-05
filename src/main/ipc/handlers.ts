@@ -45,6 +45,7 @@ export function removeAllIpcHandlers(): void {
     'git:add',
     'git:commit',
     'git:get-branches',
+    'git:get-remote-branches',
     'git:push',
     'git:pull',
     'git:clone',
