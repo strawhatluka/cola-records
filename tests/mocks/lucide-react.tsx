@@ -75,3 +75,15 @@ export const Tag = createIcon('Tag');
 export const Trash2 = createIcon('Trash2');
 export const X = createIcon('X');
 export const XCircle = createIcon('XCircle');
+
+// Spotify icons
+export const LogOut = createIcon('LogOut');
+export const Shuffle = createIcon('Shuffle');
+export const SkipBack = createIcon('SkipBack');
+export const Play = createIcon('Play');
+export const Pause = createIcon('Pause');
+export const SkipForward = createIcon('SkipForward');
+export const Volume2 = createIcon('Volume2');
+export const VolumeX = createIcon('VolumeX');
+export const Heart = createIcon('Heart');
+export const ListPlus = createIcon('ListPlus');

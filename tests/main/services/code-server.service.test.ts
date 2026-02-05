@@ -47,9 +47,10 @@ vi.mock('util', async (importOriginal) => {
 });
 
 // Mock database
+const mockGetSetting = vi.fn<(key: string) => string | null>(() => null);
 vi.mock('../../../src/main/database/database.service', () => ({
   database: {
-    getSetting: vi.fn(() => null),
+    getSetting: (key: string) => mockGetSetting(key),
   },
 }));
 
@@ -254,6 +255,203 @@ describe('CodeServerService', () => {
       const result = await codeServerService.dockerExec(['info']);
       expect(typeof result).toBe('string');
       expect(result).toContain('mock-output');
+    });
+  });
+
+  describe('toDockerPath edge cases', () => {
+    it('converts lowercase drive letter', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+      const result = codeServerService.toDockerPath('d:\\Projects\\my-app');
+      expect(result).toBe('/d/Projects/my-app');
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+    });
+
+    it('handles paths with spaces on Windows', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+      const result = codeServerService.toDockerPath('C:\\Users\\My User\\Documents\\project');
+      expect(result).toBe('/c/Users/My User/Documents/project');
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+    });
+  });
+
+  describe('syncVSCodeSettings — JSONC handling', () => {
+    it('strips line comments from host settings', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      // First existsSync: host settings exist; second: code-server settings don't
+      let existsCallCount = 0;
+      mockExistsSync.mockImplementation(() => {
+        existsCallCount++;
+        return existsCallCount === 1; // only host file exists
+      });
+      mockReadFileSync.mockReturnValue(
+        '{\n  // This is a line comment\n  "editor.fontSize": 16\n}'
+      );
+
+      codeServerService.syncVSCodeSettings();
+
+      const writtenContent = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (writtenContent) {
+        const settings = JSON.parse(writtenContent);
+        expect(settings['editor.fontSize']).toBe(16);
+      }
+    });
+
+    it('strips block comments and trailing commas from host settings', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      let existsCallCount = 0;
+      mockExistsSync.mockImplementation(() => {
+        existsCallCount++;
+        return existsCallCount === 1;
+      });
+      mockReadFileSync.mockReturnValue(
+        '{\n  /* block comment */\n  "editor.tabSize": 2,\n  "editor.wordWrap": "on",\n}'
+      );
+
+      codeServerService.syncVSCodeSettings();
+
+      const writtenContent = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (writtenContent) {
+        const settings = JSON.parse(writtenContent);
+        expect(settings['editor.tabSize']).toBe(2);
+        expect(settings['editor.wordWrap']).toBe('on');
+      }
+    });
+
+    it('always applies required overrides even if host settings override them', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      let existsCallCount = 0;
+      mockExistsSync.mockImplementation(() => {
+        existsCallCount++;
+        return existsCallCount === 1;
+      });
+      mockReadFileSync.mockReturnValue(
+        JSON.stringify({ 'security.workspace.trust.enabled': true, 'git.enabled': false })
+      );
+
+      codeServerService.syncVSCodeSettings();
+
+      const writtenContent = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (writtenContent) {
+        const settings = JSON.parse(writtenContent);
+        expect(settings['security.workspace.trust.enabled']).toBe(false);
+        expect(settings['git.enabled']).toBe(true);
+        expect(settings['git.path']).toBe('/usr/bin/git');
+      }
+    });
+
+    it('sets terminal profile for cola-bash', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockExistsSync.mockReturnValue(false);
+
+      codeServerService.syncVSCodeSettings();
+
+      const writtenContent = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (writtenContent) {
+        const settings = JSON.parse(writtenContent);
+        expect(settings['terminal.integrated.defaultProfile.linux']).toBe('cola-bash');
+        expect(settings['terminal.integrated.profiles.linux']['cola-bash']).toBeDefined();
+        expect(settings['terminal.integrated.profiles.linux']['cola-bash'].path).toBe('/bin/bash');
+      }
+    });
+  });
+
+  describe('createContainerGitConfig — host config embedding', () => {
+    it('embeds host .gitconfig content with CRLF normalized to LF', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('[user]\r\n    name = Test User\r\n    email = test@example.com\r\n');
+
+      codeServerService.createContainerGitConfig();
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        expect(content).toContain('[user]');
+        expect(content).toContain('name = Test User');
+        // CRLF should be normalized — no \r in output
+        expect(content).not.toContain('\r');
+        // Our overrides should still be present
+        expect(content).toContain('[safe]');
+        expect(content).toContain('[core]');
+        expect(content).toContain('autocrlf = input');
+      }
+    });
+  });
+
+  describe('createContainerBashrc — user aliases', () => {
+    it('includes user-defined aliases from database', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockReturnValue(
+        JSON.stringify([
+          { name: 'deploy', command: 'npm run deploy' },
+          { name: 'gs', command: 'git status -sb' }, // overrides default
+        ])
+      );
+
+      codeServerService.createContainerBashrc('/test/project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        expect(content).toContain('alias deploy="npm run deploy"');
+        // User alias should override the default gs alias
+        expect(content).toContain('alias gs="git status -sb"');
+        expect(content).not.toContain('alias gs="git status"');
+      }
+    });
+
+    it('includes project name in prompt', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+
+      codeServerService.createContainerBashrc('/home/user/my-awesome-project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        expect(content).toContain('my-awesome-project');
+      }
+    });
+
+    it('handles invalid aliases JSON gracefully', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockReturnValue('not valid json');
+
+      // Should not throw
+      codeServerService.createContainerBashrc('/test/project');
+
+      expect(mockWriteFileSync).toHaveBeenCalled();
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        // Default aliases should still be present
+        expect(content).toContain('alias ll=');
+      }
+    });
+  });
+
+  describe('getClaudeMounts — selective mounting', () => {
+    it('only mounts claude.json when .claude dir does not exist', () => {
+      let callCount = 0;
+      mockExistsSync.mockImplementation(() => {
+        callCount++;
+        return callCount === 1; // only claude.json exists
+      });
+
+      const mounts = codeServerService.getClaudeMounts();
+      expect(mounts.some(m => m.includes('.claude.json'))).toBe(true);
+      // .claude dir mount should not be present (only 2 mount args for claude.json)
+      const claudeDirMounts = mounts.filter(m => m.includes('.claude') && !m.includes('.claude.json'));
+      expect(claudeDirMounts).toHaveLength(0);
     });
   });
 });
