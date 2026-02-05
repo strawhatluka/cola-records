@@ -209,6 +209,49 @@ export interface DiscordMessage {
   mentions: DiscordUser[];
   pinned: boolean;
   type: number;
+  stickerItems: DiscordStickerItem[];
+  poll: DiscordPoll | null;
+}
+
+export interface DiscordStickerItem {
+  id: string;
+  name: string;
+  formatType: number; // 1=PNG, 2=APNG, 3=LOTTIE, 4=GIF
+}
+
+export interface DiscordSticker {
+  id: string;
+  name: string;
+  description: string | null;
+  tags: string;
+  formatType: number;
+  packId: string | null;
+  guildId: string | null;
+}
+
+export interface DiscordStickerPack {
+  id: string;
+  name: string;
+  description: string;
+  stickers: DiscordSticker[];
+  bannerAssetId: string | null;
+}
+
+export interface DiscordPollAnswer {
+  answerId: number;
+  pollMedia: { text: string; emoji?: { id: string | null; name: string } };
+}
+
+export interface DiscordPoll {
+  question: { text: string };
+  answers: DiscordPollAnswer[];
+  expiry: string | null;
+  allowMultiselect: boolean;
+  layoutType: number;
+  results?: {
+    isFinalized: boolean;
+    answerCounts: { id: number; count: number; meVoted: boolean }[];
+  };
 }
 
 export interface DiscordAttachment {
@@ -227,9 +270,14 @@ export interface DiscordEmbed {
   description: string | null;
   url: string | null;
   color: number | null;
+  type: string | null;
   thumbnail: { url: string; width: number; height: number } | null;
   image: { url: string; width: number; height: number } | null;
+  video: { url: string; width: number; height: number } | null;
   author: { name: string; url: string | null; iconUrl: string | null } | null;
+  footer: { text: string; iconUrl: string | null } | null;
+  timestamp: string | null;
+  provider: { name: string; url: string | null } | null;
   fields: { name: string; value: string; inline: boolean }[];
 }
 
@@ -476,7 +524,7 @@ export interface IpcChannels {
   'discord:get-guild-emojis': (guildId: string) => DiscordEmoji[];
   'discord:get-dm-channels': () => DiscordDMChannel[];
   'discord:get-messages': (channelId: string, before?: string, limit?: number) => DiscordMessage[];
-  'discord:send-message': (channelId: string, content: string) => DiscordMessage;
+  'discord:send-message': (channelId: string, content: string, replyToId?: string) => DiscordMessage;
   'discord:edit-message': (channelId: string, messageId: string, content: string) => DiscordMessage;
   'discord:delete-message': (channelId: string, messageId: string) => void;
   'discord:add-reaction': (channelId: string, messageId: string, emoji: string) => void;
@@ -485,6 +533,13 @@ export interface IpcChannels {
   'discord:typing': (channelId: string) => void;
   'discord:get-pinned-messages': (channelId: string) => DiscordMessage[];
   'discord:create-dm': (userId: string) => DiscordDMChannel;
+  'discord:send-message-with-attachments': (channelId: string, content: string, files: { name: string; data: Buffer; contentType: string }[], replyToId?: string) => DiscordMessage;
+  'discord:search-gifs': (query: string) => { url: string; preview: string; width: number; height: number }[];
+  'discord:trending-gifs': () => { url: string; preview: string; width: number; height: number }[];
+  'discord:get-sticker-packs': () => DiscordStickerPack[];
+  'discord:get-guild-stickers': (guildId: string) => DiscordSticker[];
+  'discord:send-sticker': (channelId: string, stickerId: string) => DiscordMessage;
+  'discord:create-poll': (channelId: string, question: string, answers: string[], duration: number, allowMultiselect: boolean) => DiscordMessage;
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };

@@ -6,6 +6,8 @@ import type {
   DiscordDMChannel,
   DiscordMessage,
   DiscordEmoji,
+  DiscordSticker,
+  DiscordStickerPack,
 } from '../../main/ipc/channels';
 import { ipc } from '../ipc/client';
 
@@ -39,11 +41,23 @@ interface DiscordState {
   fetchDMChannels: () => Promise<void>;
   fetchMessages: (channelId: string) => Promise<void>;
   loadMoreMessages: () => Promise<void>;
-  sendMessage: (channelId: string, content: string) => Promise<void>;
+  sendMessage: (channelId: string, content: string, replyToId?: string) => Promise<void>;
   editMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
   deleteMessage: (channelId: string, messageId: string) => Promise<void>;
   addReaction: (channelId: string, messageId: string, emoji: string) => Promise<void>;
   removeReaction: (channelId: string, messageId: string, emoji: string) => Promise<void>;
+  sendMessageWithAttachments: (channelId: string, content: string, files: { name: string; data: Buffer; contentType: string }[], replyToId?: string) => Promise<void>;
+  searchGifs: (query: string) => Promise<{ url: string; preview: string; width: number; height: number }[]>;
+  getTrendingGifs: () => Promise<{ url: string; preview: string; width: number; height: number }[]>;
+  fetchPinnedMessages: (channelId: string) => Promise<void>;
+  triggerTyping: (channelId: string) => Promise<void>;
+  pinnedMessages: DiscordMessage[];
+  stickerPacks: DiscordStickerPack[];
+  guildStickers: Record<string, DiscordSticker[]>;
+  fetchStickerPacks: () => Promise<void>;
+  fetchGuildStickers: (guildId: string) => Promise<void>;
+  sendSticker: (channelId: string, stickerId: string) => Promise<void>;
+  createPoll: (channelId: string, question: string, answers: string[], duration: number, allowMultiselect: boolean) => Promise<void>;
 
   // Navigation
   selectGuild: (guildId: string) => void;
@@ -60,6 +74,9 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
   guildEmojis: {},
   dmChannels: [],
   messages: [],
+  pinnedMessages: [],
+  stickerPacks: [],
+  guildStickers: {},
   loading: false,
   error: null,
 
@@ -178,9 +195,9 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
     }
   },
 
-  sendMessage: async (channelId, content) => {
+  sendMessage: async (channelId, content, replyToId) => {
     try {
-      const newMsg = await ipc.invoke('discord:send-message', channelId, content);
+      const newMsg = await ipc.invoke('discord:send-message', channelId, content, replyToId);
       set((state) => ({ messages: [newMsg, ...state.messages] }));
     } catch (error) {
       set({ error: String(error) });
@@ -220,6 +237,86 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
   removeReaction: async (channelId, messageId, emoji) => {
     try {
       await ipc.invoke('discord:remove-reaction', channelId, messageId, emoji);
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  sendMessageWithAttachments: async (channelId, content, files, replyToId) => {
+    try {
+      const newMsg = await ipc.invoke('discord:send-message-with-attachments', channelId, content, files, replyToId);
+      set((state) => ({ messages: [newMsg, ...state.messages] }));
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  searchGifs: async (query) => {
+    try {
+      return await ipc.invoke('discord:search-gifs', query);
+    } catch {
+      return [];
+    }
+  },
+
+  getTrendingGifs: async () => {
+    try {
+      return await ipc.invoke('discord:trending-gifs');
+    } catch {
+      return [];
+    }
+  },
+
+  fetchPinnedMessages: async (channelId) => {
+    try {
+      const pinnedMessages = await ipc.invoke('discord:get-pinned-messages', channelId);
+      set({ pinnedMessages });
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  triggerTyping: async (channelId) => {
+    try {
+      await ipc.invoke('discord:typing', channelId);
+    } catch {
+      // Silently ignore typing errors
+    }
+  },
+
+  fetchStickerPacks: async () => {
+    try {
+      const stickerPacks = await ipc.invoke('discord:get-sticker-packs');
+      set({ stickerPacks });
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  fetchGuildStickers: async (guildId) => {
+    try {
+      const stickers = await ipc.invoke('discord:get-guild-stickers', guildId);
+      set((state) => ({
+        guildStickers: { ...state.guildStickers, [guildId]: stickers },
+      }));
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  sendSticker: async (channelId, stickerId) => {
+    try {
+      const newMsg = await ipc.invoke('discord:send-sticker', channelId, stickerId);
+      set((state) => ({ messages: [newMsg, ...state.messages] }));
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  createPoll: async (channelId, question, answers, duration, allowMultiselect) => {
+    try {
+      const newMsg = await ipc.invoke('discord:create-poll', channelId, question, answers, duration, allowMultiselect);
+      set((state) => ({ messages: [newMsg, ...state.messages] }));
     } catch (error) {
       set({ error: String(error) });
     }

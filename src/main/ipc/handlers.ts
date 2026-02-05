@@ -145,6 +145,13 @@ export function removeAllIpcHandlers(): void {
     'discord:typing',
     'discord:get-pinned-messages',
     'discord:create-dm',
+    'discord:send-message-with-attachments',
+    'discord:search-gifs',
+    'discord:trending-gifs',
+    'discord:get-sticker-packs',
+    'discord:get-guild-stickers',
+    'discord:send-sticker',
+    'discord:create-poll',
     // Code Server
     'code-server:start',
     'code-server:stop',

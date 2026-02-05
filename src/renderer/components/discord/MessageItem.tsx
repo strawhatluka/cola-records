@@ -1,19 +1,26 @@
-import type { DiscordMessage } from '../../../main/ipc/channels';
+import { useState } from 'react';
+import { SmilePlus, Reply, Pencil, Trash2, Copy } from 'lucide-react';
+import type { DiscordMessage, DiscordStickerItem } from '../../../main/ipc/channels';
 import { DiscordMarkdown } from './DiscordMarkdown';
 import { EmbedRenderer } from './EmbedRenderer';
 import { AttachmentRenderer } from './AttachmentRenderer';
 import { ReactionBar } from './ReactionBar';
+import { PollRenderer } from './PollRenderer';
 
 interface MessageItemProps {
   message: DiscordMessage;
+  currentUserId: string | null;
   onReactionToggle: (messageId: string, emoji: string) => void;
+  onReply: (message: DiscordMessage) => void;
+  onEdit: (message: DiscordMessage) => void;
+  onDelete: (messageId: string) => void;
+  onEmojiPick: (messageId: string) => void;
 }
 
 function getAvatarUrl(userId: string, avatar: string | null): string {
   if (avatar) {
     return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png?size=64`;
   }
-  // Default avatar based on user ID
   const index = Number(BigInt(userId) >> BigInt(22)) % 6;
   return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
 }
@@ -32,8 +39,18 @@ function formatMessageTime(timestamp: string): string {
   return `${date.toLocaleDateString()} ${time}`;
 }
 
-export function MessageItem({ message, onReactionToggle }: MessageItemProps) {
+export function MessageItem({
+  message,
+  currentUserId,
+  onReactionToggle,
+  onReply,
+  onEdit,
+  onDelete,
+  onEmojiPick,
+}: MessageItemProps) {
+  const [showActions, setShowActions] = useState(false);
   const displayName = message.author.globalName || message.author.username;
+  const isOwnMessage = currentUserId === message.author.id;
 
   // System messages (joins, pins, etc.)
   if (message.type !== 0 && message.type !== 19) {
@@ -45,7 +62,11 @@ export function MessageItem({ message, onReactionToggle }: MessageItemProps) {
   }
 
   return (
-    <div className="flex gap-2 px-3 py-1 hover:bg-muted/30 group">
+    <div
+      className="relative flex gap-2 px-3 py-1 hover:bg-muted/30 group"
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
       <img
         src={getAvatarUrl(message.author.id, message.author.avatar)}
         alt={displayName}
@@ -80,6 +101,11 @@ export function MessageItem({ message, onReactionToggle }: MessageItemProps) {
           </div>
         )}
 
+        {/* Stickers */}
+        {message.stickerItems?.map((sticker) => (
+          <StickerRenderer key={sticker.id} sticker={sticker} />
+        ))}
+
         {/* Attachments */}
         {message.attachments.map((att) => (
           <AttachmentRenderer key={att.id} attachment={att} />
@@ -90,13 +116,99 @@ export function MessageItem({ message, onReactionToggle }: MessageItemProps) {
           <EmbedRenderer key={i} embed={embed} />
         ))}
 
+        {/* Poll */}
+        {message.poll && <PollRenderer poll={message.poll} />}
+
         {/* Reactions */}
         <ReactionBar
           reactions={message.reactions}
           onToggle={(emoji) => onReactionToggle(message.id, emoji)}
         />
       </div>
+
+      {/* Hover action bar */}
+      {showActions && (
+        <div className="absolute right-2 -top-3 flex items-center bg-background border rounded shadow-sm z-10">
+          <ActionButton
+            icon={<SmilePlus className="h-3.5 w-3.5" />}
+            title="Add Reaction"
+            onClick={() => onEmojiPick(message.id)}
+          />
+          <ActionButton
+            icon={<Reply className="h-3.5 w-3.5" />}
+            title="Reply"
+            onClick={() => onReply(message)}
+          />
+          <ActionButton
+            icon={<Copy className="h-3.5 w-3.5" />}
+            title="Copy Text"
+            onClick={() => navigator.clipboard.writeText(message.content)}
+          />
+          {isOwnMessage && (
+            <>
+              <ActionButton
+                icon={<Pencil className="h-3.5 w-3.5" />}
+                title="Edit"
+                onClick={() => onEdit(message)}
+              />
+              <ActionButton
+                icon={<Trash2 className="h-3.5 w-3.5 text-destructive" />}
+                title="Delete"
+                onClick={() => onDelete(message.id)}
+                className="hover:bg-destructive/10"
+              />
+            </>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function ActionButton({
+  icon,
+  title,
+  onClick,
+  className = '',
+}: {
+  icon: React.ReactNode;
+  title: string;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors ${className}`}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function StickerRenderer({ sticker }: { sticker: DiscordStickerItem }) {
+  // format_type: 1=PNG, 2=APNG, 3=LOTTIE, 4=GIF
+  if (sticker.formatType === 3) {
+    // Lottie stickers can't be rendered as images — show placeholder
+    return (
+      <div className="mt-1 h-24 w-24 rounded bg-muted/50 flex items-center justify-center" title={sticker.name}>
+        <span className="text-[10px] text-muted-foreground">{sticker.name}</span>
+      </div>
+    );
+  }
+
+  const ext = sticker.formatType === 4 ? 'gif' : 'png';
+  const url = `https://media.discordapp.net/stickers/${sticker.id}.${ext}?size=160`;
+
+  return (
+    <img
+      src={url}
+      alt={sticker.name}
+      title={sticker.name}
+      className="mt-1 h-24 w-24 object-contain"
+    />
   );
 }
 

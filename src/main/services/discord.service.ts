@@ -10,6 +10,10 @@ import type {
   DiscordAttachment,
   DiscordEmbed,
   DiscordReaction,
+  DiscordStickerItem,
+  DiscordSticker,
+  DiscordStickerPack,
+  DiscordPoll,
 } from '../ipc/channels';
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
@@ -107,8 +111,12 @@ export class DiscordService {
     return (data || []).map((m: any) => this.mapMessage(m));
   }
 
-  async sendMessage(channelId: string, content: string): Promise<DiscordMessage> {
-    const data = await this.apiPost(`/channels/${channelId}/messages`, { content });
+  async sendMessage(channelId: string, content: string, replyToId?: string): Promise<DiscordMessage> {
+    const body: Record<string, unknown> = { content };
+    if (replyToId) {
+      body.message_reference = { message_id: replyToId };
+    }
+    const data = await this.apiPost(`/channels/${channelId}/messages`, body);
     return this.mapMessage(data);
   }
 
@@ -153,6 +161,125 @@ export class DiscordService {
     };
   }
 
+  async sendMessageWithAttachments(
+    channelId: string,
+    content: string,
+    files: { name: string; data: Buffer; contentType: string }[],
+    replyToId?: string,
+  ): Promise<DiscordMessage> {
+    const token = await this.getToken();
+    const formData = new FormData();
+
+    const payload: Record<string, unknown> = { content };
+    if (replyToId) {
+      payload.message_reference = { message_id: replyToId };
+    }
+    formData.append('payload_json', JSON.stringify(payload));
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const blob = new Blob([file.data], { type: file.contentType });
+      formData.append(`files[${i}]`, blob, file.name);
+    }
+
+    const response = await fetch(`${DISCORD_API_BASE}/channels/${channelId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: token },
+      body: formData,
+    });
+
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      const waitMs = retryAfter ? parseFloat(retryAfter) * 1000 : 1000;
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      return this.sendMessageWithAttachments(channelId, content, files, replyToId);
+    }
+
+    if (!response.ok) {
+      throw new Error(`Discord API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return this.mapMessage(data);
+  }
+
+  async searchGifs(query: string): Promise<{ url: string; preview: string; width: number; height: number }[]> {
+    // Use Discord's built-in GIF search (Tenor via Discord proxy)
+    const token = await this.getToken();
+    const params = new URLSearchParams({ q: query, media_format: 'gif', provider: 'tenor', locale: 'en-US' });
+    const response = await fetch(`${DISCORD_API_BASE}/gifs/search?${params.toString()}`, {
+      headers: { Authorization: token },
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data || []).map((g: any) => ({
+      url: g.url,
+      preview: g.preview || g.gif_src || g.url,
+      width: g.width || 200,
+      height: g.height || 200,
+    }));
+  }
+
+  async getTrendingGifs(): Promise<{ url: string; preview: string; width: number; height: number }[]> {
+    const token = await this.getToken();
+    const params = new URLSearchParams({ media_format: 'gif', provider: 'tenor', locale: 'en-US' });
+    const response = await fetch(`${DISCORD_API_BASE}/gifs/trending?${params.toString()}`, {
+      headers: { Authorization: token },
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data || []).map((g: any) => ({
+      url: g.url,
+      preview: g.preview || g.gif_src || g.url,
+      width: g.width || 200,
+      height: g.height || 200,
+    }));
+  }
+
+  async getStickerPacks(): Promise<DiscordStickerPack[]> {
+    const data = await this.apiGet('/sticker-packs');
+    return (data?.sticker_packs || []).map((pack: any) => ({
+      id: pack.id,
+      name: pack.name,
+      description: pack.description || '',
+      bannerAssetId: pack.banner_asset_id || null,
+      stickers: (pack.stickers || []).map((s: any) => this.mapSticker(s)),
+    }));
+  }
+
+  async getGuildStickers(guildId: string): Promise<DiscordSticker[]> {
+    const data = await this.apiGet(`/guilds/${guildId}/stickers`);
+    return (data || []).map((s: any) => this.mapSticker(s));
+  }
+
+  async sendSticker(channelId: string, stickerId: string): Promise<DiscordMessage> {
+    const data = await this.apiPost(`/channels/${channelId}/messages`, {
+      sticker_ids: [stickerId],
+    });
+    return this.mapMessage(data);
+  }
+
+  async createPoll(
+    channelId: string,
+    question: string,
+    answers: string[],
+    duration: number,
+    allowMultiselect: boolean,
+  ): Promise<DiscordMessage> {
+    const data = await this.apiPost(`/channels/${channelId}/messages`, {
+      poll: {
+        question: { text: question },
+        answers: answers.map((text) => ({
+          poll_media: { text },
+        })),
+        duration,
+        allow_multiselect: allowMultiselect,
+        layout_type: 1,
+      },
+    });
+    return this.mapMessage(data);
+  }
+
   cleanup(): void {
     // No server to clean up (unlike Spotify's callback server)
   }
@@ -195,6 +322,12 @@ export class DiscordService {
       mentions: (m.mentions || []).map((u: any) => this.mapUser(u)),
       pinned: m.pinned || false,
       type: m.type || 0,
+      stickerItems: (m.sticker_items || []).map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        formatType: s.format_type || 1,
+      })),
+      poll: m.poll ? this.mapPoll(m.poll) : null,
     };
   }
 
@@ -217,9 +350,14 @@ export class DiscordService {
       description: e.description || null,
       url: e.url || null,
       color: e.color ?? null,
+      type: e.type || null,
       thumbnail: e.thumbnail ? { url: e.thumbnail.url, width: e.thumbnail.width || 0, height: e.thumbnail.height || 0 } : null,
       image: e.image ? { url: e.image.url, width: e.image.width || 0, height: e.image.height || 0 } : null,
+      video: e.video ? { url: e.video.url || e.video.proxy_url, width: e.video.width || 0, height: e.video.height || 0 } : null,
       author: e.author ? { name: e.author.name, url: e.author.url || null, iconUrl: e.author.icon_url || null } : null,
+      footer: e.footer ? { text: e.footer.text, iconUrl: e.footer.icon_url || null } : null,
+      timestamp: e.timestamp || null,
+      provider: e.provider ? { name: e.provider.name, url: e.provider.url || null } : null,
       fields: (e.fields || []).map((f: any) => ({ name: f.name, value: f.value, inline: f.inline || false })),
     };
   }
@@ -229,6 +367,42 @@ export class DiscordService {
       emoji: { id: r.emoji?.id || null, name: r.emoji?.name || '' },
       count: r.count || 0,
       me: r.me || false,
+    };
+  }
+
+  private mapSticker(s: any): DiscordSticker {
+    return {
+      id: s.id,
+      name: s.name,
+      description: s.description || null,
+      tags: s.tags || '',
+      formatType: s.format_type || 1,
+      packId: s.pack_id || null,
+      guildId: s.guild_id || null,
+    };
+  }
+
+  private mapPoll(p: any): DiscordPoll {
+    return {
+      question: { text: p.question?.text || '' },
+      answers: (p.answers || []).map((a: any) => ({
+        answerId: a.answer_id,
+        pollMedia: {
+          text: a.poll_media?.text || '',
+          emoji: a.poll_media?.emoji ? { id: a.poll_media.emoji.id || null, name: a.poll_media.emoji.name || '' } : undefined,
+        },
+      })),
+      expiry: p.expiry || null,
+      allowMultiselect: p.allow_multiselect || false,
+      layoutType: p.layout_type || 1,
+      results: p.results ? {
+        isFinalized: p.results.is_finalized || false,
+        answerCounts: (p.results.answer_counts || []).map((ac: any) => ({
+          id: ac.id,
+          count: ac.count || 0,
+          meVoted: ac.me_voted || false,
+        })),
+      } : undefined,
     };
   }
 
@@ -251,7 +425,7 @@ export class DiscordService {
     return this.apiRequestWithToken(method, path, token, body);
   }
 
-  private async apiRequestWithToken(method: string, path: string, token: string, body?: unknown): Promise<Response> {
+  private async apiRequestWithToken(method: string, path: string, token: string, body?: unknown, retries = 0): Promise<Response> {
     const options: RequestInit = {
       method,
       headers: {
@@ -265,12 +439,12 @@ export class DiscordService {
 
     const response = await fetch(`${DISCORD_API_BASE}${path}`, options);
 
-    // Handle rate limiting
-    if (response.status === 429) {
+    // Handle rate limiting with max 3 retries
+    if (response.status === 429 && retries < 3) {
       const retryAfter = response.headers.get('Retry-After');
-      const waitMs = retryAfter ? parseFloat(retryAfter) * 1000 : 1000;
+      const waitMs = retryAfter ? parseFloat(retryAfter) * 1000 : 5000;
       await new Promise((resolve) => setTimeout(resolve, waitMs));
-      return this.apiRequestWithToken(method, path, token, body);
+      return this.apiRequestWithToken(method, path, token, body, retries + 1);
     }
 
     return response;

@@ -707,8 +707,8 @@ const setupIpcHandlers = () => {
     return await discordService.getMessages(channelId, before, limit);
   });
 
-  handleIpc('discord:send-message', async (_event, channelId, content) => {
-    return await discordService.sendMessage(channelId, content);
+  handleIpc('discord:send-message', async (_event, channelId, content, replyToId) => {
+    return await discordService.sendMessage(channelId, content, replyToId);
   });
 
   handleIpc('discord:edit-message', async (_event, channelId, messageId, content) => {
@@ -741,6 +741,34 @@ const setupIpcHandlers = () => {
 
   handleIpc('discord:create-dm', async (_event, userId) => {
     return await discordService.createDM(userId);
+  });
+
+  handleIpc('discord:send-message-with-attachments', async (_event, channelId, content, files, replyToId) => {
+    return await discordService.sendMessageWithAttachments(channelId, content, files, replyToId);
+  });
+
+  handleIpc('discord:search-gifs', async (_event, query) => {
+    return await discordService.searchGifs(query);
+  });
+
+  handleIpc('discord:trending-gifs', async () => {
+    return await discordService.getTrendingGifs();
+  });
+
+  handleIpc('discord:get-sticker-packs', async () => {
+    return await discordService.getStickerPacks();
+  });
+
+  handleIpc('discord:get-guild-stickers', async (_event, guildId) => {
+    return await discordService.getGuildStickers(guildId);
+  });
+
+  handleIpc('discord:send-sticker', async (_event, channelId, stickerId) => {
+    return await discordService.sendSticker(channelId, stickerId);
+  });
+
+  handleIpc('discord:create-poll', async (_event, channelId, question, answers, duration, allowMultiselect) => {
+    return await discordService.createPoll(channelId, question, answers, duration, allowMultiselect);
   });
 
   // Code Server handlers
