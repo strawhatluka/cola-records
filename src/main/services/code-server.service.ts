@@ -211,6 +211,12 @@ class CodeServerService {
         },
       };
 
+      // Terminal performance optimizations
+      settings['terminal.integrated.smoothScrolling'] = false;
+      settings['terminal.integrated.gpuAcceleration'] = 'on';
+      settings['terminal.integrated.fastScrollSensitivity'] = 5;
+      settings['terminal.integrated.scrollback'] = 1000; // Reduce from default 10000
+
       fs.writeFileSync(codeServerSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
     } catch {
       // Settings sync is best-effort
@@ -520,14 +526,16 @@ NPXSCRIPT
         ]).then(() => true).catch(() => false);
 
         if (pkgExists) {
-          console.log(`[CodeServer] ${pkg} already installed, checking for updates...`);
-        } else {
-          console.log(`[CodeServer] Installing ${pkg}...`);
+          // Package already installed - skip reinstall
+          // The npm-global volume is persistent, so packages survive container restarts
+          console.log(`[CodeServer] ${pkg} already installed, skipping`);
+          continue;
         }
 
+        console.log(`[CodeServer] Installing ${pkg}...`);
         const result = await this.dockerExec([
           'exec', containerName,
-          npmCmd, 'install', '-g', '--prefer-online', pkg,
+          npmCmd, 'install', '-g', pkg,
         ]);
         console.log(`[CodeServer] ${pkg} installed:`, result);
       } catch (err) {
@@ -600,6 +608,10 @@ NPXSCRIPT
         'run', '--rm', '-d',
         '--name', containerName,
         '-p', `127.0.0.1:${port}:8080`,
+        // Performance: allocate pseudo-TTY for better terminal responsiveness
+        '-t',
+        // Performance: increase shared memory for better IPC (default 64MB is too small)
+        '--shm-size=256m',
         // Project directory (read-write)
         '-v', `${this.toDockerPath(projectPath)}:/home/coder/project`,
         // User data persistence (settings, auth tokens, etc.)
@@ -618,6 +630,8 @@ NPXSCRIPT
         '-e', 'BASH_ENV=/home/coder/.local/share/code-server/bashrc',
         // npm global config
         '-e', 'NPM_CONFIG_PREFIX=/home/coder/.npm-global',
+        // Performance: reduce terminal latency
+        '-e', 'SHELL=/bin/bash',
         // Image
         'codercom/code-server:latest',
         // code-server args
