@@ -555,10 +555,17 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                     <p className="text-xs text-muted-foreground">No issues found</p>
                   ) : (
                     <div className="space-y-2">
-                      {issues.map((issue) => {
-                        const branchMatches = contribution.branchName
-                          ? new RegExp(`\\b${issue.number}\\b`).test(contribution.branchName)
-                          : false;
+                      {[...issues]
+                        .sort((a, b) => {
+                          // Sort branched issues to the top
+                          const aBranched = branches.some((br) => new RegExp(`\\b${a.number}\\b`).test(br));
+                          const bBranched = branches.some((br) => new RegExp(`\\b${b.number}\\b`).test(br));
+                          if (aBranched && !bBranched) return -1;
+                          if (!aBranched && bBranched) return 1;
+                          return 0; // Keep original order within each group
+                        })
+                        .map((issue) => {
+                        const branchMatches = branches.some((br) => new RegExp(`\\b${issue.number}\\b`).test(br));
                         return (
                           <div
                             key={issue.number}
@@ -641,9 +648,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       {selectedIssue && (() => {
         const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
         const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-        const branchMatches = contribution.branchName
-          ? new RegExp(`\\b${selectedIssue.number}\\b`).test(contribution.branchName)
-          : false;
+        const branchMatches = branches.some((br) => new RegExp(`\\b${selectedIssue.number}\\b`).test(br));
         return parsed ? (
           <DevelopmentIssueDetailModal
             issue={selectedIssue}

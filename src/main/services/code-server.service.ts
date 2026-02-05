@@ -73,10 +73,12 @@ class CodeServerService {
   }
 
   /**
-   * Directory for persisted npm global packages.
+   * Named Docker volume for npm global packages.
+   * Using a named volume instead of bind mount for much better I/O performance
+   * on Windows (avoids WSL2 filesystem bridge overhead).
    */
-  getNpmGlobalDir(): string {
-    return path.join(this.getUserDataDir(), 'npm-global');
+  getNpmGlobalVolumeName(): string {
+    return 'cola-npm-global';
   }
 
   // ── Path Utilities ───────────────────────────────────────────────
@@ -459,13 +461,23 @@ class CodeServerService {
   async installGlobalPackages(containerName: string): Promise<void> {
     const packages = ['trinity-method-sdk'];
     const npmGlobalDir = '/home/coder/.npm-global';
-    const nodeExe = '/usr/lib/code-server/lib/node';
 
     console.log('[CodeServer] Setting up npm and installing packages:', packages);
 
+    // Fix ownership of named volume (Docker creates it as root)
+    // This is idempotent and fast if already owned by coder
+    try {
+      await this.dockerExec([
+        'exec', '-u', 'root', containerName,
+        'chown', '-R', 'coder:coder', npmGlobalDir,
+      ]);
+    } catch {
+      // Best effort - may already be correct
+    }
+
     // Check if npm is already bootstrapped in the persistent volume
     try {
-      const npmCheck = await this.dockerExec([
+      await this.dockerExec([
         'exec', containerName,
         'test', '-f', `${npmGlobalDir}/lib/node_modules/npm/bin/npm-cli.js`,
       ]);
@@ -594,16 +606,12 @@ NPXSCRIPT
       // Step 5: Ensure dirs exist
       const userDataDir = this.getUserDataDir();
       const extensionsDir = this.getExtensionsDir();
-      const npmGlobalDir = this.getNpmGlobalDir();
       fs.mkdirSync(userDataDir, { recursive: true });
       fs.mkdirSync(extensionsDir, { recursive: true });
-      fs.mkdirSync(npmGlobalDir, { recursive: true });
-      // Also create the bin subdirectory that npm will use
-      fs.mkdirSync(path.join(npmGlobalDir, 'bin'), { recursive: true });
-      fs.mkdirSync(path.join(npmGlobalDir, 'lib'), { recursive: true });
 
       // Step 6: Build Docker run args
       const gitMounts = this.getGitMounts();
+      const npmGlobalVolume = this.getNpmGlobalVolumeName();
       const args = [
         'run', '--rm', '-d',
         '--name', containerName,
@@ -618,8 +626,9 @@ NPXSCRIPT
         '-v', `${this.toDockerPath(userDataDir)}:/home/coder/.local/share/code-server`,
         // Extensions persistence (separate mount to avoid overlap)
         '-v', `${this.toDockerPath(extensionsDir)}:/home/coder/extensions`,
-        // npm global packages persistence
-        '-v', `${this.toDockerPath(npmGlobalDir)}:/home/coder/.npm-global`,
+        // npm global packages - named Docker volume for better performance
+        // (avoids slow Windows filesystem bridge through WSL2)
+        '-v', `${npmGlobalVolume}:/home/coder/.npm-global`,
         // Git mounts (conditionally included)
         ...gitMounts,
         // Claude Code config mounts (auth token, settings, etc.)
