@@ -55,7 +55,7 @@ export function ChannelList() {
       </div>
 
       {/* Channel list */}
-      <div className="flex-1 overflow-y-auto py-1 discord-scroll">
+      <div className="flex-1 overflow-y-auto py-1 styled-scroll">
         {/* Uncategorized channels */}
         {uncategorized.map((ch) => (
           <ChannelItem

@@ -139,7 +139,7 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
       <div className="flex flex-1 min-h-0">
         {/* Left sidebar — server/pack icons */}
         {!query && allSections.length > 0 && (
-          <div className="w-11 border-r flex flex-col items-center py-1 gap-0.5 overflow-y-auto shrink-0 discord-scroll">
+          <div className="w-11 border-r flex flex-col items-center py-1 gap-0.5 overflow-y-auto shrink-0 styled-scroll">
             {allSections.map((section) => {
               const isGuild = section.id.startsWith('guild-');
               const guildId = isGuild ? section.id.replace('guild-', '') : null;
@@ -170,7 +170,7 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-1.5 pb-1.5 discord-scroll"
+          className="flex-1 overflow-y-auto px-1.5 pb-1.5 styled-scroll"
         >
           {filtered.length === 0 && (
             <p className="text-[10px] text-muted-foreground text-center py-4">No stickers found</p>

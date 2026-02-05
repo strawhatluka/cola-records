@@ -29,7 +29,7 @@ export function IssueList({ issues, onIssueSelect, loading }: IssueListProps) {
   }
 
   return (
-    <div className="h-full w-full overflow-auto">
+    <div className="h-full w-full overflow-auto styled-scroll">
       <div className="space-y-3 p-4">
         {issues.map((issue) => (
           <IssueCard

@@ -191,7 +191,7 @@ export function MarkdownEditor({
           />
         ) : (
           <div
-            className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"
+            className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none overflow-y-auto styled-scroll"
             style={{ minHeight }}
           >
             {value.trim() ? (

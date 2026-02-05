@@ -335,7 +335,7 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
 
   return (
     <Dialog open={!!issue} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto styled-scroll">
         <DialogHeader>
           <div className="flex items-start justify-between pr-8">
             <div className="flex-1">
@@ -528,7 +528,7 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                   placeholder="Search issues by title or number..."
                   className="mb-3"
                 />
-                <div className="max-h-48 overflow-y-auto space-y-1">
+                <div className="max-h-48 overflow-y-auto space-y-1 styled-scroll">
                   {allIssuesLoading ? (
                     <p className="text-xs text-muted-foreground text-center py-4">Loading issues...</p>
                   ) : filteredDuplicateIssues.length === 0 ? (

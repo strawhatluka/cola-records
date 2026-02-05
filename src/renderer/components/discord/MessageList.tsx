@@ -235,7 +235,7 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
 
       {/* Pinned messages overlay */}
       {showPinned && (
-        <div className="border-b bg-muted/20 max-h-48 overflow-y-auto discord-scroll">
+        <div className="border-b bg-muted/20 max-h-48 overflow-y-auto styled-scroll">
           <div className="flex items-center justify-between px-3 py-1.5">
             <span className="text-[10px] font-semibold">Pinned Messages</span>
             <button type="button" onClick={() => setShowPinned(false)} className="p-0.5 text-muted-foreground hover:text-foreground">
@@ -264,7 +264,7 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto py-2 relative discord-scroll"
+        className="flex-1 overflow-y-auto py-2 relative styled-scroll"
       >
         {messages.length >= 50 && (
           <button

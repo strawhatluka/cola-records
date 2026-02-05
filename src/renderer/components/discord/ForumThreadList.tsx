@@ -237,7 +237,7 @@ export function ForumThreadList({ showChannelToggle, channelSidebarOpen, onToggl
       )}
 
       {/* Thread list */}
-      <div className="flex-1 overflow-y-auto py-1 discord-scroll">
+      <div className="flex-1 overflow-y-auto py-1 styled-scroll">
         {forumThreads.length === 0 && (
           <p className="text-[10px] text-muted-foreground text-center py-8">No threads found</p>
         )}

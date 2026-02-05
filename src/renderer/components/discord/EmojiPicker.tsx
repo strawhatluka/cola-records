@@ -232,7 +232,7 @@ export function EmojiPicker({ onSelect, onClose, customEmojis = [], guilds = [],
       <div className="flex flex-1 min-h-0">
         {/* Left sidebar — server/category icons */}
         {!search && (
-          <div className="w-11 border-r flex flex-col items-center py-1 gap-0.5 overflow-y-auto shrink-0 discord-scroll">
+          <div className="w-11 border-r flex flex-col items-center py-1 gap-0.5 overflow-y-auto shrink-0 styled-scroll">
             {/* Server emoji groups */}
             {guildEmojiGroups.map((group) => {
               const iconUrl = getGuildIconUrl(group.guildId, group.guildIcon);
@@ -278,7 +278,7 @@ export function EmojiPicker({ onSelect, onClose, customEmojis = [], guilds = [],
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-1.5 pb-1.5 discord-scroll"
+          className="flex-1 overflow-y-auto px-1.5 pb-1.5 styled-scroll"
         >
           {/* Custom server emoji groups */}
           {filteredGuildGroups.map((group) => (

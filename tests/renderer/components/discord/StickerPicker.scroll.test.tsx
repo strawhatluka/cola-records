@@ -80,11 +80,11 @@ describe('StickerPicker Scroll Throttling', () => {
 
     // Wait for async data loading
     await vi.waitFor(() => {
-      const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+      const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
       return scrollContainer !== null;
     }, { timeout: 1000 }).catch(() => null);
 
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     // If scroll container exists and has scroll handling, test RAF
     // Some components may not implement RAF-throttled scroll if they don't need it
@@ -103,11 +103,11 @@ describe('StickerPicker Scroll Throttling', () => {
     const { container } = render(<StickerPicker onSelect={onSelect} />);
 
     await vi.waitFor(() => {
-      const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+      const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
       return scrollContainer !== null;
     }, { timeout: 1000 }).catch(() => null);
 
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       rafSpy.mockClear();
@@ -127,11 +127,11 @@ describe('StickerPicker Scroll Throttling', () => {
     const { container, unmount } = render(<StickerPicker onSelect={onSelect} />);
 
     await vi.waitFor(() => {
-      const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+      const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
       return scrollContainer !== null;
     }, { timeout: 1000 }).catch(() => null);
 
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       fireEvent.scroll(scrollContainer);
@@ -161,11 +161,11 @@ describe('StickerPicker Scroll Throttling', () => {
     const { container } = render(<StickerPicker onSelect={onSelect} />);
 
     await vi.waitFor(() => {
-      const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+      const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
       return scrollContainer !== null;
     }, { timeout: 1000 }).catch(() => null);
 
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       rafSpy.mockClear();

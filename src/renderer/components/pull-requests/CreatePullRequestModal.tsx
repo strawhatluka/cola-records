@@ -280,7 +280,7 @@ export function CreatePullRequestModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto styled-scroll">
         <DialogHeader>
           <DialogTitle>Create Pull Request</DialogTitle>
           <DialogDescription>
@@ -360,7 +360,7 @@ export function CreatePullRequestModal({
                       <span className="text-red-500">-{comparison.totalDeletions}</span>
                     </div>
 
-                    <div className="max-h-[300px] overflow-y-auto">
+                    <div className="max-h-[300px] overflow-y-auto styled-scroll">
                       {/* Commits */}
                       {visibleCommits.length > 0 && (
                         <div className="border-b">

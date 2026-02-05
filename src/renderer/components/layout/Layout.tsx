@@ -41,7 +41,7 @@ export function Layout({ currentScreen, onScreenChange, children }: LayoutProps)
       />
       <main className="flex flex-1 flex-col overflow-hidden">
         <AppBar title={screenTitles[currentScreen]} />
-        <div className="flex-1 overflow-auto">{children}</div>
+        <div className="flex-1 overflow-auto styled-scroll">{children}</div>
       </main>
     </div>
   );

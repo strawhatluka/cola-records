@@ -66,7 +66,7 @@ describe('EmojiPicker Scroll Throttling', () => {
     const { container } = render(<EmojiPicker onSelect={onSelect} />);
 
     // Find the scrollable container
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       rafSpy.mockClear();
@@ -83,7 +83,7 @@ describe('EmojiPicker Scroll Throttling', () => {
     const onSelect = vi.fn();
     const { container } = render(<EmojiPicker onSelect={onSelect} />);
 
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       // Clear any initial RAF calls
@@ -115,7 +115,7 @@ describe('EmojiPicker Scroll Throttling', () => {
     const onSelect = vi.fn();
     const { container, unmount } = render(<EmojiPicker onSelect={onSelect} />);
 
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       // Trigger a scroll to create a pending RAF
@@ -135,7 +135,7 @@ describe('EmojiPicker Scroll Throttling', () => {
     const onSelect = vi.fn();
     const { container } = render(<EmojiPicker onSelect={onSelect} />);
 
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       // Clear RAF calls
@@ -158,7 +158,7 @@ describe('EmojiPicker Scroll Throttling', () => {
     const onSelect = vi.fn();
     const { container } = render(<EmojiPicker onSelect={onSelect} />);
 
-    const scrollContainer = container.querySelector('.discord-scroll, [class*="overflow"]');
+    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       rafSpy.mockClear();

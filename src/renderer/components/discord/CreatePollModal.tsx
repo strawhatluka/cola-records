@@ -59,7 +59,7 @@ export function CreatePollModal({ onSubmit, onClose }: CreatePollModalProps) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 discord-scroll">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 styled-scroll">
         {/* Question */}
         <div>
           <label className="text-[10px] font-semibold text-muted-foreground uppercase block mb-1">

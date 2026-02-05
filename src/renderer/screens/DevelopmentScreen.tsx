@@ -485,7 +485,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                 </div>
               )}
               {activeDropdown === name && name === 'pull-requests' && (
-                <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto">
+                <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto styled-scroll">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm font-medium">Pull Requests</p>
                     <button
@@ -537,7 +537,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                 </div>
               )}
               {activeDropdown === name && name === 'issues' && (
-                <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto">
+                <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto styled-scroll">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm font-medium">Issues</p>
                     <button

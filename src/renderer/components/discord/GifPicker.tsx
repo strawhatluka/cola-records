@@ -116,7 +116,7 @@ export function GifPicker({ onSelect, onClose, embedded = false }: GifPickerProp
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-1.5 pb-1.5 discord-scroll">
+      <div className="flex-1 overflow-y-auto px-1.5 pb-1.5 styled-scroll">
         {showCategories && !query ? (
           /* Category grid */
           <div className="grid grid-cols-2 gap-1.5">

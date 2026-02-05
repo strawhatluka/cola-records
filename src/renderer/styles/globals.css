@@ -37,20 +37,56 @@
   }
 }
 
-/* Discord-style thin scrollbars */
-.discord-scroll::-webkit-scrollbar {
+/* Thin styled scrollbars */
+.styled-scroll::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-.discord-scroll::-webkit-scrollbar-track {
+.styled-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
-.discord-scroll::-webkit-scrollbar-thumb {
+.styled-scroll::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 3px;
 }
-.discord-scroll::-webkit-scrollbar-thumb:hover {
+.styled-scroll::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* GitHub-style markdown rendering */
+.github-markdown {
+  font-size: 14px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+.github-markdown > *:first-child {
+  margin-top: 0 !important;
+}
+.github-markdown > *:last-child {
+  margin-bottom: 0 !important;
+}
+.github-markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+.github-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+.github-markdown table th,
+.github-markdown table td {
+  border: 1px solid hsl(var(--border));
+  padding: 8px 12px;
+  text-align: left;
+}
+.github-markdown table th {
+  background: hsl(var(--muted) / 0.5);
+  font-weight: 600;
+}
+.github-markdown table tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.2);
 }
 
 @layer base {

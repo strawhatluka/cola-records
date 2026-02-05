@@ -24,7 +24,7 @@ export function SearchPanel() {
         />
       </form>
 
-      <div className="max-h-56 overflow-y-auto space-y-0.5">
+      <div className="max-h-56 overflow-y-auto space-y-0.5 styled-scroll">
         {searchResults.map((track) => {
           const thumb = track.album.images[track.album.images.length - 1]?.url;
           return (

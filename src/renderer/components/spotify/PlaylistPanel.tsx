@@ -17,7 +17,7 @@ export function PlaylistPanel() {
   }
 
   return (
-    <div className="max-h-64 overflow-y-auto space-y-1">
+    <div className="max-h-64 overflow-y-auto space-y-1 styled-scroll">
       {playlists.map((playlist) => {
         const thumb = playlist.images[0]?.url;
         return (

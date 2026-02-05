@@ -19,7 +19,7 @@ export function DMList() {
       </div>
 
       {/* DM list */}
-      <div className="flex-1 overflow-y-auto py-1 discord-scroll">
+      <div className="flex-1 overflow-y-auto py-1 styled-scroll">
         {dmChannels.length === 0 && (
           <p className="text-[10px] text-muted-foreground text-center py-4">No conversations yet</p>
         )}

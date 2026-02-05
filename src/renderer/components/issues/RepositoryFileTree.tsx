@@ -43,13 +43,22 @@ export function RepositoryFileTree({ repository, branch = 'main' }: RepositoryFi
   const parseTreeData = (entries: any[]): FileTreeNode[] => {
     if (!entries || !Array.isArray(entries)) return [];
 
-    return entries.map((entry: any) => ({
+    const nodes = entries.map((entry: any) => ({
       name: entry.name,
       type: entry.type,
       mode: entry.mode,
       children: entry.object?.entries ? parseTreeData(entry.object.entries) : undefined,
       byteSize: entry.object?.byteSize,
     }));
+
+    // Sort: folders first, then files, both alphabetically (case-insensitive)
+    return nodes.sort((a, b) => {
+      // Folders (tree) come before files (blob)
+      if (a.type === 'tree' && b.type !== 'tree') return -1;
+      if (a.type !== 'tree' && b.type === 'tree') return 1;
+      // Within same type, sort alphabetically (case-insensitive)
+      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    });
   };
 
   const toggleNode = (nodePath: string) => {
@@ -152,7 +161,7 @@ export function RepositoryFileTree({ repository, branch = 'main' }: RepositoryFi
   }
 
   return (
-    <div className="max-h-96 overflow-y-auto border rounded-md p-2">
+    <div className="max-h-96 overflow-y-auto border rounded-md p-2 styled-scroll">
       {tree.map((node) => renderNode(node))}
     </div>
   );

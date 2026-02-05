@@ -257,7 +257,7 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
 
   return (
     <Dialog open={!!pr} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto styled-scroll">
         <DialogHeader>
           <div className="flex items-start justify-between pr-8">
             <div className="flex-1">

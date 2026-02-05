@@ -123,7 +123,7 @@ export function AddExistingSubIssueModal({
             <p className="text-sm text-destructive">{error}</p>
           )}
 
-          <div className="max-h-64 overflow-y-auto space-y-1">
+          <div className="max-h-64 overflow-y-auto space-y-1 styled-scroll">
             {loading ? (
               <div className="flex items-center justify-center py-6">
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
