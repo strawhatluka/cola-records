@@ -4,10 +4,16 @@ import { MessageItem } from './MessageItem';
 import { MessageInput } from './MessageInput';
 import { EmojiPicker } from './EmojiPicker';
 import { CreatePollModal } from './CreatePollModal';
-import { ArrowLeft, Pin, X } from 'lucide-react';
+import { ArrowLeft, Pin, X, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import type { DiscordMessage } from '../../../main/ipc/channels';
 
-export function MessageList() {
+interface MessageListProps {
+  showChannelToggle?: boolean;
+  channelSidebarOpen?: boolean;
+  onToggleChannelSidebar?: () => void;
+}
+
+export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleChannelSidebar }: MessageListProps = {}) {
   const {
     messages,
     user,
@@ -170,13 +176,28 @@ export function MessageList() {
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <button
-            type="button"
-            onClick={goBack}
-            className="p-1 rounded hover:bg-muted transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-          </button>
+          {showChannelToggle ? (
+            <button
+              type="button"
+              onClick={onToggleChannelSidebar}
+              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title={channelSidebarOpen ? 'Hide channels' : 'Show channels'}
+            >
+              {channelSidebarOpen ? (
+                <PanelLeftClose className="h-3.5 w-3.5" />
+              ) : (
+                <PanelLeftOpen className="h-3.5 w-3.5" />
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={goBack}
+              className="p-1 rounded hover:bg-muted transition-colors"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+            </button>
+          )}
           <span className="text-xs font-semibold truncate">
             {prefix}{selectedChannelName}
           </span>
@@ -195,7 +216,7 @@ export function MessageList() {
 
       {/* Pinned messages overlay */}
       {showPinned && (
-        <div className="border-b bg-muted/20 max-h-48 overflow-y-auto">
+        <div className="border-b bg-muted/20 max-h-48 overflow-y-auto discord-scroll">
           <div className="flex items-center justify-between px-3 py-1.5">
             <span className="text-[10px] font-semibold">Pinned Messages</span>
             <button type="button" onClick={() => setShowPinned(false)} className="p-0.5 text-muted-foreground hover:text-foreground">
@@ -224,7 +245,7 @@ export function MessageList() {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto py-2 relative"
+        className="flex-1 overflow-y-auto py-2 relative discord-scroll"
       >
         {messages.length >= 50 && (
           <button

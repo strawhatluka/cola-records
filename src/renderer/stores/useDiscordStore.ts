@@ -8,10 +8,12 @@ import type {
   DiscordEmoji,
   DiscordSticker,
   DiscordStickerPack,
+  DiscordThread,
+  ForumTag,
 } from '../../main/ipc/channels';
 import { ipc } from '../ipc/client';
 
-type View = 'dms' | 'server' | 'messages';
+type View = 'dms' | 'server' | 'messages' | 'forum' | 'thread';
 
 interface DiscordState {
   connected: boolean;
@@ -29,7 +31,20 @@ interface DiscordState {
   selectedGuildId: string | null;
   selectedChannelId: string | null;
   selectedChannelName: string | null;
-  selectedChannelType: 'text' | 'dm';
+  selectedChannelType: 'text' | 'dm' | 'voice' | 'forum';
+
+  // Forum / Thread state
+  forumThreads: DiscordThread[];
+  forumHasMore: boolean;
+  forumTotalResults: number;
+  forumSortBy: string;
+  forumSortOrder: string;
+  forumFilterTags: string[];
+  forumAvailableTags: ForumTag[];
+  selectedForumChannelId: string | null;
+  selectedForumChannelName: string | null;
+  selectedThreadId: string | null;
+  selectedThreadName: string | null;
 
   // Actions
   checkConnection: () => Promise<void>;
@@ -59,10 +74,19 @@ interface DiscordState {
   sendSticker: (channelId: string, stickerId: string) => Promise<void>;
   createPoll: (channelId: string, question: string, answers: string[], duration: number, allowMultiselect: boolean) => Promise<void>;
 
+  // Forum / Thread actions
+  fetchForumThreads: (channelId: string, sortBy?: string, sortOrder?: string, tagIds?: string[], offset?: number) => Promise<void>;
+  loadMoreForumThreads: () => Promise<void>;
+  setForumSort: (sortBy: string, sortOrder: string) => void;
+  toggleForumTag: (tagId: string) => void;
+  createForumThread: (channelId: string, name: string, content: string, appliedTags?: string[]) => Promise<DiscordThread>;
+  openForumChannel: (channelId: string, channelName: string) => void;
+  openThread: (threadId: string, threadName: string) => void;
+
   // Navigation
   selectGuild: (guildId: string) => void;
   selectDMs: () => void;
-  openChannel: (channelId: string, channelName: string, type: 'text' | 'dm') => void;
+  openChannel: (channelId: string, channelName: string, type: 'text' | 'dm' | 'voice') => void;
   goBack: () => void;
 }
 
@@ -84,6 +108,17 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
   selectedGuildId: null,
   selectedChannelId: null,
   selectedChannelName: null,
+  forumThreads: [],
+  forumHasMore: false,
+  forumTotalResults: 0,
+  forumSortBy: 'last_message_time',
+  forumSortOrder: 'desc',
+  forumFilterTags: [],
+  forumAvailableTags: [],
+  selectedForumChannelId: null,
+  selectedForumChannelName: null,
+  selectedThreadId: null,
+  selectedThreadName: null,
   selectedChannelType: 'text',
 
   checkConnection: async () => {
@@ -322,12 +357,118 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
     }
   },
 
+  fetchForumThreads: async (channelId, sortBy, sortOrder, tagIds, offset) => {
+    const { selectedGuildId, forumSortBy, forumSortOrder, forumFilterTags } = get();
+    if (!selectedGuildId) return;
+    const sb = sortBy || forumSortBy;
+    const so = sortOrder || forumSortOrder;
+    const tags = tagIds || forumFilterTags;
+    const off = offset ?? 0;
+    try {
+      const result = await ipc.invoke('discord:get-forum-threads', channelId, selectedGuildId, sb, so, tags.length > 0 ? tags : undefined, off);
+      if (off > 0) {
+        // Append for "load more"
+        set((state) => ({
+          forumThreads: [...state.forumThreads, ...result.threads],
+          forumHasMore: result.hasMore,
+          forumTotalResults: result.totalResults,
+        }));
+      } else {
+        set({
+          forumThreads: result.threads,
+          forumHasMore: result.hasMore,
+          forumTotalResults: result.totalResults,
+        });
+      }
+    } catch (error) {
+      set({ error: String(error) });
+    }
+  },
+
+  loadMoreForumThreads: async () => {
+    const { selectedForumChannelId, forumThreads } = get();
+    if (!selectedForumChannelId) return;
+    await get().fetchForumThreads(selectedForumChannelId, undefined, undefined, undefined, forumThreads.length);
+  },
+
+  setForumSort: (sortBy, sortOrder) => {
+    const { selectedForumChannelId } = get();
+    set({ forumSortBy: sortBy, forumSortOrder: sortOrder, forumThreads: [] });
+    if (selectedForumChannelId) {
+      get().fetchForumThreads(selectedForumChannelId, sortBy, sortOrder);
+    }
+  },
+
+  toggleForumTag: (tagId) => {
+    const { selectedForumChannelId, forumFilterTags } = get();
+    const newTags = forumFilterTags.includes(tagId)
+      ? forumFilterTags.filter((t) => t !== tagId)
+      : [...forumFilterTags, tagId];
+    set({ forumFilterTags: newTags, forumThreads: [] });
+    if (selectedForumChannelId) {
+      get().fetchForumThreads(selectedForumChannelId, undefined, undefined, newTags);
+    }
+  },
+
+  createForumThread: async (channelId, name, content, appliedTags) => {
+    const thread = await ipc.invoke('discord:create-forum-thread', channelId, name, content, appliedTags);
+    // Refresh thread list
+    const { selectedForumChannelId } = get();
+    if (selectedForumChannelId) {
+      get().fetchForumThreads(selectedForumChannelId);
+    }
+    return thread;
+  },
+
+  openForumChannel: (channelId, channelName) => {
+    // Resolve available tags from the channel data
+    const { selectedGuildId, guildChannels } = get();
+    const channels = selectedGuildId ? (guildChannels[selectedGuildId] || []) : [];
+    const channel = channels.find((ch) => ch.id === channelId);
+    const availableTags = channel?.availableTags || [];
+
+    set({
+      view: 'forum',
+      selectedForumChannelId: channelId,
+      selectedForumChannelName: channelName,
+      selectedChannelId: null,
+      selectedChannelName: null,
+      selectedChannelType: 'forum',
+      selectedThreadId: null,
+      selectedThreadName: null,
+      forumThreads: [],
+      forumHasMore: false,
+      forumTotalResults: 0,
+      forumFilterTags: [],
+      forumAvailableTags: availableTags,
+      messages: [],
+    });
+    get().fetchForumThreads(channelId);
+  },
+
+  openThread: (threadId, threadName) => {
+    set({
+      view: 'thread',
+      selectedThreadId: threadId,
+      selectedThreadName: threadName,
+      selectedChannelId: threadId,
+      selectedChannelName: threadName,
+      messages: [],
+    });
+    get().fetchMessages(threadId);
+  },
+
   selectGuild: (guildId) => {
     set({
       view: 'server',
       selectedGuildId: guildId,
       selectedChannelId: null,
       selectedChannelName: null,
+      selectedForumChannelId: null,
+      selectedForumChannelName: null,
+      selectedThreadId: null,
+      selectedThreadName: null,
+      forumThreads: [],
       messages: [],
     });
     get().fetchGuildChannels(guildId);
@@ -339,6 +480,11 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
       selectedGuildId: null,
       selectedChannelId: null,
       selectedChannelName: null,
+      selectedForumChannelId: null,
+      selectedForumChannelName: null,
+      selectedThreadId: null,
+      selectedThreadName: null,
+      forumThreads: [],
       messages: [],
     });
     get().fetchDMChannels();
@@ -350,17 +496,50 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
       selectedChannelId: channelId,
       selectedChannelName: channelName,
       selectedChannelType: type,
+      selectedForumChannelId: null,
+      selectedForumChannelName: null,
+      selectedThreadId: null,
+      selectedThreadName: null,
+      forumThreads: [],
       messages: [],
     });
     get().fetchMessages(channelId);
   },
 
   goBack: () => {
-    const { selectedGuildId } = get();
+    const { selectedGuildId, view, selectedForumChannelId, selectedForumChannelName } = get();
+    // From thread view, go back to forum
+    if (view === 'thread' && selectedForumChannelId) {
+      set({
+        view: 'forum',
+        selectedThreadId: null,
+        selectedThreadName: null,
+        selectedChannelId: null,
+        selectedChannelName: null,
+        messages: [],
+      });
+      get().fetchForumThreads(selectedForumChannelId);
+      return;
+    }
     if (selectedGuildId) {
-      set({ view: 'server', selectedChannelId: null, selectedChannelName: null, messages: [] });
+      set({
+        view: 'server',
+        selectedChannelId: null,
+        selectedChannelName: null,
+        selectedForumChannelId: null,
+        selectedForumChannelName: null,
+        selectedThreadId: null,
+        selectedThreadName: null,
+        forumThreads: [],
+        messages: [],
+      });
     } else {
-      set({ view: 'dms', selectedChannelId: null, selectedChannelName: null, messages: [] });
+      set({
+        view: 'dms',
+        selectedChannelId: null,
+        selectedChannelName: null,
+        messages: [],
+      });
     }
   },
 }));

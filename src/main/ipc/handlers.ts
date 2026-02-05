@@ -152,6 +152,10 @@ export function removeAllIpcHandlers(): void {
     'discord:get-guild-stickers',
     'discord:send-sticker',
     'discord:create-poll',
+    'discord:get-forum-threads',
+    'discord:get-thread-messages',
+    'discord:send-thread-message',
+    'discord:create-forum-thread',
     // Code Server
     'code-server:start',
     'code-server:stop',

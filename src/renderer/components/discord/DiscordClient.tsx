@@ -7,10 +7,13 @@ import { ServerList } from './ServerList';
 import { ChannelList } from './ChannelList';
 import { DMList } from './DMList';
 import { MessageList } from './MessageList';
+import { ForumThreadList } from './ForumThreadList';
+import { Hash } from 'lucide-react';
 
 export function DiscordClient() {
   const [isOpen, setIsOpen] = useState(false);
-  const { connected, user, checkConnection, disconnect, fetchGuilds, fetchDMChannels, view } = useDiscordStore();
+  const [channelSidebarOpen, setChannelSidebarOpen] = useState(true);
+  const { connected, user, checkConnection, disconnect, fetchGuilds, fetchDMChannels, view, selectedGuildId, selectedChannelId, selectedForumChannelId, selectedThreadId } = useDiscordStore();
 
   // Check connection on mount and when popover opens
   useEffect(() => {
@@ -26,6 +29,15 @@ export function DiscordClient() {
       fetchDMChannels();
     }
   }, [isOpen, connected, fetchGuilds, fetchDMChannels]);
+
+  // Reset channel sidebar when switching servers
+  useEffect(() => {
+    setChannelSidebarOpen(true);
+  }, [selectedGuildId]);
+
+  const isInServer = !!selectedGuildId;
+  const isViewingMessages = view === 'messages';
+  const isDM = !selectedGuildId && isViewingMessages;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -53,29 +65,83 @@ export function DiscordClient() {
             <ServerList />
 
             {/* Main content area */}
-            <div className="flex-1 flex flex-col min-w-0">
-              {view === 'messages' ? (
-                <MessageList />
-              ) : view === 'server' ? (
-                <ChannelList />
-              ) : (
-                <DMList />
-              )}
+            <div className="flex-1 flex min-w-0">
+              {isInServer ? (
+                <>
+                  {/* Channel sidebar — always visible when in a server (collapsible) */}
+                  {channelSidebarOpen && (
+                    <div className="w-[180px] shrink-0 flex flex-col border-r bg-muted/10">
+                      <ChannelList />
+                      {/* Footer with disconnect */}
+                      <div className="flex items-center justify-between px-3 py-1.5 border-t bg-muted/20 shrink-0">
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {user?.globalName || user?.username}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={disconnect}
+                          className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                          title="Disconnect"
+                        >
+                          <LogOut className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Footer with disconnect */}
-              {view !== 'messages' && (
-                <div className="flex items-center justify-between px-3 py-1.5 border-t bg-muted/20 shrink-0">
-                  <span className="text-[10px] text-muted-foreground truncate">
-                    {user?.globalName || user?.username}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={disconnect}
-                    className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
-                    title="Disconnect"
-                  >
-                    <LogOut className="h-3 w-3" />
-                  </button>
+                  {/* Message area or channel placeholder */}
+                  <div className="flex-1 flex flex-col min-w-0">
+                    {selectedChannelId && isViewingMessages ? (
+                      <MessageList
+                        showChannelToggle
+                        channelSidebarOpen={channelSidebarOpen}
+                        onToggleChannelSidebar={() => setChannelSidebarOpen(!channelSidebarOpen)}
+                      />
+                    ) : view === 'forum' && selectedForumChannelId ? (
+                      <ForumThreadList
+                        showChannelToggle
+                        channelSidebarOpen={channelSidebarOpen}
+                        onToggleChannelSidebar={() => setChannelSidebarOpen(!channelSidebarOpen)}
+                      />
+                    ) : view === 'thread' && selectedThreadId ? (
+                      <MessageList
+                        showChannelToggle
+                        channelSidebarOpen={channelSidebarOpen}
+                        onToggleChannelSidebar={() => setChannelSidebarOpen(!channelSidebarOpen)}
+                      />
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                        <div className="text-center">
+                          <Hash className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                          <p className="text-xs">Select a channel to start chatting</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : isDM ? (
+                /* DM message view */
+                <div className="flex-1 flex flex-col min-w-0">
+                  <MessageList />
+                </div>
+              ) : (
+                /* DM list view */
+                <div className="flex-1 flex flex-col min-w-0">
+                  <DMList />
+                  {/* Footer with disconnect */}
+                  <div className="flex items-center justify-between px-3 py-1.5 border-t bg-muted/20 shrink-0">
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {user?.globalName || user?.username}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={disconnect}
+                      className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                      title="Disconnect"
+                    >
+                      <LogOut className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

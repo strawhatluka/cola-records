@@ -179,6 +179,14 @@ export interface DiscordGuild {
   channels: DiscordChannel[];
 }
 
+export interface ForumTag {
+  id: string;
+  name: string;
+  moderated: boolean;
+  emojiId: string | null;
+  emojiName: string | null;
+}
+
 export interface DiscordChannel {
   id: string;
   name: string;
@@ -186,6 +194,21 @@ export interface DiscordChannel {
   parentId: string | null;
   position: number;
   topic: string | null;
+  availableTags: ForumTag[];
+}
+
+export interface DiscordThread {
+  id: string;
+  name: string;
+  parentId: string;
+  ownerId: string;
+  messageCount: number;
+  createdTimestamp: string | null;
+  archiveTimestamp: string | null;
+  archived: boolean;
+  locked: boolean;
+  lastMessageId: string | null;
+  appliedTags: string[];
 }
 
 export interface DiscordDMChannel {
@@ -540,6 +563,10 @@ export interface IpcChannels {
   'discord:get-guild-stickers': (guildId: string) => DiscordSticker[];
   'discord:send-sticker': (channelId: string, stickerId: string) => DiscordMessage;
   'discord:create-poll': (channelId: string, question: string, answers: string[], duration: number, allowMultiselect: boolean) => DiscordMessage;
+  'discord:get-forum-threads': (channelId: string, guildId: string, sortBy?: string, sortOrder?: string, tagIds?: string[], offset?: number) => { threads: DiscordThread[]; hasMore: boolean; totalResults: number };
+  'discord:get-thread-messages': (threadId: string, before?: string, limit?: number) => DiscordMessage[];
+  'discord:send-thread-message': (threadId: string, content: string) => DiscordMessage;
+  'discord:create-forum-thread': (channelId: string, name: string, content: string, appliedTags?: string[]) => DiscordThread;
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };

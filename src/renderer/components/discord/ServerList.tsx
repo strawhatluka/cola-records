@@ -6,7 +6,7 @@ export function ServerList() {
   const isDMsActive = view === 'dms' || (view === 'messages' && !selectedGuildId);
 
   return (
-    <div className="w-14 bg-muted/30 border-r flex flex-col items-center py-2 gap-1.5 overflow-y-auto shrink-0">
+    <div className="w-14 bg-muted/30 border-r flex flex-col items-center py-2 gap-1.5 overflow-y-auto shrink-0 discord-scroll">
       {/* DM button */}
       <button
         type="button"

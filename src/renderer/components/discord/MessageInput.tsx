@@ -1,9 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Send, X, Plus, Smile, Upload, BarChart3 } from 'lucide-react';
 import type { DiscordMessage, DiscordEmoji, DiscordGuild } from '../../../main/ipc/channels';
-import { GifPicker } from './GifPicker';
-import { StickerPicker } from './StickerPicker';
-import { EmojiPicker } from './EmojiPicker';
+import { PickerPanel } from './PickerPanel';
 
 type ActivePicker = 'gif' | 'sticker' | 'emoji' | null;
 
@@ -264,15 +262,17 @@ export function MessageInput({
         </div>
       )}
 
-      {/* Picker overlays */}
-      {activePicker === 'gif' && (
-        <GifPicker onSelect={handleGifSelect} onClose={() => setActivePicker(null)} />
-      )}
-      {activePicker === 'sticker' && (
-        <StickerPicker onSelect={handleStickerSelect} onClose={() => setActivePicker(null)} />
-      )}
-      {activePicker === 'emoji' && (
-        <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setActivePicker(null)} customEmojis={customEmojis} guilds={guilds} />
+      {/* Unified picker panel */}
+      {activePicker && (
+        <PickerPanel
+          initialTab={activePicker}
+          onSelectGif={handleGifSelect}
+          onSelectSticker={handleStickerSelect}
+          onSelectEmoji={handleEmojiSelect}
+          onClose={() => setActivePicker(null)}
+          customEmojis={customEmojis}
+          guilds={guilds}
+        />
       )}
 
       {/* Plus menu */}

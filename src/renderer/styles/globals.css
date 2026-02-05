@@ -37,6 +37,22 @@
   }
 }
 
+/* Discord-style thin scrollbars */
+.discord-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.discord-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.discord-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+.discord-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -14,6 +14,8 @@ import type {
   DiscordSticker,
   DiscordStickerPack,
   DiscordPoll,
+  DiscordThread,
+  ForumTag,
 } from '../ipc/channels';
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
@@ -280,6 +282,74 @@ export class DiscordService {
     return this.mapMessage(data);
   }
 
+  async getForumThreads(
+    channelId: string,
+    _guildId: string,
+    sortBy = 'last_message_time',
+    sortOrder = 'desc',
+    tagIds?: string[],
+    offset = 0,
+  ): Promise<{ threads: DiscordThread[]; hasMore: boolean; totalResults: number }> {
+    const params = new URLSearchParams();
+    params.set('sort_by', sortBy);
+    params.set('sort_order', sortOrder);
+    params.set('limit', '25');
+    if (offset > 0) params.set('offset', String(offset));
+    if (tagIds && tagIds.length > 0) {
+      for (const tagId of tagIds) {
+        params.append('tag_ids', tagId);
+      }
+    }
+
+    try {
+      const data = await this.apiGet(`/channels/${channelId}/threads/search?${params.toString()}`);
+      const threads = (data?.threads || []).map((t: any) => this.mapThread(t));
+      return {
+        threads,
+        hasMore: data?.has_more || false,
+        totalResults: data?.total_results || threads.length,
+      };
+    } catch {
+      // Fallback: try the guild active threads endpoint
+      try {
+        const active = await this.apiGet(`/guilds/${_guildId}/threads/active`);
+        const threads = (active?.threads || [])
+          .filter((t: any) => t.parent_id === channelId)
+          .map((t: any) => this.mapThread(t));
+        return { threads, hasMore: false, totalResults: threads.length };
+      } catch {
+        return { threads: [], hasMore: false, totalResults: 0 };
+      }
+    }
+  }
+
+  async createForumThread(
+    channelId: string,
+    name: string,
+    content: string,
+    appliedTags?: string[],
+  ): Promise<DiscordThread> {
+    const body: any = {
+      name,
+      message: { content },
+    };
+    if (appliedTags && appliedTags.length > 0) {
+      body.applied_tags = appliedTags;
+    }
+    const data = await this.apiPost(`/channels/${channelId}/threads`, body);
+    return this.mapThread(data);
+  }
+
+  async getThreadMessages(threadId: string, before?: string, limit = 50): Promise<DiscordMessage[]> {
+    // Threads are just channels, so reuse getMessages
+    return this.getMessages(threadId, before, limit);
+  }
+
+  async sendThreadMessage(threadId: string, content: string): Promise<DiscordMessage> {
+    // Threads are just channels, so reuse sendMessage
+    return this.sendMessage(threadId, content);
+  }
+
   cleanup(): void {
     // No server to clean up (unlike Spotify's callback server)
   }
@@ -304,6 +374,29 @@ export class DiscordService {
       parentId: ch.parent_id || null,
       position: ch.position || 0,
       topic: ch.topic || null,
+      availableTags: (ch.available_tags || []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        moderated: t.moderated || false,
+        emojiId: t.emoji_id || null,
+        emojiName: t.emoji_name || null,
+      })),
+    };
+  }
+
+  private mapThread(t: any): DiscordThread {
+    return {
+      id: t.id,
+      name: t.name || '',
+      parentId: t.parent_id || '',
+      ownerId: t.owner_id || '',
+      messageCount: t.message_count || 0,
+      createdTimestamp: t.thread_metadata?.create_timestamp || null,
+      archiveTimestamp: t.thread_metadata?.archive_timestamp || null,
+      archived: t.thread_metadata?.archived || false,
+      locked: t.thread_metadata?.locked || false,
+      lastMessageId: t.last_message_id || null,
+      appliedTags: t.applied_tags || [],
     };
   }
 

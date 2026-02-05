@@ -771,6 +771,22 @@ const setupIpcHandlers = () => {
     return await discordService.createPoll(channelId, question, answers, duration, allowMultiselect);
   });
 
+  handleIpc('discord:get-forum-threads', async (_event, channelId, guildId, sortBy, sortOrder, tagIds, offset) => {
+    return await discordService.getForumThreads(channelId, guildId, sortBy, sortOrder, tagIds, offset);
+  });
+
+  handleIpc('discord:get-thread-messages', async (_event, threadId, before, limit) => {
+    return await discordService.getThreadMessages(threadId, before, limit);
+  });
+
+  handleIpc('discord:send-thread-message', async (_event, threadId, content) => {
+    return await discordService.sendThreadMessage(threadId, content);
+  });
+
+  handleIpc('discord:create-forum-thread', async (_event, channelId, name, content, appliedTags) => {
+    return await discordService.createForumThread(channelId, name, content, appliedTags);
+  });
+
   // Code Server handlers
   handleIpc('code-server:start', async (_event, projectPath) => {
     return await codeServerService.start(projectPath);
