@@ -37,6 +37,12 @@ vi.mock('path', () => ({
   join: (...args: string[]) => args.join('/'),
 }));
 
+vi.mock('electron', () => ({
+  app: {
+    isPackaged: false,
+  },
+}));
+
 describe('Scanner Pool', () => {
   beforeEach(() => {
     vi.clearAllMocks();

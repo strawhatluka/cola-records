@@ -7,6 +7,7 @@
 
 import { Worker } from 'worker_threads';
 import * as path from 'path';
+import { app } from 'electron';
 import type { WorkerMessage, WorkerResponse } from './contribution-scanner.worker';
 
 interface ScannedContribution {
@@ -31,10 +32,12 @@ interface ScannedContribution {
 const WORKER_TIMEOUT_MS = 30_000;
 
 function getWorkerPath(): string {
-  // In dev, the worker is compiled alongside main process code by Vite
-  // In production (packaged), it's in the same output directory
-  // Electron Forge + Vite places compiled main process files in .vite/build/
-  return path.join(__dirname, 'contribution-scanner.worker.js');
+  // In production (packaged), the worker is in the same directory as the main process
+  // In development, Electron Forge + Vite places compiled files in .vite/build/
+  if (app.isPackaged) {
+    return path.join(__dirname, 'contribution-scanner.worker.js');
+  }
+  return path.join(process.cwd(), '.vite/build/contribution-scanner.worker.js');
 }
 
 class ScannerPool {

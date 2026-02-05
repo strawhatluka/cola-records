@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 
+// Electron Forge Vite plugin worker configuration
+// Note: Electron Forge VitePlugin handles outDir automatically
 export default defineConfig({
   build: {
     lib: {
@@ -7,8 +9,6 @@ export default defineConfig({
       formats: ['cjs'],
       fileName: () => 'contribution-scanner.worker.js',
     },
-    outDir: 'dist/workers',
-    emptyOutDir: true,
     rollupOptions: {
       external: [
         'electron',
