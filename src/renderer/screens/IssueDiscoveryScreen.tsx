@@ -14,10 +14,17 @@ export function IssueDiscoveryScreen({ onOpenIDE }: IssueDiscoveryScreenProps) {
   const { issues, loading, searchIssues } = useIssuesStore();
   const [selectedIssue, setSelectedIssue] = React.useState<GitHubIssue | null>(null);
   const [workflowIssue, setWorkflowIssue] = React.useState<GitHubIssue | null>(null);
+  const [hideNoDescription, setHideNoDescription] = React.useState(false);
 
   const handleSearch = (query: string, labels: string[]) => {
     searchIssues(query, labels);
   };
+
+  // Filter issues based on display options
+  const filteredIssues = React.useMemo(() => {
+    if (!hideNoDescription) return issues;
+    return issues.filter((issue) => issue.body && issue.body.trim().length > 0);
+  }, [issues, hideNoDescription]);
 
   const handleContribute = (issue: GitHubIssue) => {
     setWorkflowIssue(issue);
@@ -32,13 +39,18 @@ export function IssueDiscoveryScreen({ onOpenIDE }: IssueDiscoveryScreenProps) {
     <div className="flex h-full gap-4 p-4">
       {/* Left Panel - Search Filters */}
       <div className="w-80 flex-shrink-0">
-        <SearchPanel onSearch={handleSearch} loading={loading} />
+        <SearchPanel
+          onSearch={handleSearch}
+          loading={loading}
+          hideNoDescription={hideNoDescription}
+          onHideNoDescriptionChange={setHideNoDescription}
+        />
       </div>
 
       {/* Right Panel - Issue List */}
       <div className="flex-1">
         <IssueList
-          issues={issues}
+          issues={filteredIssues}
           onIssueSelect={setSelectedIssue}
           loading={loading}
         />

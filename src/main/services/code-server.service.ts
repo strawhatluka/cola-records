@@ -72,6 +72,13 @@ class CodeServerService {
     return path.join(this.getUserDataDir(), 'extensions');
   }
 
+  /**
+   * Directory for persisted npm global packages.
+   */
+  getNpmGlobalDir(): string {
+    return path.join(this.getUserDataDir(), 'npm-global');
+  }
+
   // ── Path Utilities ───────────────────────────────────────────────
 
   /**
@@ -275,6 +282,12 @@ class CodeServerService {
     const lines = [
       '# Cola Records container shell profile',
       '',
+      '# Add npm global bin and code-server node to PATH',
+      'export PATH="/home/coder/.npm-global/bin:/usr/lib/code-server/lib:$PATH"',
+      '',
+      '# Alias node to code-server bundled node for CLI tools',
+      'alias node="/usr/lib/code-server/lib/node"',
+      '',
       '# Git branch helper',
       '__git_branch() {',
       '  git symbolic-ref --short HEAD 2>/dev/null',
@@ -429,6 +442,100 @@ class CodeServerService {
     throw new Error(`code-server did not become ready within ${maxAttempts} seconds`);
   }
 
+  /**
+   * Install or update global npm packages in the container.
+   * This runs in the background after the container starts.
+   *
+   * Since the code-server image doesn't include npm and apt-installed packages
+   * aren't persistent (container uses --rm), we bootstrap npm into the persistent
+   * npm-global volume using curl and the code-server's bundled node.
+   */
+  async installGlobalPackages(containerName: string): Promise<void> {
+    const packages = ['trinity-method-sdk'];
+    const npmGlobalDir = '/home/coder/.npm-global';
+    const nodeExe = '/usr/lib/code-server/lib/node';
+
+    console.log('[CodeServer] Setting up npm and installing packages:', packages);
+
+    // Check if npm is already bootstrapped in the persistent volume
+    try {
+      const npmCheck = await this.dockerExec([
+        'exec', containerName,
+        'test', '-f', `${npmGlobalDir}/lib/node_modules/npm/bin/npm-cli.js`,
+      ]);
+      console.log('[CodeServer] npm already bootstrapped');
+    } catch {
+      // npm not found - need to bootstrap it
+      console.log('[CodeServer] Bootstrapping npm into persistent volume...');
+      try {
+        // Download and extract npm to the persistent volume
+        // We use the standalone npm tarball and extract it
+        await this.dockerExec([
+          'exec', containerName,
+          'bash', '-c', `
+            set -e
+            cd ${npmGlobalDir}
+
+            # Download npm tarball
+            curl -sL https://registry.npmjs.org/npm/-/npm-10.9.2.tgz -o npm.tgz
+
+            # Extract to lib/node_modules/npm
+            mkdir -p lib/node_modules
+            tar -xzf npm.tgz -C lib/node_modules
+            mv lib/node_modules/package lib/node_modules/npm
+            rm npm.tgz
+
+            # Create npm wrapper script in bin
+            mkdir -p bin
+            cat > bin/npm << 'NPMSCRIPT'
+#!/bin/bash
+exec /usr/lib/code-server/lib/node /home/coder/.npm-global/lib/node_modules/npm/bin/npm-cli.js "$@"
+NPMSCRIPT
+            chmod +x bin/npm
+
+            # Create npx wrapper too
+            cat > bin/npx << 'NPXSCRIPT'
+#!/bin/bash
+exec /usr/lib/code-server/lib/node /home/coder/.npm-global/lib/node_modules/npm/bin/npx-cli.js "$@"
+NPXSCRIPT
+            chmod +x bin/npx
+          `,
+        ]);
+        console.log('[CodeServer] npm bootstrapped successfully');
+      } catch (err) {
+        console.error('[CodeServer] Failed to bootstrap npm:', err);
+        return;
+      }
+    }
+
+    // Now use our bootstrapped npm to install packages
+    const npmCmd = `${npmGlobalDir}/bin/npm`;
+
+    for (const pkg of packages) {
+      try {
+        // Check if package already exists
+        const pkgExists = await this.dockerExec([
+          'exec', containerName,
+          'test', '-d', `${npmGlobalDir}/lib/node_modules/${pkg}`,
+        ]).then(() => true).catch(() => false);
+
+        if (pkgExists) {
+          console.log(`[CodeServer] ${pkg} already installed, checking for updates...`);
+        } else {
+          console.log(`[CodeServer] Installing ${pkg}...`);
+        }
+
+        const result = await this.dockerExec([
+          'exec', containerName,
+          npmCmd, 'install', '-g', '--prefer-online', pkg,
+        ]);
+        console.log(`[CodeServer] ${pkg} installed:`, result);
+      } catch (err) {
+        console.error(`[CodeServer] Failed to install ${pkg}:`, err);
+      }
+    }
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────
 
   /**
@@ -479,8 +586,13 @@ class CodeServerService {
       // Step 5: Ensure dirs exist
       const userDataDir = this.getUserDataDir();
       const extensionsDir = this.getExtensionsDir();
+      const npmGlobalDir = this.getNpmGlobalDir();
       fs.mkdirSync(userDataDir, { recursive: true });
       fs.mkdirSync(extensionsDir, { recursive: true });
+      fs.mkdirSync(npmGlobalDir, { recursive: true });
+      // Also create the bin subdirectory that npm will use
+      fs.mkdirSync(path.join(npmGlobalDir, 'bin'), { recursive: true });
+      fs.mkdirSync(path.join(npmGlobalDir, 'lib'), { recursive: true });
 
       // Step 6: Build Docker run args
       const gitMounts = this.getGitMounts();
@@ -494,6 +606,8 @@ class CodeServerService {
         '-v', `${this.toDockerPath(userDataDir)}:/home/coder/.local/share/code-server`,
         // Extensions persistence (separate mount to avoid overlap)
         '-v', `${this.toDockerPath(extensionsDir)}:/home/coder/extensions`,
+        // npm global packages persistence
+        '-v', `${this.toDockerPath(npmGlobalDir)}:/home/coder/.npm-global`,
         // Git mounts (conditionally included)
         ...gitMounts,
         // Claude Code config mounts (auth token, settings, etc.)
@@ -502,6 +616,8 @@ class CodeServerService {
         '-e', 'GIT_CONFIG_GLOBAL=/home/coder/.local/share/code-server/gitconfig',
         // Shell profile
         '-e', 'BASH_ENV=/home/coder/.local/share/code-server/bashrc',
+        // npm global config
+        '-e', 'NPM_CONFIG_PREFIX=/home/coder/.npm-global',
         // Image
         'codercom/code-server:latest',
         // code-server args
@@ -522,6 +638,11 @@ class CodeServerService {
       this.containerName = containerName;
       this.port = port;
       this.running = true;
+
+      // Step 8: Install/update global packages in background (don't block startup)
+      this.installGlobalPackages(containerName).catch(() => {
+        // Silent fail - packages are best-effort
+      });
 
       const url = `http://127.0.0.1:${port}`;
       return { port, url };

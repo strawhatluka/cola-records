@@ -39,9 +39,11 @@ const availableLabels = [
 interface SearchPanelProps {
   onSearch: (query: string, labels: string[]) => void;
   loading: boolean;
+  hideNoDescription?: boolean;
+  onHideNoDescriptionChange?: (value: boolean) => void;
 }
 
-export function SearchPanel({ onSearch, loading }: SearchPanelProps) {
+export function SearchPanel({ onSearch, loading, hideNoDescription = false, onHideNoDescriptionChange }: SearchPanelProps) {
   const [searchText, setSearchText] = React.useState('');
   const [language, setLanguage] = React.useState('All');
   const [minStars, setMinStars] = React.useState('');
@@ -136,6 +138,20 @@ export function SearchPanel({ onSearch, loading }: SearchPanelProps) {
                 </label>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="pt-2 border-t">
+          <label className="text-sm font-medium mb-2 block">Display Options</label>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="hide-no-description"
+              checked={hideNoDescription}
+              onCheckedChange={(checked) => onHideNoDescriptionChange?.(!!checked)}
+            />
+            <label htmlFor="hide-no-description" className="text-sm cursor-pointer">
+              Hide issues without description
+            </label>
           </div>
         </div>
 
