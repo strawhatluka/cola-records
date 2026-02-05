@@ -389,6 +389,7 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                       src={issue.authorAvatarUrl}
                       alt={issue.author}
                       className="w-6 h-6 rounded-full"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-6 h-6 rounded-full bg-muted" />
@@ -480,7 +481,7 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                   <div key={`comment-${c.id}`} className="border rounded-md p-4">
                     <div className="flex items-center gap-2 mb-2">
                       {c.authorAvatarUrl ? (
-                        <img src={c.authorAvatarUrl} alt={c.author} className="w-5 h-5 rounded-full" />
+                        <img src={c.authorAvatarUrl} alt={c.author} className="w-5 h-5 rounded-full" loading="lazy" />
                       ) : (
                         <div className="w-5 h-5 rounded-full bg-muted" />
                       )}

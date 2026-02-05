@@ -33,7 +33,7 @@ export function Sidebar({ currentScreen, onScreenChange, collapsed, onToggle }: 
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'flex flex-col border-r bg-background transition-all duration-300',
+          'flex flex-col border-r bg-background transition-[width] duration-300',
           collapsed ? 'w-[70px]' : 'w-[250px]'
         )}
       >

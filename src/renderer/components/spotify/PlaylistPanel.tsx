@@ -28,7 +28,7 @@ export function PlaylistPanel() {
             className="flex w-full items-center gap-3 rounded px-2 py-1.5 text-left hover:bg-muted transition-colors"
           >
             {thumb ? (
-              <img src={thumb} alt="" className="h-8 w-8 rounded object-cover" />
+              <img src={thumb} alt="" className="h-8 w-8 rounded object-cover" loading="lazy" />
             ) : (
               <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-muted-foreground">

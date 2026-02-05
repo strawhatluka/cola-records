@@ -22,6 +22,7 @@ export function AttachmentRenderer({ attachment }: AttachmentRendererProps) {
           src={attachment.proxyUrl || attachment.url}
           alt={attachment.filename}
           className={`rounded max-w-[320px] max-h-[300px] object-contain ${isGif ? '' : ''}`}
+          loading="lazy"
         />
         {isGif && (
           <span className="text-[9px] text-muted-foreground mt-0.5 block">GIF</span>

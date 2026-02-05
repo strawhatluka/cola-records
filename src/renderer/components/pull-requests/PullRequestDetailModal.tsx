@@ -299,6 +299,7 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                     src={`https://github.com/${pr.author}.png?size=32`}
                     alt={pr.author}
                     className="w-6 h-6 rounded-full"
+                    loading="lazy"
                   />
                   <span className="text-sm font-medium">{pr.author}</span>
                   <span className="text-xs text-muted-foreground">
@@ -332,7 +333,7 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                       <div key={`comment-${c.id}`} className="border rounded-md p-4">
                         <div className="flex items-center gap-2 mb-2">
                           {c.authorAvatarUrl ? (
-                            <img src={c.authorAvatarUrl} alt={c.author} className="w-5 h-5 rounded-full" />
+                            <img src={c.authorAvatarUrl} alt={c.author} className="w-5 h-5 rounded-full" loading="lazy" />
                           ) : (
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}
@@ -360,7 +361,7 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                       <div key={`review-${r.id}`} className="border rounded-md p-4">
                         <div className="flex items-center gap-2 mb-2">
                           {r.authorAvatarUrl ? (
-                            <img src={r.authorAvatarUrl} alt={r.author} className="w-5 h-5 rounded-full" />
+                            <img src={r.authorAvatarUrl} alt={r.author} className="w-5 h-5 rounded-full" loading="lazy" />
                           ) : (
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}
@@ -385,7 +386,7 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                       <div key={`rc-${rc.id}`} className="border rounded-md p-3 bg-muted/30">
                         <div className="flex items-center gap-2 mb-2">
                           {rc.authorAvatarUrl ? (
-                            <img src={rc.authorAvatarUrl} alt={rc.author} className="w-5 h-5 rounded-full" />
+                            <img src={rc.authorAvatarUrl} alt={rc.author} className="w-5 h-5 rounded-full" loading="lazy" />
                           ) : (
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}

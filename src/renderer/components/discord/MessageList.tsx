@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDiscordStore } from '../../stores/useDiscordStore';
 import { MessageItem } from './MessageItem';
 import { MessageInput } from './MessageInput';
@@ -97,14 +97,19 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
     setShowPollCreator(false);
   }, [selectedChannelId]);
 
-  const handleScroll = () => {
-    if (!scrollRef.current) return;
-    if (scrollRef.current.scrollTop < 50) {
-      loadMoreMessages();
-    }
-  };
+  const scrollRafRef = useRef(0);
+  const handleScroll = useCallback(() => {
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = 0;
+      if (!scrollRef.current) return;
+      if (scrollRef.current.scrollTop < 50) {
+        loadMoreMessages();
+      }
+    });
+  }, [loadMoreMessages]);
 
-  const handleReactionToggle = async (messageId: string, emoji: string) => {
+  const handleReactionToggle = useCallback(async (messageId: string, emoji: string) => {
     if (!selectedChannelId) return;
     const msg = messages.find((m) => m.id === messageId);
     const reaction = msg?.reactions.find(
@@ -116,7 +121,7 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
       await addReaction(selectedChannelId, messageId, emoji);
     }
     fetchMessages(selectedChannelId);
-  };
+  }, [selectedChannelId, messages, removeReaction, addReaction, fetchMessages]);
 
   const handleSend = (content: string) => {
     if (!selectedChannelId) return;
@@ -136,10 +141,24 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
     setEditingMessage(null);
   };
 
-  const handleDelete = (messageId: string) => {
+  const handleDelete = useCallback((messageId: string) => {
     if (!selectedChannelId) return;
     deleteMessage(selectedChannelId, messageId);
-  };
+  }, [selectedChannelId, deleteMessage]);
+
+  const handleReply = useCallback((m: DiscordMessage) => {
+    setReplyingTo(m);
+    setEditingMessage(null);
+  }, []);
+
+  const handleEditStart = useCallback((m: DiscordMessage) => {
+    setEditingMessage(m);
+    setReplyingTo(null);
+  }, []);
+
+  const handleEmojiPickOpen = useCallback((messageId: string) => {
+    setEmojiPickerMessageId(messageId);
+  }, []);
 
   const handleEmojiPick = (emoji: string) => {
     if (!selectedChannelId || !emojiPickerMessageId) return;
@@ -262,10 +281,10 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
             message={msg}
             currentUserId={user?.id || null}
             onReactionToggle={handleReactionToggle}
-            onReply={(m) => { setReplyingTo(m); setEditingMessage(null); }}
-            onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }}
+            onReply={handleReply}
+            onEdit={handleEditStart}
             onDelete={handleDelete}
-            onEmojiPick={(messageId) => setEmojiPickerMessageId(messageId)}
+            onEmojiPick={handleEmojiPickOpen}
           />
         ))}
       </div>

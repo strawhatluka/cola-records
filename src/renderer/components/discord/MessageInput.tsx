@@ -244,7 +244,7 @@ export function MessageInput({
           {pendingFiles.map((file, i) => (
             <div key={i} className="relative shrink-0">
               {file.preview ? (
-                <img src={file.preview} alt={file.name} className="h-16 w-16 object-cover rounded border" />
+                <img src={file.preview} alt={file.name} className="h-16 w-16 object-cover rounded border" loading="lazy" />
               ) : (
                 <div className="h-16 w-16 rounded border bg-muted flex items-center justify-center">
                   <span className="text-[9px] text-muted-foreground text-center px-1 truncate">{file.name}</span>

@@ -33,6 +33,7 @@ export function ReactionBar({ reactions, onToggle }: ReactionBarProps) {
                 src={`https://cdn.discordapp.com/emojis/${reaction.emoji.id}.png`}
                 alt={reaction.emoji.name}
                 className="h-3.5 w-3.5"
+                loading="lazy"
               />
             ) : (
               <span>{reaction.emoji.name}</span>

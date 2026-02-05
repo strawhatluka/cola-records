@@ -11,7 +11,7 @@ export function ServerList() {
       <button
         type="button"
         onClick={selectDMs}
-        className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all ${
+        className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-[border-radius,background-color] ${
           isDMsActive
             ? 'bg-[#5865F2] text-white rounded-xl'
             : 'bg-muted hover:bg-muted/80 hover:rounded-xl text-muted-foreground'
@@ -45,7 +45,7 @@ export function ServerList() {
             key={guild.id}
             type="button"
             onClick={() => selectGuild(guild.id)}
-            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all overflow-hidden ${
+            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-[border-radius,background-color] overflow-hidden ${
               isActive
                 ? 'rounded-xl ring-2 ring-[#5865F2]'
                 : 'hover:rounded-xl'
@@ -56,7 +56,7 @@ export function ServerList() {
               <div className="absolute left-[-6px] w-1 h-6 bg-foreground rounded-r" />
             )}
             {iconUrl ? (
-              <img src={iconUrl} alt={guild.name} className="h-10 w-10 object-cover" />
+              <img src={iconUrl} alt={guild.name} className="h-10 w-10 object-cover" loading="lazy" />
             ) : (
               <div className="h-10 w-10 bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground">
                 {initials}

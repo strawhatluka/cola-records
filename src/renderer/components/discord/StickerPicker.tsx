@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { X, Search } from 'lucide-react';
 import { useDiscordStore } from '../../stores/useDiscordStore';
 import type { DiscordSticker, DiscordGuild } from '../../../main/ipc/channels';
@@ -94,24 +94,30 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
     }
   };
 
-  const handleScroll = () => {
-    if (!scrollRef.current) return;
-    const scrollTop = scrollRef.current.scrollTop;
-    let closest: string | null = null;
-    let closestDist = Infinity;
+  // RAF-throttled scroll handler
+  const scrollRafRef = useRef(0);
+  const handleScroll = useCallback(() => {
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = 0;
+      if (!scrollRef.current) return;
+      const scrollTop = scrollRef.current.scrollTop;
+      let closest: string | null = null;
+      let closestDist = Infinity;
 
-    for (const [id, el] of Object.entries(sectionRefs.current)) {
-      if (!el) continue;
-      const dist = Math.abs(el.offsetTop - scrollRef.current.offsetTop - scrollTop);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = id;
+      for (const [id, el] of Object.entries(sectionRefs.current)) {
+        if (!el) continue;
+        const dist = Math.abs(el.offsetTop - scrollRef.current.offsetTop - scrollTop);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = id;
+        }
       }
-    }
-    if (closest !== activeSection) {
-      setActiveSection(closest);
-    }
-  };
+      if (closest !== activeSection) {
+        setActiveSection(closest);
+      }
+    });
+  }, [activeSection]);
 
   const content = (
     <>
@@ -148,7 +154,7 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
                   title={section.label}
                 >
                   {iconUrl ? (
-                    <img src={iconUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                    <img src={iconUrl} alt="" className="w-6 h-6 rounded-full object-cover" loading="lazy" />
                   ) : (
                     <span className="text-[8px] font-bold text-muted-foreground leading-tight text-center">
                       {section.label.slice(0, 3)}

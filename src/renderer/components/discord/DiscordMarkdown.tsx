@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 interface DiscordMarkdownProps {
   content: string;
@@ -33,7 +33,7 @@ export function DiscordMarkdown({ content }: DiscordMarkdownProps) {
 
 function InlineMarkdown({ text }: { text: string }) {
   // Process inline patterns in order of precedence
-  const tokens = tokenize(text);
+  const tokens = useMemo(() => tokenize(text), [text]);
   return <>{tokens.map((token, i) => renderToken(token, i))}</>;
 }
 
@@ -150,6 +150,7 @@ function renderToken(token: Token, key: number): ReactNode {
           alt={`:${token.content}:`}
           title={`:${token.content}:`}
           className="inline-block h-5 w-5 align-text-bottom"
+          loading="lazy"
         />
       );
     case 'animatedEmote':
@@ -160,6 +161,7 @@ function renderToken(token: Token, key: number): ReactNode {
           alt={`:${token.content}:`}
           title={`:${token.content}:`}
           className="inline-block h-5 w-5 align-text-bottom"
+          loading="lazy"
         />
       );
     case 'userMention':

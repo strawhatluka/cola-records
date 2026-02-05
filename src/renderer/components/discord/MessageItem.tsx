@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { SmilePlus, Reply, Pencil, Trash2, Copy } from 'lucide-react';
 import type { DiscordMessage, DiscordStickerItem } from '../../../main/ipc/channels';
 import { DiscordMarkdown } from './DiscordMarkdown';
@@ -39,7 +39,7 @@ function formatMessageTime(timestamp: string): string {
   return `${date.toLocaleDateString()} ${time}`;
 }
 
-export function MessageItem({
+export const MessageItem = memo(function MessageItem({
   message,
   currentUserId,
   onReactionToggle,
@@ -71,6 +71,7 @@ export function MessageItem({
         src={getAvatarUrl(message.author.id, message.author.avatar)}
         alt={displayName}
         className="h-8 w-8 rounded-full shrink-0 mt-0.5"
+        loading="lazy"
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
@@ -163,7 +164,7 @@ export function MessageItem({
       )}
     </div>
   );
-}
+});
 
 function ActionButton({
   icon,
@@ -208,6 +209,7 @@ function StickerRenderer({ sticker }: { sticker: DiscordStickerItem }) {
       alt={sticker.name}
       title={sticker.name}
       className="mt-1 h-24 w-24 object-contain"
+      loading="lazy"
     />
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { ChevronDown, ChevronRight, Hash, Volume2, Megaphone, MessageSquareText } from 'lucide-react';
 import { useDiscordStore } from '../../stores/useDiscordStore';
 import type { DiscordChannel } from '../../../main/ipc/channels';
@@ -104,7 +104,7 @@ export function ChannelList() {
   );
 }
 
-function ChannelItem({
+const ChannelItem = memo(function ChannelItem({
   channel,
   clickable,
   active,
@@ -135,7 +135,7 @@ function ChannelItem({
       <span className="truncate">{channel.name}</span>
     </button>
   );
-}
+});
 
 function getChannelIcon(type: number) {
   switch (type) {

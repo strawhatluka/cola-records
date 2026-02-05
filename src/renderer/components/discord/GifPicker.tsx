@@ -125,7 +125,7 @@ export function GifPicker({ onSelect, onClose, embedded = false }: GifPickerProp
                 key={cat.label}
                 type="button"
                 onClick={() => handleCategoryClick(cat)}
-                className="relative h-16 rounded-lg overflow-hidden bg-muted hover:brightness-110 transition-all group"
+                className="relative h-16 rounded-lg overflow-hidden bg-muted hover:brightness-110 transition-[filter] group"
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute inset-0 flex items-center justify-center gap-1">

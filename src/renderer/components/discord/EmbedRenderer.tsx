@@ -44,7 +44,7 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
             {embed.author && (
               <div className="flex items-center gap-1.5">
                 {embed.author.iconUrl && (
-                  <img src={embed.author.iconUrl} alt="" className="h-4 w-4 rounded-full" />
+                  <img src={embed.author.iconUrl} alt="" className="h-4 w-4 rounded-full" loading="lazy" />
                 )}
                 <span className="text-xs font-medium">{embed.author.name}</span>
               </div>
@@ -67,6 +67,7 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
                 src={embed.thumbnail.url}
                 alt=""
                 className="w-full max-h-[200px] object-cover"
+                loading="lazy"
               />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="h-12 w-12 rounded-full bg-black/60 flex items-center justify-center">
@@ -90,6 +91,7 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
           src={embed.thumbnail.url}
           alt=""
           className="rounded max-w-[320px] max-h-[300px] object-contain"
+          loading="lazy"
         />
       </a>
     );
@@ -108,7 +110,7 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
         {embed.author && (
           <div className="flex items-center gap-1.5">
             {embed.author.iconUrl && (
-              <img src={embed.author.iconUrl} alt="" className="h-4 w-4 rounded-full" />
+              <img src={embed.author.iconUrl} alt="" className="h-4 w-4 rounded-full" loading="lazy" />
             )}
             {embed.author.url ? (
               <a href={embed.author.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium hover:underline">
@@ -154,6 +156,7 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
             src={embed.image.url}
             alt=""
             className="rounded max-w-full max-h-[200px] object-contain"
+            loading="lazy"
           />
         )}
         {embed.thumbnail && !embed.image && (
@@ -161,6 +164,7 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
             src={embed.thumbnail.url}
             alt=""
             className="rounded max-w-[80px] max-h-[80px] object-contain float-right ml-2"
+            loading="lazy"
           />
         )}
 
@@ -168,7 +172,7 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
         {(embed.footer || embed.timestamp) && (
           <div className="flex items-center gap-1.5 pt-1 border-t border-border/30 clear-both">
             {embed.footer?.iconUrl && (
-              <img src={embed.footer.iconUrl} alt="" className="h-4 w-4 rounded-full shrink-0" />
+              <img src={embed.footer.iconUrl} alt="" className="h-4 w-4 rounded-full shrink-0" loading="lazy" />
             )}
             <span className="text-[10px] text-muted-foreground">
               {embed.footer?.text}

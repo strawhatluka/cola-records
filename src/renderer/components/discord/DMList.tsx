@@ -49,6 +49,7 @@ export function DMList() {
                   src={getAvatarUrl(recipient.id, recipient.avatar)}
                   alt={displayName}
                   className="h-8 w-8 rounded-full shrink-0"
+                  loading="lazy"
                 />
               )}
               <div className="min-w-0 text-left">

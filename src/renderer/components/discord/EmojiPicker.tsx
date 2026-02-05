@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { X, Search } from 'lucide-react';
 import type { DiscordEmoji, DiscordGuild } from '../../../main/ipc/channels';
 
@@ -187,25 +187,30 @@ export function EmojiPicker({ onSelect, onClose, customEmojis = [], guilds = [],
     }
   };
 
-  // Track which section is visible on scroll
-  const handleScroll = () => {
-    if (!scrollRef.current) return;
-    const scrollTop = scrollRef.current.scrollTop;
-    let closest = activeSection;
-    let closestDist = Infinity;
+  // Track which section is visible on scroll (RAF-throttled)
+  const scrollRafRef = useRef(0);
+  const handleScroll = useCallback(() => {
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = 0;
+      if (!scrollRef.current) return;
+      const scrollTop = scrollRef.current.scrollTop;
+      let closest = activeSection;
+      let closestDist = Infinity;
 
-    for (const [id, el] of Object.entries(sectionRefs.current)) {
-      if (!el) continue;
-      const dist = Math.abs(el.offsetTop - scrollRef.current.offsetTop - scrollTop);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = id;
+      for (const [id, el] of Object.entries(sectionRefs.current)) {
+        if (!el) continue;
+        const dist = Math.abs(el.offsetTop - scrollRef.current.offsetTop - scrollTop);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = id;
+        }
       }
-    }
-    if (closest !== activeSection) {
-      setActiveSection(closest);
-    }
-  };
+      if (closest !== activeSection) {
+        setActiveSection(closest);
+      }
+    });
+  }, [activeSection]);
 
   const content = (
     <>
@@ -240,7 +245,7 @@ export function EmojiPicker({ onSelect, onClose, customEmojis = [], guilds = [],
                   title={group.guildName}
                 >
                   {iconUrl ? (
-                    <img src={iconUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                    <img src={iconUrl} alt="" className="w-6 h-6 rounded-full object-cover" loading="lazy" />
                   ) : (
                     <span className="text-[9px] font-bold text-muted-foreground">
                       {group.guildName.slice(0, 2)}
@@ -297,7 +302,7 @@ export function EmojiPicker({ onSelect, onClose, customEmojis = [], guilds = [],
                       className="flex items-center justify-center h-9 w-9 rounded hover:bg-muted transition-colors"
                       title={`:${emoji.name}:`}
                     >
-                      <img src={url} alt={emoji.name} className="h-7 w-7 object-contain" />
+                      <img src={url} alt={emoji.name} className="h-7 w-7 object-contain" loading="lazy" />
                     </button>
                   );
                 })}

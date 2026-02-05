@@ -46,6 +46,7 @@ export function NowPlaying() {
             src={albumArt}
             alt={track.album.name}
             className="h-14 w-14 rounded object-cover"
+            loading="lazy"
           />
         ) : (
           <div className="h-14 w-14 rounded bg-muted flex items-center justify-center">

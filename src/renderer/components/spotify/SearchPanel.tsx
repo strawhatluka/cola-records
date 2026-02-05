@@ -33,7 +33,7 @@ export function SearchPanel() {
               className="group flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted transition-colors"
             >
               {thumb ? (
-                <img src={thumb} alt="" className="h-8 w-8 rounded object-cover" />
+                <img src={thumb} alt="" className="h-8 w-8 rounded object-cover" loading="lazy" />
               ) : (
                 <div className="h-8 w-8 rounded bg-muted" />
               )}

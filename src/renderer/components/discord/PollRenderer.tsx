@@ -37,7 +37,7 @@ export function PollRenderer({ poll }: PollRendererProps) {
                   {answer.pollMedia.emoji && (
                     <span className="text-xs">
                       {answer.pollMedia.emoji.id
-                        ? <img src={`https://cdn.discordapp.com/emojis/${answer.pollMedia.emoji.id}.png`} alt="" className="h-4 w-4 inline" />
+                        ? <img src={`https://cdn.discordapp.com/emojis/${answer.pollMedia.emoji.id}.png`} alt="" className="h-4 w-4 inline" loading="lazy" />
                         : answer.pollMedia.emoji.name}
                     </span>
                   )}

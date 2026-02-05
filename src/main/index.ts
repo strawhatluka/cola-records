@@ -13,6 +13,11 @@ import { codeServerService } from './services/code-server.service';
 import { spotifyService } from './services/spotify.service';
 import { discordService } from './services/discord.service';
 
+// GPU acceleration flags (must be set before app.ready)
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
   app.quit();
