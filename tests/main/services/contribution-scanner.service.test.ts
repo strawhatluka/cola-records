@@ -1,44 +1,32 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock fs
-const mockExistsSync = vi.fn();
-const mockReaddirSync = vi.fn();
-const mockStatSync = vi.fn();
+// Mock scanner-pool
+const mockScan = vi.fn();
+const mockTerminate = vi.fn();
 
-vi.mock('fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('fs')>();
-  return {
-    ...actual,
-    existsSync: (...args: any[]) => mockExistsSync(...args),
-    readdirSync: (...args: any[]) => mockReaddirSync(...args),
-    statSync: (...args: any[]) => mockStatSync(...args),
-  };
-});
-
-// Mock simple-git
-const mockCheckIsRepo = vi.fn();
-const mockRevparse = vi.fn();
-const mockGetRemotes = vi.fn();
-
-vi.mock('simple-git', () => ({
-  simpleGit: () => ({
-    checkIsRepo: mockCheckIsRepo,
-    revparse: mockRevparse,
-    getRemotes: mockGetRemotes,
-  }),
+vi.mock('../../../src/main/workers/scanner-pool', () => ({
+  scannerPool: {
+    scan: (...args: unknown[]) => mockScan(...args),
+    terminate: () => mockTerminate(),
+  },
 }));
 
 // Mock github-rest.service
-const mockGetRepository = vi.fn();
-const mockCheckPRStatus = vi.fn();
 const mockGetIssue = vi.fn();
 
 vi.mock('../../../src/main/services/github-rest.service', () => ({
   gitHubRestService: {
-    getRepository: (...args: unknown[]) => mockGetRepository(...args),
-    checkPRStatus: (...args: unknown[]) => mockCheckPRStatus(...args),
     getIssue: (...args: unknown[]) => mockGetIssue(...args),
+  },
+}));
+
+// Mock database
+const mockGetAllSettings = vi.fn();
+
+vi.mock('../../../src/main/database', () => ({
+  database: {
+    getAllSettings: () => mockGetAllSettings(),
   },
 }));
 
@@ -47,7 +35,7 @@ import { contributionScannerService } from '../../../src/main/services/contribut
 describe('ContributionScannerService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockStatSync.mockReturnValue({ birthtime: new Date('2026-01-01') });
+    mockGetAllSettings.mockReturnValue({});
   });
 
   afterEach(() => {
@@ -55,107 +43,105 @@ describe('ContributionScannerService', () => {
   });
 
   describe('scanDirectory', () => {
-    it('returns empty array if directory does not exist', async () => {
-      mockExistsSync.mockReturnValue(false);
-      const result = await contributionScannerService.scanDirectory('/nonexistent');
-      expect(result).toEqual([]);
-    });
-
-    it('scans subdirectories for git repos', async () => {
-      mockExistsSync.mockReturnValue(true);
-      mockReaddirSync.mockReturnValue([
-        { name: 'repo1', isDirectory: () => true },
-        { name: 'file.txt', isDirectory: () => false },
+    it('delegates to scannerPool.scan with directory and token', async () => {
+      mockGetAllSettings.mockReturnValue({ githubToken: 'gh_test_token' });
+      mockScan.mockResolvedValue([
+        {
+          localPath: '/contributions/repo1',
+          repositoryUrl: 'https://github.com/user/repo1',
+          branchName: 'main',
+          remotes: { origin: 'https://github.com/user/repo1.git' },
+          isFork: false,
+          remotesValid: true,
+        },
       ]);
-      mockCheckIsRepo.mockResolvedValue(true);
-      mockRevparse.mockResolvedValue('main');
-      mockGetRemotes.mockResolvedValue([
-        { name: 'origin', refs: { fetch: 'https://github.com/user/repo1.git' } },
-      ]);
-      mockGetRepository.mockRejectedValue(new Error('Not found'));
 
       const result = await contributionScannerService.scanDirectory('/contributions');
+      expect(mockScan).toHaveBeenCalledWith('/contributions', 'gh_test_token');
       expect(result).toHaveLength(1);
-      expect(result[0].localPath).toContain('repo1');
-      expect(result[0].branchName).toBe('main');
+      expect(result[0].localPath).toBe('/contributions/repo1');
     });
 
-    it('returns empty array when no subdirectories', async () => {
-      mockExistsSync.mockReturnValue(true);
-      mockReaddirSync.mockReturnValue([]);
+    it('passes null token when no token configured', async () => {
+      mockGetAllSettings.mockReturnValue({});
+      mockScan.mockResolvedValue([]);
+
+      await contributionScannerService.scanDirectory('/contributions');
+      expect(mockScan).toHaveBeenCalledWith('/contributions', null);
+    });
+
+    it('falls back to env token when database has no token', async () => {
+      mockGetAllSettings.mockReturnValue({});
+      const originalEnv = process.env.GITHUB_TOKEN;
+      process.env.GITHUB_TOKEN = 'env_token';
+
+      mockScan.mockResolvedValue([]);
+      await contributionScannerService.scanDirectory('/contributions');
+      expect(mockScan).toHaveBeenCalledWith('/contributions', 'env_token');
+
+      process.env.GITHUB_TOKEN = originalEnv;
+    });
+
+    it('returns empty array from worker', async () => {
+      mockScan.mockResolvedValue([]);
       const result = await contributionScannerService.scanDirectory('/empty');
       expect(result).toEqual([]);
     });
+
+    it('propagates worker errors', async () => {
+      mockScan.mockRejectedValue(new Error('Scanner worker timed out after 30s'));
+      await expect(contributionScannerService.scanDirectory('/bad')).rejects.toThrow(
+        'Scanner worker timed out after 30s'
+      );
+    });
+
+    it('handles database read failure gracefully', async () => {
+      mockGetAllSettings.mockImplementation(() => {
+        throw new Error('DB not initialized');
+      });
+      const originalEnv = process.env.GITHUB_TOKEN;
+      delete process.env.GITHUB_TOKEN;
+      mockScan.mockResolvedValue([]);
+
+      await contributionScannerService.scanDirectory('/contributions');
+      // Should fall back to null token when DB fails and no env var
+      expect(mockScan).toHaveBeenCalledWith('/contributions', null);
+
+      process.env.GITHUB_TOKEN = originalEnv;
+    });
   });
 
-  describe('scanRepository', () => {
-    it('returns contribution data for a valid git repo', async () => {
-      mockCheckIsRepo.mockResolvedValue(true);
-      mockRevparse.mockResolvedValue('feature-branch');
-      mockGetRemotes.mockResolvedValue([
-        { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git' } },
-        { name: 'upstream', refs: { fetch: 'https://github.com/org/repo.git' } },
-      ]);
-      mockGetRepository.mockResolvedValue({
-        fork: true,
-        parent: { full_name: 'org/repo' },
-      });
-      mockCheckPRStatus.mockResolvedValue(null);
-
-      const result = await contributionScannerService.scanRepository('/contributions/repo');
-      expect(result).not.toBeNull();
-      expect(result!.branchName).toBe('feature-branch');
-      expect(result!.remotes.origin).toBe('https://github.com/user/repo.git');
-      expect(result!.remotes.upstream).toBe('https://github.com/org/repo.git');
-      expect(result!.isFork).toBe(true);
-      expect(result!.remotesValid).toBe(true);
+  describe('extractRepoInfo', () => {
+    it('extracts owner/repo from HTTPS URL', () => {
+      const result = contributionScannerService.extractRepoInfo(
+        'https://github.com/owner/repo.git'
+      );
+      expect(result).toEqual({ owner: 'owner', repo: 'repo' });
     });
 
-    it('extracts issue number from branch name', async () => {
-      mockCheckIsRepo.mockResolvedValue(true);
-      mockRevparse.mockResolvedValue('issue-42');
-      mockGetRemotes.mockResolvedValue([
-        { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git' } },
-      ]);
-      mockGetRepository.mockRejectedValue(new Error('Not found'));
-
-      const result = await contributionScannerService.scanRepository('/contributions/repo');
-      expect(result).not.toBeNull();
-      expect(result!.issueNumber).toBe(42);
+    it('extracts owner/repo from SSH URL', () => {
+      const result = contributionScannerService.extractRepoInfo(
+        'git@github.com:owner/repo.git'
+      );
+      expect(result).toEqual({ owner: 'owner', repo: 'repo' });
     });
 
-    it('handles non-git directory gracefully', async () => {
-      mockCheckIsRepo.mockResolvedValue(false);
-      mockGetRemotes.mockResolvedValue([]);
-
-      const result = await contributionScannerService.scanRepository('/contributions/not-git');
-      expect(result).not.toBeNull();
-      expect(result!.branchName).toBe('main'); // default
+    it('handles URL without .git suffix', () => {
+      const result = contributionScannerService.extractRepoInfo(
+        'https://github.com/owner/repo'
+      );
+      expect(result).toEqual({ owner: 'owner', repo: 'repo' });
     });
 
-    it('checks PR status when both remotes exist', async () => {
-      mockCheckIsRepo.mockResolvedValue(true);
-      mockRevparse.mockResolvedValue('fix-bug');
-      mockGetRemotes.mockResolvedValue([
-        { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git' } },
-        { name: 'upstream', refs: { fetch: 'https://github.com/org/repo.git' } },
-      ]);
-      mockGetRepository.mockResolvedValue({ fork: true, parent: { full_name: 'org/repo' } });
-      mockCheckPRStatus.mockResolvedValue({
-        number: 5,
-        url: 'https://github.com/org/repo/pull/5',
-        status: 'open',
-      });
-
-      const result = await contributionScannerService.scanRepository('/contributions/repo');
-      expect(result!.prNumber).toBe(5);
-      expect(result!.prUrl).toBe('https://github.com/org/repo/pull/5');
-      expect(result!.prStatus).toBe('open');
+    it('returns null for non-GitHub URL', () => {
+      const result = contributionScannerService.extractRepoInfo(
+        'https://gitlab.com/owner/repo.git'
+      );
+      expect(result).toBeNull();
     });
 
-    it('returns null on unexpected error', async () => {
-      mockCheckIsRepo.mockRejectedValue(new Error('Unexpected'));
-      const result = await contributionScannerService.scanRepository('/bad/path');
+    it('returns null for invalid URL', () => {
+      const result = contributionScannerService.extractRepoInfo('not-a-url');
       expect(result).toBeNull();
     });
   });

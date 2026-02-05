@@ -29,6 +29,10 @@ const config: ForgeConfig = {
           entry: 'src/main/preload.ts',
           config: 'vite.preload.config.ts',
         },
+        {
+          entry: 'src/main/workers/contribution-scanner.worker.ts',
+          config: 'vite.worker.config.ts',
+        },
       ],
       renderer: [
         {

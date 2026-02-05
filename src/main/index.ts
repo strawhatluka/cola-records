@@ -12,6 +12,7 @@ import { gitHubGraphQLService } from './services/github-graphql.service';
 import { codeServerService } from './services/code-server.service';
 import { spotifyService } from './services/spotify.service';
 import { discordService } from './services/discord.service';
+import { scannerPool } from './workers/scanner-pool';
 
 // GPU acceleration flags (must be set before app.ready)
 app.commandLine.appendSwitch('enable-gpu-rasterization');
@@ -885,6 +886,7 @@ async function cleanup(): Promise<void> {
   }
   spotifyService.cleanup();
   discordService.cleanup();
+  scannerPool.terminate();
   removeAllIpcHandlers();
   database.close();
 }
