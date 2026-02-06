@@ -223,17 +223,20 @@ describe('CodeServerService', () => {
   });
 
   describe('getClaudeMounts', () => {
-    it('returns empty when no Claude files exist', () => {
-      mockExistsSync.mockReturnValue(false);
+    it('always mounts isolated claude-config directory', () => {
+      // The isolated config is always mounted regardless of host files
       const mounts = codeServerService.getClaudeMounts();
-      expect(mounts).toEqual([]);
+      expect(mounts).toContain('-v');
+      expect(mounts.some(m => m.includes('.claude-config'))).toBe(true);
     });
 
-    it('mounts claude.json and .claude dir when they exist', () => {
+    it('does not mount host claude.json or .claude directory', () => {
+      // Even if host files exist, we don't mount them to prevent conflicts
       mockExistsSync.mockReturnValue(true);
       const mounts = codeServerService.getClaudeMounts();
-      expect(mounts.some(m => m.includes('.claude.json'))).toBe(true);
-      expect(mounts.some(m => m.includes('.claude'))).toBe(true);
+      // Should only have the isolated config mount, not host files
+      expect(mounts.some(m => m.includes('.claude.json'))).toBe(false);
+      expect(mounts.filter(m => m.includes('.claude') && !m.includes('.claude-config'))).toHaveLength(0);
     });
   });
 
@@ -439,19 +442,16 @@ describe('CodeServerService', () => {
     });
   });
 
-  describe('getClaudeMounts — selective mounting', () => {
-    it('only mounts claude.json when .claude dir does not exist', () => {
-      let callCount = 0;
-      mockExistsSync.mockImplementation(() => {
-        callCount++;
-        return callCount === 1; // only claude.json exists
-      });
+  describe('getClaudeMounts — isolated config', () => {
+    it('mounts isolated config directory to prevent host/container conflicts', () => {
+      // Regardless of host file state, we always mount the isolated config
+      mockExistsSync.mockReturnValue(false);
 
       const mounts = codeServerService.getClaudeMounts();
-      expect(mounts.some(m => m.includes('.claude.json'))).toBe(true);
-      // .claude dir mount should not be present (only 2 mount args for claude.json)
-      const claudeDirMounts = mounts.filter(m => m.includes('.claude') && !m.includes('.claude.json'));
-      expect(claudeDirMounts).toHaveLength(0);
+      // Should mount the isolated config directory
+      expect(mounts.some(m => m.includes('claude-config:/home/coder/.claude-config'))).toBe(true);
+      // Should NOT mount host's .claude.json or .claude directory
+      expect(mounts.some(m => m.includes('.claude.json'))).toBe(false);
     });
   });
 });

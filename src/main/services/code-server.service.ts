@@ -89,6 +89,16 @@ class CodeServerService {
     return 'cola-python';
   }
 
+  /**
+   * Directory for isolated Claude Code configuration.
+   * Uses a separate directory within code-server user data to prevent
+   * conflicts with the host's Claude Code config (~/.claude.json).
+   * Both instances writing to the same file causes JSON corruption.
+   */
+  getClaudeConfigDir(): string {
+    return path.join(this.getUserDataDir(), 'claude-config');
+  }
+
   // ── Path Utilities ───────────────────────────────────────────────
 
   /**
@@ -391,21 +401,27 @@ class CodeServerService {
 
   /**
    * Build Docker -v arguments for Claude Code config.
-   * Mounts ~/.claude.json (auth) and ~/.claude/ (settings, todos) if they exist.
+   * Uses an isolated directory within code-server user data to prevent
+   * conflicts with the host's Claude Code config.
+   *
+   * IMPORTANT: We do NOT mount the host's ~/.claude.json or ~/.claude/ because
+   * both the host and container Claude Code instances would write to the same
+   * files concurrently, causing JSON corruption.
+   *
+   * Instead, we mount a separate persistent directory and set CLAUDE_CONFIG_DIR
+   * env var to point to it. The container's Claude Code will need to be
+   * authenticated separately (one-time setup).
    */
   getClaudeMounts(): string[] {
-    const mounts: string[] = [];
-    const claudeJson = path.join(os.homedir(), '.claude.json');
-    const claudeDir = path.join(os.homedir(), '.claude');
+    const claudeConfigDir = this.getClaudeConfigDir();
 
-    if (fs.existsSync(claudeJson)) {
-      mounts.push('-v', `${this.toDockerPath(claudeJson)}:/home/coder/.claude.json`);
-    }
-    if (fs.existsSync(claudeDir)) {
-      mounts.push('-v', `${this.toDockerPath(claudeDir)}:/home/coder/.claude`);
-    }
+    // Ensure the isolated Claude config directory exists
+    fs.mkdirSync(claudeConfigDir, { recursive: true });
 
-    return mounts;
+    // Mount the isolated config directory
+    return [
+      '-v', `${this.toDockerPath(claudeConfigDir)}:/home/coder/.claude-config`,
+    ];
   }
 
   // ── Docker Operations ────────────────────────────────────────────
@@ -705,8 +721,10 @@ NPXSCRIPT
         '-v', `${pythonVolume}:/home/coder/.python`,
         // Git mounts (conditionally included)
         ...gitMounts,
-        // Claude Code config mounts (auth token, settings, etc.)
+        // Claude Code config mount (isolated from host to prevent JSON corruption)
         ...this.getClaudeMounts(),
+        // Claude Code config directory (isolated from host's ~/.claude.json)
+        '-e', 'CLAUDE_CONFIG_DIR=/home/coder/.claude-config',
         // Git config env var
         '-e', 'GIT_CONFIG_GLOBAL=/home/coder/.local/share/code-server/gitconfig',
         // Shell profile

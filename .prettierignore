@@ -1,0 +1,20 @@
+# Build outputs
+dist/
+out/
+.vite/
+
+# Dependencies
+node_modules/
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.min.js
+*.min.css
+
+# Trinity archives
+trinity/archive/
+trinity/sessions/
