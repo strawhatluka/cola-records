@@ -77,7 +77,8 @@ async function checkPRStatus(
   client: Octokit,
   owner: string,
   repo: string,
-  headBranch: string
+  headBranch: string,
+  forkOwner?: string
 ): Promise<{ number: number; url: string; status: 'open' | 'closed' | 'merged' } | null> {
   try {
     const response = await client.pulls.list({
@@ -87,7 +88,16 @@ async function checkPRStatus(
       per_page: 100,
     });
 
-    const pr = response.data.find((p) => p.head?.ref === headBranch);
+    // For forks, match "forkOwner:branchName" pattern
+    // For non-forks, match just the branch name
+    const pr = response.data.find((p) => {
+      if (forkOwner) {
+        // Fork PR: head.label is "forkOwner:branchName"
+        return p.head?.label === `${forkOwner}:${headBranch}` || p.head?.ref === headBranch;
+      }
+      // Non-fork PR: just match branch name
+      return p.head?.ref === headBranch;
+    });
     if (!pr) return null;
 
     const status = pr.merged_at !== null ? 'merged' : (pr.state as 'open' | 'closed');
@@ -204,20 +214,43 @@ async function scanRepository(
     let prNumber: number | undefined;
     let prStatus: 'open' | 'closed' | 'merged' | undefined;
 
-    if (upstreamUrl && originUrl && client) {
+    // Check PR status - for forks check upstream, for non-forks check origin
+    if (client && originUrl) {
       try {
-        const upstreamInfo = extractRepoInfo(upstreamUrl);
-        if (upstreamInfo) {
-          const prInfo = await checkPRStatus(
-            client,
-            upstreamInfo.owner,
-            upstreamInfo.repo,
-            branchName
-          );
-          if (prInfo) {
-            prUrl = prInfo.url;
-            prNumber = prInfo.number;
-            prStatus = prInfo.status;
+        if (upstreamUrl && isFork) {
+          // Fork: check PRs against upstream repo with fork's branch
+          const upstreamInfo = extractRepoInfo(upstreamUrl);
+          const originInfo = extractRepoInfo(originUrl);
+          if (upstreamInfo && originInfo) {
+            // For fork PRs, head ref is "forkOwner:branchName"
+            const prInfo = await checkPRStatus(
+              client,
+              upstreamInfo.owner,
+              upstreamInfo.repo,
+              branchName,
+              originInfo.owner // Pass fork owner to construct head ref
+            );
+            if (prInfo) {
+              prUrl = prInfo.url;
+              prNumber = prInfo.number;
+              prStatus = prInfo.status;
+            }
+          }
+        } else {
+          // Non-fork: check PRs against origin repo
+          const originInfo = extractRepoInfo(originUrl);
+          if (originInfo) {
+            const prInfo = await checkPRStatus(
+              client,
+              originInfo.owner,
+              originInfo.repo,
+              branchName
+            );
+            if (prInfo) {
+              prUrl = prInfo.url;
+              prNumber = prInfo.number;
+              prStatus = prInfo.status;
+            }
           }
         }
       } catch {

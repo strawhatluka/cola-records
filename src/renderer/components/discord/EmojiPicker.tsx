@@ -8,6 +8,11 @@ interface EmojiPickerProps {
   customEmojis?: DiscordEmoji[];
   guilds?: DiscordGuild[];
   embedded?: boolean;
+  /**
+   * When true, formats custom emojis as `name:id` for Discord reaction API.
+   * When false (default), formats as `<:name:id>` or `<a:name:id>` for message content.
+   */
+  forReaction?: boolean;
 }
 
 const STANDARD_CATEGORIES: { id: string; name: string; icon: string; emojis: string[] }[] = [
@@ -395,6 +400,7 @@ export function EmojiPicker({
   customEmojis = [],
   guilds = [],
   embedded = false,
+  forReaction = false,
 }: EmojiPickerProps) {
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState<string>('frequent');
@@ -565,7 +571,12 @@ export function EmojiPicker({
                 {group.emojis.map((emoji) => {
                   const ext = emoji.animated ? 'gif' : 'png';
                   const url = `https://cdn.discordapp.com/emojis/${emoji.id}.${ext}?size=48`;
-                  const emojiStr = `${emoji.name}:${emoji.id}`;
+                  // Discord format: name:id for reaction API, <:name:id> or <a:name:id> for message content
+                  const emojiStr = forReaction
+                    ? `${emoji.name}:${emoji.id}`
+                    : emoji.animated
+                      ? `<a:${emoji.name}:${emoji.id}>`
+                      : `<:${emoji.name}:${emoji.id}>`;
                   return (
                     <button
                       key={emoji.id}

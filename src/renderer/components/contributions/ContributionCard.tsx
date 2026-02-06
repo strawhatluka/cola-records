@@ -17,6 +17,40 @@ import { ipc } from '../../ipc/client';
 import type { Contribution } from '../../../main/ipc/channels';
 import * as React from 'react';
 
+/**
+ * Get PR badge styling based on contribution type and PR status.
+ * Matches the PR button color logic from DevelopmentScreen:
+ * - Projects: red = has open PRs (needs attention)
+ * - Contributions: blue = has open PR (in progress)
+ */
+function getPRBadgeStyles(contribution: Contribution): {
+  className?: string;
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline';
+} {
+  if (!contribution.prStatus) return { variant: 'outline' };
+
+  if (contribution.prStatus === 'merged') {
+    return { variant: 'default' }; // Purple - default theme color
+  }
+
+  if (contribution.prStatus === 'closed') {
+    return { variant: 'outline' }; // Gray outline
+  }
+
+  // prStatus === 'open'
+  if (contribution.type === 'project') {
+    // Projects: red = has open PRs (needs attention)
+    return {
+      className: 'bg-red-500 text-white border-red-500 hover:bg-red-500/80',
+    };
+  }
+
+  // Contributions: blue = has open PR (in progress)
+  return {
+    className: 'bg-blue-500 text-white border-blue-500 hover:bg-blue-500/80',
+  };
+}
+
 interface ContributionCardProps {
   contribution: Contribution;
   onDelete: (id: string) => void;
@@ -112,16 +146,11 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
                 </Badge>
               )}
 
-              {/* PR Status Badge */}
+              {/* PR Status Badge - color matches PR button logic from DevelopmentScreen */}
               {contribution.prStatus && (
                 <Badge
-                  variant={
-                    contribution.prStatus === 'merged'
-                      ? 'default'
-                      : contribution.prStatus === 'open'
-                        ? 'secondary'
-                        : 'outline'
-                  }
+                  variant={getPRBadgeStyles(contribution).variant}
+                  className={getPRBadgeStyles(contribution).className}
                 >
                   <GitPullRequest className="h-3 w-3 mr-1" />
                   PR #{contribution.prNumber} - {contribution.prStatus}

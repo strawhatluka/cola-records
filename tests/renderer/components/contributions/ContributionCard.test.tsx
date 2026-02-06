@@ -153,4 +153,119 @@ describe('ContributionCard', () => {
     await user.click(deleteIcon[deleteIcon.length - 1].closest('button')!);
     expect(mockOnDelete).toHaveBeenCalledWith('del-me');
   });
+
+  // ============================================
+  // PR Badge Color Tests
+  // ============================================
+  describe('PR Badge Colors', () => {
+    it('shows blue PR badge for contribution with open PR', () => {
+      const contribution = createMockContribution({
+        type: 'contribution',
+        prStatus: 'open',
+        prNumber: 42,
+      });
+      render(
+        <ContributionCard
+          contribution={contribution}
+          onDelete={mockOnDelete}
+          onOpenProject={mockOnOpenProject}
+        />
+      );
+      const badge = screen.getByText('PR #42 - open').closest('div');
+      expect(badge?.className).toContain('bg-blue-500');
+    });
+
+    it('shows red PR badge for project with open PR', () => {
+      const contribution = createMockContribution({
+        type: 'project',
+        prStatus: 'open',
+        prNumber: 99,
+      });
+      render(
+        <ContributionCard
+          contribution={contribution}
+          onDelete={mockOnDelete}
+          onOpenProject={mockOnOpenProject}
+        />
+      );
+      const badge = screen.getByText('PR #99 - open').closest('div');
+      expect(badge?.className).toContain('bg-red-500');
+    });
+
+    it('shows default variant for merged PR (contribution)', () => {
+      const contribution = createMockContribution({
+        type: 'contribution',
+        prStatus: 'merged',
+        prNumber: 10,
+      });
+      render(
+        <ContributionCard
+          contribution={contribution}
+          onDelete={mockOnDelete}
+          onOpenProject={mockOnOpenProject}
+        />
+      );
+      const badge = screen.getByText('PR #10 - merged').closest('div');
+      // Default variant uses bg-primary
+      expect(badge?.className).toContain('bg-primary');
+    });
+
+    it('shows default variant for merged PR (project)', () => {
+      const contribution = createMockContribution({
+        type: 'project',
+        prStatus: 'merged',
+        prNumber: 20,
+      });
+      render(
+        <ContributionCard
+          contribution={contribution}
+          onDelete={mockOnDelete}
+          onOpenProject={mockOnOpenProject}
+        />
+      );
+      const badge = screen.getByText('PR #20 - merged').closest('div');
+      // Default variant uses bg-primary
+      expect(badge?.className).toContain('bg-primary');
+    });
+
+    it('shows outline variant for closed PR', () => {
+      const contribution = createMockContribution({
+        type: 'contribution',
+        prStatus: 'closed',
+        prNumber: 5,
+      });
+      render(
+        <ContributionCard
+          contribution={contribution}
+          onDelete={mockOnDelete}
+          onOpenProject={mockOnOpenProject}
+        />
+      );
+      const badge = screen.getByText('PR #5 - closed').closest('div');
+      // Outline variant doesn't have bg-* color, just text-foreground
+      expect(badge?.className).not.toContain('bg-blue-500');
+      expect(badge?.className).not.toContain('bg-red-500');
+      expect(badge?.className).not.toContain('bg-primary');
+    });
+
+    it('defaults to blue for open PR when type is undefined (legacy data)', () => {
+      const contribution = createMockContribution({
+        prStatus: 'open',
+        prNumber: 77,
+      });
+      // Explicitly remove type to simulate legacy data
+      delete (contribution as any).type;
+
+      render(
+        <ContributionCard
+          contribution={contribution}
+          onDelete={mockOnDelete}
+          onOpenProject={mockOnOpenProject}
+        />
+      );
+      const badge = screen.getByText('PR #77 - open').closest('div');
+      // Should default to contribution behavior (blue)
+      expect(badge?.className).toContain('bg-blue-500');
+    });
+  });
 });

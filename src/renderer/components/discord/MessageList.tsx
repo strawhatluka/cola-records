@@ -321,6 +321,7 @@ export function MessageList({
           onClose={() => setEmojiPickerMessageId(null)}
           customEmojis={customEmojis}
           guilds={guilds}
+          forReaction
         />
       )}
 
