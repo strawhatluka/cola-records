@@ -654,6 +654,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             repo={parsed.repo}
             githubUsername={githubUsername}
             onClose={() => setSelectedPR(null)}
+            onRefresh={() => fetchPullRequests()}
           />
         ) : null;
       })()}

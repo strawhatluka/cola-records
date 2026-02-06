@@ -524,6 +524,16 @@ const setupIpcHandlers = () => {
     return await gitHubRestService.createPullRequest(owner, repo, title, head, base, body);
   });
 
+  handleIpc("github:merge-pull-request", async (_event, owner, repo, prNumber, mergeMethod, commitTitle, commitMessage) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.mergePullRequest(owner, repo, prNumber, mergeMethod, commitTitle, commitMessage);
+  });
+
+  handleIpc("github:close-pull-request", async (_event, owner, repo, prNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.closePullRequest(owner, repo, prNumber);
+  });
+
   // Reaction handlers
   handleIpc("github:list-issue-reactions", async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');

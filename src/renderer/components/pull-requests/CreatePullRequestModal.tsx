@@ -60,11 +60,18 @@ interface FileDiff {
   lines: DiffHunkLine[];
 }
 
+function stripAnsiCodes(str: string): string {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+}
+
 function parseUnifiedDiff(rawDiff: string): FileDiff[] {
-  if (!rawDiff.trim()) return [];
+  // Strip any ANSI escape codes that might be in the diff
+  const cleanDiff = stripAnsiCodes(rawDiff);
+  if (!cleanDiff.trim()) return [];
 
   const files: FileDiff[] = [];
-  const diffParts = rawDiff.split(/^diff --git /m).filter(Boolean);
+  const diffParts = cleanDiff.split(/^diff --git /m).filter(Boolean);
 
   for (const part of diffParts) {
     const lines = part.split('\n');

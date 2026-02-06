@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ExternalLink, MessageSquare, FileCode, Send } from 'lucide-react';
+import { ExternalLink, MessageSquare, FileCode, Send, GitMerge, XCircle, ChevronDown } from 'lucide-react';
 import { MarkdownEditor } from './MarkdownEditor';
 import { ReactionDisplay } from '../ui/ReactionPicker';
 import type { Reaction, ReactionContent } from '../../../main/ipc/channels';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/DropdownMenu';
 import {
   Dialog,
   DialogContent,
@@ -79,6 +85,7 @@ interface PullRequestDetailModalProps {
   repo: string;
   githubUsername: string;
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
 export function reviewStateBadge(state: string) {
@@ -116,7 +123,7 @@ export function formatDate(date: Date): string {
   });
 }
 
-export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClose }: PullRequestDetailModalProps) {
+export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClose, onRefresh }: PullRequestDetailModalProps) {
   const [prDetail, setPrDetail] = useState<PRDetail | null>(null);
   const [comments, setComments] = useState<PRComment[]>([]);
   const [reviews, setReviews] = useState<PRReview[]>([]);
@@ -125,6 +132,9 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
   const [error, setError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   // Reactions state — PRs use the issues reactions API (PRs are issues in GitHub)
   const [prReactions, setPrReactions] = useState<Reaction[]>([]);
   const [commentReactions, setCommentReactions] = useState<Record<number, Reaction[]>>({});
@@ -232,6 +242,46 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
     await ipc.invoke('github:delete-comment-reaction', owner, repo, commentId, reactionId);
     const updated = await ipc.invoke('github:list-comment-reactions', owner, repo, commentId);
     if (isMounted.current) setCommentReactions((prev) => ({ ...prev, [commentId]: updated }));
+  };
+
+  const handleMerge = async (method: 'merge' | 'squash' | 'rebase') => {
+    if (!pr) return;
+
+    setMerging(true);
+    setActionError(null);
+
+    try {
+      await ipc.invoke('github:merge-pull-request', owner, repo, pr.number, method);
+      // Refresh PR list and close modal
+      onRefresh?.();
+      onClose();
+    } catch (err) {
+      if (isMounted.current) {
+        setActionError(err instanceof Error ? err.message : String(err));
+      }
+    } finally {
+      if (isMounted.current) setMerging(false);
+    }
+  };
+
+  const handleClose = async () => {
+    if (!pr) return;
+
+    setClosing(true);
+    setActionError(null);
+
+    try {
+      await ipc.invoke('github:close-pull-request', owner, repo, pr.number);
+      // Refresh PR list and close modal
+      onRefresh?.();
+      onClose();
+    } catch (err) {
+      if (isMounted.current) {
+        setActionError(err instanceof Error ? err.message : String(err));
+      }
+    } finally {
+      if (isMounted.current) setClosing(false);
+    }
   };
 
   if (!pr) return null;
@@ -452,6 +502,72 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                 </Button>
               </div>
             </div>
+
+            {/* Merge/Close Actions - only for open PRs */}
+            {pr.state === 'open' && !pr.merged && (
+              <div className="border-t pt-4">
+                {actionError && (
+                  <p className="text-sm text-destructive mb-3">{actionError}</p>
+                )}
+                <div className="flex items-center gap-2">
+                  {/* Merge Button with Dropdown */}
+                  <div className="flex">
+                    <Button
+                      size="sm"
+                      className="rounded-r-none bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleMerge('merge')}
+                      disabled={merging || closing}
+                    >
+                      <GitMerge className="h-4 w-4 mr-2" />
+                      {merging ? 'Merging...' : 'Merge pull request'}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          className="rounded-l-none border-l border-green-700 bg-green-600 hover:bg-green-700 text-white px-2"
+                          disabled={merging || closing}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleMerge('merge')}>
+                          <div>
+                            <div className="font-medium">Create a merge commit</div>
+                            <div className="text-xs text-muted-foreground">All commits will be added to the base branch via a merge commit.</div>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleMerge('squash')}>
+                          <div>
+                            <div className="font-medium">Squash and merge</div>
+                            <div className="text-xs text-muted-foreground">The commits will be combined into one commit in the base branch.</div>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleMerge('rebase')}>
+                          <div>
+                            <div className="font-medium">Rebase and merge</div>
+                            <div className="text-xs text-muted-foreground">The commits will be rebased and added to the base branch.</div>
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Close Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={handleClose}
+                    disabled={merging || closing}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    {closing ? 'Closing...' : 'Close pull request'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

@@ -843,6 +843,60 @@ export class GitHubRestService {
       throw new Error(`Failed to add sub-issue to ${owner}/${repo}#${parentIssueNumber}: ${error}`);
     }
   }
+
+  async mergePullRequest(
+    owner: string,
+    repo: string,
+    prNumber: number,
+    mergeMethod: 'merge' | 'squash' | 'rebase' = 'merge',
+    commitTitle?: string,
+    commitMessage?: string
+  ): Promise<{ sha: string; merged: boolean; message: string }> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.pulls.merge({
+        owner,
+        repo,
+        pull_number: prNumber,
+        merge_method: mergeMethod,
+        commit_title: commitTitle,
+        commit_message: commitMessage,
+      });
+
+      return {
+        sha: response.data.sha,
+        merged: response.data.merged,
+        message: response.data.message,
+      };
+    } catch (error: any) {
+      // GitHub returns specific error messages for merge failures
+      const message = error?.response?.data?.message || error?.message || String(error);
+      throw new Error(`Failed to merge PR #${prNumber}: ${message}`);
+    }
+  }
+
+  async closePullRequest(
+    owner: string,
+    repo: string,
+    prNumber: number
+  ): Promise<{ number: number; state: string }> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.pulls.update({
+        owner,
+        repo,
+        pull_number: prNumber,
+        state: 'closed',
+      });
+
+      return {
+        number: response.data.number,
+        state: response.data.state,
+      };
+    } catch (error) {
+      throw new Error(`Failed to close PR #${prNumber}: ${error}`);
+    }
+  }
 }
 
 // Export singleton instance

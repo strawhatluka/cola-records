@@ -504,6 +504,15 @@ export interface IpcChannels {
     url: string;
     state: string;
   };
+  'github:merge-pull-request': (owner: string, repo: string, prNumber: number, mergeMethod?: 'merge' | 'squash' | 'rebase', commitTitle?: string, commitMessage?: string) => {
+    sha: string;
+    merged: boolean;
+    message: string;
+  };
+  'github:close-pull-request': (owner: string, repo: string, prNumber: number) => {
+    number: number;
+    state: string;
+  };
 
   // Reaction Channels
   'github:list-issue-reactions': (owner: string, repo: string, issueNumber: number) => Reaction[];

@@ -338,8 +338,10 @@ export class GitService {
         binary: f.binary || false,
       }));
 
-      // Get raw unified diff for display
-      const rawDiff = await git.diff([`${base}...${head}`]);
+      // Get raw unified diff for display (--no-color to strip ANSI codes)
+      let rawDiff = await git.diff([`${base}...${head}`, '--no-color']);
+      // Strip any remaining ANSI escape codes as a safety measure
+      rawDiff = rawDiff.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
 
       return {
         commits,
