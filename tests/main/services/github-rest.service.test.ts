@@ -28,6 +28,8 @@ const mockReactionsListForIssueComment = vi.fn();
 const mockReactionsCreateForIssueComment = vi.fn();
 const mockReactionsDeleteForIssueComment = vi.fn();
 const mockRequest = vi.fn();
+const mockPullsMerge = vi.fn();
+const mockPullsUpdate = vi.fn();
 
 // Use a class so `new Octokit(...)` works
 vi.mock('@octokit/rest', () => ({
@@ -62,6 +64,15 @@ vi.mock('@octokit/rest', () => ({
       list: mockPullsList,
       listReviews: mockPullsListReviews,
       listReviewComments: mockPullsListReviewComments,
+      merge: mockPullsMerge,
+      update: mockPullsUpdate,
+    };
+    // The service calls client.rest.pulls for merge/close operations
+    rest = {
+      pulls: {
+        merge: mockPullsMerge,
+        update: mockPullsUpdate,
+      },
     };
     activity = {
       checkRepoIsStarredByAuthenticatedUser: mockActivityCheckStar,
@@ -1184,6 +1195,135 @@ describe('GitHubRestService', () => {
       mockRequest.mockRejectedValue(new Error('API failure'));
       await expect(service.addExistingSubIssue('org', 'repo', 42, 999)).rejects.toThrow(
         'Failed to add sub-issue'
+      );
+    });
+  });
+
+  // ─── Merge and Close PRs ─────────────────────────────────────────
+
+  describe('mergePullRequest', () => {
+    it('merges PR with merge method and returns result', async () => {
+      mockPullsMerge.mockResolvedValue({
+        data: {
+          sha: 'abc123def456',
+          merged: true,
+          message: 'Pull Request successfully merged',
+        },
+      });
+
+      const result = await service.mergePullRequest('org', 'repo', 42, 'merge');
+      expect(result.sha).toBe('abc123def456');
+      expect(result.merged).toBe(true);
+      expect(result.message).toBe('Pull Request successfully merged');
+      expect(mockPullsMerge).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        pull_number: 42,
+        merge_method: 'merge',
+      });
+    });
+
+    it('merges PR with squash method', async () => {
+      mockPullsMerge.mockResolvedValue({
+        data: {
+          sha: 'squash123',
+          merged: true,
+          message: 'Pull Request successfully squashed',
+        },
+      });
+
+      const result = await service.mergePullRequest('org', 'repo', 42, 'squash');
+      expect(result.sha).toBe('squash123');
+      expect(mockPullsMerge).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        pull_number: 42,
+        merge_method: 'squash',
+      });
+    });
+
+    it('merges PR with rebase method', async () => {
+      mockPullsMerge.mockResolvedValue({
+        data: {
+          sha: 'rebase123',
+          merged: true,
+          message: 'Pull Request successfully rebased',
+        },
+      });
+
+      const result = await service.mergePullRequest('org', 'repo', 42, 'rebase');
+      expect(result.sha).toBe('rebase123');
+      expect(mockPullsMerge).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        pull_number: 42,
+        merge_method: 'rebase',
+      });
+    });
+
+    it('passes commit title and message when provided', async () => {
+      mockPullsMerge.mockResolvedValue({
+        data: {
+          sha: 'custom123',
+          merged: true,
+          message: 'Merged with custom message',
+        },
+      });
+
+      await service.mergePullRequest('org', 'repo', 42, 'squash', 'Custom Title', 'Custom body message');
+      expect(mockPullsMerge).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        pull_number: 42,
+        merge_method: 'squash',
+        commit_title: 'Custom Title',
+        commit_message: 'Custom body message',
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockPullsMerge.mockRejectedValue(new Error('API failure'));
+      await expect(service.mergePullRequest('org', 'repo', 42, 'merge')).rejects.toThrow(
+        'Failed to merge PR #42'
+      );
+    });
+  });
+
+  describe('closePullRequest', () => {
+    it('closes PR and returns result', async () => {
+      mockPullsUpdate.mockResolvedValue({
+        data: {
+          number: 42,
+          state: 'closed',
+        },
+      });
+
+      const result = await service.closePullRequest('org', 'repo', 42);
+      expect(result.number).toBe(42);
+      expect(result.state).toBe('closed');
+    });
+
+    it('calls pulls.update with state closed', async () => {
+      mockPullsUpdate.mockResolvedValue({
+        data: {
+          number: 42,
+          state: 'closed',
+        },
+      });
+
+      await service.closePullRequest('org', 'repo', 42);
+      expect(mockPullsUpdate).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        pull_number: 42,
+        state: 'closed',
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockPullsUpdate.mockRejectedValue(new Error('API failure'));
+      await expect(service.closePullRequest('org', 'repo', 42)).rejects.toThrow(
+        'Failed to close PR #42'
       );
     });
   });

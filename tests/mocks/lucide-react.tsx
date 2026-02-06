@@ -46,6 +46,7 @@ export const FolderOpen = createIcon('FolderOpen');
 export const GitBranch = createIcon('GitBranch');
 export const GitCommit = createIcon('GitCommit');
 export const GitFork = createIcon('GitFork');
+export const GitMerge = createIcon('GitMerge');
 export const GitPullRequest = createIcon('GitPullRequest');
 export const Hash = createIcon('Hash');
 export const Heading = createIcon('Heading');

@@ -565,9 +565,20 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
     });
 
     it('shows blue "branched" badge when branch matches issue number', async () => {
-      await renderInRunningState({ branchName: 'fix-10-login' });
-      const user = userEvent.setup();
+      // Override git:get-branches to include a branch that matches issue #10
+      setupRunningState();
+      const originalImpl = mockInvoke.getMockImplementation()!;
+      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+        if (channel === 'git:get-branches') return ['main', 'feature-branch', 'fix-10-login'];
+        return (originalImpl as Function)(channel, ...args);
+      });
 
+      render(<DevelopmentScreen contribution={{ ...baseContribution, branchName: 'fix-10-login' }} onNavigateBack={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByText('Stop & Back')).toBeDefined();
+      });
+
+      const user = userEvent.setup();
       await user.click(screen.getByText('Issues'));
 
       await waitFor(() => {

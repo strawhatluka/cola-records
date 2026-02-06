@@ -30,6 +30,9 @@ const defaultProps = {
   repo: 'test-repo',
   localPath: '/mock/local/repo',
   branches: ['main', 'develop', 'feature-branch'],
+  remotes: [
+    { name: 'origin', fetchUrl: 'https://github.com/test-owner/test-repo.git', pushUrl: 'https://github.com/test-owner/test-repo.git' },
+  ],
   onClose: vi.fn(),
   onCreated: vi.fn(),
 };
@@ -48,6 +51,10 @@ function setupMockIPC(overrides: { currentBranch?: string; error?: boolean } = {
           totalDeletions: 0,
           rawDiff: '',
         };
+      case 'git:get-remote-branches':
+        return ['main', 'develop', 'feature-branch'];
+      case 'git:push':
+        return undefined;
       case 'github:create-pull-request':
         if (overrides.error) throw new Error('API rate limit exceeded');
         return { number: 1, url: 'https://github.com/org/repo/pull/1', state: 'open' };

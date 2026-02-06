@@ -89,6 +89,12 @@ describe('Spotify Components Image Lazy Loading', () => {
       ];
       useSpotifyStore.setState({ playlists });
 
+      // Mock fetchPlaylists IPC to return the same playlists (useEffect calls it on mount)
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'spotify:get-playlists') return playlists;
+        return undefined;
+      });
+
       const { container } = render(<PlaylistPanel />);
 
       // Images with alt="" are decorative and have role="presentation", use querySelectorAll

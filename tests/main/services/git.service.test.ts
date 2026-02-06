@@ -150,7 +150,13 @@ describe('GitService', () => {
     it('pushes to specific remote and branch', async () => {
       mockPush.mockResolvedValue(undefined);
       await service.push('/repo', 'upstream', 'feature');
-      expect(mockPush).toHaveBeenCalledWith('upstream', 'feature');
+      expect(mockPush).toHaveBeenCalledWith('upstream', 'feature', []);
+    });
+
+    it('pushes with -u flag when setUpstream is true', async () => {
+      mockPush.mockResolvedValue(undefined);
+      await service.push('/repo', 'origin', 'feature', true);
+      expect(mockPush).toHaveBeenCalledWith('origin', 'feature', ['-u']);
     });
   });
 

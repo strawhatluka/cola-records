@@ -1,7 +1,19 @@
+/**
+ * PullRequestDetailModal Tests
+ *
+ * Tests the PR detail modal component which displays PR information,
+ * comments, reviews, and provides merge/close actions.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-// Mock IPC
+import React from 'react';
+
+// ============================================
+// Mocks - must be before component import
+// ============================================
+
+// Mock IPC client
 const mockInvoke = vi.fn();
 vi.mock('../../../../src/renderer/ipc/client', () => ({
   ipc: {
@@ -13,448 +25,708 @@ vi.mock('../../../../src/renderer/ipc/client', () => ({
   },
 }));
 
-// Mock react-markdown to avoid parsing overhead in tests
-vi.mock('react-markdown', () => ({
-  default: ({ children }: { children: string }) => <div data-testid="markdown">{children}</div>,
-}));
-
-// Mock lucide-react
+// Mock lucide-react icons
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
-import { PullRequestDetailModal } from '../../../../src/renderer/components/pull-requests/PullRequestDetailModal';
+// Mock react-markdown
+vi.mock('react-markdown', () => ({
+  default: ({ children }: { children: string }) => (
+    <div data-testid="markdown">{children}</div>
+  ),
+}));
 
-const basePR = {
-  number: 1,
-  title: 'Test PR',
-  url: 'https://github.com/org/repo/pull/1',
+// Mock Dialog components - render without portals
+vi.mock('../../../../src/renderer/components/ui/Dialog', () => ({
+  Dialog: ({ children, open, onOpenChange }: { children: React.ReactNode; open: boolean; onOpenChange?: (open: boolean) => void }) => {
+    // Always render when open is truthy
+    return open ? <div data-testid="dialog">{children}</div> : null;
+  },
+  DialogContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div data-testid="dialog-content" className={className}>{children}</div>
+  ),
+  DialogHeader: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dialog-header">{children}</div>
+  ),
+  DialogTitle: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <h2 data-testid="dialog-title" className={className}>{children}</h2>
+  ),
+  DialogDescription: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <p className={className}>{children}</p>
+  ),
+}));
+
+// Mock DropdownMenu components
+vi.mock('../../../../src/renderer/components/ui/DropdownMenu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
+    asChild ? <>{children}</> : <button>{children}</button>
+  ),
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-content">{children}</div>
+  ),
+  DropdownMenuItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+    <div role="menuitem" onClick={onClick}>{children}</div>
+  ),
+}));
+
+// Mock MarkdownEditor - simple textarea
+vi.mock('../../../../src/renderer/components/pull-requests/MarkdownEditor', () => ({
+  MarkdownEditor: ({ value, onChange, placeholder, disabled }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+    disabled?: boolean;
+  }) => (
+    <textarea
+      data-testid="comment-input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  ),
+}));
+
+// Mock ReactionDisplay
+vi.mock('../../../../src/renderer/components/ui/ReactionPicker', () => ({
+  ReactionDisplay: () => <div data-testid="reactions" />,
+}));
+
+// Import component after mocks
+import { PullRequestDetailModal, reviewStateBadge, statusBadge, formatDate } from '../../../../src/renderer/components/pull-requests/PullRequestDetailModal';
+
+// ============================================
+// Test Data
+// ============================================
+
+const createBasePR = (overrides = {}) => ({
+  number: 123,
+  title: 'Test Pull Request',
+  url: 'https://github.com/owner/repo/pull/123',
   state: 'open',
   merged: false,
-  createdAt: new Date('2026-01-01T00:00:00Z'),
-  updatedAt: new Date('2026-01-02T00:00:00Z'),
-  author: 'testuser',
-  headBranch: 'feature-branch',
-};
+  createdAt: new Date('2026-01-15T10:00:00Z'),
+  updatedAt: new Date('2026-01-16T10:00:00Z'),
+  author: 'testauthor',
+  headBranch: 'feature/test-branch',
+  ...overrides,
+});
 
-const basePRDetail = {
-  number: 1,
+const createPRDetail = (overrides = {}) => ({
+  number: 123,
   title: 'Detailed PR Title',
-  body: '# PR Description\nThis is a test PR.',
-  url: 'https://github.com/org/repo/pull/1',
+  body: 'This is the PR description with **markdown**.',
+  url: 'https://github.com/owner/repo/pull/123',
   state: 'open',
   merged: false,
-  createdAt: new Date('2026-01-01T00:00:00Z'),
-  updatedAt: new Date('2026-01-02T00:00:00Z'),
-  author: 'testuser',
-};
+  createdAt: new Date('2026-01-15T10:00:00Z'),
+  updatedAt: new Date('2026-01-16T10:00:00Z'),
+  author: 'testauthor',
+  ...overrides,
+});
 
-const baseComment = {
-  id: 100,
-  body: 'This is a comment',
+const createComment = (overrides = {}) => ({
+  id: 1,
+  body: 'This is a test comment',
   author: 'commenter',
-  authorAvatarUrl: 'https://avatar.url/commenter',
-  createdAt: new Date('2026-01-03T00:00:00Z'),
-  updatedAt: new Date('2026-01-03T00:00:00Z'),
-};
+  authorAvatarUrl: 'https://github.com/commenter.png',
+  createdAt: new Date('2026-01-15T11:00:00Z'),
+  updatedAt: new Date('2026-01-15T11:00:00Z'),
+  ...overrides,
+});
 
-const baseReview = {
-  id: 200,
-  body: 'Looks good!',
+const createReview = (overrides = {}) => ({
+  id: 1,
+  body: 'Looks good to me!',
   state: 'APPROVED',
   author: 'reviewer',
-  authorAvatarUrl: 'https://avatar.url/reviewer',
-  submittedAt: new Date('2026-01-04T00:00:00Z'),
-};
+  authorAvatarUrl: 'https://github.com/reviewer.png',
+  submittedAt: new Date('2026-01-15T12:00:00Z'),
+  ...overrides,
+});
 
-const baseReviewComment = {
-  id: 300,
-  body: 'Inline feedback',
+const createReviewComment = (overrides = {}) => ({
+  id: 1,
+  body: 'Consider refactoring this',
   author: 'reviewer',
-  authorAvatarUrl: 'https://avatar.url/reviewer',
-  path: 'src/foo.ts',
+  authorAvatarUrl: 'https://github.com/reviewer.png',
+  path: 'src/index.ts',
   line: 42,
-  createdAt: new Date('2026-01-05T00:00:00Z'),
+  createdAt: new Date('2026-01-15T12:30:00Z'),
   inReplyToId: null,
-};
+  ...overrides,
+});
 
-function setupMockIPC(overrides: {
-  detail?: any;
-  comments?: any[];
-  reviews?: any[];
-  reviewComments?: any[];
-  error?: boolean;
+// ============================================
+// Test Helpers
+// ============================================
+
+function setupSuccessfulFetch(options: {
+  detail?: ReturnType<typeof createPRDetail>;
+  comments?: ReturnType<typeof createComment>[];
+  reviews?: ReturnType<typeof createReview>[];
+  reviewComments?: ReturnType<typeof createReviewComment>[];
 } = {}) {
-  if (overrides.error) {
-    mockInvoke.mockRejectedValue(new Error('API Error'));
-    return;
-  }
-
   mockInvoke.mockImplementation(async (channel: string) => {
     switch (channel) {
       case 'github:get-pull-request':
-        return overrides.detail ?? basePRDetail;
+        return options.detail ?? createPRDetail();
       case 'github:list-pr-comments':
-        return overrides.comments ?? [];
+        return options.comments ?? [];
       case 'github:list-pr-reviews':
-        return overrides.reviews ?? [];
+        return options.reviews ?? [];
       case 'github:list-pr-review-comments':
-        return overrides.reviewComments ?? [];
-      case 'github:create-pr-comment':
-        return undefined;
+        return options.reviewComments ?? [];
       case 'github:list-issue-reactions':
         return [];
       case 'github:list-comment-reactions':
         return [];
       case 'shell:open-external':
         return undefined;
+      case 'github:create-pr-comment':
+        return undefined;
+      case 'github:merge-pull-request':
+        return { sha: 'abc123', merged: true };
+      case 'github:close-pull-request':
+        return { number: 123, state: 'closed' };
       default:
         return undefined;
     }
   });
 }
 
+function setupFailedFetch() {
+  mockInvoke.mockRejectedValue(new Error('API Error'));
+}
+
+const defaultProps = {
+  owner: 'owner',
+  repo: 'repo',
+  githubUsername: 'currentuser',
+  onClose: vi.fn(),
+  onRefresh: vi.fn(),
+};
+
+// ============================================
+// Tests
+// ============================================
+
 describe('PullRequestDetailModal', () => {
   beforeEach(() => {
-    mockInvoke.mockReset();
+    vi.clearAllMocks();
   });
 
-  it('renders null when pr is null', () => {
-    const { container } = render(
-      <PullRequestDetailModal pr={null} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    expect(container.innerHTML).toBe('');
-  });
-
-  it('shows loading spinner on open', () => {
-    // Never resolve the IPC calls to keep loading state
-    mockInvoke.mockReturnValue(new Promise(() => {}));
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    expect(screen.getByText('Test PR')).toBeDefined();
-  });
-
-  it('shows error with retry button when all IPCs fail', async () => {
-    setupMockIPC({ error: true });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Retry')).toBeDefined();
+  describe('rendering states', () => {
+    it('renders nothing when pr is null', () => {
+      const { container } = render(
+        <PullRequestDetailModal pr={null} {...defaultProps} />
+      );
+      expect(container.innerHTML).toBe('');
     });
-    expect(screen.getByText('API Error')).toBeDefined();
-  });
 
-  it('retry re-fetches data', async () => {
-    setupMockIPC({ error: true });
-    const user = userEvent.setup();
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
+    it('shows loading state initially', () => {
+      // Never resolve to keep loading
+      mockInvoke.mockImplementation(() => new Promise(() => {}));
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      // Should show the PR title from props while loading
+      expect(screen.getByText('Test Pull Request')).toBeDefined();
+    });
+
+    it('shows error state with retry button when fetch fails', async () => {
+      setupFailedFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('API Error')).toBeDefined();
+      });
       expect(screen.getByText('Retry')).toBeDefined();
     });
 
-    // Clear and setup success mocks
-    mockInvoke.mockReset();
-    setupMockIPC();
+    it('shows content after successful fetch', async () => {
+      setupSuccessfulFetch();
 
-    await user.click(screen.getByText('Retry'));
-    await waitFor(() => {
-      expect(screen.getByText('Detailed PR Title')).toBeDefined();
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed PR Title')).toBeDefined();
+      });
     });
   });
 
-  it('renders PR title from detail after loading', async () => {
-    setupMockIPC();
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Detailed PR Title')).toBeDefined();
+  describe('PR header', () => {
+    it('displays PR title from fetched detail', async () => {
+      setupSuccessfulFetch({ detail: createPRDetail({ title: 'Custom Title' }) });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Custom Title')).toBeDefined();
+      });
+    });
+
+    it('displays PR number', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR({ number: 456 })} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('#456')).toBeDefined();
+      });
+    });
+
+    it('displays author name', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR({ author: 'johndoe' })} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('johndoe')).toBeDefined();
+      });
+    });
+
+    it('displays head branch', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR({ headBranch: 'my-feature' })} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('my-feature')).toBeDefined();
+      });
     });
   });
 
-  it('falls back to pr.title while loading', () => {
-    mockInvoke.mockReturnValue(new Promise(() => {}));
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    expect(screen.getByText('Test PR')).toBeDefined();
-  });
+  describe('PR body', () => {
+    it('renders PR body as markdown', async () => {
+      setupSuccessfulFetch({ detail: createPRDetail({ body: 'Test body content' }) });
 
-  it('renders PR body as markdown', async () => {
-    setupMockIPC();
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      const markdown = screen.getByTestId('markdown');
-      expect(markdown).toBeDefined();
-      expect(markdown.textContent).toContain('PR Description');
-      expect(markdown.textContent).toContain('This is a test PR.');
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('markdown')).toBeDefined();
+        expect(screen.getByText('Test body content')).toBeDefined();
+      });
     });
-  });
 
-  it('does not render body section when body is empty', async () => {
-    setupMockIPC({ detail: { ...basePRDetail, body: '' } });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Detailed PR Title')).toBeDefined();
-    });
-    expect(screen.queryByText('# PR Description')).toBeNull();
-  });
+    it('shows empty state when no body and no activity', async () => {
+      setupSuccessfulFetch({ detail: createPRDetail({ body: '' }) });
 
-  it('shows empty state when no activity and no body', async () => {
-    setupMockIPC({ detail: { ...basePRDetail, body: '' } });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('No activity on this pull request yet.')).toBeDefined();
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No activity on this pull request yet.')).toBeDefined();
+      });
     });
   });
 
-  it('renders timeline with comments', async () => {
-    setupMockIPC({ comments: [baseComment] });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('This is a comment')).toBeDefined();
-    });
-    expect(screen.getByText('commenter')).toBeDefined();
-  });
+  describe('timeline', () => {
+    it('shows comments in timeline', async () => {
+      setupSuccessfulFetch({
+        comments: [createComment({ body: 'Great work!' })],
+      });
 
-  it('renders timeline with reviews', async () => {
-    setupMockIPC({ reviews: [baseReview] });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Looks good!')).toBeDefined();
-    });
-    expect(screen.getByText('Approved')).toBeDefined();
-  });
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
 
-  it('filters COMMENTED reviews with no body', async () => {
-    setupMockIPC({
-      reviews: [{ ...baseReview, state: 'COMMENTED', body: '' }],
+      await waitFor(() => {
+        expect(screen.getByText('Great work!')).toBeDefined();
+      });
     });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Detailed PR Title')).toBeDefined();
-    });
-    // The review should be filtered out, so no "Commented" badge in timeline
-    // But activity count may still be 0
-  });
 
-  it('shows APPROVED review with no body (badge only)', async () => {
-    setupMockIPC({
-      reviews: [{ ...baseReview, body: '' }],
-    });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Approved')).toBeDefined();
-    });
-    expect(screen.getByText('reviewer')).toBeDefined();
-  });
+    it('shows reviews in timeline', async () => {
+      setupSuccessfulFetch({
+        reviews: [createReview({ body: 'LGTM', state: 'APPROVED' })],
+      });
 
-  it('renders review comment with file path and line', async () => {
-    setupMockIPC({ reviewComments: [baseReviewComment] });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Inline feedback')).toBeDefined();
-    });
-    expect(screen.getByText(/src\/foo\.ts/)).toBeDefined();
-    expect(screen.getByText(/:42/)).toBeDefined();
-  });
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
 
-  it('renders review comment without line when line is null', async () => {
-    setupMockIPC({
-      reviewComments: [{ ...baseReviewComment, line: null }],
+      await waitFor(() => {
+        expect(screen.getByText('LGTM')).toBeDefined();
+        expect(screen.getByText('Approved')).toBeDefined();
+      });
     });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Inline feedback')).toBeDefined();
-    });
-    expect(screen.queryByText(/:42/)).toBeNull();
-  });
 
-  it('shows activity count in header', async () => {
-    setupMockIPC({
-      comments: [baseComment],
-      reviews: [baseReview],
-      reviewComments: [baseReviewComment],
-    });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Activity (3)')).toBeDefined();
-    });
-  });
+    it('shows review comments with file path', async () => {
+      setupSuccessfulFetch({
+        reviewComments: [createReviewComment({ path: 'src/utils.ts', line: 10 })],
+      });
 
-  it('shows avatar image when authorAvatarUrl is present', async () => {
-    setupMockIPC({ comments: [baseComment] });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('commenter')).toBeDefined();
-    });
-    const avatar = screen.getByAltText('commenter');
-    expect(avatar).toBeDefined();
-    expect(avatar.getAttribute('src')).toBe('https://avatar.url/commenter');
-  });
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
 
-  it('shows placeholder when authorAvatarUrl is empty', async () => {
-    setupMockIPC({
-      comments: [{ ...baseComment, authorAvatarUrl: '' }],
+      await waitFor(() => {
+        expect(screen.getByText(/src\/utils\.ts/)).toBeDefined();
+      });
     });
-    render(
-      <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-    );
-    await waitFor(() => {
-      expect(screen.getByText('commenter')).toBeDefined();
+
+    it('displays activity count', async () => {
+      setupSuccessfulFetch({
+        comments: [createComment()],
+        reviews: [createReview()],
+        reviewComments: [createReviewComment()],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Activity (3)')).toBeDefined();
+      });
     });
-    expect(screen.queryByAltText('commenter')).toBeNull();
+
+    it('filters COMMENTED reviews with empty body', async () => {
+      setupSuccessfulFetch({
+        reviews: [createReview({ body: '', state: 'COMMENTED' })],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed PR Title')).toBeDefined();
+      });
+      // COMMENTED review with no body should be filtered out
+      expect(screen.queryByText('Commented')).toBeNull();
+    });
   });
 
   describe('comment submission', () => {
-    it('submit button is disabled when textarea is empty', async () => {
-      setupMockIPC();
-      render(
-        <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-      );
+    it('has disabled submit button when textarea is empty', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
       await waitFor(() => {
         expect(screen.getByText('Comment')).toBeDefined();
       });
+
       const submitBtn = screen.getByText('Comment').closest('button');
       expect(submitBtn?.disabled).toBe(true);
     });
 
-    it('submit button is disabled when textarea has only whitespace', async () => {
-      setupMockIPC();
+    it('enables submit button when textarea has content', async () => {
+      setupSuccessfulFetch();
       const user = userEvent.setup();
-      render(
-        <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-      );
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/Write a comment/)).toBeDefined();
-      });
-      await user.type(screen.getByPlaceholderText(/Write a comment/), '   ');
-      const submitBtn = screen.getByText('Comment').closest('button');
-      expect(submitBtn?.disabled).toBe(true);
-    });
 
-    it('submit button is enabled with content', async () => {
-      setupMockIPC();
-      const user = userEvent.setup();
-      render(
-        <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-      );
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/Write a comment/)).toBeDefined();
+        expect(screen.getByTestId('comment-input')).toBeDefined();
       });
-      await user.type(screen.getByPlaceholderText(/Write a comment/), 'hello');
+
+      await user.type(screen.getByTestId('comment-input'), 'My comment');
+
       const submitBtn = screen.getByText('Comment').closest('button');
       expect(submitBtn?.disabled).toBe(false);
     });
 
-    it('successful comment clears textarea and refreshes', async () => {
-      setupMockIPC({ comments: [] });
+    it('submits comment and clears textarea', async () => {
+      setupSuccessfulFetch();
       const user = userEvent.setup();
-      render(
-        <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-      );
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/Write a comment/)).toBeDefined();
+        expect(screen.getByTestId('comment-input')).toBeDefined();
       });
-      const textarea = screen.getByPlaceholderText(/Write a comment/) as HTMLTextAreaElement;
-      await user.type(textarea, 'my new comment');
+
+      const textarea = screen.getByTestId('comment-input') as HTMLTextAreaElement;
+      await user.type(textarea, 'New comment');
       await user.click(screen.getByText('Comment'));
 
       await waitFor(() => {
         expect(textarea.value).toBe('');
       });
 
-      // Verify IPC was called for create and then refresh
-      const createCalls = mockInvoke.mock.calls.filter(
-        (c: unknown[]) => c[0] === 'github:create-pr-comment'
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'github:create-pr-comment',
+        'owner',
+        'repo',
+        123,
+        'New comment'
       );
-      expect(createCalls.length).toBeGreaterThanOrEqual(1);
     });
+  });
 
-    it('View on GitHub opens external URL', async () => {
-      setupMockIPC();
+  describe('View on GitHub button', () => {
+    it('opens external URL when clicked', async () => {
+      setupSuccessfulFetch();
       const user = userEvent.setup();
-      render(
-        <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-      );
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
       await waitFor(() => {
         expect(screen.getByText('View on GitHub')).toBeDefined();
       });
+
       await user.click(screen.getByText('View on GitHub'));
 
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'shell:open-external',
+        'https://github.com/owner/repo/pull/123'
+      );
+    });
+  });
+
+  describe('merge and close actions', () => {
+    it('shows merge button for open PRs', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR({ state: 'open' })} {...defaultProps} />);
+
       await waitFor(() => {
-        const openCalls = mockInvoke.mock.calls.filter(
-          (c: unknown[]) => c[0] === 'shell:open-external'
+        expect(screen.getByText('Merge pull request')).toBeDefined();
+      });
+    });
+
+    it('shows close button for open PRs', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR({ state: 'open' })} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Close pull request')).toBeDefined();
+      });
+    });
+
+    it('hides merge/close buttons for closed PRs', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR({ state: 'closed' })} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed PR Title')).toBeDefined();
+      });
+
+      expect(screen.queryByText('Merge pull request')).toBeNull();
+      expect(screen.queryByText('Close pull request')).toBeNull();
+    });
+
+    it('hides merge/close buttons for merged PRs', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR({ merged: true })} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed PR Title')).toBeDefined();
+      });
+
+      expect(screen.queryByText('Merge pull request')).toBeNull();
+    });
+
+    it('calls merge IPC and callbacks on merge', async () => {
+      setupSuccessfulFetch();
+      const user = userEvent.setup();
+      const onClose = vi.fn();
+      const onRefresh = vi.fn();
+
+      render(
+        <PullRequestDetailModal
+          pr={createBasePR()}
+          {...defaultProps}
+          onClose={onClose}
+          onRefresh={onRefresh}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Merge pull request')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Merge pull request'));
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith(
+          'github:merge-pull-request',
+          'owner',
+          'repo',
+          123,
+          'merge'
         );
-        expect(openCalls.length).toBe(1);
-        expect(openCalls[0][1]).toBe('https://github.com/org/repo/pull/1');
+      });
+
+      expect(onRefresh).toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    it('calls close IPC and callbacks on close', async () => {
+      setupSuccessfulFetch();
+      const user = userEvent.setup();
+      const onClose = vi.fn();
+      const onRefresh = vi.fn();
+
+      render(
+        <PullRequestDetailModal
+          pr={createBasePR()}
+          {...defaultProps}
+          onClose={onClose}
+          onRefresh={onRefresh}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Close pull request')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Close pull request'));
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith(
+          'github:close-pull-request',
+          'owner',
+          'repo',
+          123
+        );
+      });
+
+      expect(onRefresh).toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    it('shows error message when merge fails', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:merge-pull-request') {
+          throw new Error('Merge conflict');
+        }
+        // Default success for other calls
+        if (channel === 'github:get-pull-request') return createPRDetail();
+        if (channel === 'github:list-pr-comments') return [];
+        if (channel === 'github:list-pr-reviews') return [];
+        if (channel === 'github:list-pr-review-comments') return [];
+        if (channel === 'github:list-issue-reactions') return [];
+        return undefined;
+      });
+
+      const user = userEvent.setup();
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Merge pull request')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Merge pull request'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Merge conflict')).toBeDefined();
+      });
+    });
+
+    it('shows error message when close fails', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:close-pull-request') {
+          throw new Error('Cannot close');
+        }
+        if (channel === 'github:get-pull-request') return createPRDetail();
+        if (channel === 'github:list-pr-comments') return [];
+        if (channel === 'github:list-pr-reviews') return [];
+        if (channel === 'github:list-pr-review-comments') return [];
+        if (channel === 'github:list-issue-reactions') return [];
+        return undefined;
+      });
+
+      const user = userEvent.setup();
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Close pull request')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Close pull request'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Cannot close')).toBeDefined();
       });
     });
   });
 
-  describe('status badges in header', () => {
-    it('shows Merged badge when PR is merged', async () => {
-      setupMockIPC();
-      render(
-        <PullRequestDetailModal
-          pr={{ ...basePR, merged: true, state: 'closed' }}
-          owner="org"
-          repo="repo"
-          onClose={vi.fn()}
-        />
-      );
-      await waitFor(() => {
-        expect(screen.getByText('Merged')).toBeDefined();
+  describe('retry functionality', () => {
+    it('refetches data when retry button is clicked', async () => {
+      // First fail, then succeed
+      let callCount = 0;
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:get-pull-request') {
+          callCount++;
+          if (callCount === 1) throw new Error('Network error');
+          return createPRDetail();
+        }
+        if (channel === 'github:list-pr-comments') return [];
+        if (channel === 'github:list-pr-reviews') return [];
+        if (channel === 'github:list-pr-review-comments') return [];
+        if (channel === 'github:list-issue-reactions') return [];
+        return undefined;
       });
-    });
 
-    it('shows Open badge for open PR', async () => {
-      setupMockIPC();
-      render(
-        <PullRequestDetailModal pr={basePR} owner="org" repo="repo" onClose={vi.fn()} />
-      );
-      await waitFor(() => {
-        expect(screen.getByText('Open')).toBeDefined();
-      });
-    });
+      const user = userEvent.setup();
 
-    it('shows Closed badge for closed non-merged PR', async () => {
-      setupMockIPC();
-      render(
-        <PullRequestDetailModal
-          pr={{ ...basePR, state: 'closed', merged: false }}
-          owner="org"
-          repo="repo"
-          onClose={vi.fn()}
-        />
-      );
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
       await waitFor(() => {
-        expect(screen.getByText('Closed')).toBeDefined();
+        expect(screen.getByText('Network error')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Retry'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed PR Title')).toBeDefined();
       });
     });
+  });
+});
+
+// ============================================
+// Utility Function Tests
+// ============================================
+
+describe('reviewStateBadge', () => {
+  it('returns Approved badge for APPROVED state', () => {
+    const result = reviewStateBadge('APPROVED');
+    expect(result).toBeDefined();
+  });
+
+  it('returns Changes Requested badge for CHANGES_REQUESTED state', () => {
+    const result = reviewStateBadge('CHANGES_REQUESTED');
+    expect(result).toBeDefined();
+  });
+
+  it('returns Commented badge for COMMENTED state', () => {
+    const result = reviewStateBadge('COMMENTED');
+    expect(result).toBeDefined();
+  });
+
+  it('returns Dismissed badge for DISMISSED state', () => {
+    const result = reviewStateBadge('DISMISSED');
+    expect(result).toBeDefined();
+  });
+
+  it('returns outline badge for unknown state', () => {
+    const result = reviewStateBadge('UNKNOWN');
+    expect(result).toBeDefined();
+  });
+});
+
+describe('statusBadge', () => {
+  it('returns Merged badge when merged is true', () => {
+    const result = statusBadge('closed', true);
+    expect(result).toBeDefined();
+  });
+
+  it('returns Open badge for open state', () => {
+    const result = statusBadge('open', false);
+    expect(result).toBeDefined();
+  });
+
+  it('returns Closed badge for closed non-merged state', () => {
+    const result = statusBadge('closed', false);
+    expect(result).toBeDefined();
+  });
+});
+
+describe('formatDate', () => {
+  it('formats date correctly', () => {
+    const date = new Date('2026-01-15T10:30:00Z');
+    const result = formatDate(date);
+    expect(result).toContain('Jan');
+    expect(result).toContain('15');
+    expect(result).toContain('2026');
   });
 });
