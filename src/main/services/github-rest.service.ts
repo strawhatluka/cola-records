@@ -594,11 +594,127 @@ export class GitHubRestService {
         authorAvatarUrl: comment.user?.avatar_url || '',
         path: comment.path,
         line: comment.line || comment.original_line || null,
+        startLine: comment.start_line || comment.original_start_line || null,
         createdAt: new Date(comment.created_at),
+        updatedAt: new Date(comment.updated_at),
         inReplyToId: comment.in_reply_to_id || null,
+        diffHunk: comment.diff_hunk || null,
+        htmlUrl: comment.html_url || null,
       }));
     } catch (error) {
       throw new Error(`Failed to list review comments for ${owner}/${repo}#${prNumber}: ${error}`);
+    }
+  }
+
+  /**
+   * Create a reply to a review comment
+   */
+  async createReviewCommentReply(
+    owner: string,
+    repo: string,
+    prNumber: number,
+    commentId: number,
+    body: string
+  ): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.pulls.createReplyForReviewComment({
+        owner,
+        repo,
+        pull_number: prNumber,
+        comment_id: commentId,
+        body,
+      });
+
+      return {
+        id: response.data.id,
+        body: response.data.body || '',
+        author: response.data.user?.login || 'unknown',
+        authorAvatarUrl: response.data.user?.avatar_url || '',
+        path: response.data.path,
+        line: response.data.line || response.data.original_line || null,
+        startLine: response.data.start_line || response.data.original_start_line || null,
+        createdAt: new Date(response.data.created_at),
+        updatedAt: new Date(response.data.updated_at),
+        inReplyToId: response.data.in_reply_to_id || null,
+        diffHunk: response.data.diff_hunk || null,
+        htmlUrl: response.data.html_url || null,
+      };
+    } catch (error) {
+      throw new Error(`Failed to create reply for comment ${commentId}: ${error}`);
+    }
+  }
+
+  /**
+   * List reactions on a review comment
+   */
+  async listReviewCommentReactions(owner: string, repo: string, commentId: number): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.reactions.listForPullRequestReviewComment({
+        owner,
+        repo,
+        comment_id: commentId,
+        per_page: 100,
+      });
+
+      return response.data.map((r: any) => ({
+        id: r.id,
+        content: r.content,
+        user: r.user?.login || 'unknown',
+      }));
+    } catch (error) {
+      throw new Error(`Failed to list reactions for review comment ${commentId}: ${error}`);
+    }
+  }
+
+  /**
+   * Add a reaction to a review comment
+   */
+  async addReviewCommentReaction(
+    owner: string,
+    repo: string,
+    commentId: number,
+    content: string
+  ): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.reactions.createForPullRequestReviewComment({
+        owner,
+        repo,
+        comment_id: commentId,
+        content: content as any,
+      });
+
+      return {
+        id: response.data.id,
+        content: response.data.content,
+        user: response.data.user?.login || 'unknown',
+      };
+    } catch (error) {
+      throw new Error(`Failed to add reaction to review comment ${commentId}: ${error}`);
+    }
+  }
+
+  /**
+   * Delete a reaction from a review comment
+   */
+  async deleteReviewCommentReaction(
+    owner: string,
+    repo: string,
+    commentId: number,
+    reactionId: number
+  ): Promise<void> {
+    try {
+      const client = this.getClient();
+      await client.reactions.deleteForPullRequestReviewComment({
+        owner,
+        repo,
+        comment_id: commentId,
+        reaction_id: reactionId,
+      });
+    } catch (error) {
+      throw new Error(`Failed to delete reaction from review comment ${commentId}: ${error}`);
     }
   }
   // ─── Reactions ───────────────────────────────────────────────

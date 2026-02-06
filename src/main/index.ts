@@ -599,6 +599,59 @@ const setupIpcHandlers = () => {
     }
   );
 
+  // Review comment reply handler
+  handleIpc(
+    'github:create-review-comment-reply',
+    async (_event, owner, repo, prNumber, commentId, body) => {
+      const { gitHubRestService } = await import('./services/github-rest.service');
+      return await gitHubRestService.createReviewCommentReply(
+        owner,
+        repo,
+        prNumber,
+        commentId,
+        body
+      );
+    }
+  );
+
+  // Review comment reaction handlers
+  handleIpc('github:list-review-comment-reactions', async (_event, owner, repo, commentId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listReviewCommentReactions(owner, repo, commentId);
+  });
+
+  handleIpc(
+    'github:add-review-comment-reaction',
+    async (_event, owner, repo, commentId, content) => {
+      const { gitHubRestService } = await import('./services/github-rest.service');
+      return await gitHubRestService.addReviewCommentReaction(owner, repo, commentId, content);
+    }
+  );
+
+  handleIpc(
+    'github:delete-review-comment-reaction',
+    async (_event, owner, repo, commentId, reactionId) => {
+      const { gitHubRestService } = await import('./services/github-rest.service');
+      await gitHubRestService.deleteReviewCommentReaction(owner, repo, commentId, reactionId);
+    }
+  );
+
+  // Review thread resolution handlers (GraphQL)
+  handleIpc('github:get-pr-review-threads', async (_event, owner, repo, prNumber) => {
+    const { gitHubGraphQLService } = await import('./services/github-graphql.service');
+    return await gitHubGraphQLService.getPRReviewThreads(owner, repo, prNumber);
+  });
+
+  handleIpc('github:resolve-review-thread', async (_event, threadId) => {
+    const { gitHubGraphQLService } = await import('./services/github-graphql.service');
+    await gitHubGraphQLService.resolveReviewThread(threadId);
+  });
+
+  handleIpc('github:unresolve-review-thread', async (_event, threadId) => {
+    const { gitHubGraphQLService } = await import('./services/github-graphql.service');
+    await gitHubGraphQLService.unresolveReviewThread(threadId);
+  });
+
   // Sub-issue handlers
   handleIpc('github:list-sub-issues', async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');

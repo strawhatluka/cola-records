@@ -500,10 +500,64 @@ export interface IpcChannels {
     authorAvatarUrl: string;
     path: string;
     line: number | null;
+    startLine: number | null;
     createdAt: Date;
+    updatedAt: Date;
     inReplyToId: number | null;
+    diffHunk: string | null;
+    htmlUrl: string | null;
   }[];
   'github:create-pr-comment': (owner: string, repo: string, prNumber: number, body: string) => void;
+
+  // Review Comment Reply
+  'github:create-review-comment-reply': (
+    owner: string,
+    repo: string,
+    prNumber: number,
+    commentId: number,
+    body: string
+  ) => {
+    id: number;
+    body: string;
+    author: string;
+    authorAvatarUrl: string;
+    path: string;
+    line: number | null;
+    startLine: number | null;
+    createdAt: Date;
+    updatedAt: Date;
+    inReplyToId: number | null;
+    diffHunk: string | null;
+    htmlUrl: string | null;
+  };
+
+  // Review Comment Reactions
+  'github:list-review-comment-reactions': (
+    owner: string,
+    repo: string,
+    commentId: number
+  ) => Reaction[];
+  'github:add-review-comment-reaction': (
+    owner: string,
+    repo: string,
+    commentId: number,
+    content: ReactionContent
+  ) => Reaction;
+  'github:delete-review-comment-reaction': (
+    owner: string,
+    repo: string,
+    commentId: number,
+    reactionId: number
+  ) => void;
+
+  // Review Thread Resolution (GraphQL)
+  'github:get-pr-review-threads': (
+    owner: string,
+    repo: string,
+    prNumber: number
+  ) => { id: string; isResolved: boolean; comments: { databaseId: number }[] }[];
+  'github:resolve-review-thread': (threadId: string) => void;
+  'github:unresolve-review-thread': (threadId: string) => void;
 
   // Issue Detail Channels (WO-005)
   'github:list-issues': (

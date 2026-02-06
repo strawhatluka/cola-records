@@ -323,6 +323,110 @@ export class GitHubGraphQLService {
       throw new Error(`Failed to get repository tree for ${owner}/${repo}: ${error}`);
     }
   }
+
+  /**
+   * Resolve a pull request review thread
+   */
+  async resolveReviewThread(threadId: string): Promise<void> {
+    try {
+      const client = this.getClient();
+
+      await client(
+        `
+        mutation resolveReviewThread($threadId: ID!) {
+          resolveReviewThread(input: { threadId: $threadId }) {
+            thread {
+              id
+              isResolved
+            }
+          }
+        }
+        `,
+        {
+          threadId,
+        }
+      );
+    } catch (error) {
+      throw new Error(`Failed to resolve review thread ${threadId}: ${error}`);
+    }
+  }
+
+  /**
+   * Unresolve a pull request review thread
+   */
+  async unresolveReviewThread(threadId: string): Promise<void> {
+    try {
+      const client = this.getClient();
+
+      await client(
+        `
+        mutation unresolveReviewThread($threadId: ID!) {
+          unresolveReviewThread(input: { threadId: $threadId }) {
+            thread {
+              id
+              isResolved
+            }
+          }
+        }
+        `,
+        {
+          threadId,
+        }
+      );
+    } catch (error) {
+      throw new Error(`Failed to unresolve review thread ${threadId}: ${error}`);
+    }
+  }
+
+  /**
+   * Get pull request review threads with their resolution status
+   * Returns threads with their GraphQL node IDs needed for resolve/unresolve mutations
+   */
+  async getPRReviewThreads(
+    owner: string,
+    repo: string,
+    prNumber: number
+  ): Promise<{ id: string; isResolved: boolean; comments: { databaseId: number }[] }[]> {
+    try {
+      const client = this.getClient();
+
+      const response: any = await client(
+        `
+        query getPRReviewThreads($owner: String!, $repo: String!, $prNumber: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $prNumber) {
+              reviewThreads(first: 100) {
+                nodes {
+                  id
+                  isResolved
+                  comments(first: 1) {
+                    nodes {
+                      databaseId
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        `,
+        {
+          owner,
+          repo,
+          prNumber,
+        }
+      );
+
+      const threads = response.repository?.pullRequest?.reviewThreads?.nodes || [];
+      return threads.map((thread: any) => ({
+        id: thread.id,
+        isResolved: thread.isResolved,
+        comments: thread.comments.nodes.map((c: any) => ({ databaseId: c.databaseId })),
+      }));
+    } catch (error) {
+      throw new Error(`Failed to get review threads for ${owner}/${repo}#${prNumber}: ${error}`);
+    }
+  }
 }
 
 // Export singleton instance
