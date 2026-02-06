@@ -35,20 +35,22 @@ export const Title = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<H
 );
 Title.displayName = 'DialogTitle';
 
-export const Description = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
-  ({ children, ...props }, ref) => (
-    <p ref={ref} {...props}>
-      {children}
-    </p>
-  )
-);
+export const Description = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ children, ...props }, ref) => (
+  <p ref={ref} {...props}>
+    {children}
+  </p>
+));
 Description.displayName = 'DialogDescription';
 
-export const Close = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
-  ({ children, ...props }, ref) => (
-    <button ref={ref} {...props}>
-      {children}
-    </button>
-  )
-);
+export const Close = React.forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement>
+>(({ children, ...props }, ref) => (
+  <button ref={ref} {...props}>
+    {children}
+  </button>
+));
 Close.displayName = 'DialogClose';

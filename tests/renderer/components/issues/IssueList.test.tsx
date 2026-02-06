@@ -40,9 +40,7 @@ describe('IssueList', () => {
   });
 
   it('shows empty message when no issues', () => {
-    render(
-      <IssueList issues={[]} onIssueSelect={mockOnIssueSelect} loading={false} />
-    );
+    render(<IssueList issues={[]} onIssueSelect={mockOnIssueSelect} loading={false} />);
     expect(screen.getByText('No issues found. Try adjusting your filters.')).toBeDefined();
   });
 
@@ -51,9 +49,7 @@ describe('IssueList', () => {
       createMockIssue({ number: 1, title: 'First issue' }),
       createMockIssue({ number: 2, title: 'Second issue' }),
     ];
-    render(
-      <IssueList issues={issues} onIssueSelect={mockOnIssueSelect} loading={false} />
-    );
+    render(<IssueList issues={issues} onIssueSelect={mockOnIssueSelect} loading={false} />);
     expect(screen.getByText('First issue')).toBeDefined();
     expect(screen.getByText('Second issue')).toBeDefined();
   });
@@ -61,9 +57,7 @@ describe('IssueList', () => {
   it('calls onIssueSelect when issue card is clicked', async () => {
     const user = userEvent.setup();
     const issue = createMockIssue({ number: 42, title: 'Test issue' });
-    render(
-      <IssueList issues={[issue]} onIssueSelect={mockOnIssueSelect} loading={false} />
-    );
+    render(<IssueList issues={[issue]} onIssueSelect={mockOnIssueSelect} loading={false} />);
     await user.click(screen.getByText('Test issue'));
     expect(mockOnIssueSelect).toHaveBeenCalledWith(issue);
   });

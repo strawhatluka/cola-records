@@ -20,9 +20,7 @@ export function DiscordConnect() {
       >
         {loading ? 'Connecting...' : 'Connect'}
       </button>
-      {error && (
-        <p className="text-xs text-destructive mt-2 max-w-[240px]">{error}</p>
-      )}
+      {error && <p className="text-xs text-destructive mt-2 max-w-[240px]">{error}</p>}
     </div>
   );
 }

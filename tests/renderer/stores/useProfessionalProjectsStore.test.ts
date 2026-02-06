@@ -37,9 +37,7 @@ describe('useProfessionalProjectsStore', () => {
 
   describe('setProjects', () => {
     it('sets projects directly', () => {
-      const projects = [
-        createMockContribution({ id: 'pp1', type: 'project' }),
-      ];
+      const projects = [createMockContribution({ id: 'pp1', type: 'project' })];
 
       act(() => {
         useProfessionalProjectsStore.getState().setProjects(projects);

@@ -12,11 +12,7 @@ export class GitService {
    */
   private getGit(repoPath: string): SimpleGit {
     return simpleGit(repoPath, {
-      config: [
-        'color.branch=false',
-        'color.status=false',
-        'color.ui=false'
-      ]
+      config: ['color.branch=false', 'color.status=false', 'color.ui=false'],
     });
   }
 
@@ -112,11 +108,7 @@ export class GitService {
   /**
    * Pull changes
    */
-  async pull(
-    repoPath: string,
-    remote = 'origin',
-    branch?: string
-  ): Promise<void> {
+  async pull(repoPath: string, remote = 'origin', branch?: string): Promise<void> {
     try {
       const git = this.getGit(repoPath);
       if (branch) {
@@ -186,8 +178,10 @@ export class GitService {
       const git = this.getGit(repoPath);
       const branches = await git.branchLocal();
       // Strip ANSI color codes and clean branch names
-      const cleanedBranches = branches.all.map(branch =>
-        branch.replace(/\x1b\[\d+m/g, '').trim()
+      // eslint-disable-next-line no-control-regex -- intentionally stripping ANSI escape codes
+      const ansiColorPattern = /\x1b\[\d+m/g;
+      const cleanedBranches = branches.all.map((branch) =>
+        branch.replace(ansiColorPattern, '').trim()
       );
 
       // Sort branches with priority:
@@ -224,10 +218,12 @@ export class GitService {
       // Get remote branches
       const result = await git.branch(['-r']);
       // Filter to just branches from the specified remote and strip prefix
+      // eslint-disable-next-line no-control-regex -- intentionally stripping ANSI escape codes
+      const ansiPattern = /\x1b\[\d+m/g;
       const remoteBranches = result.all
-        .filter(b => b.startsWith(`${remote}/`))
-        .map(b => b.replace(`${remote}/`, '').replace(/\x1b\[\d+m/g, '').trim())
-        .filter(b => b !== 'HEAD');
+        .filter((b) => b.startsWith(`${remote}/`))
+        .map((b) => b.replace(`${remote}/`, '').replace(ansiPattern, '').trim())
+        .filter((b) => b !== 'HEAD');
       return remoteBranches;
     } catch (error) {
       throw new Error(`Failed to get remote branches for ${repoPath}: ${error}`);
@@ -262,7 +258,9 @@ export class GitService {
   /**
    * Get all remotes with their URLs
    */
-  async getRemotes(repoPath: string): Promise<{ name: string; fetchUrl: string; pushUrl: string }[]> {
+  async getRemotes(
+    repoPath: string
+  ): Promise<{ name: string; fetchUrl: string; pushUrl: string }[]> {
     try {
       const git = this.getGit(repoPath);
       const remotes = await git.getRemotes(true);
@@ -333,14 +331,15 @@ export class GitService {
       const diffSummary = await git.diffSummary([`${base}...${head}`]);
       const files = diffSummary.files.map((f) => ({
         file: f.file,
-        insertions: (f as any).insertions || 0,
-        deletions: (f as any).deletions || 0,
+        insertions: 'insertions' in f ? (f.insertions as number) : 0,
+        deletions: 'deletions' in f ? (f.deletions as number) : 0,
         binary: f.binary || false,
       }));
 
       // Get raw unified diff for display (--no-color to strip ANSI codes)
       let rawDiff = await git.diff([`${base}...${head}`, '--no-color']);
       // Strip any remaining ANSI escape codes as a safety measure
+      // eslint-disable-next-line no-control-regex -- intentionally stripping ANSI escape codes
       rawDiff = rawDiff.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
 
       return {

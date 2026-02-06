@@ -37,7 +37,9 @@ vi.mock('@radix-ui/react-dropdown-menu', () => ({
   Portal: ({ children }: any) => <div>{children}</div>,
   Content: ({ children }: any) => <div>{children}</div>,
   Item: ({ children, onSelect, ...props }: any) => (
-    <button onClick={onSelect} {...props}>{children}</button>
+    <button onClick={onSelect} {...props}>
+      {children}
+    </button>
   ),
   Group: ({ children }: any) => <div>{children}</div>,
   Label: ({ children }: any) => <div>{children}</div>,
@@ -96,7 +98,11 @@ describe('CSS Transition Optimizations', () => {
       const allElements = container.querySelectorAll('*');
       let hasTransitionAll = false;
       allElements.forEach((el) => {
-        if (el.className && typeof el.className === 'string' && el.className.includes('transition-all')) {
+        if (
+          el.className &&
+          typeof el.className === 'string' &&
+          el.className.includes('transition-all')
+        ) {
           hasTransitionAll = true;
         }
       });

@@ -20,8 +20,8 @@ export function SpotifyConnect() {
         {loading ? 'Connecting...' : 'Connect to Spotify'}
       </button>
       <p className="text-xs text-muted-foreground text-center px-4">
-        Requires Spotify Premium for playback control.
-        Set your Client ID in Settings &gt; API first.
+        Requires Spotify Premium for playback control. Set your Client ID in Settings &gt; API
+        first.
       </p>
     </div>
   );

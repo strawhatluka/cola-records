@@ -17,9 +17,7 @@ vi.mock('../../../../src/renderer/ipc/client', () => ({
 
 import { useSpotifyStore } from '../../../../src/renderer/stores/useSpotifyStore';
 import { PlaybackControls } from '../../../../src/renderer/components/spotify/PlaybackControls';
-import {
-  createMockSpotifyPlaybackState,
-} from '../../../mocks/factories';
+import { createMockSpotifyPlaybackState } from '../../../mocks/factories';
 
 beforeEach(() => {
   vi.clearAllMocks();

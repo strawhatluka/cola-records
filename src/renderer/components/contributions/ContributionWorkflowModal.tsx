@@ -41,12 +41,14 @@ export function ContributionWorkflowModal({
     onClose();
   };
 
-  const handleComplete = () => {
+  // Reserved for future use - complete without starting dev
+  const _handleComplete = () => {
     if (state.contribution) {
       onComplete(state.contribution);
       handleClose();
     }
   };
+  void _handleComplete; // Suppress unused warning
 
   const handleStartDev = () => {
     if (state.contribution && onStartDev) {

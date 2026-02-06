@@ -5,15 +5,24 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './Tool
 const REACTION_EMOJI: Record<ReactionContent, string> = {
   '+1': '👍',
   '-1': '👎',
-  'laugh': '😄',
-  'confused': '😕',
-  'heart': '❤️',
-  'hooray': '🎉',
-  'rocket': '🚀',
-  'eyes': '👀',
+  laugh: '😄',
+  confused: '😕',
+  heart: '❤️',
+  hooray: '🎉',
+  rocket: '🚀',
+  eyes: '👀',
 };
 
-const REACTION_OPTIONS: ReactionContent[] = ['+1', '-1', 'laugh', 'confused', 'heart', 'hooray', 'rocket', 'eyes'];
+const REACTION_OPTIONS: ReactionContent[] = [
+  '+1',
+  '-1',
+  'laugh',
+  'confused',
+  'heart',
+  'hooray',
+  'rocket',
+  'eyes',
+];
 
 interface ReactionDisplayProps {
   reactions: Reaction[];
@@ -90,8 +99,8 @@ export function ReactionDisplay({ reactions, currentUser, onAdd, onRemove }: Rea
     try {
       // Check if user already reacted with this type
       const existing = grouped.find((g) => g.content === content && g.userReactionId);
-      if (existing) {
-        await onRemove(existing.userReactionId!);
+      if (existing && existing.userReactionId) {
+        await onRemove(existing.userReactionId);
       } else {
         await onAdd(content);
       }
@@ -115,7 +124,9 @@ export function ReactionDisplay({ reactions, currentUser, onAdd, onRemove }: Rea
                     : 'bg-muted/50 border-border/50 text-muted-foreground hover:border-border'
                 } disabled:opacity-50`}
               >
-                <span style={{ fontSize: '14px', lineHeight: 1 }}>{REACTION_EMOJI[group.content]}</span>
+                <span style={{ fontSize: '14px', lineHeight: 1 }}>
+                  {REACTION_EMOJI[group.content]}
+                </span>
                 <span className="text-xs leading-none">{group.count}</span>
               </button>
             </TooltipTrigger>
@@ -144,7 +155,9 @@ export function ReactionDisplay({ reactions, currentUser, onAdd, onRemove }: Rea
                     onClick={() => handlePickerSelect(content)}
                     className="w-[34px] h-[34px] flex items-center justify-center rounded hover:bg-accent transition-colors"
                   >
-                    <span style={{ fontSize: '18px', lineHeight: 1 }}>{REACTION_EMOJI[content]}</span>
+                    <span style={{ fontSize: '18px', lineHeight: 1 }}>
+                      {REACTION_EMOJI[content]}
+                    </span>
                   </button>
                 ))}
               </div>

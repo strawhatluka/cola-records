@@ -64,7 +64,15 @@ export interface BranchComparison {
 }
 
 // Reaction Types
-export type ReactionContent = '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket' | 'eyes';
+export type ReactionContent =
+  | '+1'
+  | '-1'
+  | 'laugh'
+  | 'confused'
+  | 'heart'
+  | 'hooray'
+  | 'rocket'
+  | 'eyes';
 
 export interface Reaction {
   id: number;
@@ -107,6 +115,17 @@ export interface GitHubRepository {
   forks: number;
   openIssues?: number;
   defaultBranch?: string;
+}
+
+// Repository Tree Types (for GitHub API)
+export interface RepositoryTreeEntry {
+  name: string;
+  type: string;
+  mode?: number;
+  object?: {
+    entries?: { name: string; type: string }[];
+    byteSize?: number;
+  };
 }
 
 // Contribution Types
@@ -343,7 +362,7 @@ export interface AppSettings {
  */
 export interface IpcChannels {
   // Echo test channel
-  'echo': (message: string) => string;
+  echo: (message: string) => string;
 
   // File System Channels
   'fs:read-directory': (path: string) => FileNode[];
@@ -377,7 +396,9 @@ export interface IpcChannels {
   'github:validate-token': (token: string) => boolean;
 
   // Contribution Channels
-  'contribution:create': (data: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>) => Contribution;
+  'contribution:create': (
+    data: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>
+  ) => Contribution;
   'contribution:get-all': () => Contribution[];
   'contribution:get-by-id': (id: string) => Contribution | null;
   'contribution:update': (id: string, data: Partial<Contribution>) => Contribution;
@@ -405,10 +426,18 @@ export interface IpcChannels {
 
   // GitHub Additional Channels (added for WO-MIGRATE-002.1)
   'github:fork-repository': (repoFullName: string) => GitHubRepository;
-  'github:get-repository-tree': (owner: string, repo: string, branch: string) => any;
+  'github:get-repository-tree': (
+    owner: string,
+    repo: string,
+    branch: string
+  ) => RepositoryTreeEntry[];
   'git:add-remote': (repoPath: string, remoteName: string, url: string) => void;
   'git:get-remotes': (repoPath: string) => { name: string; fetchUrl: string; pushUrl: string }[];
-  'github:list-pull-requests': (owner: string, repo: string, state?: 'open' | 'closed' | 'all') => {
+  'github:list-pull-requests': (
+    owner: string,
+    repo: string,
+    state?: 'open' | 'closed' | 'all'
+  ) => {
     number: number;
     title: string;
     url: string;
@@ -421,7 +450,11 @@ export interface IpcChannels {
   }[];
 
   // PR Detail Channels (WO-004)
-  'github:get-pull-request': (owner: string, repo: string, prNumber: number) => {
+  'github:get-pull-request': (
+    owner: string,
+    repo: string,
+    prNumber: number
+  ) => {
     number: number;
     title: string;
     body: string;
@@ -432,7 +465,11 @@ export interface IpcChannels {
     updatedAt: Date;
     author: string;
   };
-  'github:list-pr-comments': (owner: string, repo: string, prNumber: number) => {
+  'github:list-pr-comments': (
+    owner: string,
+    repo: string,
+    prNumber: number
+  ) => {
     id: number;
     body: string;
     author: string;
@@ -440,7 +477,11 @@ export interface IpcChannels {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  'github:list-pr-reviews': (owner: string, repo: string, prNumber: number) => {
+  'github:list-pr-reviews': (
+    owner: string,
+    repo: string,
+    prNumber: number
+  ) => {
     id: number;
     body: string;
     state: string;
@@ -448,7 +489,11 @@ export interface IpcChannels {
     authorAvatarUrl: string;
     submittedAt: Date;
   }[];
-  'github:list-pr-review-comments': (owner: string, repo: string, prNumber: number) => {
+  'github:list-pr-review-comments': (
+    owner: string,
+    repo: string,
+    prNumber: number
+  ) => {
     id: number;
     body: string;
     author: string;
@@ -461,7 +506,11 @@ export interface IpcChannels {
   'github:create-pr-comment': (owner: string, repo: string, prNumber: number, body: string) => void;
 
   // Issue Detail Channels (WO-005)
-  'github:list-issues': (owner: string, repo: string, state?: 'open' | 'closed' | 'all') => {
+  'github:list-issues': (
+    owner: string,
+    repo: string,
+    state?: 'open' | 'closed' | 'all'
+  ) => {
     number: number;
     title: string;
     body: string;
@@ -473,7 +522,11 @@ export interface IpcChannels {
     author: string;
     authorAvatarUrl: string;
   }[];
-  'github:get-issue': (owner: string, repo: string, issueNumber: number) => {
+  'github:get-issue': (
+    owner: string,
+    repo: string,
+    issueNumber: number
+  ) => {
     number: number;
     title: string;
     body: string;
@@ -485,7 +538,11 @@ export interface IpcChannels {
     author: string;
     authorAvatarUrl: string;
   };
-  'github:list-issue-comments': (owner: string, repo: string, issueNumber: number) => {
+  'github:list-issue-comments': (
+    owner: string,
+    repo: string,
+    issueNumber: number
+  ) => {
     id: number;
     body: string;
     author: string;
@@ -493,39 +550,105 @@ export interface IpcChannels {
     createdAt: Date;
     updatedAt: Date;
   }[];
-  'github:create-issue-comment': (owner: string, repo: string, issueNumber: number, body: string) => void;
-  'github:update-issue': (owner: string, repo: string, issueNumber: number, updates: { state?: 'open' | 'closed'; state_reason?: 'completed' | 'not_planned' | 'reopened' }) => void;
-  'github:create-issue': (owner: string, repo: string, title: string, body: string, labels?: string[]) => {
+  'github:create-issue-comment': (
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    body: string
+  ) => void;
+  'github:update-issue': (
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    updates: { state?: 'open' | 'closed'; state_reason?: 'completed' | 'not_planned' | 'reopened' }
+  ) => void;
+  'github:create-issue': (
+    owner: string,
+    repo: string,
+    title: string,
+    body: string,
+    labels?: string[]
+  ) => {
     number: number;
     url: string;
   };
-  'github:create-pull-request': (owner: string, repo: string, title: string, head: string, base: string, body: string) => {
+  'github:create-pull-request': (
+    owner: string,
+    repo: string,
+    title: string,
+    head: string,
+    base: string,
+    body: string
+  ) => {
     number: number;
     url: string;
     state: string;
   };
-  'github:merge-pull-request': (owner: string, repo: string, prNumber: number, mergeMethod?: 'merge' | 'squash' | 'rebase', commitTitle?: string, commitMessage?: string) => {
+  'github:merge-pull-request': (
+    owner: string,
+    repo: string,
+    prNumber: number,
+    mergeMethod?: 'merge' | 'squash' | 'rebase',
+    commitTitle?: string,
+    commitMessage?: string
+  ) => {
     sha: string;
     merged: boolean;
     message: string;
   };
-  'github:close-pull-request': (owner: string, repo: string, prNumber: number) => {
+  'github:close-pull-request': (
+    owner: string,
+    repo: string,
+    prNumber: number
+  ) => {
     number: number;
     state: string;
   };
 
   // Reaction Channels
   'github:list-issue-reactions': (owner: string, repo: string, issueNumber: number) => Reaction[];
-  'github:add-issue-reaction': (owner: string, repo: string, issueNumber: number, content: ReactionContent) => Reaction;
-  'github:delete-issue-reaction': (owner: string, repo: string, issueNumber: number, reactionId: number) => void;
+  'github:add-issue-reaction': (
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    content: ReactionContent
+  ) => Reaction;
+  'github:delete-issue-reaction': (
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    reactionId: number
+  ) => void;
   'github:list-comment-reactions': (owner: string, repo: string, commentId: number) => Reaction[];
-  'github:add-comment-reaction': (owner: string, repo: string, commentId: number, content: ReactionContent) => Reaction;
-  'github:delete-comment-reaction': (owner: string, repo: string, commentId: number, reactionId: number) => void;
+  'github:add-comment-reaction': (
+    owner: string,
+    repo: string,
+    commentId: number,
+    content: ReactionContent
+  ) => Reaction;
+  'github:delete-comment-reaction': (
+    owner: string,
+    repo: string,
+    commentId: number,
+    reactionId: number
+  ) => void;
 
   // Sub-Issue Channels
   'github:list-sub-issues': (owner: string, repo: string, issueNumber: number) => SubIssue[];
-  'github:create-sub-issue': (owner: string, repo: string, parentIssueNumber: number, title: string, body: string, labels?: string[]) => { number: number; url: string };
-  'github:add-existing-sub-issue': (owner: string, repo: string, parentIssueNumber: number, subIssueId: number) => void;
+  'github:create-sub-issue': (
+    owner: string,
+    repo: string,
+    parentIssueNumber: number,
+    title: string,
+    body: string,
+    labels?: string[]
+  ) => { number: number; url: string };
+  'github:add-existing-sub-issue': (
+    owner: string,
+    repo: string,
+    parentIssueNumber: number,
+    subIssueId: number
+  ) => void;
 
   // Spotify Channels
   'spotify:is-connected': () => boolean;
@@ -557,7 +680,11 @@ export interface IpcChannels {
   'discord:get-guild-emojis': (guildId: string) => DiscordEmoji[];
   'discord:get-dm-channels': () => DiscordDMChannel[];
   'discord:get-messages': (channelId: string, before?: string, limit?: number) => DiscordMessage[];
-  'discord:send-message': (channelId: string, content: string, replyToId?: string) => DiscordMessage;
+  'discord:send-message': (
+    channelId: string,
+    content: string,
+    replyToId?: string
+  ) => DiscordMessage;
   'discord:edit-message': (channelId: string, messageId: string, content: string) => DiscordMessage;
   'discord:delete-message': (channelId: string, messageId: string) => void;
   'discord:add-reaction': (channelId: string, messageId: string, emoji: string) => void;
@@ -566,17 +693,46 @@ export interface IpcChannels {
   'discord:typing': (channelId: string) => void;
   'discord:get-pinned-messages': (channelId: string) => DiscordMessage[];
   'discord:create-dm': (userId: string) => DiscordDMChannel;
-  'discord:send-message-with-attachments': (channelId: string, content: string, files: { name: string; data: Buffer; contentType: string }[], replyToId?: string) => DiscordMessage;
-  'discord:search-gifs': (query: string) => { url: string; preview: string; width: number; height: number }[];
+  'discord:send-message-with-attachments': (
+    channelId: string,
+    content: string,
+    files: { name: string; data: Buffer; contentType: string }[],
+    replyToId?: string
+  ) => DiscordMessage;
+  'discord:search-gifs': (
+    query: string
+  ) => { url: string; preview: string; width: number; height: number }[];
   'discord:trending-gifs': () => { url: string; preview: string; width: number; height: number }[];
   'discord:get-sticker-packs': () => DiscordStickerPack[];
   'discord:get-guild-stickers': (guildId: string) => DiscordSticker[];
   'discord:send-sticker': (channelId: string, stickerId: string) => DiscordMessage;
-  'discord:create-poll': (channelId: string, question: string, answers: string[], duration: number, allowMultiselect: boolean) => DiscordMessage;
-  'discord:get-forum-threads': (channelId: string, guildId: string, sortBy?: string, sortOrder?: string, tagIds?: string[], offset?: number) => { threads: DiscordThread[]; hasMore: boolean; totalResults: number };
-  'discord:get-thread-messages': (threadId: string, before?: string, limit?: number) => DiscordMessage[];
+  'discord:create-poll': (
+    channelId: string,
+    question: string,
+    answers: string[],
+    duration: number,
+    allowMultiselect: boolean
+  ) => DiscordMessage;
+  'discord:get-forum-threads': (
+    channelId: string,
+    guildId: string,
+    sortBy?: string,
+    sortOrder?: string,
+    tagIds?: string[],
+    offset?: number
+  ) => { threads: DiscordThread[]; hasMore: boolean; totalResults: number };
+  'discord:get-thread-messages': (
+    threadId: string,
+    before?: string,
+    limit?: number
+  ) => DiscordMessage[];
   'discord:send-thread-message': (threadId: string, content: string) => DiscordMessage;
-  'discord:create-forum-thread': (channelId: string, name: string, content: string, appliedTags?: string[]) => DiscordThread;
+  'discord:create-forum-thread': (
+    channelId: string,
+    name: string,
+    content: string,
+    appliedTags?: string[]
+  ) => DiscordThread;
 
   // Code Server Channels
   'code-server:start': (projectPath: string) => { port: number; url: string };
@@ -592,4 +748,3 @@ export interface IpcChannels {
 export interface IpcEvents {
   'git:status-changed': (repoPath: string) => void;
 }
-

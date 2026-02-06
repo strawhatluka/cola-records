@@ -61,11 +61,7 @@ describe('MessageItem React.memo Optimization', () => {
         <div>
           <button onClick={() => setCounter((c) => c + 1)}>Rerender</button>
           <span data-testid="counter">{counter}</span>
-          <MessageItem
-            message={stableMessage}
-            currentUserId="999"
-            {...stableCallbacks}
-          />
+          <MessageItem message={stableMessage} currentUserId="999" {...stableCallbacks} />
         </div>
       );
     }
@@ -168,11 +164,7 @@ describe('MessageItem React.memo Optimization', () => {
         <div>
           <button onClick={() => setCounter((c) => c + 1)}>Rerender</button>
           <span data-testid="counter">{counter}</span>
-          <MessageItem
-            message={message}
-            currentUserId="999"
-            {...stableCallbacks}
-          />
+          <MessageItem message={message} currentUserId="999" {...stableCallbacks} />
         </div>
       );
     }
@@ -204,11 +196,7 @@ describe('MessageItem React.memo Optimization', () => {
       return (
         <div>
           <button onClick={() => setUserId('999')}>Change User</button>
-          <MessageItem
-            message={message}
-            currentUserId={userId}
-            {...callbacks}
-          />
+          <MessageItem message={message} currentUserId={userId} {...callbacks} />
         </div>
       );
     }

@@ -63,9 +63,7 @@ describe('GitService', () => {
         tracking: 'origin/main',
         ahead: 2,
         behind: 1,
-        files: [
-          { path: 'src/index.ts', index: 'M', working_dir: ' ' },
-        ],
+        files: [{ path: 'src/index.ts', index: 'M', working_dir: ' ' }],
       });
 
       const status = await service.getStatus('/repo');
@@ -260,12 +258,17 @@ describe('GitService', () => {
     it('adds a remote', async () => {
       mockAddRemote.mockResolvedValue(undefined);
       await service.addRemote('/repo', 'upstream', 'https://github.com/upstream/repo.git');
-      expect(mockAddRemote).toHaveBeenCalledWith('upstream', 'https://github.com/upstream/repo.git');
+      expect(mockAddRemote).toHaveBeenCalledWith(
+        'upstream',
+        'https://github.com/upstream/repo.git'
+      );
     });
 
     it('throws on error', async () => {
       mockAddRemote.mockRejectedValue(new Error('remote exists'));
-      await expect(service.addRemote('/repo', 'upstream', 'url')).rejects.toThrow('Failed to add remote');
+      await expect(service.addRemote('/repo', 'upstream', 'url')).rejects.toThrow(
+        'Failed to add remote'
+      );
     });
   });
 
@@ -298,7 +301,13 @@ describe('GitService', () => {
   describe('getRemotes', () => {
     it('returns mapped remotes', async () => {
       mockGetRemotes.mockResolvedValue([
-        { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git', push: 'https://github.com/user/repo.git' } },
+        {
+          name: 'origin',
+          refs: {
+            fetch: 'https://github.com/user/repo.git',
+            push: 'https://github.com/user/repo.git',
+          },
+        },
         { name: 'upstream', refs: { fetch: 'https://github.com/org/repo.git', push: '' } },
       ]);
 
@@ -330,9 +339,7 @@ describe('GitService', () => {
         ],
       });
       mockDiffSummary.mockResolvedValue({
-        files: [
-          { file: 'src/new.ts', insertions: 10, deletions: 2, binary: false },
-        ],
+        files: [{ file: 'src/new.ts', insertions: 10, deletions: 2, binary: false }],
         insertions: 10,
         deletions: 2,
         changed: 1,
@@ -352,7 +359,9 @@ describe('GitService', () => {
 
     it('throws on error', async () => {
       mockLog.mockRejectedValue(new Error('bad ref'));
-      await expect(service.compareBranches('/repo', 'main', 'bad')).rejects.toThrow('Failed to compare branches');
+      await expect(service.compareBranches('/repo', 'main', 'bad')).rejects.toThrow(
+        'Failed to compare branches'
+      );
     });
   });
 });

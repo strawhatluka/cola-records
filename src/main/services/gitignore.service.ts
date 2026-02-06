@@ -50,7 +50,12 @@ export class GitIgnoreService {
       this.ignoreCache.set(repoPath, ig);
     }
 
-    return this.ignoreCache.get(repoPath)!;
+    // Cache is guaranteed to be set by the block above
+    const cached = this.ignoreCache.get(repoPath);
+    if (!cached) {
+      throw new Error('Failed to load gitignore cache');
+    }
+    return cached;
   }
 
   /**

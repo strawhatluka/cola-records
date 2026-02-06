@@ -1,20 +1,35 @@
 import { memo, useState } from 'react';
-import { ChevronDown, ChevronRight, Hash, Volume2, Megaphone, MessageSquareText } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Hash,
+  Volume2,
+  Megaphone,
+  MessageSquareText,
+} from 'lucide-react';
 import { useDiscordStore } from '../../stores/useDiscordStore';
 import type { DiscordChannel } from '../../../main/ipc/channels';
 
 export function ChannelList() {
-  const { guilds, selectedGuildId, selectedChannelId, selectedForumChannelId, guildChannels, openChannel, openForumChannel } = useDiscordStore();
+  const {
+    guilds,
+    selectedGuildId,
+    selectedChannelId,
+    selectedForumChannelId,
+    guildChannels,
+    openChannel,
+    openForumChannel,
+  } = useDiscordStore();
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   const guild = guilds.find((g) => g.id === selectedGuildId);
-  const channels = selectedGuildId ? (guildChannels[selectedGuildId] || []) : [];
+  const channels = selectedGuildId ? guildChannels[selectedGuildId] || [] : [];
 
   // Group channels by category
   const categories = channels.filter((ch) => ch.type === 4).sort((a, b) => a.position - b.position);
-  const uncategorized = channels.filter(
-    (ch) => ch.type !== 4 && !ch.parentId
-  ).sort((a, b) => a.position - b.position);
+  const uncategorized = channels
+    .filter((ch) => ch.type !== 4 && !ch.parentId)
+    .sort((a, b) => a.position - b.position);
 
   const toggleCategory = (id: string) => {
     setCollapsedCategories((prev) => {
@@ -26,7 +41,8 @@ export function ChannelList() {
   };
 
   const getChannelsByParent = (parentId: string): DiscordChannel[] =>
-    channels.filter((ch) => ch.parentId === parentId && ch.type !== 4)
+    channels
+      .filter((ch) => ch.parentId === parentId && ch.type !== 4)
       .sort((a, b) => a.position - b.position);
 
   // text, announcement, voice, forum are all clickable

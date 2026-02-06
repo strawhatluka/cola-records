@@ -13,7 +13,11 @@ interface MessageListProps {
   onToggleChannelSidebar?: () => void;
 }
 
-export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleChannelSidebar }: MessageListProps = {}) {
+export function MessageList({
+  showChannelToggle,
+  channelSidebarOpen,
+  onToggleChannelSidebar,
+}: MessageListProps = {}) {
   const {
     messages,
     user,
@@ -21,7 +25,7 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
     selectedChannelId,
     selectedChannelName,
     selectedChannelType,
-    selectedGuildId,
+    selectedGuildId: _selectedGuildId,
     guilds,
     guildEmojis,
     goBack,
@@ -109,19 +113,22 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
     });
   }, [loadMoreMessages]);
 
-  const handleReactionToggle = useCallback(async (messageId: string, emoji: string) => {
-    if (!selectedChannelId) return;
-    const msg = messages.find((m) => m.id === messageId);
-    const reaction = msg?.reactions.find(
-      (r) => (r.emoji.id ? `${r.emoji.name}:${r.emoji.id}` : r.emoji.name) === emoji
-    );
-    if (reaction?.me) {
-      await removeReaction(selectedChannelId, messageId, emoji);
-    } else {
-      await addReaction(selectedChannelId, messageId, emoji);
-    }
-    fetchMessages(selectedChannelId);
-  }, [selectedChannelId, messages, removeReaction, addReaction, fetchMessages]);
+  const handleReactionToggle = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!selectedChannelId) return;
+      const msg = messages.find((m) => m.id === messageId);
+      const reaction = msg?.reactions.find(
+        (r) => (r.emoji.id ? `${r.emoji.name}:${r.emoji.id}` : r.emoji.name) === emoji
+      );
+      if (reaction?.me) {
+        await removeReaction(selectedChannelId, messageId, emoji);
+      } else {
+        await addReaction(selectedChannelId, messageId, emoji);
+      }
+      fetchMessages(selectedChannelId);
+    },
+    [selectedChannelId, messages, removeReaction, addReaction, fetchMessages]
+  );
 
   const handleSend = (content: string) => {
     if (!selectedChannelId) return;
@@ -129,7 +136,10 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
     setReplyingTo(null);
   };
 
-  const handleSendWithAttachments = (content: string, files: { name: string; data: Buffer; contentType: string }[]) => {
+  const handleSendWithAttachments = (
+    content: string,
+    files: { name: string; data: Buffer; contentType: string }[]
+  ) => {
     if (!selectedChannelId) return;
     sendMessageWithAttachments(selectedChannelId, content, files, replyingTo?.id);
     setReplyingTo(null);
@@ -141,10 +151,13 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
     setEditingMessage(null);
   };
 
-  const handleDelete = useCallback((messageId: string) => {
-    if (!selectedChannelId) return;
-    deleteMessage(selectedChannelId, messageId);
-  }, [selectedChannelId, deleteMessage]);
+  const handleDelete = useCallback(
+    (messageId: string) => {
+      if (!selectedChannelId) return;
+      deleteMessage(selectedChannelId, messageId);
+    },
+    [selectedChannelId, deleteMessage]
+  );
 
   const handleReply = useCallback((m: DiscordMessage) => {
     setReplyingTo(m);
@@ -180,7 +193,12 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
     sendSticker(selectedChannelId, stickerId);
   };
 
-  const handleCreatePoll = (question: string, answers: string[], duration: number, allowMultiselect: boolean) => {
+  const handleCreatePoll = (
+    question: string,
+    answers: string[],
+    duration: number,
+    allowMultiselect: boolean
+  ) => {
     if (!selectedChannelId) return;
     createPoll(selectedChannelId, question, answers, duration, allowMultiselect);
     setShowPollCreator(false);
@@ -218,7 +236,8 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
             </button>
           )}
           <span className="text-xs font-semibold truncate">
-            {prefix}{selectedChannelName}
+            {prefix}
+            {selectedChannelName}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -238,7 +257,11 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
         <div className="border-b bg-muted/20 max-h-48 overflow-y-auto styled-scroll">
           <div className="flex items-center justify-between px-3 py-1.5">
             <span className="text-[10px] font-semibold">Pinned Messages</span>
-            <button type="button" onClick={() => setShowPinned(false)} className="p-0.5 text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => setShowPinned(false)}
+              className="p-0.5 text-muted-foreground hover:text-foreground"
+            >
               <X className="h-3 w-3" />
             </button>
           </div>
@@ -248,7 +271,9 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
             pinnedMessages.map((msg) => (
               <div key={msg.id} className="px-3 py-1.5 border-t border-border/30">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[10px] font-semibold">{msg.author.globalName || msg.author.username}</span>
+                  <span className="text-[10px] font-semibold">
+                    {msg.author.globalName || msg.author.username}
+                  </span>
                   <span className="text-[9px] text-muted-foreground">
                     {new Date(msg.timestamp).toLocaleDateString()}
                   </span>
@@ -301,10 +326,7 @@ export function MessageList({ showChannelToggle, channelSidebarOpen, onToggleCha
 
       {/* Poll creator overlay */}
       {showPollCreator && (
-        <CreatePollModal
-          onSubmit={handleCreatePoll}
-          onClose={() => setShowPollCreator(false)}
-        />
+        <CreatePollModal onSubmit={handleCreatePoll} onClose={() => setShowPollCreator(false)} />
       )}
 
       {/* Input */}

@@ -104,9 +104,7 @@ export class EnvironmentService {
   private loadEnvironmentVariables(): void {
     try {
       // Determine the root directory
-      const rootDir = this.isDevelopment
-        ? process.cwd()
-        : path.dirname(app.getPath('exe'));
+      const rootDir = this.isDevelopment ? process.cwd() : path.dirname(app.getPath('exe'));
 
       // In development, prioritize .env.local over .env
       if (this.isDevelopment) {
@@ -156,8 +154,10 @@ export class EnvironmentService {
         let value = match[2].trim();
 
         // Remove quotes if present
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
           value = value.slice(1, -1);
         }
 
@@ -182,8 +182,9 @@ export class EnvironmentService {
     ];
 
     for (const key of envVars) {
-      if (process.env[key]) {
-        this.config.set(key, process.env[key]!);
+      const value = process.env[key];
+      if (value) {
+        this.config.set(key, value);
       }
     }
   }

@@ -73,7 +73,9 @@ describe('FileSystemService', () => {
 
     it('throws on unreadable directory', async () => {
       vi.spyOn(fs.promises, 'readdir').mockRejectedValue(new Error('ENOENT'));
-      await expect(service.readDirectory('/nonexistent')).rejects.toThrow('Failed to read directory');
+      await expect(service.readDirectory('/nonexistent')).rejects.toThrow(
+        'Failed to read directory'
+      );
     });
   });
 

@@ -39,10 +39,12 @@ vi.mock('util', async (importOriginal) => {
   const actual = await importOriginal<typeof import('util')>();
   return {
     ...actual,
-    promisify: () => (...args: unknown[]) => {
-      const dockerArgs = args[1] as string[];
-      return Promise.resolve({ stdout: `mock-output-${dockerArgs?.[0] || ''}`, stderr: '' });
-    },
+    promisify:
+      () =>
+      (...args: unknown[]) => {
+        const dockerArgs = args[1] as string[];
+        return Promise.resolve({ stdout: `mock-output-${dockerArgs?.[0] || ''}`, stderr: '' });
+      },
   };
 });
 
@@ -218,7 +220,7 @@ describe('CodeServerService', () => {
       mockExistsSync.mockReturnValue(true);
       const mounts = codeServerService.getGitMounts();
       expect(mounts).toContain('-v');
-      expect(mounts.some(m => m.includes('.git-credentials'))).toBe(true);
+      expect(mounts.some((m) => m.includes('.git-credentials'))).toBe(true);
     });
   });
 
@@ -227,7 +229,7 @@ describe('CodeServerService', () => {
       // The isolated config is always mounted regardless of host files
       const mounts = codeServerService.getClaudeMounts();
       expect(mounts).toContain('-v');
-      expect(mounts.some(m => m.includes('.claude-config'))).toBe(true);
+      expect(mounts.some((m) => m.includes('.claude-config'))).toBe(true);
     });
 
     it('does not mount host claude.json or .claude directory', () => {
@@ -235,8 +237,10 @@ describe('CodeServerService', () => {
       mockExistsSync.mockReturnValue(true);
       const mounts = codeServerService.getClaudeMounts();
       // Should only have the isolated config mount, not host files
-      expect(mounts.some(m => m.includes('.claude.json'))).toBe(false);
-      expect(mounts.filter(m => m.includes('.claude') && !m.includes('.claude-config'))).toHaveLength(0);
+      expect(mounts.some((m) => m.includes('.claude.json'))).toBe(false);
+      expect(
+        mounts.filter((m) => m.includes('.claude') && !m.includes('.claude-config'))
+      ).toHaveLength(0);
     });
   });
 
@@ -373,7 +377,9 @@ describe('CodeServerService', () => {
       mockMkdirSync.mockImplementation(() => undefined as any);
       mockWriteFileSync.mockImplementation(() => {});
       mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue('[user]\r\n    name = Test User\r\n    email = test@example.com\r\n');
+      mockReadFileSync.mockReturnValue(
+        '[user]\r\n    name = Test User\r\n    email = test@example.com\r\n'
+      );
 
       codeServerService.createContainerGitConfig();
 
@@ -449,9 +455,9 @@ describe('CodeServerService', () => {
 
       const mounts = codeServerService.getClaudeMounts();
       // Should mount the isolated config directory
-      expect(mounts.some(m => m.includes('claude-config:/home/coder/.claude-config'))).toBe(true);
+      expect(mounts.some((m) => m.includes('claude-config:/home/coder/.claude-config'))).toBe(true);
       // Should NOT mount host's .claude.json or .claude directory
-      expect(mounts.some(m => m.includes('.claude.json'))).toBe(false);
+      expect(mounts.some((m) => m.includes('.claude.json'))).toBe(false);
     });
   });
 });

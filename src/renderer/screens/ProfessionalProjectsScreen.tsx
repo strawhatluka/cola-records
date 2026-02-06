@@ -19,7 +19,10 @@ export function ProfessionalProjectsScreen({ onOpenIDE }: ProfessionalProjectsSc
       if (defaultProfessionalProjectsPath) {
         setIsScanning(true);
         try {
-          const scannedProjects = await ipc.invoke('project:scan-directory', defaultProfessionalProjectsPath);
+          const scannedProjects = await ipc.invoke(
+            'project:scan-directory',
+            defaultProfessionalProjectsPath
+          );
           setProjects(scannedProjects);
         } catch {
           // Scan failure handled by empty state
@@ -42,9 +45,7 @@ export function ProfessionalProjectsScreen({ onOpenIDE }: ProfessionalProjectsSc
     <div className="p-8">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Professional Projects</h2>
-        <p className="text-muted-foreground mt-1">
-          Manage your professional projects
-        </p>
+        <p className="text-muted-foreground mt-1">Manage your professional projects</p>
       </div>
 
       <ContributionList

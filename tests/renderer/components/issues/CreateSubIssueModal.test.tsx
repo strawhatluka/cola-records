@@ -95,7 +95,10 @@ describe('CreateSubIssueModal', () => {
     render(<CreateSubIssueModal {...defaultProps} />);
 
     await user.type(screen.getByPlaceholderText('Title'), 'Title');
-    await user.type(screen.getByPlaceholderText('bug, enhancement (comma-separated, optional)'), 'bug, enhancement');
+    await user.type(
+      screen.getByPlaceholderText('bug, enhancement (comma-separated, optional)'),
+      'bug, enhancement'
+    );
     await user.click(screen.getByText('Create'));
 
     await waitFor(() => {

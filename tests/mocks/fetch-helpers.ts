@@ -14,10 +14,7 @@ interface MockResponseInit {
 /**
  * Creates a mock Response object matching the Fetch API shape.
  */
-export function createMockResponse(
-  body: unknown,
-  init: MockResponseInit = {}
-): Response {
+export function createMockResponse(body: unknown, init: MockResponseInit = {}): Response {
   const { status = 200, statusText = 'OK', headers = {} } = init;
   const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
 
@@ -100,7 +97,9 @@ export function rateLimitResponse(retryAfterSecs = 1): Response {
 /**
  * Creates a 500 Internal Server Error response.
  */
-export function serverErrorResponse(body: unknown = { message: 'Internal Server Error' }): Response {
+export function serverErrorResponse(
+  body: unknown = { message: 'Internal Server Error' }
+): Response {
   return createMockResponse(body, { status: 500, statusText: 'Internal Server Error' });
 }
 

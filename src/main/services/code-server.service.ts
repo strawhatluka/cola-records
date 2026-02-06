@@ -125,7 +125,14 @@ class CodeServerService {
       case 'win32':
         return path.join(os.homedir(), 'AppData', 'Roaming', 'Code', 'User', 'settings.json');
       case 'darwin':
-        return path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'settings.json');
+        return path.join(
+          os.homedir(),
+          'Library',
+          'Application Support',
+          'Code',
+          'User',
+          'settings.json'
+        );
       default: // linux
         return path.join(os.homedir(), '.config', 'Code', 'User', 'settings.json');
     }
@@ -196,8 +203,8 @@ class CodeServerService {
         const raw = fs.readFileSync(hostSettingsPath, 'utf-8');
         const cleanJson = this.stripJsonc(raw);
         hostSettings = JSON.parse(cleanJson);
-      } else {
       }
+      // No else needed - hostSettings defaults to empty object
 
       // Load existing code-server settings (preserves theme, font size, etc.
       // changed by the user inside the embedded VS Code)
@@ -207,6 +214,7 @@ class CodeServerService {
           const raw = fs.readFileSync(codeServerSettingsPath, 'utf-8');
           existingSettings = JSON.parse(raw);
         } catch {
+          // Ignore parse errors; use empty settings as fallback
         }
       }
 
@@ -271,6 +279,7 @@ class CodeServerService {
         parts.push(normalized.trimEnd());
         parts.push('');
       } catch {
+        // Ignore read errors; proceed without host gitconfig
       }
     }
 
@@ -419,9 +428,7 @@ class CodeServerService {
     fs.mkdirSync(claudeConfigDir, { recursive: true });
 
     // Mount the isolated config directory
-    return [
-      '-v', `${this.toDockerPath(claudeConfigDir)}:/home/coder/.claude-config`,
-    ];
+    return ['-v', `${this.toDockerPath(claudeConfigDir)}:/home/coder/.claude-config`];
   }
 
   // ── Docker Operations ────────────────────────────────────────────
@@ -436,7 +443,7 @@ class CodeServerService {
     } catch {
       throw new Error(
         'Docker Desktop is not running. Please start Docker Desktop and try again.\n\n' +
-        'If Docker is not installed, download it from: https://www.docker.com/products/docker-desktop/'
+          'If Docker is not installed, download it from: https://www.docker.com/products/docker-desktop/'
       );
     }
   }
@@ -468,7 +475,7 @@ class CodeServerService {
       } catch {
         // Connection refused — container not ready yet
       }
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
     throw new Error(`code-server did not become ready within ${maxAttempts} seconds`);
@@ -487,8 +494,14 @@ class CodeServerService {
     // Fix ownership of named volume (Docker creates it as root)
     try {
       await this.dockerExec([
-        'exec', '-u', 'root', containerName,
-        'chown', '-R', 'coder:coder', pythonDir,
+        'exec',
+        '-u',
+        'root',
+        containerName,
+        'chown',
+        '-R',
+        'coder:coder',
+        pythonDir,
       ]);
     } catch {
       // Best effort - may already be correct
@@ -496,10 +509,7 @@ class CodeServerService {
 
     // Check if Python is already bootstrapped
     try {
-      await this.dockerExec([
-        'exec', containerName,
-        'test', '-f', `${pythonDir}/bin/python3`,
-      ]);
+      await this.dockerExec(['exec', containerName, 'test', '-f', `${pythonDir}/bin/python3`]);
       console.log('[CodeServer] Python already bootstrapped');
       return;
     } catch {
@@ -511,8 +521,11 @@ class CodeServerService {
       // Download standalone Python build (python-build-standalone project)
       // Using the install_only variant which is smaller and pre-built
       await this.dockerExec([
-        'exec', containerName,
-        'bash', '-c', `
+        'exec',
+        containerName,
+        'bash',
+        '-c',
+        `
           set -e
           cd ${pythonDir}
 
@@ -555,8 +568,14 @@ class CodeServerService {
     // This is idempotent and fast if already owned by coder
     try {
       await this.dockerExec([
-        'exec', '-u', 'root', containerName,
-        'chown', '-R', 'coder:coder', npmGlobalDir,
+        'exec',
+        '-u',
+        'root',
+        containerName,
+        'chown',
+        '-R',
+        'coder:coder',
+        npmGlobalDir,
       ]);
     } catch {
       // Best effort - may already be correct
@@ -565,8 +584,11 @@ class CodeServerService {
     // Check if npm is already bootstrapped in the persistent volume
     try {
       await this.dockerExec([
-        'exec', containerName,
-        'test', '-f', `${npmGlobalDir}/lib/node_modules/npm/bin/npm-cli.js`,
+        'exec',
+        containerName,
+        'test',
+        '-f',
+        `${npmGlobalDir}/lib/node_modules/npm/bin/npm-cli.js`,
       ]);
       console.log('[CodeServer] npm already bootstrapped');
     } catch {
@@ -576,8 +598,11 @@ class CodeServerService {
         // Download and extract npm to the persistent volume
         // We use the standalone npm tarball and extract it
         await this.dockerExec([
-          'exec', containerName,
-          'bash', '-c', `
+          'exec',
+          containerName,
+          'bash',
+          '-c',
+          `
             set -e
             cd ${npmGlobalDir}
 
@@ -620,9 +645,14 @@ NPXSCRIPT
       try {
         // Check if package already exists
         const pkgExists = await this.dockerExec([
-          'exec', containerName,
-          'test', '-d', `${npmGlobalDir}/lib/node_modules/${pkg}`,
-        ]).then(() => true).catch(() => false);
+          'exec',
+          containerName,
+          'test',
+          '-d',
+          `${npmGlobalDir}/lib/node_modules/${pkg}`,
+        ])
+          .then(() => true)
+          .catch(() => false);
 
         if (pkgExists) {
           // Package already installed - skip reinstall
@@ -632,10 +662,7 @@ NPXSCRIPT
         }
 
         console.log(`[CodeServer] Installing ${pkg}...`);
-        const result = await this.dockerExec([
-          'exec', containerName,
-          npmCmd, 'install', '-g', pkg,
-        ]);
+        const result = await this.dockerExec(['exec', containerName, npmCmd, 'install', '-g', pkg]);
         console.log(`[CodeServer] ${pkg} installed:`, result);
       } catch (err) {
         console.error(`[CodeServer] Failed to install ${pkg}:`, err);
@@ -662,7 +689,7 @@ NPXSCRIPT
     if (this.starting) {
       // Wait for the in-progress start to finish
       while (this.starting) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
       if (this.running && this.port) {
         return { port: this.port, url: `http://127.0.0.1:${this.port}` };
@@ -701,46 +728,63 @@ NPXSCRIPT
       const npmGlobalVolume = this.getNpmGlobalVolumeName();
       const pythonVolume = this.getPythonVolumeName();
       const args = [
-        'run', '--rm', '-d',
-        '--name', containerName,
-        '-p', `127.0.0.1:${port}:8080`,
+        'run',
+        '--rm',
+        '-d',
+        '--name',
+        containerName,
+        '-p',
+        `127.0.0.1:${port}:8080`,
         // Performance: allocate pseudo-TTY for better terminal responsiveness
         '-t',
         // Performance: increase shared memory for better IPC (default 64MB is too small)
         '--shm-size=256m',
         // Project directory (read-write)
-        '-v', `${this.toDockerPath(projectPath)}:/home/coder/project`,
+        '-v',
+        `${this.toDockerPath(projectPath)}:/home/coder/project`,
         // User data persistence (settings, auth tokens, etc.)
-        '-v', `${this.toDockerPath(userDataDir)}:/home/coder/.local/share/code-server`,
+        '-v',
+        `${this.toDockerPath(userDataDir)}:/home/coder/.local/share/code-server`,
         // Extensions persistence (separate mount to avoid overlap)
-        '-v', `${this.toDockerPath(extensionsDir)}:/home/coder/extensions`,
+        '-v',
+        `${this.toDockerPath(extensionsDir)}:/home/coder/extensions`,
         // npm global packages - named Docker volume for better performance
         // (avoids slow Windows filesystem bridge through WSL2)
-        '-v', `${npmGlobalVolume}:/home/coder/.npm-global`,
+        '-v',
+        `${npmGlobalVolume}:/home/coder/.npm-global`,
         // Python installation - named Docker volume for persistence
-        '-v', `${pythonVolume}:/home/coder/.python`,
+        '-v',
+        `${pythonVolume}:/home/coder/.python`,
         // Git mounts (conditionally included)
         ...gitMounts,
         // Claude Code config mount (isolated from host to prevent JSON corruption)
         ...this.getClaudeMounts(),
         // Claude Code config directory (isolated from host's ~/.claude.json)
-        '-e', 'CLAUDE_CONFIG_DIR=/home/coder/.claude-config',
+        '-e',
+        'CLAUDE_CONFIG_DIR=/home/coder/.claude-config',
         // Git config env var
-        '-e', 'GIT_CONFIG_GLOBAL=/home/coder/.local/share/code-server/gitconfig',
+        '-e',
+        'GIT_CONFIG_GLOBAL=/home/coder/.local/share/code-server/gitconfig',
         // Shell profile
-        '-e', 'BASH_ENV=/home/coder/.local/share/code-server/bashrc',
+        '-e',
+        'BASH_ENV=/home/coder/.local/share/code-server/bashrc',
         // npm global config
-        '-e', 'NPM_CONFIG_PREFIX=/home/coder/.npm-global',
+        '-e',
+        'NPM_CONFIG_PREFIX=/home/coder/.npm-global',
         // Performance: reduce terminal latency
-        '-e', 'SHELL=/bin/bash',
+        '-e',
+        'SHELL=/bin/bash',
         // Image
         'codercom/code-server:latest',
         // code-server args
-        '--auth', 'none',
-        '--bind-addr', '0.0.0.0:8080',
+        '--auth',
+        'none',
+        '--bind-addr',
+        '0.0.0.0:8080',
         '--disable-telemetry',
         '--disable-update-check',
-        '--extensions-dir', '/home/coder/extensions',
+        '--extensions-dir',
+        '/home/coder/extensions',
         '/home/coder/project',
       ];
 

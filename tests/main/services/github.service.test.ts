@@ -221,9 +221,23 @@ describe('GitHubService', () => {
       const pr = { number: 1, url: 'https://github.com/org/repo/pull/1', state: 'open' };
       mockRestCreatePullRequest.mockResolvedValue(pr);
 
-      const result = await service.createPullRequest('org', 'repo', 'Title', 'feature', 'main', 'Body');
+      const result = await service.createPullRequest(
+        'org',
+        'repo',
+        'Title',
+        'feature',
+        'main',
+        'Body'
+      );
       expect(result).toEqual(pr);
-      expect(mockRestCreatePullRequest).toHaveBeenCalledWith('org', 'repo', 'Title', 'feature', 'main', 'Body');
+      expect(mockRestCreatePullRequest).toHaveBeenCalledWith(
+        'org',
+        'repo',
+        'Title',
+        'feature',
+        'main',
+        'Body'
+      );
     });
   });
 

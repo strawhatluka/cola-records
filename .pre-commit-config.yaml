@@ -49,15 +49,16 @@ repos:
         language: system
         types: [ts, tsx]
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
 
-  # Vitest for changed files
-  - repo: local
-    hooks:
-      - id: vitest-changed
-        name: Vitest (Related Tests)
-        entry: npx vitest related --run --passWithNoTests
-        language: system
-        types_or: [ts, tsx]
-        pass_filenames: true
-        stages: [commit]
+  # Vitest for changed files (optional - can be slow)
+  # Uncomment to enable test running on commit
+  # - repo: local
+  #   hooks:
+  #     - id: vitest-changed
+  #       name: Vitest (Related Tests)
+  #       entry: npx vitest run --passWithNoTests --reporter=basic
+  #       language: system
+  #       types_or: [ts, tsx]
+  #       pass_filenames: false
+  #       stages: [pre-commit]

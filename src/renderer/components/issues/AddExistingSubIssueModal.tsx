@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/Dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { ipc } from '../../ipc/client';
@@ -45,7 +39,9 @@ export function AddExistingSubIssueModal({
 
   useEffect(() => {
     isMounted.current = true;
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -53,11 +49,12 @@ export function AddExistingSubIssueModal({
     setLoading(true);
     setError(null);
 
-    ipc.invoke('github:list-issues', owner, repo, 'open')
+    ipc
+      .invoke('github:list-issues', owner, repo, 'open')
       .then((result) => {
         if (isMounted.current) {
           // Exclude the parent issue itself
-          setIssues(result.filter((i: any) => i.number !== parentIssueNumber));
+          setIssues(result.filter((i: IssueSummary) => i.number !== parentIssueNumber));
         }
       })
       .catch((err) => {
@@ -119,9 +116,7 @@ export function AddExistingSubIssueModal({
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="max-h-64 overflow-y-auto space-y-1 styled-scroll">
             {loading ? (
@@ -138,11 +133,13 @@ export function AddExistingSubIssueModal({
                   disabled={adding}
                   className="w-full text-left flex items-center gap-2 p-2 rounded-md hover:bg-accent text-xs transition-colors disabled:opacity-50"
                 >
-                  <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                    issue.state === 'open'
-                      ? 'bg-green-500/10 text-green-500'
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
+                  <span
+                    className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      issue.state === 'open'
+                        ? 'bg-green-500/10 text-green-500'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
                     {issue.state}
                   </span>
                   <span className="text-muted-foreground shrink-0">#{issue.number}</span>

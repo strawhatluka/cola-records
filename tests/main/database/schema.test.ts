@@ -45,7 +45,9 @@ describe('Database Schema', () => {
     });
 
     it('enforces status CHECK constraint on contributions', () => {
-      expect(CREATE_TABLES).toContain("CHECK(status IN ('in_progress', 'ready', 'submitted', 'merged'))");
+      expect(CREATE_TABLES).toContain(
+        "CHECK(status IN ('in_progress', 'ready', 'submitted', 'merged'))"
+      );
     });
 
     it('inserts initial schema version', () => {

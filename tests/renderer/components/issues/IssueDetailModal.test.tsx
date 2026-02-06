@@ -24,9 +24,7 @@ vi.mock('react-markdown', () => ({
 
 // Mock RepositoryFileTree to avoid its side effects
 vi.mock('../../../../src/renderer/components/issues/RepositoryFileTree', () => ({
-  RepositoryFileTree: ({ repository }: any) => (
-    <div data-testid="file-tree">{repository}</div>
-  ),
+  RepositoryFileTree: ({ repository }: any) => <div data-testid="file-tree">{repository}</div>,
 }));
 
 import { IssueDetailModal } from '../../../../src/renderer/components/issues/IssueDetailModal';
@@ -41,9 +39,7 @@ describe('IssueDetailModal', () => {
   });
 
   it('returns null when issue is null', () => {
-    const { container } = render(
-      <IssueDetailModal issue={null} onClose={mockOnClose} />
-    );
+    const { container } = render(<IssueDetailModal issue={null} onClose={mockOnClose} />);
     expect(container.innerHTML).toBe('');
   });
 
@@ -98,7 +94,10 @@ describe('IssueDetailModal', () => {
     const issue = createMockIssue({ url: 'https://github.com/org/repo/issues/42' });
     render(<IssueDetailModal issue={issue} onClose={mockOnClose} />);
     await user.click(screen.getByText('View on GitHub'));
-    expect(mockInvoke).toHaveBeenCalledWith('shell:open-external', 'https://github.com/org/repo/issues/42');
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'shell:open-external',
+      'https://github.com/org/repo/issues/42'
+    );
   });
 
   it('shows Contribute button when onContribute is provided', () => {

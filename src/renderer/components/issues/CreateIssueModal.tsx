@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/Dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
@@ -102,9 +96,7 @@ export function CreateIssueModal({ open, owner, repo, onClose, onCreated }: Crea
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose} disabled={submitting}>

@@ -8,7 +8,10 @@ type ActivePicker = 'gif' | 'sticker' | 'emoji' | null;
 interface MessageInputProps {
   channelName: string;
   onSend: (content: string) => void;
-  onSendWithAttachments: (content: string, files: { name: string; data: Buffer; contentType: string }[]) => void;
+  onSendWithAttachments: (
+    content: string,
+    files: { name: string; data: Buffer; contentType: string }[]
+  ) => void;
   onEdit: (messageId: string, content: string) => void;
   onTyping: () => void;
   replyingTo: DiscordMessage | null;
@@ -37,7 +40,9 @@ export function MessageInput({
   guilds,
 }: MessageInputProps) {
   const [text, setText] = useState('');
-  const [pendingFiles, setPendingFiles] = useState<{ name: string; data: Buffer; contentType: string; preview?: string }[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<
+    { name: string; data: Buffer; contentType: string; preview?: string }[]
+  >([]);
   const [activePicker, setActivePicker] = useState<ActivePicker>(null);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -69,7 +74,10 @@ export function MessageInput({
     }
 
     if (pendingFiles.length > 0) {
-      onSendWithAttachments(trimmed, pendingFiles.map(({ name, data, contentType }) => ({ name, data, contentType })));
+      onSendWithAttachments(
+        trimmed,
+        pendingFiles.map(({ name, data, contentType }) => ({ name, data, contentType }))
+      );
       setPendingFiles([]);
       setText('');
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -230,7 +238,10 @@ export function MessageInput({
           <span>Editing message</span>
           <button
             type="button"
-            onClick={() => { onCancelEdit(); setText(''); }}
+            onClick={() => {
+              onCancelEdit();
+              setText('');
+            }}
             className="p-0.5 hover:text-foreground transition-colors"
           >
             <X className="h-3 w-3" />
@@ -244,10 +255,17 @@ export function MessageInput({
           {pendingFiles.map((file, i) => (
             <div key={i} className="relative shrink-0">
               {file.preview ? (
-                <img src={file.preview} alt={file.name} className="h-16 w-16 object-cover rounded border" loading="lazy" />
+                <img
+                  src={file.preview}
+                  alt={file.name}
+                  className="h-16 w-16 object-cover rounded border"
+                  loading="lazy"
+                />
               ) : (
                 <div className="h-16 w-16 rounded border bg-muted flex items-center justify-center">
-                  <span className="text-[9px] text-muted-foreground text-center px-1 truncate">{file.name}</span>
+                  <span className="text-[9px] text-muted-foreground text-center px-1 truncate">
+                    {file.name}
+                  </span>
                 </div>
               )}
               <button
@@ -302,7 +320,10 @@ export function MessageInput({
         {/* Plus button */}
         <button
           type="button"
-          onClick={() => { setShowPlusMenu(!showPlusMenu); setActivePicker(null); }}
+          onClick={() => {
+            setShowPlusMenu(!showPlusMenu);
+            setActivePicker(null);
+          }}
           className={`p-1.5 rounded transition-colors ${showPlusMenu ? 'text-[#5865F2] bg-[#5865F2]/10' : 'text-muted-foreground hover:text-foreground'}`}
           title="Add"
         >
@@ -349,7 +370,15 @@ export function MessageInput({
               className={`p-1.5 rounded transition-colors ${activePicker === 'sticker' ? 'text-[#5865F2]' : 'text-muted-foreground hover:text-foreground'}`}
               title="Stickers"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" />
                 <polyline points="14,3 14,8 21,8" />
                 <circle cx="10" cy="13" r="2" />

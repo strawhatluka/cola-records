@@ -48,7 +48,9 @@ describe('useIssuesStore', () => {
         await useIssuesStore.getState().searchIssues('react', ['good first issue']);
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('github:search-issues', 'react', ['good first issue']);
+      expect(mockInvoke).toHaveBeenCalledWith('github:search-issues', 'react', [
+        'good first issue',
+      ]);
       expect(useIssuesStore.getState().issues).toHaveLength(2);
       expect(useIssuesStore.getState().loading).toBe(false);
       expect(useIssuesStore.getState().searchQuery).toBe('react');
@@ -57,7 +59,9 @@ describe('useIssuesStore', () => {
 
     it('sets loading true while fetching', async () => {
       let resolvePromise: (value: unknown) => void;
-      const promise = new Promise((resolve) => { resolvePromise = resolve; });
+      const promise = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
       mockInvoke.mockReturnValueOnce(promise);
 
       const fetchPromise = act(async () => {

@@ -44,7 +44,12 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
             {embed.author && (
               <div className="flex items-center gap-1.5">
                 {embed.author.iconUrl && (
-                  <img src={embed.author.iconUrl} alt="" className="h-4 w-4 rounded-full" loading="lazy" />
+                  <img
+                    src={embed.author.iconUrl}
+                    alt=""
+                    className="h-4 w-4 rounded-full"
+                    loading="lazy"
+                  />
                 )}
                 <span className="text-xs font-medium">{embed.author.name}</span>
               </div>
@@ -52,7 +57,12 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
             {embed.title && (
               <div className="text-xs font-semibold">
                 {embed.url ? (
-                  <a href={embed.url} target="_blank" rel="noopener noreferrer" className="text-[#00AFF4] hover:underline">
+                  <a
+                    href={embed.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#00AFF4] hover:underline"
+                  >
                     {embed.title}
                   </a>
                 ) : (
@@ -62,7 +72,12 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
             )}
           </div>
           {embed.thumbnail && (
-            <a href={embed.url || '#'} target="_blank" rel="noopener noreferrer" className="block relative">
+            <a
+              href={embed.url || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block relative"
+            >
               <img
                 src={embed.thumbnail.url}
                 alt=""
@@ -110,10 +125,20 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
         {embed.author && (
           <div className="flex items-center gap-1.5">
             {embed.author.iconUrl && (
-              <img src={embed.author.iconUrl} alt="" className="h-4 w-4 rounded-full" loading="lazy" />
+              <img
+                src={embed.author.iconUrl}
+                alt=""
+                className="h-4 w-4 rounded-full"
+                loading="lazy"
+              />
             )}
             {embed.author.url ? (
-              <a href={embed.author.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium hover:underline">
+              <a
+                href={embed.author.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-medium hover:underline"
+              >
                 {embed.author.name}
               </a>
             ) : (
@@ -124,7 +149,12 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
         {embed.title && (
           <div className="text-xs font-semibold">
             {embed.url ? (
-              <a href={embed.url} target="_blank" rel="noopener noreferrer" className="text-[#00AFF4] hover:underline">
+              <a
+                href={embed.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#00AFF4] hover:underline"
+              >
                 {embed.title}
               </a>
             ) : (
@@ -139,7 +169,10 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
         )}
 
         {embed.fields.length > 0 && (
-          <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+          <div
+            className="grid gap-1"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}
+          >
             {embed.fields.map((field, i) => (
               <div key={i} className={field.inline ? '' : 'col-span-full'}>
                 <div className="text-[10px] font-semibold">{field.name}</div>
@@ -172,7 +205,12 @@ export function EmbedRenderer({ embed }: EmbedRendererProps) {
         {(embed.footer || embed.timestamp) && (
           <div className="flex items-center gap-1.5 pt-1 border-t border-border/30 clear-both">
             {embed.footer?.iconUrl && (
-              <img src={embed.footer.iconUrl} alt="" className="h-4 w-4 rounded-full shrink-0" loading="lazy" />
+              <img
+                src={embed.footer.iconUrl}
+                alt=""
+                className="h-4 w-4 rounded-full shrink-0"
+                loading="lazy"
+              />
             )}
             <span className="text-[10px] text-muted-foreground">
               {embed.footer?.text}

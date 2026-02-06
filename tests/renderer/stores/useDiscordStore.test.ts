@@ -158,7 +158,10 @@ describe('useDiscordStore', () => {
 
   describe('fetchGuilds', () => {
     it('fetches and stores guilds', async () => {
-      const guilds = [createMockDiscordGuild(), createMockDiscordGuild({ id: 'guild_2', name: 'Second' })];
+      const guilds = [
+        createMockDiscordGuild(),
+        createMockDiscordGuild({ id: 'guild_2', name: 'Second' }),
+      ];
       mockInvoke.mockResolvedValueOnce(guilds);
 
       await act(async () => {
@@ -172,7 +175,10 @@ describe('useDiscordStore', () => {
 
   describe('fetchGuildChannels', () => {
     it('stores channels keyed by guildId', async () => {
-      const channels = [createMockDiscordChannel(), createMockDiscordChannel({ id: 'ch_2', name: 'dev' })];
+      const channels = [
+        createMockDiscordChannel(),
+        createMockDiscordChannel({ id: 'ch_2', name: 'dev' }),
+      ];
       mockInvoke.mockResolvedValueOnce(channels);
 
       await act(async () => {
@@ -228,7 +234,10 @@ describe('useDiscordStore', () => {
 
   describe('loadMoreMessages', () => {
     it('appends older messages', async () => {
-      const existing = [createMockDiscordMessage({ id: 'msg_1' }), createMockDiscordMessage({ id: 'msg_2' })];
+      const existing = [
+        createMockDiscordMessage({ id: 'msg_1' }),
+        createMockDiscordMessage({ id: 'msg_2' }),
+      ];
       useDiscordStore.setState({ selectedChannelId: 'channel_1', messages: existing });
 
       const older = [createMockDiscordMessage({ id: 'msg_3' })];
@@ -273,7 +282,12 @@ describe('useDiscordStore', () => {
         await useDiscordStore.getState().sendMessage('channel_1', 'Hello');
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('discord:send-message', 'channel_1', 'Hello', undefined);
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'discord:send-message',
+        'channel_1',
+        'Hello',
+        undefined
+      );
       const messages = useDiscordStore.getState().messages;
       expect(messages[0].id).toBe('msg_new');
       expect(messages).toHaveLength(2);
@@ -287,7 +301,12 @@ describe('useDiscordStore', () => {
         await useDiscordStore.getState().sendMessage('channel_1', 'Reply', 'msg_original');
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('discord:send-message', 'channel_1', 'Reply', 'msg_original');
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'discord:send-message',
+        'channel_1',
+        'Reply',
+        'msg_original'
+      );
     });
   });
 
@@ -310,7 +329,10 @@ describe('useDiscordStore', () => {
 
   describe('deleteMessage', () => {
     it('removes message from list', async () => {
-      const messages = [createMockDiscordMessage({ id: 'msg_1' }), createMockDiscordMessage({ id: 'msg_2' })];
+      const messages = [
+        createMockDiscordMessage({ id: 'msg_1' }),
+        createMockDiscordMessage({ id: 'msg_2' }),
+      ];
       useDiscordStore.setState({ messages });
       mockInvoke.mockResolvedValueOnce(undefined);
 
@@ -347,7 +369,9 @@ describe('useDiscordStore', () => {
 
   describe('searchGifs / getTrendingGifs', () => {
     it('returns gif results', async () => {
-      const gifs = [{ url: 'https://gif.url', preview: 'https://preview', width: 200, height: 200 }];
+      const gifs = [
+        { url: 'https://gif.url', preview: 'https://preview', width: 200, height: 200 },
+      ];
       mockInvoke.mockResolvedValueOnce(gifs);
 
       let result: any[];
@@ -371,7 +395,9 @@ describe('useDiscordStore', () => {
     });
 
     it('fetches trending gifs', async () => {
-      const gifs = [{ url: 'https://gif.url', preview: 'https://preview', width: 200, height: 200 }];
+      const gifs = [
+        { url: 'https://gif.url', preview: 'https://preview', width: 200, height: 200 },
+      ];
       mockInvoke.mockResolvedValueOnce(gifs);
 
       let result: any[];
@@ -422,7 +448,9 @@ describe('useDiscordStore', () => {
 
   describe('stickers', () => {
     it('fetches sticker packs', async () => {
-      const packs = [{ id: 'pack_1', name: 'Pack', description: '', stickers: [], bannerAssetId: null }];
+      const packs = [
+        { id: 'pack_1', name: 'Pack', description: '', stickers: [], bannerAssetId: null },
+      ];
       mockInvoke.mockResolvedValueOnce(packs);
 
       await act(async () => {
@@ -434,7 +462,17 @@ describe('useDiscordStore', () => {
     });
 
     it('fetches guild stickers', async () => {
-      const stickers = [{ id: 's1', name: 'sticker', description: null, tags: '', formatType: 1, packId: null, guildId: 'guild_1' }];
+      const stickers = [
+        {
+          id: 's1',
+          name: 'sticker',
+          description: null,
+          tags: '',
+          formatType: 1,
+          packId: null,
+          guildId: 'guild_1',
+        },
+      ];
       mockInvoke.mockResolvedValueOnce(stickers);
 
       await act(async () => {
@@ -463,10 +501,19 @@ describe('useDiscordStore', () => {
       mockInvoke.mockResolvedValueOnce(newMsg);
 
       await act(async () => {
-        await useDiscordStore.getState().createPoll('channel_1', 'Best color?', ['Red', 'Blue'], 24, false);
+        await useDiscordStore
+          .getState()
+          .createPoll('channel_1', 'Best color?', ['Red', 'Blue'], 24, false);
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('discord:create-poll', 'channel_1', 'Best color?', ['Red', 'Blue'], 24, false);
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'discord:create-poll',
+        'channel_1',
+        'Best color?',
+        ['Red', 'Blue'],
+        24,
+        false
+      );
       expect(useDiscordStore.getState().messages[0].id).toBe('poll_msg');
     });
   });
@@ -486,7 +533,13 @@ describe('useDiscordStore', () => {
       });
 
       expect(mockInvoke).toHaveBeenCalledWith(
-        'discord:get-forum-threads', 'forum_ch', 'guild_1', 'last_message_time', 'desc', undefined, 0
+        'discord:get-forum-threads',
+        'forum_ch',
+        'guild_1',
+        'last_message_time',
+        'desc',
+        undefined,
+        0
       );
       expect(useDiscordStore.getState().forumThreads).toEqual(result.threads);
       expect(useDiscordStore.getState().forumHasMore).toBe(true);
@@ -568,10 +621,18 @@ describe('useDiscordStore', () => {
 
       let result: any;
       await act(async () => {
-        result = await useDiscordStore.getState().createForumThread('forum_ch', 'Title', 'Content', ['tag_1']);
+        result = await useDiscordStore
+          .getState()
+          .createForumThread('forum_ch', 'Title', 'Content', ['tag_1']);
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('discord:create-forum-thread', 'forum_ch', 'Title', 'Content', ['tag_1']);
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'discord:create-forum-thread',
+        'forum_ch',
+        'Title',
+        'Content',
+        ['tag_1']
+      );
       expect(result.id).toBe('new_thread');
     });
   });
@@ -721,7 +782,13 @@ describe('useDiscordStore', () => {
         await useDiscordStore.getState().sendMessageWithAttachments('ch_1', 'with file', files);
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('discord:send-message-with-attachments', 'ch_1', 'with file', files, undefined);
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'discord:send-message-with-attachments',
+        'ch_1',
+        'with file',
+        files,
+        undefined
+      );
       expect(useDiscordStore.getState().messages[0].id).toBe('attach_msg');
     });
   });

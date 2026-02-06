@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ExternalLink, MessageSquare, FileCode, Send, GitMerge, XCircle, ChevronDown } from 'lucide-react';
+import {
+  ExternalLink,
+  MessageSquare,
+  FileCode,
+  Send,
+  GitMerge,
+  XCircle,
+  ChevronDown,
+} from 'lucide-react';
 import { MarkdownEditor } from './MarkdownEditor';
 import { ReactionDisplay } from '../ui/ReactionPicker';
 import type { Reaction, ReactionContent } from '../../../main/ipc/channels';
@@ -10,13 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/DropdownMenu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/Dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { ipc } from '../../ipc/client';
@@ -95,7 +97,11 @@ export function reviewStateBadge(state: string) {
     case 'APPROVED':
       return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Approved</Badge>;
     case 'CHANGES_REQUESTED':
-      return <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20">Changes Requested</Badge>;
+      return (
+        <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20">
+          Changes Requested
+        </Badge>
+      );
     case 'COMMENTED':
       return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Commented</Badge>;
     case 'DISMISSED':
@@ -125,7 +131,15 @@ export function formatDate(date: Date): string {
   });
 }
 
-export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClose, onRefresh, canWrite = true }: PullRequestDetailModalProps) {
+export function PullRequestDetailModal({
+  pr,
+  owner,
+  repo,
+  githubUsername,
+  onClose,
+  onRefresh,
+  canWrite = true,
+}: PullRequestDetailModalProps) {
   const [prDetail, setPrDetail] = useState<PRDetail | null>(null);
   const [comments, setComments] = useState<PRComment[]>([]);
   const [reviews, setReviews] = useState<PRReview[]>([]);
@@ -199,7 +213,9 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
     if (pr) {
       fetchData(pr.number);
     }
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+    };
   }, [pr?.number, owner, repo]);
 
   const handleSubmitComment = async () => {
@@ -385,7 +401,12 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                       <div key={`comment-${c.id}`} className="border rounded-md p-4">
                         <div className="flex items-center gap-2 mb-2">
                           {c.authorAvatarUrl ? (
-                            <img src={c.authorAvatarUrl} alt={c.author} className="w-5 h-5 rounded-full" loading="lazy" />
+                            <img
+                              src={c.authorAvatarUrl}
+                              alt={c.author}
+                              className="w-5 h-5 rounded-full"
+                              loading="lazy"
+                            />
                           ) : (
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}
@@ -413,7 +434,12 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                       <div key={`review-${r.id}`} className="border rounded-md p-4">
                         <div className="flex items-center gap-2 mb-2">
                           {r.authorAvatarUrl ? (
-                            <img src={r.authorAvatarUrl} alt={r.author} className="w-5 h-5 rounded-full" loading="lazy" />
+                            <img
+                              src={r.authorAvatarUrl}
+                              alt={r.author}
+                              className="w-5 h-5 rounded-full"
+                              loading="lazy"
+                            />
                           ) : (
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}
@@ -438,14 +464,20 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                       <div key={`rc-${rc.id}`} className="border rounded-md p-3 bg-muted/30">
                         <div className="flex items-center gap-2 mb-2">
                           {rc.authorAvatarUrl ? (
-                            <img src={rc.authorAvatarUrl} alt={rc.author} className="w-5 h-5 rounded-full" loading="lazy" />
+                            <img
+                              src={rc.authorAvatarUrl}
+                              alt={rc.author}
+                              className="w-5 h-5 rounded-full"
+                              loading="lazy"
+                            />
                           ) : (
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}
                           <span className="text-sm font-medium">{rc.author}</span>
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <FileCode className="h-3 w-3" />
-                            {rc.path}{rc.line ? `:${rc.line}` : ''}
+                            {rc.path}
+                            {rc.line ? `:${rc.line}` : ''}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {formatDate(rc.createdAt)}
@@ -508,9 +540,7 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
             {/* Merge/Close Actions - only for open PRs when user has write access */}
             {pr.state === 'open' && !pr.merged && canWrite && (
               <div className="border-t pt-4">
-                {actionError && (
-                  <p className="text-sm text-destructive mb-3">{actionError}</p>
-                )}
+                {actionError && <p className="text-sm text-destructive mb-3">{actionError}</p>}
                 <div className="flex items-center gap-2">
                   {/* Merge Button with Dropdown */}
                   <div className="flex">
@@ -537,19 +567,25 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
                         <DropdownMenuItem onClick={() => handleMerge('merge')}>
                           <div>
                             <div className="font-medium">Create a merge commit</div>
-                            <div className="text-xs text-muted-foreground">All commits will be added to the base branch via a merge commit.</div>
+                            <div className="text-xs text-muted-foreground">
+                              All commits will be added to the base branch via a merge commit.
+                            </div>
                           </div>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleMerge('squash')}>
                           <div>
                             <div className="font-medium">Squash and merge</div>
-                            <div className="text-xs text-muted-foreground">The commits will be combined into one commit in the base branch.</div>
+                            <div className="text-xs text-muted-foreground">
+                              The commits will be combined into one commit in the base branch.
+                            </div>
                           </div>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleMerge('rebase')}>
                           <div>
                             <div className="font-medium">Rebase and merge</div>
-                            <div className="text-xs text-muted-foreground">The commits will be rebased and added to the base branch.</div>
+                            <div className="text-xs text-muted-foreground">
+                              The commits will be rebased and added to the base branch.
+                            </div>
                           </div>
                         </DropdownMenuItem>
                       </DropdownMenuContent>

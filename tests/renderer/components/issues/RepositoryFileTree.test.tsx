@@ -62,7 +62,12 @@ describe('RepositoryFileTree', () => {
   it('uses custom branch when specified', async () => {
     render(<RepositoryFileTree repository="org/repo" branch="develop" />);
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('github:get-repository-tree', 'org', 'repo', 'develop');
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'github:get-repository-tree',
+        'org',
+        'repo',
+        'develop'
+      );
     });
   });
 

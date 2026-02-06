@@ -57,11 +57,13 @@ const baseComment = {
   updatedAt: new Date('2026-01-03T00:00:00Z'),
 };
 
-function setupMockIPC(overrides: {
-  detail?: any;
-  comments?: any[];
-  error?: boolean;
-} = {}) {
+function setupMockIPC(
+  overrides: {
+    detail?: any;
+    comments?: any[];
+    error?: boolean;
+  } = {}
+) {
   if (overrides.error) {
     mockInvoke.mockRejectedValue(new Error('API Error'));
     return;
@@ -268,7 +270,13 @@ describe('DevelopmentIssueDetailModal', () => {
   it('shows branched badge when isBranched is true', async () => {
     setupMockIPC();
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" isBranched={true} onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        isBranched={true}
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('branched')).toBeDefined();
@@ -278,7 +286,13 @@ describe('DevelopmentIssueDetailModal', () => {
   it('does not show branched badge when isBranched is false', async () => {
     setupMockIPC();
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" isBranched={false} onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        isBranched={false}
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('Open')).toBeDefined();

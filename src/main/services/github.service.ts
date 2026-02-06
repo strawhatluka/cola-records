@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- GitHub API caching uses generic response types */
 import type { GitHubIssue, GitHubRepository } from '../ipc/channels';
 import { gitHubGraphQLService } from './github-graphql.service';
 import { gitHubRestService } from './github-rest.service';
@@ -81,11 +82,7 @@ export class GitHubService {
   /**
    * Get repository information
    */
-  async getRepository(
-    owner: string,
-    repo: string,
-    skipCache = false
-  ): Promise<GitHubRepository> {
+  async getRepository(owner: string, repo: string, skipCache = false): Promise<GitHubRepository> {
     const cacheKey = this.getCacheKey('repo', owner, repo);
 
     return this.getCached(
@@ -108,11 +105,7 @@ export class GitHubService {
   async getAuthenticatedUser(): Promise<{ login: string; name: string; email: string }> {
     const cacheKey = this.getCacheKey('user', 'authenticated');
 
-    return this.getCached(
-      cacheKey,
-      () => gitHubGraphQLService.getAuthenticatedUser(),
-      false
-    );
+    return this.getCached(cacheKey, () => gitHubGraphQLService.getAuthenticatedUser(), false);
   }
 
   /**
@@ -185,11 +178,7 @@ export class GitHubService {
   /**
    * Search repositories by topic
    */
-  async searchRepositoriesByTopic(
-    topic: string,
-    limit = 20,
-    skipCache = false
-  ): Promise<any[]> {
+  async searchRepositoriesByTopic(topic: string, limit = 20, skipCache = false): Promise<any[]> {
     const cacheKey = this.getCacheKey('repos-topic', topic, limit);
 
     return this.getCached(

@@ -41,7 +41,11 @@ describe('Discord Components Image Lazy Loading', () => {
     });
 
     it('avatar image has loading="lazy"', () => {
-      const author = createMockDiscordUser({ id: '111222333', avatar: 'abc123', globalName: 'Test User' });
+      const author = createMockDiscordUser({
+        id: '111222333',
+        avatar: 'abc123',
+        globalName: 'Test User',
+      });
       const message = createMockDiscordMessage({ author });
 
       render(<MessageItem message={message} {...defaultProps()} />);

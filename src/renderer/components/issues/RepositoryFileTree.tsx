@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import { Skeleton } from '../ui/Skeleton';
+import type { RepositoryTreeEntry } from '../../../main/ipc/channels';
 
 interface FileTreeNode {
   name: string;
@@ -40,10 +41,10 @@ export function RepositoryFileTree({ repository, branch = 'main' }: RepositoryFi
     fetchTree();
   }, [repository, branch]);
 
-  const parseTreeData = (entries: any[]): FileTreeNode[] => {
+  const parseTreeData = (entries: RepositoryTreeEntry[]): FileTreeNode[] => {
     if (!entries || !Array.isArray(entries)) return [];
 
-    const nodes = entries.map((entry: any) => ({
+    const nodes = entries.map((entry) => ({
       name: entry.name,
       type: entry.type,
       mode: entry.mode,
@@ -73,7 +74,11 @@ export function RepositoryFileTree({ repository, branch = 'main' }: RepositoryFi
     });
   };
 
-  const renderNode = (node: FileTreeNode, path: string = '', depth: number = 0): React.JSX.Element => {
+  const renderNode = (
+    node: FileTreeNode,
+    path: string = '',
+    depth: number = 0
+  ): React.JSX.Element => {
     const nodePath = `${path}/${node.name}`;
     const isExpanded = expandedNodes.has(nodePath);
     const isDirectory = node.type === 'tree';
@@ -88,13 +93,12 @@ export function RepositoryFileTree({ repository, branch = 'main' }: RepositoryFi
         >
           {isDirectory ? (
             <>
-              {hasChildren && (
-                isExpanded ? (
+              {hasChildren &&
+                (isExpanded ? (
                   <ChevronDown className="h-4 w-4 flex-shrink-0" />
                 ) : (
                   <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                )
-              )}
+                ))}
               {!hasChildren && <span className="w-4" />}
               {isExpanded ? (
                 <FolderOpen className="h-4 w-4 text-primary flex-shrink-0" />
@@ -115,10 +119,8 @@ export function RepositoryFileTree({ repository, branch = 'main' }: RepositoryFi
             </span>
           )}
         </div>
-        {isDirectory && isExpanded && hasChildren && (
-          <div>
-            {node.children!.map((child) => renderNode(child, nodePath, depth + 1))}
-          </div>
+        {isDirectory && isExpanded && hasChildren && node.children && (
+          <div>{node.children.map((child) => renderNode(child, nodePath, depth + 1))}</div>
         )}
       </div>
     );

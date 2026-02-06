@@ -83,7 +83,7 @@ export function GifPicker({ onSelect, onClose, embedded = false }: GifPickerProp
     return () => clearTimeout(searchTimeout.current);
   }, [query, searchGifs, getTrendingGifs]);
 
-  const handleCategoryClick = (cat: typeof GIF_CATEGORIES[0]) => {
+  const handleCategoryClick = (cat: (typeof GIF_CATEGORIES)[0]) => {
     if (cat.query) {
       setQuery(cat.query);
     } else {
@@ -130,7 +130,9 @@ export function GifPicker({ onSelect, onClose, embedded = false }: GifPickerProp
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute inset-0 flex items-center justify-center gap-1">
                   {cat.icon === 'trending' && <TrendingUp className="h-3.5 w-3.5 text-white" />}
-                  <span className="text-xs font-semibold text-white drop-shadow-sm">{cat.label}</span>
+                  <span className="text-xs font-semibold text-white drop-shadow-sm">
+                    {cat.label}
+                  </span>
                 </div>
               </button>
             ))}

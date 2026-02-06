@@ -153,7 +153,7 @@ describe('DiscordService', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({ Authorization: 'valid-token' }),
-        }),
+        })
       );
       expect(user).toEqual({
         id: '123',
@@ -170,7 +170,7 @@ describe('DiscordService', () => {
       vi.mocked(database).getSetting.mockReturnValue(null);
 
       await expect(service.connect()).rejects.toThrow(
-        'Discord token not configured. Set it in Settings > API.',
+        'Discord token not configured. Set it in Settings > API.'
       );
     });
 
@@ -244,7 +244,7 @@ describe('DiscordService', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${DISCORD_API_BASE}/guilds/g_1/channels`,
-        expect.any(Object),
+        expect.any(Object)
       );
       expect(channels).toEqual([
         {
@@ -331,7 +331,7 @@ describe('DiscordService', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ recipient_id: '789' }),
-        }),
+        })
       );
       expect(dm.id).toBe('dm_2');
       expect(dm.recipients[0].id).toBe('789');
@@ -379,19 +379,19 @@ describe('DiscordService', () => {
             thumbnail: { url: 'https://thumb.com/img.png', width: 100, height: 100 },
             image: { url: 'https://img.com/big.png', width: 400, height: 300 },
             video: { url: 'https://vid.com/v.mp4', width: 1920, height: 1080 },
-            author: { name: 'Author', url: 'https://author.com', icon_url: 'https://icon.com/a.png' },
+            author: {
+              name: 'Author',
+              url: 'https://author.com',
+              icon_url: 'https://icon.com/a.png',
+            },
             footer: { text: 'Footer text', icon_url: 'https://icon.com/f.png' },
             timestamp: '2026-01-01T00:00:00Z',
             provider: { name: 'Provider', url: 'https://provider.com' },
             fields: [{ name: 'Field 1', value: 'Value 1', inline: true }],
           },
         ],
-        reactions: [
-          { emoji: { id: null, name: 'thumbsup' }, count: 5, me: true },
-        ],
-        sticker_items: [
-          { id: 'stk_1', name: 'Wave', format_type: 2 },
-        ],
+        reactions: [{ emoji: { id: null, name: 'thumbsup' }, count: 5, me: true }],
+        sticker_items: [{ id: 'stk_1', name: 'Wave', format_type: 2 }],
         poll: {
           question: { text: 'Favorite color?' },
           answers: [
@@ -435,7 +435,10 @@ describe('DiscordService', () => {
         url: 'https://author.com',
         iconUrl: 'https://icon.com/a.png',
       });
-      expect(msg.embeds[0].footer).toEqual({ text: 'Footer text', iconUrl: 'https://icon.com/f.png' });
+      expect(msg.embeds[0].footer).toEqual({
+        text: 'Footer text',
+        iconUrl: 'https://icon.com/f.png',
+      });
       expect(msg.embeds[0].fields).toEqual([{ name: 'Field 1', value: 'Value 1', inline: true }]);
 
       // Reactions
@@ -444,9 +447,7 @@ describe('DiscordService', () => {
       ]);
 
       // Sticker items
-      expect(msg.stickerItems).toEqual([
-        { id: 'stk_1', name: 'Wave', formatType: 2 },
-      ]);
+      expect(msg.stickerItems).toEqual([{ id: 'stk_1', name: 'Wave', formatType: 2 }]);
 
       // Poll
       expect(msg.poll).toBeTruthy();
@@ -466,7 +467,7 @@ describe('DiscordService', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ content: 'Hi there' }),
-        }),
+        })
       );
       expect(msg.content).toBe('Hi there');
     });
@@ -484,7 +485,7 @@ describe('DiscordService', () => {
             content: 'Reply',
             message_reference: { message_id: 'msg_0' },
           }),
-        }),
+        })
       );
     });
 
@@ -499,7 +500,7 @@ describe('DiscordService', () => {
         expect.objectContaining({
           method: 'PATCH',
           body: JSON.stringify({ content: 'Edited' }),
-        }),
+        })
       );
       expect(msg.content).toBe('Edited');
     });
@@ -512,21 +513,21 @@ describe('DiscordService', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${DISCORD_API_BASE}/channels/ch_1/messages/msg_1`,
-        expect.objectContaining({ method: 'DELETE' }),
+        expect.objectContaining({ method: 'DELETE' })
       );
     });
 
     it('getPinnedMessages returns mapped messages', async () => {
       setupToken();
       mockFetch.mockResolvedValue(
-        okResponse([rawMessage({ pinned: true }), rawMessage({ id: 'msg_2', pinned: true })]),
+        okResponse([rawMessage({ pinned: true }), rawMessage({ id: 'msg_2', pinned: true })])
       );
 
       const pins = await service.getPinnedMessages('ch_1');
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${DISCORD_API_BASE}/channels/ch_1/pins`,
-        expect.any(Object),
+        expect.any(Object)
       );
       expect(pins).toHaveLength(2);
       expect(pins[0].pinned).toBe(true);
@@ -545,7 +546,7 @@ describe('DiscordService', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${DISCORD_API_BASE}/channels/ch_1/messages/msg_1/reactions/${encodeURIComponent('thumbs_up')}/@me`,
-        expect.objectContaining({ method: 'PUT' }),
+        expect.objectContaining({ method: 'PUT' })
       );
     });
 
@@ -557,7 +558,7 @@ describe('DiscordService', () => {
 
       const calledUrl = mockFetch.mock.calls[0][0] as string;
       expect(calledUrl).toBe(
-        `${DISCORD_API_BASE}/channels/ch_1/messages/msg_1/reactions/${encodeURIComponent('wave')}/@me`,
+        `${DISCORD_API_BASE}/channels/ch_1/messages/msg_1/reactions/${encodeURIComponent('wave')}/@me`
       );
 
       const calledOptions = mockFetch.mock.calls[0][1] as RequestInit;
@@ -579,7 +580,7 @@ describe('DiscordService', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${DISCORD_API_BASE}/channels/ch_1`,
-        expect.any(Object),
+        expect.any(Object)
       );
       expect(channel).toEqual({
         id: 'ch_1',
@@ -600,7 +601,7 @@ describe('DiscordService', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${DISCORD_API_BASE}/channels/ch_1/typing`,
-        expect.objectContaining({ method: 'POST' }),
+        expect.objectContaining({ method: 'POST' })
       );
     });
   });
@@ -612,8 +613,18 @@ describe('DiscordService', () => {
     it('searchGifs passes query params and maps results', async () => {
       setupToken();
       const rawGifs = [
-        { url: 'https://gif.com/1.gif', preview: 'https://gif.com/1_preview.gif', width: 300, height: 200 },
-        { url: 'https://gif.com/2.gif', gif_src: 'https://gif.com/2_src.gif', width: 250, height: 150 },
+        {
+          url: 'https://gif.com/1.gif',
+          preview: 'https://gif.com/1_preview.gif',
+          width: 300,
+          height: 200,
+        },
+        {
+          url: 'https://gif.com/2.gif',
+          gif_src: 'https://gif.com/2_src.gif',
+          width: 250,
+          height: 150,
+        },
       ];
       mockFetch.mockResolvedValue(okResponse(rawGifs));
 
@@ -627,16 +638,24 @@ describe('DiscordService', () => {
       expect(calledUrl).toContain('locale=en-US');
 
       expect(gifs).toEqual([
-        { url: 'https://gif.com/1.gif', preview: 'https://gif.com/1_preview.gif', width: 300, height: 200 },
-        { url: 'https://gif.com/2.gif', preview: 'https://gif.com/2_src.gif', width: 250, height: 150 },
+        {
+          url: 'https://gif.com/1.gif',
+          preview: 'https://gif.com/1_preview.gif',
+          width: 300,
+          height: 200,
+        },
+        {
+          url: 'https://gif.com/2.gif',
+          preview: 'https://gif.com/2_src.gif',
+          width: 250,
+          height: 150,
+        },
       ]);
     });
 
     it('getTrendingGifs returns mapped trending gifs', async () => {
       setupToken();
-      const rawGifs = [
-        { url: 'https://gif.com/trending.gif', width: 400, height: 300 },
-      ];
+      const rawGifs = [{ url: 'https://gif.com/trending.gif', width: 400, height: 300 }];
       mockFetch.mockResolvedValue(okResponse(rawGifs));
 
       const gifs = await service.getTrendingGifs();
@@ -644,7 +663,12 @@ describe('DiscordService', () => {
       const calledUrl = mockFetch.mock.calls[0][0] as string;
       expect(calledUrl).toContain('/gifs/trending?');
       expect(gifs).toEqual([
-        { url: 'https://gif.com/trending.gif', preview: 'https://gif.com/trending.gif', width: 400, height: 300 },
+        {
+          url: 'https://gif.com/trending.gif',
+          preview: 'https://gif.com/trending.gif',
+          width: 400,
+          height: 300,
+        },
       ]);
     });
 
@@ -729,7 +753,7 @@ describe('DiscordService', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${DISCORD_API_BASE}/guilds/g_1/stickers`,
-        expect.any(Object),
+        expect.any(Object)
       );
       expect(stickers).toEqual([
         {
@@ -755,7 +779,7 @@ describe('DiscordService', () => {
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ sticker_ids: ['stk_1'] }),
-        }),
+        })
       );
     });
   });
@@ -787,7 +811,7 @@ describe('DiscordService', () => {
               layout_type: 1,
             },
           }),
-        }),
+        })
       );
     });
   });
@@ -805,7 +829,14 @@ describe('DiscordService', () => {
       };
       mockFetch.mockResolvedValue(okResponse(rawResponse));
 
-      const result = await service.getForumThreads('ch_1', 'g_1', 'creation_time', 'asc', ['tag_1', 'tag_2'], 25);
+      const result = await service.getForumThreads(
+        'ch_1',
+        'g_1',
+        'creation_time',
+        'asc',
+        ['tag_1', 'tag_2'],
+        25
+      );
 
       const calledUrl = mockFetch.mock.calls[0][0] as string;
       expect(calledUrl).toContain('/channels/ch_1/threads/search?');
@@ -840,7 +871,10 @@ describe('DiscordService', () => {
       mockFetch.mockResolvedValueOnce(serverErrorResponse());
       // Second call (guild active threads) succeeds
       const activeThreads = {
-        threads: [rawThread({ parent_id: 'ch_1' }), rawThread({ id: 'thread_other', parent_id: 'ch_other' })],
+        threads: [
+          rawThread({ parent_id: 'ch_1' }),
+          rawThread({ id: 'thread_other', parent_id: 'ch_other' }),
+        ],
       };
       mockFetch.mockResolvedValueOnce(okResponse(activeThreads));
 
@@ -871,7 +905,9 @@ describe('DiscordService', () => {
       setupToken();
       mockFetch.mockResolvedValue(okResponse(rawThread()));
 
-      const thread = await service.createForumThread('ch_1', 'New Thread', 'Thread body', ['tag_1']);
+      const thread = await service.createForumThread('ch_1', 'New Thread', 'Thread body', [
+        'tag_1',
+      ]);
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${DISCORD_API_BASE}/channels/ch_1/threads`,
@@ -882,7 +918,7 @@ describe('DiscordService', () => {
             message: { content: 'Thread body' },
             applied_tags: ['tag_1'],
           }),
-        }),
+        })
       );
       expect(thread.name).toBe('My Thread');
     });
@@ -940,7 +976,9 @@ describe('DiscordService', () => {
         .mockResolvedValueOnce(rateLimitResponse(1));
 
       let caughtError: Error | null = null;
-      const promise = service.getGuilds().catch((err: Error) => { caughtError = err; });
+      const promise = service.getGuilds().catch((err: Error) => {
+        caughtError = err;
+      });
 
       // Advance through all retry delays
       await vi.advanceTimersByTimeAsync(4000);
@@ -957,9 +995,7 @@ describe('DiscordService', () => {
         .mockResolvedValueOnce(rateLimitResponse(1))
         .mockResolvedValueOnce(okResponse(rawMessage()));
 
-      const files = [
-        { name: 'test.txt', data: Buffer.from('hello'), contentType: 'text/plain' },
-      ];
+      const files = [{ name: 'test.txt', data: Buffer.from('hello'), contentType: 'text/plain' }];
 
       const promise = service.sendMessageWithAttachments('ch_1', 'File attached', files);
       await vi.advanceTimersByTimeAsync(1000);

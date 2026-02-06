@@ -120,16 +120,12 @@ describe('ContributionScannerService', () => {
     });
 
     it('extracts owner/repo from SSH URL', () => {
-      const result = contributionScannerService.extractRepoInfo(
-        'git@github.com:owner/repo.git'
-      );
+      const result = contributionScannerService.extractRepoInfo('git@github.com:owner/repo.git');
       expect(result).toEqual({ owner: 'owner', repo: 'repo' });
     });
 
     it('handles URL without .git suffix', () => {
-      const result = contributionScannerService.extractRepoInfo(
-        'https://github.com/owner/repo'
-      );
+      const result = contributionScannerService.extractRepoInfo('https://github.com/owner/repo');
       expect(result).toEqual({ owner: 'owner', repo: 'repo' });
     });
 

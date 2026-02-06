@@ -15,14 +15,13 @@ import { Toaster } from './components/ui/Toaster';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { useContributionsStore } from './stores/useContributionsStore';
-import { ipc } from './ipc/client';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
   const [ideOrigin, setIdeOrigin] = useState<Screen>('contributions');
-  const { theme, fetchSettings, defaultClonePath } = useSettingsStore();
-  const { setContributions } = useContributionsStore();
+  const { theme, fetchSettings } = useSettingsStore();
+  useContributionsStore(); // Store needed for global state management
 
   // Fetch settings on mount
   useEffect(() => {

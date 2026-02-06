@@ -61,8 +61,15 @@ interface DiscordState {
   deleteMessage: (channelId: string, messageId: string) => Promise<void>;
   addReaction: (channelId: string, messageId: string, emoji: string) => Promise<void>;
   removeReaction: (channelId: string, messageId: string, emoji: string) => Promise<void>;
-  sendMessageWithAttachments: (channelId: string, content: string, files: { name: string; data: Buffer; contentType: string }[], replyToId?: string) => Promise<void>;
-  searchGifs: (query: string) => Promise<{ url: string; preview: string; width: number; height: number }[]>;
+  sendMessageWithAttachments: (
+    channelId: string,
+    content: string,
+    files: { name: string; data: Buffer; contentType: string }[],
+    replyToId?: string
+  ) => Promise<void>;
+  searchGifs: (
+    query: string
+  ) => Promise<{ url: string; preview: string; width: number; height: number }[]>;
   getTrendingGifs: () => Promise<{ url: string; preview: string; width: number; height: number }[]>;
   fetchPinnedMessages: (channelId: string) => Promise<void>;
   triggerTyping: (channelId: string) => Promise<void>;
@@ -72,14 +79,31 @@ interface DiscordState {
   fetchStickerPacks: () => Promise<void>;
   fetchGuildStickers: (guildId: string) => Promise<void>;
   sendSticker: (channelId: string, stickerId: string) => Promise<void>;
-  createPoll: (channelId: string, question: string, answers: string[], duration: number, allowMultiselect: boolean) => Promise<void>;
+  createPoll: (
+    channelId: string,
+    question: string,
+    answers: string[],
+    duration: number,
+    allowMultiselect: boolean
+  ) => Promise<void>;
 
   // Forum / Thread actions
-  fetchForumThreads: (channelId: string, sortBy?: string, sortOrder?: string, tagIds?: string[], offset?: number) => Promise<void>;
+  fetchForumThreads: (
+    channelId: string,
+    sortBy?: string,
+    sortOrder?: string,
+    tagIds?: string[],
+    offset?: number
+  ) => Promise<void>;
   loadMoreForumThreads: () => Promise<void>;
   setForumSort: (sortBy: string, sortOrder: string) => void;
   toggleForumTag: (tagId: string) => void;
-  createForumThread: (channelId: string, name: string, content: string, appliedTags?: string[]) => Promise<DiscordThread>;
+  createForumThread: (
+    channelId: string,
+    name: string,
+    content: string,
+    appliedTags?: string[]
+  ) => Promise<DiscordThread>;
   openForumChannel: (channelId: string, channelName: string) => void;
   openThread: (threadId: string, threadName: string) => void;
 
@@ -279,7 +303,13 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
 
   sendMessageWithAttachments: async (channelId, content, files, replyToId) => {
     try {
-      const newMsg = await ipc.invoke('discord:send-message-with-attachments', channelId, content, files, replyToId);
+      const newMsg = await ipc.invoke(
+        'discord:send-message-with-attachments',
+        channelId,
+        content,
+        files,
+        replyToId
+      );
       set((state) => ({ messages: [newMsg, ...state.messages] }));
     } catch (error) {
       set({ error: String(error) });
@@ -350,7 +380,14 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
 
   createPoll: async (channelId, question, answers, duration, allowMultiselect) => {
     try {
-      const newMsg = await ipc.invoke('discord:create-poll', channelId, question, answers, duration, allowMultiselect);
+      const newMsg = await ipc.invoke(
+        'discord:create-poll',
+        channelId,
+        question,
+        answers,
+        duration,
+        allowMultiselect
+      );
       set((state) => ({ messages: [newMsg, ...state.messages] }));
     } catch (error) {
       set({ error: String(error) });
@@ -365,7 +402,15 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
     const tags = tagIds || forumFilterTags;
     const off = offset ?? 0;
     try {
-      const result = await ipc.invoke('discord:get-forum-threads', channelId, selectedGuildId, sb, so, tags.length > 0 ? tags : undefined, off);
+      const result = await ipc.invoke(
+        'discord:get-forum-threads',
+        channelId,
+        selectedGuildId,
+        sb,
+        so,
+        tags.length > 0 ? tags : undefined,
+        off
+      );
       if (off > 0) {
         // Append for "load more"
         set((state) => ({
@@ -388,7 +433,13 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
   loadMoreForumThreads: async () => {
     const { selectedForumChannelId, forumThreads } = get();
     if (!selectedForumChannelId) return;
-    await get().fetchForumThreads(selectedForumChannelId, undefined, undefined, undefined, forumThreads.length);
+    await get().fetchForumThreads(
+      selectedForumChannelId,
+      undefined,
+      undefined,
+      undefined,
+      forumThreads.length
+    );
   },
 
   setForumSort: (sortBy, sortOrder) => {
@@ -411,7 +462,13 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
   },
 
   createForumThread: async (channelId, name, content, appliedTags) => {
-    const thread = await ipc.invoke('discord:create-forum-thread', channelId, name, content, appliedTags);
+    const thread = await ipc.invoke(
+      'discord:create-forum-thread',
+      channelId,
+      name,
+      content,
+      appliedTags
+    );
     // Refresh thread list
     const { selectedForumChannelId } = get();
     if (selectedForumChannelId) {
@@ -423,7 +480,7 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
   openForumChannel: (channelId, channelName) => {
     // Resolve available tags from the channel data
     const { selectedGuildId, guildChannels } = get();
-    const channels = selectedGuildId ? (guildChannels[selectedGuildId] || []) : [];
+    const channels = selectedGuildId ? guildChannels[selectedGuildId] || [] : [];
     const channel = channels.find((ch) => ch.id === channelId);
     const availableTags = channel?.availableTags || [];
 
@@ -507,7 +564,7 @@ export const useDiscordStore = create<DiscordState>((set, get) => ({
   },
 
   goBack: () => {
-    const { selectedGuildId, view, selectedForumChannelId, selectedForumChannelName } = get();
+    const { selectedGuildId, view, selectedForumChannelId } = get();
     // From thread view, go back to forum
     if (view === 'thread' && selectedForumChannelId) {
       set({

@@ -1,21 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { GitPullRequest, ArrowRight, GitCommit as GitCommitIcon, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/Dialog';
+  GitPullRequest,
+  ArrowRight,
+  GitCommit as GitCommitIcon,
+  FileText,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/Select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
 import { ipc } from '../../ipc/client';
 import { MarkdownEditor } from './MarkdownEditor';
 import type { BranchComparison } from '../../../main/ipc/channels';
@@ -39,9 +34,7 @@ interface CreatePullRequestModalProps {
 }
 
 function branchToTitle(branchName: string): string {
-  return branchName
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return branchName.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 interface DiffHunkLine {
@@ -78,7 +71,8 @@ function parseUnifiedDiff(rawDiff: string): FileDiff[] {
     // Extract filename from first line: "a/path b/path"
     const headerMatch = lines[0]?.match(/a\/(.+?) b\/(.+)/);
     const filename = headerMatch ? headerMatch[2] : 'unknown';
-    const oldFilename = headerMatch && headerMatch[1] !== headerMatch[2] ? headerMatch[1] : undefined;
+    const oldFilename =
+      headerMatch && headerMatch[1] !== headerMatch[2] ? headerMatch[1] : undefined;
 
     const binary = part.includes('Binary files');
     const diffLines: DiffHunkLine[] = [];
@@ -91,11 +85,18 @@ function parseUnifiedDiff(rawDiff: string): FileDiff[] {
       const line = lines[i];
 
       // Skip meta lines (index, ---, +++)
-      if (line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++') ||
-          line.startsWith('old mode') || line.startsWith('new mode') ||
-          line.startsWith('new file') || line.startsWith('deleted file') ||
-          line.startsWith('similarity') || line.startsWith('rename') ||
-          line.startsWith('Binary')) {
+      if (
+        line.startsWith('index ') ||
+        line.startsWith('---') ||
+        line.startsWith('+++') ||
+        line.startsWith('old mode') ||
+        line.startsWith('new mode') ||
+        line.startsWith('new file') ||
+        line.startsWith('deleted file') ||
+        line.startsWith('similarity') ||
+        line.startsWith('rename') ||
+        line.startsWith('Binary')
+      ) {
         continue;
       }
 
@@ -115,7 +116,12 @@ function parseUnifiedDiff(rawDiff: string): FileDiff[] {
         deletions++;
         diffLines.push({ type: 'remove', content: line.substring(1), oldLine: oldLine++ });
       } else if (line.startsWith(' ') || line === '') {
-        diffLines.push({ type: 'context', content: line.substring(1) || '', oldLine: oldLine++, newLine: newLine++ });
+        diffLines.push({
+          type: 'context',
+          content: line.substring(1) || '',
+          oldLine: oldLine++,
+          newLine: newLine++,
+        });
       }
     }
 
@@ -193,7 +199,9 @@ export function CreatePullRequestModal({
     };
 
     init();
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+    };
   }, [open, localPath, branches, defaultBranchName]);
 
   // Fetch comparison when base/compare change (debounced)
@@ -254,11 +262,13 @@ export function CreatePullRequestModal({
       // Determine if this is a fork by checking if origin URL differs from upstream target
       // When creating PR to upstream, we need head as "forkOwner:branch"
       let head = compare;
-      const originRemote = remotes.find(r => r.name === 'origin');
+      const originRemote = remotes.find((r) => r.name === 'origin');
 
       if (originRemote) {
         // Extract owner from origin URL
-        const originMatch = originRemote.fetchUrl.match(/github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/);
+        const originMatch = originRemote.fetchUrl.match(
+          /github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/
+        );
         if (originMatch) {
           const originOwner = originMatch[1];
           // If origin owner differs from target owner, this is a fork
@@ -288,7 +298,9 @@ export function CreatePullRequestModal({
   };
 
   const visibleCommits = comparison?.commits
-    ? showAllCommits ? comparison.commits : comparison.commits.slice(0, 20)
+    ? showAllCommits
+      ? comparison.commits
+      : comparison.commits.slice(0, 20)
     : [];
 
   const parsedDiff = useMemo(() => {
@@ -335,7 +347,9 @@ export function CreatePullRequestModal({
                 </SelectTrigger>
                 <SelectContent>
                   {branches.map((b) => (
-                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -354,13 +368,13 @@ export function CreatePullRequestModal({
                 </SelectTrigger>
                 <SelectContent>
                   {branches.map((b) => (
-                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                The branch with your changes
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">The branch with your changes</p>
             </div>
           </div>
 
@@ -386,11 +400,13 @@ export function CreatePullRequestModal({
                     <div className="px-4 py-2 bg-muted/30 border-b text-sm flex items-center gap-3">
                       <span className="flex items-center gap-1">
                         <GitCommitIcon className="h-3.5 w-3.5" />
-                        {comparison.commits.length} commit{comparison.commits.length !== 1 ? 's' : ''}
+                        {comparison.commits.length} commit
+                        {comparison.commits.length !== 1 ? 's' : ''}
                       </span>
                       <span className="flex items-center gap-1">
                         <FileText className="h-3.5 w-3.5" />
-                        {comparison.totalFilesChanged} file{comparison.totalFilesChanged !== 1 ? 's' : ''} changed
+                        {comparison.totalFilesChanged} file
+                        {comparison.totalFilesChanged !== 1 ? 's' : ''} changed
                       </span>
                       <span className="text-green-500">+{comparison.totalInsertions}</span>
                       <span className="text-red-500">-{comparison.totalDeletions}</span>
@@ -435,13 +451,32 @@ export function CreatePullRequestModal({
                       {parsedDiff.length > 0 && (
                         <div>
                           <div className="px-4 py-2 text-xs font-medium text-muted-foreground bg-muted/20 border-t">
-                            Showing {comparison.totalFilesChanged} changed file{comparison.totalFilesChanged !== 1 ? 's' : ''} with {comparison.totalInsertions} addition{comparison.totalInsertions !== 1 ? 's' : ''} and {comparison.totalDeletions} deletion{comparison.totalDeletions !== 1 ? 's' : ''}
+                            Showing {comparison.totalFilesChanged} changed file
+                            {comparison.totalFilesChanged !== 1 ? 's' : ''} with{' '}
+                            {comparison.totalInsertions} addition
+                            {comparison.totalInsertions !== 1 ? 's' : ''} and{' '}
+                            {comparison.totalDeletions} deletion
+                            {comparison.totalDeletions !== 1 ? 's' : ''}
                           </div>
                           {parsedDiff.map((fileDiff) => {
                             const isExpanded = expandedFiles.has(fileDiff.filename);
                             const total = fileDiff.insertions + fileDiff.deletions;
-                            const blocks = Math.min(5, Math.max(1, Math.ceil(total / Math.max(1, comparison.totalInsertions + comparison.totalDeletions) * 5)));
-                            const addBlocks = total > 0 ? Math.round((fileDiff.insertions / total) * blocks) : 0;
+                            const blocks = Math.min(
+                              5,
+                              Math.max(
+                                1,
+                                Math.ceil(
+                                  (total /
+                                    Math.max(
+                                      1,
+                                      comparison.totalInsertions + comparison.totalDeletions
+                                    )) *
+                                    5
+                                )
+                              )
+                            );
+                            const addBlocks =
+                              total > 0 ? Math.round((fileDiff.insertions / total) * blocks) : 0;
                             const delBlocks = blocks - addBlocks;
                             return (
                               <div key={fileDiff.filename} className="border-t border-border/50">
@@ -450,10 +485,11 @@ export function CreatePullRequestModal({
                                   onClick={() => toggleFileExpanded(fileDiff.filename)}
                                   className="w-full px-4 py-2 flex items-center gap-2 text-xs hover:bg-muted/20 transition-colors"
                                 >
-                                  {isExpanded
-                                    ? <ChevronDown className="h-3 w-3 shrink-0" />
-                                    : <ChevronRight className="h-3 w-3 shrink-0" />
-                                  }
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-3 w-3 shrink-0" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3 shrink-0" />
+                                  )}
                                   <span className="font-mono text-[11px] truncate flex-1 text-left">
                                     {fileDiff.filename}
                                   </span>
@@ -463,17 +499,30 @@ export function CreatePullRequestModal({
                                     </span>
                                   ) : (
                                     <>
-                                      <span className="text-green-500 shrink-0">+{fileDiff.insertions}</span>
-                                      <span className="text-red-500 shrink-0">-{fileDiff.deletions}</span>
+                                      <span className="text-green-500 shrink-0">
+                                        +{fileDiff.insertions}
+                                      </span>
+                                      <span className="text-red-500 shrink-0">
+                                        -{fileDiff.deletions}
+                                      </span>
                                       <span className="flex gap-px shrink-0">
                                         {Array.from({ length: addBlocks }).map((_, i) => (
-                                          <span key={`a${i}`} className="w-2 h-2 bg-green-500 rounded-sm" />
+                                          <span
+                                            key={`a${i}`}
+                                            className="w-2 h-2 bg-green-500 rounded-sm"
+                                          />
                                         ))}
                                         {Array.from({ length: delBlocks }).map((_, i) => (
-                                          <span key={`d${i}`} className="w-2 h-2 bg-red-500 rounded-sm" />
+                                          <span
+                                            key={`d${i}`}
+                                            className="w-2 h-2 bg-red-500 rounded-sm"
+                                          />
                                         ))}
                                         {Array.from({ length: 5 - blocks }).map((_, i) => (
-                                          <span key={`n${i}`} className="w-2 h-2 bg-muted rounded-sm" />
+                                          <span
+                                            key={`n${i}`}
+                                            className="w-2 h-2 bg-muted rounded-sm"
+                                          />
                                         ))}
                                       </span>
                                     </>
@@ -489,23 +538,36 @@ export function CreatePullRequestModal({
                                           if (line.type === 'hunk-header') {
                                             return (
                                               <tr key={idx} className="bg-blue-500/5">
-                                                <td className="px-2 text-muted-foreground select-none w-10 text-right">...</td>
-                                                <td className="px-2 text-muted-foreground select-none w-10 text-right">...</td>
-                                                <td className="px-2 py-0.5 text-blue-400">{line.content}</td>
+                                                <td className="px-2 text-muted-foreground select-none w-10 text-right">
+                                                  ...
+                                                </td>
+                                                <td className="px-2 text-muted-foreground select-none w-10 text-right">
+                                                  ...
+                                                </td>
+                                                <td className="px-2 py-0.5 text-blue-400">
+                                                  {line.content}
+                                                </td>
                                               </tr>
                                             );
                                           }
-                                          const bgClass = line.type === 'add'
-                                            ? 'bg-green-500/10'
-                                            : line.type === 'remove'
-                                              ? 'bg-red-500/10'
-                                              : '';
-                                          const textClass = line.type === 'add'
-                                            ? 'text-green-400'
-                                            : line.type === 'remove'
-                                              ? 'text-red-400'
-                                              : '';
-                                          const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
+                                          const bgClass =
+                                            line.type === 'add'
+                                              ? 'bg-green-500/10'
+                                              : line.type === 'remove'
+                                                ? 'bg-red-500/10'
+                                                : '';
+                                          const textClass =
+                                            line.type === 'add'
+                                              ? 'text-green-400'
+                                              : line.type === 'remove'
+                                                ? 'text-red-400'
+                                                : '';
+                                          const prefix =
+                                            line.type === 'add'
+                                              ? '+'
+                                              : line.type === 'remove'
+                                                ? '-'
+                                                : ' ';
                                           return (
                                             <tr key={idx} className={bgClass}>
                                               <td className="px-2 text-muted-foreground/50 select-none w-10 text-right border-r border-border/30">
@@ -514,8 +576,11 @@ export function CreatePullRequestModal({
                                               <td className="px-2 text-muted-foreground/50 select-none w-10 text-right border-r border-border/30">
                                                 {line.type !== 'remove' ? line.newLine : ''}
                                               </td>
-                                              <td className={`px-2 py-0 whitespace-pre ${textClass}`}>
-                                                <span className="select-none">{prefix}</span>{line.content}
+                                              <td
+                                                className={`px-2 py-0 whitespace-pre ${textClass}`}
+                                              >
+                                                <span className="select-none">{prefix}</span>
+                                                {line.content}
                                               </td>
                                             </tr>
                                           );
@@ -565,9 +630,7 @@ export function CreatePullRequestModal({
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose} disabled={submitting}>
@@ -575,7 +638,9 @@ export function CreatePullRequestModal({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!title.trim() || !base.trim() || !compare.trim() || base === compare || submitting}
+              disabled={
+                !title.trim() || !base.trim() || !compare.trim() || base === compare || submitting
+              }
             >
               <GitPullRequest className="h-4 w-4 mr-2" />
               {submitting ? 'Creating...' : 'Create Pull Request'}

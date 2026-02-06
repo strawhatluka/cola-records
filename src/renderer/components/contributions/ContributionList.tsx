@@ -1,4 +1,3 @@
-
 import { ContributionCard } from './ContributionCard';
 import { Skeleton } from '../ui/Skeleton';
 import type { Contribution } from '../../../main/ipc/channels';
@@ -34,7 +33,11 @@ export function ContributionList({
         <div className="text-center space-y-2">
           <p className="text-muted-foreground">{emptyMessage?.title || 'No contributions yet'}</p>
           <p className="text-sm text-muted-foreground">
-            {emptyMessage?.subtitle || <>Start by finding an issue in the <strong>Issues</strong> tab</>}
+            {emptyMessage?.subtitle || (
+              <>
+                Start by finding an issue in the <strong>Issues</strong> tab
+              </>
+            )}
           </p>
         </div>
       </div>

@@ -13,16 +13,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Send IPC calls (one-way message)
-  send: <K extends keyof IpcChannels>(
-    channel: K,
-    ...args: Parameters<IpcChannels[K]>
-  ): void => {
+  send: <K extends keyof IpcChannels>(channel: K, ...args: Parameters<IpcChannels[K]>): void => {
     ipcRenderer.send(channel, ...args);
   },
 
   // Listen for events from main process
-  on: (channel: string, callback: (...args: any[]) => void) => {
-    const subscription = (_event: Electron.IpcRendererEvent, ...args: any[]) =>
+  on: (channel: string, callback: (...args: unknown[]) => void) => {
+    const subscription = (_event: Electron.IpcRendererEvent, ...args: unknown[]) =>
       callback(...args);
     ipcRenderer.on(channel, subscription);
 

@@ -91,10 +91,27 @@ describe('useContributionWorkflow', () => {
 
     // Verify IPC calls in order
     expect(mockInvoke).toHaveBeenCalledWith('github:fork-repository', 'org/repo');
-    expect(mockInvoke).toHaveBeenCalledWith('git:clone', 'https://github.com/user/repo.git', '/mock/contributions/repo');
-    expect(mockInvoke).toHaveBeenCalledWith('git:add-remote', '/mock/contributions/repo', 'upstream', 'https://github.com/org/repo.git');
-    expect(mockInvoke).toHaveBeenCalledWith('git:create-branch', '/mock/contributions/repo', 'fix-issue-42');
-    expect(mockInvoke).toHaveBeenCalledWith('git:checkout', '/mock/contributions/repo', 'fix-issue-42');
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'git:clone',
+      'https://github.com/user/repo.git',
+      '/mock/contributions/repo'
+    );
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'git:add-remote',
+      '/mock/contributions/repo',
+      'upstream',
+      'https://github.com/org/repo.git'
+    );
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'git:create-branch',
+      '/mock/contributions/repo',
+      'fix-issue-42'
+    );
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'git:checkout',
+      '/mock/contributions/repo',
+      'fix-issue-42'
+    );
   });
 
   it('handles error during forking', async () => {
@@ -153,8 +170,7 @@ describe('useContributionWorkflow', () => {
         dirCheckCount++;
         return dirCheckCount <= 1; // First check returns true, second returns false
       }
-      if (channel === 'contribution:create')
-        return { id: 'new', localPath: args[0] };
+      if (channel === 'contribution:create') return { id: 'new', localPath: args[0] };
       return undefined;
     });
 
@@ -165,7 +181,11 @@ describe('useContributionWorkflow', () => {
     });
 
     // Should have tried /mock/contributions/repo first (exists), then /mock/contributions/repo-1
-    expect(mockInvoke).toHaveBeenCalledWith('git:clone', 'https://github.com/user/repo.git', '/mock/contributions/repo-1');
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'git:clone',
+      'https://github.com/user/repo.git',
+      '/mock/contributions/repo-1'
+    );
   });
 
   it('resets state', () => {

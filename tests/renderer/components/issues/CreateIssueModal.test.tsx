@@ -75,13 +75,7 @@ describe('CreateIssueModal', () => {
     const onCreated = vi.fn();
     const onClose = vi.fn();
 
-    render(
-      <CreateIssueModal
-        {...defaultProps}
-        onCreated={onCreated}
-        onClose={onClose}
-      />
-    );
+    render(<CreateIssueModal {...defaultProps} onCreated={onCreated} onClose={onClose} />);
 
     const titleInput = screen.getByPlaceholderText('Issue title');
     const labelsInput = screen.getByPlaceholderText(/bug, enhancement/);

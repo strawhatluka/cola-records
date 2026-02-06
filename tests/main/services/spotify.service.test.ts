@@ -123,7 +123,9 @@ describe('SpotifyService', () => {
       expect(url.pathname).toBe('/authorize');
       expect(url.searchParams.get('client_id')).toBe('test-client-id');
       expect(url.searchParams.get('response_type')).toBe('code');
-      expect(url.searchParams.get('redirect_uri')).toBe('http://127.0.0.1:3001/api/spotify/callback');
+      expect(url.searchParams.get('redirect_uri')).toBe(
+        'http://127.0.0.1:3001/api/spotify/callback'
+      );
       expect(url.searchParams.get('code_challenge_method')).toBe('S256');
       expect(url.searchParams.get('code_challenge')).toBeTruthy();
       expect(url.searchParams.get('scope')).toContain('user-read-playback-state');
@@ -172,11 +174,13 @@ describe('SpotifyService', () => {
 
       // First fetch call is the token refresh, second is the API call
       mockFetch
-        .mockResolvedValueOnce(okResponse({
-          access_token: 'new-access-token',
-          refresh_token: 'new-refresh-token',
-          expires_in: 3600,
-        }))
+        .mockResolvedValueOnce(
+          okResponse({
+            access_token: 'new-access-token',
+            refresh_token: 'new-refresh-token',
+            expires_in: 3600,
+          })
+        )
         .mockResolvedValueOnce(noContentResponse());
 
       await service.getPlaybackState();
@@ -191,10 +195,12 @@ describe('SpotifyService', () => {
       setupExpiredToken();
 
       mockFetch
-        .mockResolvedValueOnce(okResponse({
-          access_token: 'refreshed-token',
-          expires_in: 3600,
-        }))
+        .mockResolvedValueOnce(
+          okResponse({
+            access_token: 'refreshed-token',
+            expires_in: 3600,
+          })
+        )
         .mockResolvedValueOnce(noContentResponse());
 
       await service.getPlaybackState();
@@ -214,17 +220,22 @@ describe('SpotifyService', () => {
       setupExpiredToken();
 
       mockFetch
-        .mockResolvedValueOnce(okResponse({
-          access_token: 'new-token',
-          refresh_token: 'new-refresh',
-          expires_in: 7200,
-        }))
+        .mockResolvedValueOnce(
+          okResponse({
+            access_token: 'new-token',
+            refresh_token: 'new-refresh',
+            expires_in: 7200,
+          })
+        )
         .mockResolvedValueOnce(noContentResponse());
 
       await service.getPlaybackState();
 
       expect(mockSecureStorage.setItem).toHaveBeenCalledWith('spotify_access_token', 'new-token');
-      expect(mockSecureStorage.setItem).toHaveBeenCalledWith('spotify_refresh_token', 'new-refresh');
+      expect(mockSecureStorage.setItem).toHaveBeenCalledWith(
+        'spotify_refresh_token',
+        'new-refresh'
+      );
       expect(mockSecureStorage.setItem).toHaveBeenCalledWith(
         'spotify_expires_at',
         expect.stringMatching(/^\d+$/)
@@ -256,23 +267,25 @@ describe('SpotifyService', () => {
     });
 
     it('getPlaybackState returns mapped state on success', async () => {
-      mockFetch.mockResolvedValueOnce(okResponse({
-        is_playing: true,
-        item: {
-          id: 'track_1',
-          name: 'Test Track',
-          uri: 'spotify:track:track_1',
-          artists: [{ name: 'Artist' }],
-          album: {
-            name: 'Album',
-            images: [{ url: 'https://img.url', width: 300, height: 300 }],
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          is_playing: true,
+          item: {
+            id: 'track_1',
+            name: 'Test Track',
+            uri: 'spotify:track:track_1',
+            artists: [{ name: 'Artist' }],
+            album: {
+              name: 'Album',
+              images: [{ url: 'https://img.url', width: 300, height: 300 }],
+            },
+            duration_ms: 210000,
           },
-          duration_ms: 210000,
-        },
-        progress_ms: 30000,
-        shuffle_state: false,
-        device: { volume_percent: 75, name: 'Test Device' },
-      }));
+          progress_ms: 30000,
+          shuffle_state: false,
+          device: { volume_percent: 75, name: 'Test Device' },
+        })
+      );
 
       const state = await service.getPlaybackState();
 
@@ -449,27 +462,29 @@ describe('SpotifyService', () => {
     });
 
     it('getPlaylists maps API response correctly', async () => {
-      mockFetch.mockResolvedValueOnce(okResponse({
-        items: [
-          {
-            id: 'pl_1',
-            name: 'My Playlist',
-            uri: 'spotify:playlist:pl_1',
-            tracks: { total: 42 },
-            images: [
-              { url: 'https://img.url/1', width: 300, height: 300 },
-              { url: 'https://img.url/2', width: 64, height: 64 },
-            ],
-          },
-          {
-            id: 'pl_2',
-            name: 'Another Playlist',
-            uri: 'spotify:playlist:pl_2',
-            tracks: { total: 10 },
-            images: [],
-          },
-        ],
-      }));
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          items: [
+            {
+              id: 'pl_1',
+              name: 'My Playlist',
+              uri: 'spotify:playlist:pl_1',
+              tracks: { total: 42 },
+              images: [
+                { url: 'https://img.url/1', width: 300, height: 300 },
+                { url: 'https://img.url/2', width: 64, height: 64 },
+              ],
+            },
+            {
+              id: 'pl_2',
+              name: 'Another Playlist',
+              uri: 'spotify:playlist:pl_2',
+              tracks: { total: 10 },
+              images: [],
+            },
+          ],
+        })
+      );
 
       const playlists = await service.getPlaylists();
 
@@ -514,23 +529,25 @@ describe('SpotifyService', () => {
     });
 
     it('search maps track results correctly', async () => {
-      mockFetch.mockResolvedValueOnce(okResponse({
-        tracks: {
-          items: [
-            {
-              id: 'tr_1',
-              name: 'Search Result Track',
-              uri: 'spotify:track:tr_1',
-              artists: [{ name: 'Search Artist' }, { name: 'Feat Artist' }],
-              album: {
-                name: 'Search Album',
-                images: [{ url: 'https://album.img', width: 640, height: 640 }],
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          tracks: {
+            items: [
+              {
+                id: 'tr_1',
+                name: 'Search Result Track',
+                uri: 'spotify:track:tr_1',
+                artists: [{ name: 'Search Artist' }, { name: 'Feat Artist' }],
+                album: {
+                  name: 'Search Album',
+                  images: [{ url: 'https://album.img', width: 640, height: 640 }],
+                },
+                duration_ms: 180000,
               },
-              duration_ms: 180000,
-            },
-          ],
-        },
-      }));
+            ],
+          },
+        })
+      );
 
       const result = await service.search('test query');
 
@@ -621,20 +638,22 @@ describe('SpotifyService', () => {
       mockFetch.mockResolvedValueOnce(unauthorizedResponse());
       // After clearing tokens, getValidToken is called again - return valid token
       // Then retry API call returns success
-      mockFetch.mockResolvedValueOnce(okResponse({
-        is_playing: false,
-        item: {
-          id: 'track_retry',
-          name: 'Retry Track',
-          uri: 'spotify:track:retry',
-          artists: [{ name: 'Retry Artist' }],
-          album: { name: 'Retry Album', images: [] },
-          duration_ms: 120000,
-        },
-        progress_ms: 0,
-        shuffle_state: false,
-        device: { volume_percent: 50, name: 'Retry Device' },
-      }));
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          is_playing: false,
+          item: {
+            id: 'track_retry',
+            name: 'Retry Track',
+            uri: 'spotify:track:retry',
+            artists: [{ name: 'Retry Artist' }],
+            album: { name: 'Retry Album', images: [] },
+            duration_ms: 120000,
+          },
+          progress_ms: 0,
+          shuffle_state: false,
+          device: { volume_percent: 50, name: 'Retry Device' },
+        })
+      );
 
       const state = await service.getPlaybackState();
 

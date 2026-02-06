@@ -77,9 +77,7 @@ describe('MessageList useCallback Stability', () => {
     // This test demonstrates that useCallback prevents new function creation
     // by showing that the component renders correctly after state updates
 
-    const messages = [
-      createMockDiscordMessage({ id: 'msg_1', content: 'Test message' }),
-    ];
+    const messages = [createMockDiscordMessage({ id: 'msg_1', content: 'Test message' })];
     useDiscordStore.setState({ messages });
 
     const { rerender } = render(<MessageList />);
@@ -88,10 +86,7 @@ describe('MessageList useCallback Stability', () => {
 
     // Add another message
     useDiscordStore.setState({
-      messages: [
-        ...messages,
-        createMockDiscordMessage({ id: 'msg_2', content: 'New message' }),
-      ],
+      messages: [...messages, createMockDiscordMessage({ id: 'msg_2', content: 'New message' })],
     });
     rerender(<MessageList />);
 
@@ -203,9 +198,7 @@ describe('MessageList useCallback Stability', () => {
   });
 
   it('useCallback dependencies are correct (re-creates when channel changes)', () => {
-    const messages = [
-      createMockDiscordMessage({ id: 'msg_1', content: 'Channel 1 message' }),
-    ];
+    const messages = [createMockDiscordMessage({ id: 'msg_1', content: 'Channel 1 message' })];
     useDiscordStore.setState({
       selectedChannelId: 'ch_1',
       messages,
@@ -217,9 +210,7 @@ describe('MessageList useCallback Stability', () => {
     // Change channel
     useDiscordStore.setState({
       selectedChannelId: 'ch_2',
-      messages: [
-        createMockDiscordMessage({ id: 'msg_2', content: 'Channel 2 message' }),
-      ],
+      messages: [createMockDiscordMessage({ id: 'msg_2', content: 'Channel 2 message' })],
     });
     rerender(<MessageList />);
 

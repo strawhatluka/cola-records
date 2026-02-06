@@ -4,6 +4,26 @@ import { app } from 'electron';
 import { CREATE_TABLES, SCHEMA_VERSION, MIGRATIONS } from './schema';
 import type { Contribution } from '../ipc/channels';
 
+/** Database row type for contributions table */
+interface ContributionRow {
+  id: string;
+  repository_url: string;
+  local_path: string;
+  issue_number: number | null;
+  issue_title: string | null;
+  branch_name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  type: string | null;
+  pr_url: string | null;
+  pr_number: number | null;
+  pr_status: string | null;
+  upstream_url: string | null;
+  is_fork: number | null;
+  remotes_valid: number | null;
+}
+
 /**
  * Database Service
  *
@@ -70,19 +90,20 @@ export class DatabaseService {
     const db = this.getDb();
 
     // Get current schema version
-    const currentVersion = db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number } | undefined;
+    const currentVersion = db
+      .prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1')
+      .get() as { version: number } | undefined;
     const version = currentVersion?.version || 0;
     // Run migrations from current version to target
 
     // Run all migrations after current version
     for (let v = version + 1; v <= SCHEMA_VERSION; v++) {
       if (MIGRATIONS[v]) {
-        try {
-          db.exec(MIGRATIONS[v]);
-          db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(v, Date.now());
-        } catch (err) {
-          throw err;
-        }
+        db.exec(MIGRATIONS[v]);
+        db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(
+          v,
+          Date.now()
+        );
       }
     }
   }
@@ -94,7 +115,10 @@ export class DatabaseService {
   /**
    * Create a new contribution
    */
-  createContribution(contribution: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>, createdAt?: Date): Contribution {
+  createContribution(
+    contribution: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>,
+    createdAt?: Date
+  ): Contribution {
     const db = this.getDb();
     const id = `contrib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = Date.now();
@@ -141,7 +165,7 @@ export class DatabaseService {
   getAllContributions(): Contribution[] {
     const db = this.getDb();
     const stmt = db.prepare('SELECT * FROM contributions ORDER BY created_at DESC');
-    const rows = stmt.all() as any[];
+    const rows = stmt.all() as ContributionRow[];
 
     return rows.map(this.rowToContribution);
   }
@@ -152,7 +176,7 @@ export class DatabaseService {
   getContributionById(id: string): Contribution | null {
     const db = this.getDb();
     const stmt = db.prepare('SELECT * FROM contributions WHERE id = ?');
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as ContributionRow | undefined;
 
     return row ? this.rowToContribution(row) : null;
   }
@@ -170,7 +194,9 @@ export class DatabaseService {
 
     const merged = { ...current, ...updates };
     const now = Date.now();
-    const createdAtTimestamp = updates.createdAt ? updates.createdAt.getTime() : current.createdAt.getTime();
+    const createdAtTimestamp = updates.createdAt
+      ? updates.createdAt.getTime()
+      : current.createdAt.getTime();
 
     const stmt = db.prepare(`
       UPDATE contributions
@@ -252,7 +278,7 @@ export class DatabaseService {
     const stmt = db.prepare('SELECT key, value FROM settings');
     const rows = stmt.all() as { key: string; value: string }[];
 
-    return Object.fromEntries(rows.map(row => [row.key, row.value]));
+    return Object.fromEntries(rows.map((row) => [row.key, row.value]));
   }
 
   // ============================================
@@ -324,12 +350,12 @@ export class DatabaseService {
   getContributionsByType(type: 'project' | 'contribution'): Contribution[] {
     const db = this.getDb();
     const stmt = db.prepare('SELECT * FROM contributions WHERE type = ? ORDER BY created_at DESC');
-    const rows = stmt.all(type) as any[];
+    const rows = stmt.all(type) as ContributionRow[];
 
     return rows.map(this.rowToContribution);
   }
 
-  private rowToContribution(row: any): Contribution {
+  private rowToContribution(row: ContributionRow): Contribution {
     return {
       id: row.id,
       repositoryUrl: row.repository_url,

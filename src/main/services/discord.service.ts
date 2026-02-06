@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Discord API responses are untyped */
 import { secureStorage } from './secure-storage.service';
 import { database } from '../database';
 import type {
@@ -10,12 +11,10 @@ import type {
   DiscordAttachment,
   DiscordEmbed,
   DiscordReaction,
-  DiscordStickerItem,
   DiscordSticker,
   DiscordStickerPack,
   DiscordPoll,
   DiscordThread,
-  ForumTag,
 } from '../ipc/channels';
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
@@ -113,7 +112,11 @@ export class DiscordService {
     return (data || []).map((m: any) => this.mapMessage(m));
   }
 
-  async sendMessage(channelId: string, content: string, replyToId?: string): Promise<DiscordMessage> {
+  async sendMessage(
+    channelId: string,
+    content: string,
+    replyToId?: string
+  ): Promise<DiscordMessage> {
     const body: Record<string, unknown> = { content };
     if (replyToId) {
       body.message_reference = { message_id: replyToId };
@@ -122,7 +125,11 @@ export class DiscordService {
     return this.mapMessage(data);
   }
 
-  async editMessage(channelId: string, messageId: string, content: string): Promise<DiscordMessage> {
+  async editMessage(
+    channelId: string,
+    messageId: string,
+    content: string
+  ): Promise<DiscordMessage> {
     const data = await this.apiPatch(`/channels/${channelId}/messages/${messageId}`, { content });
     return this.mapMessage(data);
   }
@@ -132,11 +139,15 @@ export class DiscordService {
   }
 
   async addReaction(channelId: string, messageId: string, emoji: string): Promise<void> {
-    await this.apiPut(`/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/@me`);
+    await this.apiPut(
+      `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/@me`
+    );
   }
 
   async removeReaction(channelId: string, messageId: string, emoji: string): Promise<void> {
-    await this.apiDeleteNoBody(`/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/@me`);
+    await this.apiDeleteNoBody(
+      `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/@me`
+    );
   }
 
   async getChannel(channelId: string): Promise<DiscordChannel> {
@@ -167,7 +178,7 @@ export class DiscordService {
     channelId: string,
     content: string,
     files: { name: string; data: Buffer; contentType: string }[],
-    replyToId?: string,
+    replyToId?: string
   ): Promise<DiscordMessage> {
     const token = await this.getToken();
     const formData = new FormData();
@@ -205,10 +216,17 @@ export class DiscordService {
     return this.mapMessage(data);
   }
 
-  async searchGifs(query: string): Promise<{ url: string; preview: string; width: number; height: number }[]> {
+  async searchGifs(
+    query: string
+  ): Promise<{ url: string; preview: string; width: number; height: number }[]> {
     // Use Discord's built-in GIF search (Tenor via Discord proxy)
     const token = await this.getToken();
-    const params = new URLSearchParams({ q: query, media_format: 'gif', provider: 'tenor', locale: 'en-US' });
+    const params = new URLSearchParams({
+      q: query,
+      media_format: 'gif',
+      provider: 'tenor',
+      locale: 'en-US',
+    });
     const response = await fetch(`${DISCORD_API_BASE}/gifs/search?${params.toString()}`, {
       headers: { Authorization: token },
     });
@@ -222,7 +240,9 @@ export class DiscordService {
     }));
   }
 
-  async getTrendingGifs(): Promise<{ url: string; preview: string; width: number; height: number }[]> {
+  async getTrendingGifs(): Promise<
+    { url: string; preview: string; width: number; height: number }[]
+  > {
     const token = await this.getToken();
     const params = new URLSearchParams({ media_format: 'gif', provider: 'tenor', locale: 'en-US' });
     const response = await fetch(`${DISCORD_API_BASE}/gifs/trending?${params.toString()}`, {
@@ -266,7 +286,7 @@ export class DiscordService {
     question: string,
     answers: string[],
     duration: number,
-    allowMultiselect: boolean,
+    allowMultiselect: boolean
   ): Promise<DiscordMessage> {
     const data = await this.apiPost(`/channels/${channelId}/messages`, {
       poll: {
@@ -288,7 +308,7 @@ export class DiscordService {
     sortBy = 'last_message_time',
     sortOrder = 'desc',
     tagIds?: string[],
-    offset = 0,
+    offset = 0
   ): Promise<{ threads: DiscordThread[]; hasMore: boolean; totalResults: number }> {
     const params = new URLSearchParams();
     params.set('sort_by', sortBy);
@@ -327,7 +347,7 @@ export class DiscordService {
     channelId: string,
     name: string,
     content: string,
-    appliedTags?: string[],
+    appliedTags?: string[]
   ): Promise<DiscordThread> {
     const body: any = {
       name,
@@ -340,7 +360,11 @@ export class DiscordService {
     return this.mapThread(data);
   }
 
-  async getThreadMessages(threadId: string, before?: string, limit = 50): Promise<DiscordMessage[]> {
+  async getThreadMessages(
+    threadId: string,
+    before?: string,
+    limit = 50
+  ): Promise<DiscordMessage[]> {
     // Threads are just channels, so reuse getMessages
     return this.getMessages(threadId, before, limit);
   }
@@ -444,14 +468,30 @@ export class DiscordService {
       url: e.url || null,
       color: e.color ?? null,
       type: e.type || null,
-      thumbnail: e.thumbnail ? { url: e.thumbnail.url, width: e.thumbnail.width || 0, height: e.thumbnail.height || 0 } : null,
-      image: e.image ? { url: e.image.url, width: e.image.width || 0, height: e.image.height || 0 } : null,
-      video: e.video ? { url: e.video.url || e.video.proxy_url, width: e.video.width || 0, height: e.video.height || 0 } : null,
-      author: e.author ? { name: e.author.name, url: e.author.url || null, iconUrl: e.author.icon_url || null } : null,
+      thumbnail: e.thumbnail
+        ? { url: e.thumbnail.url, width: e.thumbnail.width || 0, height: e.thumbnail.height || 0 }
+        : null,
+      image: e.image
+        ? { url: e.image.url, width: e.image.width || 0, height: e.image.height || 0 }
+        : null,
+      video: e.video
+        ? {
+            url: e.video.url || e.video.proxy_url,
+            width: e.video.width || 0,
+            height: e.video.height || 0,
+          }
+        : null,
+      author: e.author
+        ? { name: e.author.name, url: e.author.url || null, iconUrl: e.author.icon_url || null }
+        : null,
       footer: e.footer ? { text: e.footer.text, iconUrl: e.footer.icon_url || null } : null,
       timestamp: e.timestamp || null,
       provider: e.provider ? { name: e.provider.name, url: e.provider.url || null } : null,
-      fields: (e.fields || []).map((f: any) => ({ name: f.name, value: f.value, inline: f.inline || false })),
+      fields: (e.fields || []).map((f: any) => ({
+        name: f.name,
+        value: f.value,
+        inline: f.inline || false,
+      })),
     };
   }
 
@@ -482,20 +522,24 @@ export class DiscordService {
         answerId: a.answer_id,
         pollMedia: {
           text: a.poll_media?.text || '',
-          emoji: a.poll_media?.emoji ? { id: a.poll_media.emoji.id || null, name: a.poll_media.emoji.name || '' } : undefined,
+          emoji: a.poll_media?.emoji
+            ? { id: a.poll_media.emoji.id || null, name: a.poll_media.emoji.name || '' }
+            : undefined,
         },
       })),
       expiry: p.expiry || null,
       allowMultiselect: p.allow_multiselect || false,
       layoutType: p.layout_type || 1,
-      results: p.results ? {
-        isFinalized: p.results.is_finalized || false,
-        answerCounts: (p.results.answer_counts || []).map((ac: any) => ({
-          id: ac.id,
-          count: ac.count || 0,
-          meVoted: ac.me_voted || false,
-        })),
-      } : undefined,
+      results: p.results
+        ? {
+            isFinalized: p.results.is_finalized || false,
+            answerCounts: (p.results.answer_counts || []).map((ac: any) => ({
+              id: ac.id,
+              count: ac.count || 0,
+              meVoted: ac.me_voted || false,
+            })),
+          }
+        : undefined,
     };
   }
 
@@ -518,7 +562,13 @@ export class DiscordService {
     return this.apiRequestWithToken(method, path, token, body);
   }
 
-  private async apiRequestWithToken(method: string, path: string, token: string, body?: unknown, retries = 0): Promise<Response> {
+  private async apiRequestWithToken(
+    method: string,
+    path: string,
+    token: string,
+    body?: unknown,
+    retries = 0
+  ): Promise<Response> {
     const options: RequestInit = {
       method,
       headers: {

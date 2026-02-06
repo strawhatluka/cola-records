@@ -33,11 +33,41 @@ describe('ChannelList', () => {
   it('renders channels grouped by category', () => {
     const guild = createMockDiscordGuild({ id: 'g1', name: 'Test Server' });
     const channels = [
-      createMockDiscordChannel({ id: 'cat1', name: 'Text Channels', type: 4, parentId: null, position: 0 }),
-      createMockDiscordChannel({ id: 'ch1', name: 'general', type: 0, parentId: 'cat1', position: 0 }),
-      createMockDiscordChannel({ id: 'ch2', name: 'random', type: 0, parentId: 'cat1', position: 1 }),
-      createMockDiscordChannel({ id: 'cat2', name: 'Voice Channels', type: 4, parentId: null, position: 1 }),
-      createMockDiscordChannel({ id: 'vc1', name: 'General Voice', type: 2, parentId: 'cat2', position: 0 }),
+      createMockDiscordChannel({
+        id: 'cat1',
+        name: 'Text Channels',
+        type: 4,
+        parentId: null,
+        position: 0,
+      }),
+      createMockDiscordChannel({
+        id: 'ch1',
+        name: 'general',
+        type: 0,
+        parentId: 'cat1',
+        position: 0,
+      }),
+      createMockDiscordChannel({
+        id: 'ch2',
+        name: 'random',
+        type: 0,
+        parentId: 'cat1',
+        position: 1,
+      }),
+      createMockDiscordChannel({
+        id: 'cat2',
+        name: 'Voice Channels',
+        type: 4,
+        parentId: null,
+        position: 1,
+      }),
+      createMockDiscordChannel({
+        id: 'vc1',
+        name: 'General Voice',
+        type: 2,
+        parentId: 'cat2',
+        position: 0,
+      }),
     ];
 
     useDiscordStore.setState({
@@ -60,7 +90,13 @@ describe('ChannelList', () => {
 
   it('shows text channels with hash icon (default icon)', () => {
     const channels = [
-      createMockDiscordChannel({ id: 'ch1', name: 'text-channel', type: 0, parentId: null, position: 0 }),
+      createMockDiscordChannel({
+        id: 'ch1',
+        name: 'text-channel',
+        type: 0,
+        parentId: null,
+        position: 0,
+      }),
     ];
     useDiscordStore.setState({
       guilds: [createMockDiscordGuild({ id: 'g1', name: 'S' })],
@@ -79,7 +115,13 @@ describe('ChannelList', () => {
 
   it('shows voice channels with a distinct icon', () => {
     const channels = [
-      createMockDiscordChannel({ id: 'vc1', name: 'voice-room', type: 2, parentId: null, position: 0 }),
+      createMockDiscordChannel({
+        id: 'vc1',
+        name: 'voice-room',
+        type: 2,
+        parentId: null,
+        position: 0,
+      }),
     ];
     useDiscordStore.setState({
       guilds: [createMockDiscordGuild({ id: 'g1', name: 'S' })],
@@ -99,7 +141,13 @@ describe('ChannelList', () => {
   it('calls openChannel when clicking a text channel', () => {
     const openChannel = vi.fn();
     const channels = [
-      createMockDiscordChannel({ id: 'ch1', name: 'general', type: 0, parentId: null, position: 0 }),
+      createMockDiscordChannel({
+        id: 'ch1',
+        name: 'general',
+        type: 0,
+        parentId: null,
+        position: 0,
+      }),
     ];
     useDiscordStore.setState({
       guilds: [createMockDiscordGuild({ id: 'g1', name: 'S' })],
@@ -117,7 +165,13 @@ describe('ChannelList', () => {
   it('shows forum channels and calls openForumChannel on click', () => {
     const openForumChannel = vi.fn();
     const channels = [
-      createMockDiscordChannel({ id: 'forum1', name: 'help-forum', type: 15, parentId: null, position: 0 }),
+      createMockDiscordChannel({
+        id: 'forum1',
+        name: 'help-forum',
+        type: 15,
+        parentId: null,
+        position: 0,
+      }),
     ];
     useDiscordStore.setState({
       guilds: [createMockDiscordGuild({ id: 'g1', name: 'S' })],

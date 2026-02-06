@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- GitHub GraphQL API responses are dynamically typed */
 import { graphql } from '@octokit/graphql';
 import type { GitHubIssue } from '../ipc/channels';
 import { env } from './environment.service';
@@ -21,7 +22,9 @@ export class GitHubGraphQLService {
       const token = settings.githubToken || env.get('GITHUB_TOKEN');
 
       if (!token) {
-        throw new Error('GitHub token not configured. Please set GITHUB_TOKEN in settings or .env file.');
+        throw new Error(
+          'GitHub token not configured. Please set GITHUB_TOKEN in settings or .env file.'
+        );
       }
 
       this.client = graphql.defaults({
@@ -44,12 +47,15 @@ export class GitHubGraphQLService {
   /**
    * Search for GitHub issues with good first issue label
    */
-  async searchIssues(query: string, labels: string[] = ['good first issue']): Promise<GitHubIssue[]> {
+  async searchIssues(
+    query: string,
+    labels: string[] = ['good first issue']
+  ): Promise<GitHubIssue[]> {
     try {
       const client = this.getClient();
 
       // Build search query
-      const labelQuery = labels.map(label => `label:"${label}"`).join(' ');
+      const labelQuery = labels.map((label) => `label:"${label}"`).join(' ');
       const searchQuery = `${query} ${labelQuery} is:issue is:open sort:updated-desc`;
 
       const response: any = await client(

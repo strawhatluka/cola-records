@@ -28,9 +28,7 @@ import type {
   ForumTag,
 } from '../../src/main/ipc/channels';
 
-export function createMockContribution(
-  overrides?: Partial<Contribution>
-): Contribution {
+export function createMockContribution(overrides?: Partial<Contribution>): Contribution {
   return {
     id: `contrib_${Date.now()}_test`,
     repositoryUrl: 'https://github.com/test-org/test-repo',
@@ -45,9 +43,7 @@ export function createMockContribution(
   };
 }
 
-export function createMockIssue(
-  overrides?: Partial<GitHubIssue>
-): GitHubIssue {
+export function createMockIssue(overrides?: Partial<GitHubIssue>): GitHubIssue {
   return {
     id: 'issue_1',
     number: 42,
@@ -62,9 +58,7 @@ export function createMockIssue(
   };
 }
 
-export function createMockRepository(
-  overrides?: Partial<GitHubRepository>
-): GitHubRepository {
+export function createMockRepository(overrides?: Partial<GitHubRepository>): GitHubRepository {
   return {
     id: 'repo_1',
     name: 'test-repo',
@@ -80,9 +74,7 @@ export function createMockRepository(
   };
 }
 
-export function createMockGitStatus(
-  overrides?: Partial<GitStatus>
-): GitStatus {
+export function createMockGitStatus(overrides?: Partial<GitStatus>): GitStatus {
   return {
     current: 'main',
     tracking: 'origin/main',
@@ -93,9 +85,7 @@ export function createMockGitStatus(
   };
 }
 
-export function createMockGitFileStatus(
-  overrides?: Partial<GitFileStatus>
-): GitFileStatus {
+export function createMockGitFileStatus(overrides?: Partial<GitFileStatus>): GitFileStatus {
   return {
     path: 'src/index.ts',
     index: 'M',
@@ -104,9 +94,7 @@ export function createMockGitFileStatus(
   };
 }
 
-export function createMockSettings(
-  overrides?: Partial<AppSettings>
-): AppSettings {
+export function createMockSettings(overrides?: Partial<AppSettings>): AppSettings {
   return {
     theme: 'system',
     defaultClonePath: '/mock/contributions',
@@ -118,9 +106,7 @@ export function createMockSettings(
   };
 }
 
-export function createMockAlias(
-  overrides?: Partial<Alias>
-): Alias {
+export function createMockAlias(overrides?: Partial<Alias>): Alias {
   return {
     name: 'gp',
     command: 'git push',
@@ -130,9 +116,7 @@ export function createMockAlias(
 
 // ── Spotify Factories ──────────────────────────────────────────────
 
-export function createMockSpotifyTrack(
-  overrides?: Partial<SpotifyTrack>
-): SpotifyTrack {
+export function createMockSpotifyTrack(overrides?: Partial<SpotifyTrack>): SpotifyTrack {
   return {
     id: 'track_1',
     name: 'Test Track',
@@ -161,9 +145,7 @@ export function createMockSpotifyPlaybackState(
   };
 }
 
-export function createMockSpotifyPlaylist(
-  overrides?: Partial<SpotifyPlaylist>
-): SpotifyPlaylist {
+export function createMockSpotifyPlaylist(overrides?: Partial<SpotifyPlaylist>): SpotifyPlaylist {
   return {
     id: 'playlist_1',
     name: 'Test Playlist',
@@ -176,9 +158,7 @@ export function createMockSpotifyPlaylist(
 
 // ── Discord Factories ──────────────────────────────────────────────
 
-export function createMockDiscordUser(
-  overrides?: Partial<DiscordUser>
-): DiscordUser {
+export function createMockDiscordUser(overrides?: Partial<DiscordUser>): DiscordUser {
   return {
     id: '123456789',
     username: 'testuser',
@@ -189,9 +169,7 @@ export function createMockDiscordUser(
   };
 }
 
-export function createMockForumTag(
-  overrides?: Partial<ForumTag>
-): ForumTag {
+export function createMockForumTag(overrides?: Partial<ForumTag>): ForumTag {
   return {
     id: 'tag_1',
     name: 'Discussion',
@@ -202,9 +180,7 @@ export function createMockForumTag(
   };
 }
 
-export function createMockDiscordChannel(
-  overrides?: Partial<DiscordChannel>
-): DiscordChannel {
+export function createMockDiscordChannel(overrides?: Partial<DiscordChannel>): DiscordChannel {
   return {
     id: 'channel_1',
     name: 'general',
@@ -217,9 +193,7 @@ export function createMockDiscordChannel(
   };
 }
 
-export function createMockDiscordGuild(
-  overrides?: Partial<DiscordGuild>
-): DiscordGuild {
+export function createMockDiscordGuild(overrides?: Partial<DiscordGuild>): DiscordGuild {
   return {
     id: 'guild_1',
     name: 'Test Server',
@@ -230,9 +204,7 @@ export function createMockDiscordGuild(
   };
 }
 
-export function createMockDiscordThread(
-  overrides?: Partial<DiscordThread>
-): DiscordThread {
+export function createMockDiscordThread(overrides?: Partial<DiscordThread>): DiscordThread {
   return {
     id: 'thread_1',
     name: 'Test Thread',
@@ -277,9 +249,7 @@ export function createMockDiscordAttachment(
   };
 }
 
-export function createMockDiscordEmbed(
-  overrides?: Partial<DiscordEmbed>
-): DiscordEmbed {
+export function createMockDiscordEmbed(overrides?: Partial<DiscordEmbed>): DiscordEmbed {
   return {
     title: 'Test Embed',
     description: 'Embed description',
@@ -298,9 +268,7 @@ export function createMockDiscordEmbed(
   };
 }
 
-export function createMockDiscordReaction(
-  overrides?: Partial<DiscordReaction>
-): DiscordReaction {
+export function createMockDiscordReaction(overrides?: Partial<DiscordReaction>): DiscordReaction {
   return {
     emoji: { id: null, name: '👍' },
     count: 3,
@@ -309,9 +277,7 @@ export function createMockDiscordReaction(
   };
 }
 
-export function createMockDiscordMessage(
-  overrides?: Partial<DiscordMessage>
-): DiscordMessage {
+export function createMockDiscordMessage(overrides?: Partial<DiscordMessage>): DiscordMessage {
   return {
     id: 'msg_1',
     content: 'Hello, world!',
@@ -332,9 +298,7 @@ export function createMockDiscordMessage(
   };
 }
 
-export function createMockDiscordEmoji(
-  overrides?: Partial<DiscordEmoji>
-): DiscordEmoji {
+export function createMockDiscordEmoji(overrides?: Partial<DiscordEmoji>): DiscordEmoji {
   return {
     id: 'emoji_1',
     name: 'custom_emoji',

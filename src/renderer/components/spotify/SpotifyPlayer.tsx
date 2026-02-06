@@ -14,14 +14,8 @@ const tabs = [
 ];
 
 export function SpotifyPlayer() {
-  const {
-    connected,
-    activeTab,
-    setActiveTab,
-    checkConnection,
-    fetchPlayback,
-    disconnect,
-  } = useSpotifyStore();
+  const { connected, activeTab, setActiveTab, checkConnection, fetchPlayback, disconnect } =
+    useSpotifyStore();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 

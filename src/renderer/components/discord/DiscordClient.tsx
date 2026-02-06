@@ -13,7 +13,19 @@ import { Hash } from 'lucide-react';
 export function DiscordClient() {
   const [isOpen, setIsOpen] = useState(false);
   const [channelSidebarOpen, setChannelSidebarOpen] = useState(true);
-  const { connected, user, checkConnection, disconnect, fetchGuilds, fetchDMChannels, view, selectedGuildId, selectedChannelId, selectedForumChannelId, selectedThreadId } = useDiscordStore();
+  const {
+    connected,
+    user,
+    checkConnection,
+    disconnect,
+    fetchGuilds,
+    fetchDMChannels,
+    view,
+    selectedGuildId,
+    selectedChannelId,
+    selectedForumChannelId,
+    selectedThreadId,
+  } = useDiscordStore();
 
   // Check connection on mount and when popover opens
   useEffect(() => {
@@ -56,7 +68,11 @@ export function DiscordClient() {
           </svg>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={4} className="w-[50vw] h-[calc(100vh-4rem-4px)] p-0 overflow-hidden rounded-none rounded-tr-md rounded-br-md border-l-0">
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        className="w-[50vw] h-[calc(100vh-4rem-4px)] p-0 overflow-hidden rounded-none rounded-tr-md rounded-br-md border-l-0"
+      >
         {!connected ? (
           <DiscordConnect />
         ) : (

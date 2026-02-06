@@ -32,13 +32,22 @@ export function PollRenderer({ poll }: PollRendererProps) {
                 className="absolute inset-0 rounded bg-[#5865F2]/15"
                 style={{ width: `${percentage}%` }}
               />
-              <div className={`relative flex items-center justify-between px-2 py-1 rounded ${meVoted ? 'ring-1 ring-[#5865F2]/50' : ''}`}>
+              <div
+                className={`relative flex items-center justify-between px-2 py-1 rounded ${meVoted ? 'ring-1 ring-[#5865F2]/50' : ''}`}
+              >
                 <div className="flex items-center gap-1.5 min-w-0">
                   {answer.pollMedia.emoji && (
                     <span className="text-xs">
-                      {answer.pollMedia.emoji.id
-                        ? <img src={`https://cdn.discordapp.com/emojis/${answer.pollMedia.emoji.id}.png`} alt="" className="h-4 w-4 inline" loading="lazy" />
-                        : answer.pollMedia.emoji.name}
+                      {answer.pollMedia.emoji.id ? (
+                        <img
+                          src={`https://cdn.discordapp.com/emojis/${answer.pollMedia.emoji.id}.png`}
+                          alt=""
+                          className="h-4 w-4 inline"
+                          loading="lazy"
+                        />
+                      ) : (
+                        answer.pollMedia.emoji.name
+                      )}
                     </span>
                   )}
                   <span className="text-[11px] truncate">{answer.pollMedia.text}</span>
@@ -57,9 +66,7 @@ export function PollRenderer({ poll }: PollRendererProps) {
         <span className="text-[10px] text-muted-foreground">
           {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}
         </span>
-        {isFinalized && (
-          <span className="text-[10px] text-muted-foreground">Final results</span>
-        )}
+        {isFinalized && <span className="text-[10px] text-muted-foreground">Final results</span>}
         {!isFinalized && poll.expiry && (
           <span className="text-[10px] text-muted-foreground">
             Ends {new Date(poll.expiry).toLocaleDateString()}

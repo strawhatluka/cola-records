@@ -13,7 +13,8 @@ export function handleIpc<K extends keyof IpcChannels>(
     ...args: Parameters<IpcChannels[K]>
   ) => Promise<ReturnType<IpcChannels[K]>> | ReturnType<IpcChannels[K]>
 ): void {
-  ipcMain.handle(channel, handler as any);
+  // Type assertion needed for Electron's generic handler signature
+  ipcMain.handle(channel, handler as Parameters<typeof ipcMain.handle>[1]);
 }
 
 /**
@@ -176,7 +177,7 @@ export function removeAllIpcHandlers(): void {
 export function sendToRenderer(
   window: Electron.BrowserWindow,
   channel: string,
-  ...args: any[]
+  ...args: unknown[]
 ): void {
   window.webContents.send(channel, ...args);
 }

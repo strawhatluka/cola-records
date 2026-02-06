@@ -68,14 +68,18 @@ export function PickerPanel({
 
       {/* Content */}
       <div className="flex-1 min-h-0 flex flex-col">
-        {activeTab === 'gif' && (
-          <GifPicker onSelect={onSelectGif} onClose={onClose} embedded />
-        )}
+        {activeTab === 'gif' && <GifPicker onSelect={onSelectGif} onClose={onClose} embedded />}
         {activeTab === 'sticker' && (
           <StickerPicker onSelect={onSelectSticker} onClose={onClose} embedded guilds={guilds} />
         )}
         {activeTab === 'emoji' && (
-          <EmojiPicker onSelect={onSelectEmoji} onClose={onClose} customEmojis={customEmojis} guilds={guilds} embedded />
+          <EmojiPicker
+            onSelect={onSelectEmoji}
+            onClose={onClose}
+            customEmojis={customEmojis}
+            guilds={guilds}
+            embedded
+          />
         )}
       </div>
     </div>

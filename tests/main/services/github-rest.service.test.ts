@@ -179,7 +179,14 @@ describe('GitHubRestService', () => {
         },
       });
 
-      const pr = await service.createPullRequest('org', 'repo', 'Fix bug', 'feature', 'main', 'PR body');
+      const pr = await service.createPullRequest(
+        'org',
+        'repo',
+        'Fix bug',
+        'feature',
+        'main',
+        'PR body'
+      );
       expect(pr.number).toBe(1);
       expect(pr.state).toBe('open');
     });
@@ -634,9 +641,7 @@ describe('GitHubRestService', () => {
 
     it('throws on API error', async () => {
       mockIssuesListForRepo.mockRejectedValue(new Error('API failure'));
-      await expect(service.listIssues('org', 'repo')).rejects.toThrow(
-        'Failed to list issues'
-      );
+      await expect(service.listIssues('org', 'repo')).rejects.toThrow('Failed to list issues');
     });
   });
 
@@ -1017,9 +1022,7 @@ describe('GitHubRestService', () => {
   describe('listCommentReactions', () => {
     it('maps reaction fields', async () => {
       mockReactionsListForIssueComment.mockResolvedValue({
-        data: [
-          { id: 3, content: 'laugh', user: { login: 'user2' } },
-        ],
+        data: [{ id: 3, content: 'laugh', user: { login: 'user2' } }],
       });
 
       const reactions = await service.listCommentReactions('org', 'repo', 501);
@@ -1145,7 +1148,9 @@ describe('GitHubRestService', () => {
       });
       mockRequest.mockResolvedValue({});
 
-      const result = await service.createSubIssue('org', 'repo', 42, 'Sub Title', 'Sub Body', ['enhancement']);
+      const result = await service.createSubIssue('org', 'repo', 42, 'Sub Title', 'Sub Body', [
+        'enhancement',
+      ]);
       expect(result).toEqual({
         number: 44,
         url: 'https://github.com/org/repo/issues/44',
@@ -1170,9 +1175,9 @@ describe('GitHubRestService', () => {
 
     it('throws on API error', async () => {
       mockIssuesCreate.mockRejectedValue(new Error('API failure'));
-      await expect(
-        service.createSubIssue('org', 'repo', 42, 'Title', 'Body')
-      ).rejects.toThrow('Failed to create sub-issue');
+      await expect(service.createSubIssue('org', 'repo', 42, 'Title', 'Body')).rejects.toThrow(
+        'Failed to create sub-issue'
+      );
     });
   });
 
@@ -1270,7 +1275,14 @@ describe('GitHubRestService', () => {
         },
       });
 
-      await service.mergePullRequest('org', 'repo', 42, 'squash', 'Custom Title', 'Custom body message');
+      await service.mergePullRequest(
+        'org',
+        'repo',
+        42,
+        'squash',
+        'Custom Title',
+        'Custom body message'
+      );
       expect(mockPullsMerge).toHaveBeenCalledWith({
         owner: 'org',
         repo: 'repo',

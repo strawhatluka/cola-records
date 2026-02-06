@@ -11,7 +11,8 @@
 import React from 'react';
 
 function createIcon(name: string) {
-  const Icon = (props: any) => React.createElement('span', { 'data-testid': `icon-${name.toLowerCase()}`, ...props });
+  const Icon = (props: any) =>
+    React.createElement('span', { 'data-testid': `icon-${name.toLowerCase()}`, ...props });
   Icon.displayName = name;
   return Icon;
 }

@@ -10,7 +10,9 @@ interface ContributionsState {
   // Actions
   setContributions: (contributions: Contribution[]) => void;
   fetchContributions: () => Promise<void>;
-  createContribution: (data: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Contribution>;
+  createContribution: (
+    data: Omit<Contribution, 'id' | 'createdAt' | 'updatedAt'>
+  ) => Promise<Contribution>;
   updateContribution: (id: string, data: Partial<Contribution>) => Promise<Contribution>;
   deleteContribution: (id: string) => Promise<void>;
   getContributionById: (id: string) => Contribution | undefined;
@@ -55,9 +57,7 @@ export const useContributionsStore = create<ContributionsState>((set, get) => ({
     try {
       const updated = await ipc.invoke('contribution:update', id, data);
       set((state) => ({
-        contributions: state.contributions.map((c) =>
-          c.id === id ? updated : c
-        ),
+        contributions: state.contributions.map((c) => (c.id === id ? updated : c)),
         loading: false,
       }));
       return updated;

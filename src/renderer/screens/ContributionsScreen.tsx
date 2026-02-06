@@ -10,7 +10,7 @@ interface ContributionsScreenProps {
 }
 
 export function ContributionsScreen({ onOpenIDE }: ContributionsScreenProps) {
-  const { contributions, loading, deleteContribution, setContributions } = useContributionsStore();
+  const { contributions, deleteContribution, setContributions } = useContributionsStore();
   const { defaultClonePath } = useSettingsStore();
   const [isScanning, setIsScanning] = React.useState(true);
 
@@ -21,7 +21,10 @@ export function ContributionsScreen({ onOpenIDE }: ContributionsScreenProps) {
       if (defaultClonePath) {
         setIsScanning(true);
         try {
-          const scannedContributions = await ipc.invoke('contribution:scan-directory', defaultClonePath);
+          const scannedContributions = await ipc.invoke(
+            'contribution:scan-directory',
+            defaultClonePath
+          );
           setContributions(scannedContributions);
         } catch {
           // Scan failure handled by empty state
@@ -44,9 +47,7 @@ export function ContributionsScreen({ onOpenIDE }: ContributionsScreenProps) {
     <div className="p-8">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">My Contributions</h2>
-        <p className="text-muted-foreground mt-1">
-          Manage your active open source contributions
-        </p>
+        <p className="text-muted-foreground mt-1">Manage your active open source contributions</p>
       </div>
 
       <ContributionList

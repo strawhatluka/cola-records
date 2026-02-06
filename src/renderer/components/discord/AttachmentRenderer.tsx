@@ -6,14 +6,15 @@ interface AttachmentRendererProps {
 }
 
 export function AttachmentRenderer({ attachment }: AttachmentRendererProps) {
-  const isImage = attachment.contentType?.startsWith('image/') ||
+  const isImage =
+    attachment.contentType?.startsWith('image/') ||
     /\.(png|jpg|jpeg|gif|webp|avif)$/i.test(attachment.filename);
-  const isVideo = attachment.contentType?.startsWith('video/') ||
-    /\.(mp4|webm|mov)$/i.test(attachment.filename);
-  const isAudio = attachment.contentType?.startsWith('audio/') ||
+  const isVideo =
+    attachment.contentType?.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(attachment.filename);
+  const isAudio =
+    attachment.contentType?.startsWith('audio/') ||
     /\.(mp3|wav|ogg|flac|m4a)$/i.test(attachment.filename);
-  const isGif = attachment.contentType === 'image/gif' ||
-    /\.gif$/i.test(attachment.filename);
+  const isGif = attachment.contentType === 'image/gif' || /\.gif$/i.test(attachment.filename);
 
   if (isImage) {
     return (
@@ -24,9 +25,7 @@ export function AttachmentRenderer({ attachment }: AttachmentRendererProps) {
           className={`rounded max-w-[320px] max-h-[300px] object-contain ${isGif ? '' : ''}`}
           loading="lazy"
         />
-        {isGif && (
-          <span className="text-[9px] text-muted-foreground mt-0.5 block">GIF</span>
-        )}
+        {isGif && <span className="text-[9px] text-muted-foreground mt-0.5 block">GIF</span>}
       </a>
     );
   }
@@ -57,7 +56,9 @@ export function AttachmentRenderer({ attachment }: AttachmentRendererProps) {
         <div className="flex items-center gap-2 mb-1.5">
           <Music className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-xs font-medium truncate text-[#00AFF4]">{attachment.filename}</span>
-          <span className="text-[10px] text-muted-foreground shrink-0">({formatSize(attachment.size)})</span>
+          <span className="text-[10px] text-muted-foreground shrink-0">
+            ({formatSize(attachment.size)})
+          </span>
         </div>
         <audio
           src={attachment.proxyUrl || attachment.url}

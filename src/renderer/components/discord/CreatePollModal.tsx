@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 
 interface CreatePollModalProps {
-  onSubmit: (question: string, answers: string[], duration: number, allowMultiselect: boolean) => void;
+  onSubmit: (
+    question: string,
+    answers: string[],
+    duration: number,
+    allowMultiselect: boolean
+  ) => void;
   onClose: () => void;
 }
 
@@ -127,7 +132,9 @@ export function CreatePollModal({ onSubmit, onClose }: CreatePollModalProps) {
             className="w-full bg-muted rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           >
             {DURATION_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
         </div>

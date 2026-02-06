@@ -38,7 +38,22 @@ function InlineMarkdown({ text }: { text: string }) {
 }
 
 interface Token {
-  type: 'text' | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'code' | 'spoiler' | 'blockquote' | 'emote' | 'animatedEmote' | 'userMention' | 'channelMention' | 'roleMention' | 'timestamp' | 'link';
+  type:
+    | 'text'
+    | 'bold'
+    | 'italic'
+    | 'underline'
+    | 'strikethrough'
+    | 'code'
+    | 'spoiler'
+    | 'blockquote'
+    | 'emote'
+    | 'animatedEmote'
+    | 'userMention'
+    | 'channelMention'
+    | 'roleMention'
+    | 'timestamp'
+    | 'link';
   content: string;
   extra?: string; // For emotes: id, for timestamps: format
 }
@@ -46,7 +61,8 @@ interface Token {
 function tokenize(text: string): Token[] {
   const tokens: Token[] = [];
   // Combined regex for all inline patterns
-  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(__(.+?)__)|( ~~(.+?)~~)|(``(.+?)``)|(`(.+?)`)|(\|\|(.+?)\|\|)|(<a?:(\w+):(\d+)>)|(<@!?(\d+)>)|(<#(\d+)>)|(<@&(\d+)>)|(<t:(\d+)(?::([tTdDfFR]))?>)|(https?:\/\/[^\s<]+)/g;
+  const regex =
+    /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(__(.+?)__)|( ~~(.+?)~~)|(``(.+?)``)|(`(.+?)`)|(\|\|(.+?)\|\|)|(<a?:(\w+):(\d+)>)|(<@!?(\d+)>)|(<#(\d+)>)|(<@&(\d+)>)|(<t:(\d+)(?::([tTdDfFR]))?>)|(https?:\/\/[^\s<]+)/g;
 
   let lastIndex = 0;
   let match;
@@ -227,12 +243,18 @@ function SpoilerText({ content }: { content: string }) {
 
 function formatTimestamp(date: Date, format: string): string {
   switch (format) {
-    case 't': return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    case 'T': return date.toLocaleTimeString();
-    case 'd': return date.toLocaleDateString();
-    case 'D': return date.toLocaleDateString([], { dateStyle: 'long' });
-    case 'f': return date.toLocaleString([], { dateStyle: 'long', timeStyle: 'short' });
-    case 'F': return date.toLocaleString([], { dateStyle: 'full', timeStyle: 'short' });
+    case 't':
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    case 'T':
+      return date.toLocaleTimeString();
+    case 'd':
+      return date.toLocaleDateString();
+    case 'D':
+      return date.toLocaleDateString([], { dateStyle: 'long' });
+    case 'f':
+      return date.toLocaleString([], { dateStyle: 'long', timeStyle: 'short' });
+    case 'F':
+      return date.toLocaleString([], { dateStyle: 'full', timeStyle: 'short' });
     case 'R': {
       const diff = Date.now() - date.getTime();
       const seconds = Math.floor(Math.abs(diff) / 1000);
@@ -245,6 +267,7 @@ function formatTimestamp(date: Date, format: string): string {
       if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ${suffix}`;
       return `${seconds} second${seconds !== 1 ? 's' : ''} ${suffix}`;
     }
-    default: return date.toLocaleString();
+    default:
+      return date.toLocaleString();
   }
 }

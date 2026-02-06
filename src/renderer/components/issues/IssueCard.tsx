@@ -10,7 +10,6 @@ interface IssueCardProps {
 }
 
 export function IssueCard({ issue, onViewDetails, style }: IssueCardProps) {
-
   return (
     <Card
       className="cursor-pointer hover:bg-accent/50 transition-colors"
@@ -20,9 +19,7 @@ export function IssueCard({ issue, onViewDetails, style }: IssueCardProps) {
       <CardHeader className="pb-3">
         <div className="flex-1">
           <CardTitle className="text-base line-clamp-2">{issue.title}</CardTitle>
-          <CardDescription className="mt-1">
-            {issue.repository}
-          </CardDescription>
+          <CardDescription className="mt-1">{issue.repository}</CardDescription>
         </div>
       </CardHeader>
       <CardContent>

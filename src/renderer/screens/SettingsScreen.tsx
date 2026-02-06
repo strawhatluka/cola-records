@@ -24,9 +24,7 @@ export function SettingsScreen() {
     <div className="p-8 max-w-4xl mx-auto">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Settings</h2>
-        <p className="text-muted-foreground mt-1">
-          Configure your Cola Records preferences
-        </p>
+        <p className="text-muted-foreground mt-1">Configure your Cola Records preferences</p>
       </div>
 
       {/* Tab navigation */}
@@ -47,15 +45,9 @@ export function SettingsScreen() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'general' && (
-        <GeneralTab settings={settings} onUpdate={updateSettings} />
-      )}
-      {activeTab === 'api' && (
-        <APITab settings={settings} onUpdate={updateSettings} />
-      )}
-      {activeTab === 'aliases' && (
-        <AliasesTab settings={settings} onUpdate={updateSettings} />
-      )}
+      {activeTab === 'general' && <GeneralTab settings={settings} onUpdate={updateSettings} />}
+      {activeTab === 'api' && <APITab settings={settings} onUpdate={updateSettings} />}
+      {activeTab === 'aliases' && <AliasesTab settings={settings} onUpdate={updateSettings} />}
     </div>
   );
 }

@@ -72,7 +72,9 @@ describe('EnvironmentService', () => {
     it('throws for missing required key', () => {
       delete process.env.REQUIRED;
       const service = new EnvironmentService();
-      expect(() => service.getRequired('REQUIRED')).toThrow("Required environment variable 'REQUIRED' is not set");
+      expect(() => service.getRequired('REQUIRED')).toThrow(
+        "Required environment variable 'REQUIRED' is not set"
+      );
     });
 
     it('returns value when key exists', () => {

@@ -1,5 +1,14 @@
-
-import { Folder, GitBranch, Trash2, ExternalLink, GitFork, CheckCircle, XCircle, GitPullRequest, RefreshCw } from 'lucide-react';
+import {
+  Folder,
+  GitBranch,
+  Trash2,
+  ExternalLink,
+  GitFork,
+  CheckCircle,
+  XCircle,
+  GitPullRequest,
+  RefreshCw,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -18,7 +27,10 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
   const [syncing, setSyncing] = React.useState(false);
   const [branches, setBranches] = React.useState<string[]>([contribution.branchName]);
   const [loadingBranches, setLoadingBranches] = React.useState(false);
-  const repoName = contribution.repositoryUrl.split('/').slice(-1)[0].replace(/\.git$/, '');
+  const repoName = contribution.repositoryUrl
+    .split('/')
+    .slice(-1)[0]
+    .replace(/\.git$/, '');
 
   // Extract owner/repo from repository URL
   const getRepoInfo = (url: string) => {
@@ -53,7 +65,7 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
       await ipc.invoke('contribution:sync-with-github', contribution.id);
       // Trigger a refresh of the contributions list
       window.location.reload();
-    } catch (error) {
+    } catch {
       alert('Failed to sync PR status. Make sure your GitHub token is valid.');
     } finally {
       setSyncing(false);
@@ -82,7 +94,7 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
 
               {/* Fork Status Badge */}
               {contribution.isFork !== undefined && (
-                <Badge variant={contribution.isFork ? "secondary" : "outline"}>
+                <Badge variant={contribution.isFork ? 'secondary' : 'outline'}>
                   <GitFork className="h-3 w-3 mr-1" />
                   {contribution.isFork ? 'Fork' : 'Not a Fork'}
                 </Badge>
@@ -90,7 +102,7 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
 
               {/* Remote Validation Badge */}
               {contribution.isFork && contribution.remotesValid !== undefined && (
-                <Badge variant={contribution.remotesValid ? "default" : "destructive"}>
+                <Badge variant={contribution.remotesValid ? 'default' : 'destructive'}>
                   {contribution.remotesValid ? (
                     <CheckCircle className="h-3 w-3 mr-1" />
                   ) : (
@@ -104,9 +116,11 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
               {contribution.prStatus && (
                 <Badge
                   variant={
-                    contribution.prStatus === 'merged' ? 'default' :
-                    contribution.prStatus === 'open' ? 'secondary' :
-                    'outline'
+                    contribution.prStatus === 'merged'
+                      ? 'default'
+                      : contribution.prStatus === 'open'
+                        ? 'secondary'
+                        : 'outline'
                   }
                 >
                   <GitPullRequest className="h-3 w-3 mr-1" />
@@ -130,7 +144,9 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
                     <code
                       key={branch}
                       className={`bg-muted px-2 py-1 rounded text-xs ${
-                        branch === contribution.branchName ? 'bg-primary text-primary-foreground' : ''
+                        branch === contribution.branchName
+                          ? 'bg-primary text-primary-foreground'
+                          : ''
                       }`}
                     >
                       {branch}
@@ -174,11 +190,7 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
           >
             <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-          >
+          <Button variant="destructive" size="sm" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

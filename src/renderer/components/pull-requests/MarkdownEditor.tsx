@@ -43,7 +43,14 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
   { icon: Heading, label: 'Heading', type: 'prefix', before: '### ' },
   { icon: Bold, label: 'Bold', type: 'wrap', before: '**', after: '**' },
   { icon: Italic, label: 'Italic', type: 'wrap', before: '_', after: '_' },
-  { icon: Strikethrough, label: 'Strikethrough', type: 'wrap', before: '~~', after: '~~', separator: true },
+  {
+    icon: Strikethrough,
+    label: 'Strikethrough',
+    type: 'wrap',
+    before: '~~',
+    after: '~~',
+    separator: true,
+  },
   { icon: Quote, label: 'Quote', type: 'prefix', before: '> ' },
   { icon: Code, label: 'Code', type: 'wrap', before: '`', after: '`' },
   { icon: Link, label: 'Link', type: 'wrap', before: '[', after: '](url)', separator: true },
@@ -52,8 +59,22 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
   { icon: ListChecks, label: 'Task list', type: 'prefix', before: '- [ ] ', separator: true },
   { icon: AtSign, label: 'Mention', type: 'insert', before: '@' },
   { icon: Hash, label: 'Reference', type: 'insert', before: '#', separator: true },
-  { icon: BookMarked, label: 'Saved replies', type: 'insert', before: '', disabled: true, disabledTooltip: 'Coming soon' },
-  { icon: Paperclip, label: 'Attach files', type: 'insert', before: '', disabled: true, disabledTooltip: 'Not supported for remote PRs' },
+  {
+    icon: BookMarked,
+    label: 'Saved replies',
+    type: 'insert',
+    before: '',
+    disabled: true,
+    disabledTooltip: 'Coming soon',
+  },
+  {
+    icon: Paperclip,
+    label: 'Attach files',
+    type: 'insert',
+    before: '',
+    disabled: true,
+    disabledTooltip: 'Not supported for remote PRs',
+  },
 ];
 
 function insertMarkdown(
@@ -68,7 +89,8 @@ function insertMarkdown(
   if (type === 'wrap') {
     const text = selected || 'text';
     const replacement = `${before}${text}${after || ''}`;
-    const newValue = value.substring(0, selectionStart) + replacement + value.substring(selectionEnd);
+    const newValue =
+      value.substring(0, selectionStart) + replacement + value.substring(selectionEnd);
     const cursorStart = selectionStart + before.length;
     const cursorEnd = cursorStart + text.length;
     return { newValue, cursorStart, cursorEnd };

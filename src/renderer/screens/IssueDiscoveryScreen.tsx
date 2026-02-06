@@ -49,11 +49,7 @@ export function IssueDiscoveryScreen({ onOpenIDE }: IssueDiscoveryScreenProps) {
 
       {/* Right Panel - Issue List */}
       <div className="flex-1">
-        <IssueList
-          issues={filteredIssues}
-          onIssueSelect={setSelectedIssue}
-          loading={loading}
-        />
+        <IssueList issues={filteredIssues} onIssueSelect={setSelectedIssue} loading={loading} />
       </div>
 
       {/* Issue Detail Modal */}

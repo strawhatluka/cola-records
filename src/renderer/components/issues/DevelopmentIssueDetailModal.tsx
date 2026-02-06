@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ExternalLink, MessageSquare, Send, ChevronDown, Search, CheckCircle2, Ban, Copy, GitBranch, Plus, Link2 } from 'lucide-react';
+import {
+  ExternalLink,
+  MessageSquare,
+  Send,
+  ChevronDown,
+  Search,
+  CheckCircle2,
+  Ban,
+  Copy,
+  GitBranch,
+  Plus,
+  Link2,
+} from 'lucide-react';
 import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
 import { ReactionDisplay } from '../ui/ReactionPicker';
 import { CreateSubIssueModal } from './CreateSubIssueModal';
 import { AddExistingSubIssueModal } from './AddExistingSubIssueModal';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/Dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -79,7 +85,15 @@ export function formatDate(date: Date): string {
   });
 }
 
-export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isBranched, githubUsername, onClose }: DevelopmentIssueDetailModalProps) {
+export function DevelopmentIssueDetailModal({
+  issue,
+  owner,
+  repo,
+  localPath,
+  isBranched,
+  githubUsername,
+  onClose,
+}: DevelopmentIssueDetailModalProps) {
   const [issueDetail, setIssueDetail] = useState<IssueDetail | null>(null);
   const [comments, setComments] = useState<IssueComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +185,9 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
     if (issue) {
       fetchData(issue.number);
     }
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+    };
   }, [issue?.number, owner, repo]);
 
   const handleSubmitComment = async () => {
@@ -182,7 +198,12 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
       await ipc.invoke('github:create-issue-comment', owner, repo, issue.number, newComment.trim());
       setNewComment('');
       // Refresh comments to show the new one
-      const updatedComments = await ipc.invoke('github:list-issue-comments', owner, repo, issue.number);
+      const updatedComments = await ipc.invoke(
+        'github:list-issue-comments',
+        owner,
+        repo,
+        issue.number
+      );
       if (isMounted.current) setComments(updatedComments);
     } catch {
       // Comment submission failed — user can retry
@@ -210,7 +231,10 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const handleCloseIssue = async (reason: 'completed' | 'not_planned', duplicateOfNumber?: number) => {
+  const handleCloseIssue = async (
+    reason: 'completed' | 'not_planned',
+    duplicateOfNumber?: number
+  ) => {
     if (!issue) return;
     setClosing(true);
     setCloseMenuOpen(false);
@@ -219,7 +243,9 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
       if (reason === 'not_planned' && duplicateOfNumber) {
         await ipc.invoke(
           'github:create-issue-comment',
-          owner, repo, issue.number,
+          owner,
+          repo,
+          issue.number,
           `Duplicate of #${duplicateOfNumber}`
         );
       }
@@ -231,7 +257,12 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
         setIssueState('closed');
         setDuplicateSearchOpen(false);
         // Refresh comments to show the duplicate comment
-        const updatedComments = await ipc.invoke('github:list-issue-comments', owner, repo, issue.number);
+        const updatedComments = await ipc.invoke(
+          'github:list-issue-comments',
+          owner,
+          repo,
+          issue.number
+        );
         if (isMounted.current) setComments(updatedComments);
       }
     } catch {
@@ -265,7 +296,8 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
       setAllIssuesLoading(true);
       try {
         const issues = await ipc.invoke('github:list-issues', owner, repo, 'all');
-        if (isMounted.current) setAllIssues(issues.filter((i: any) => i.number !== issue?.number));
+        if (isMounted.current)
+          setAllIssues(issues.filter((i: IssueSummary) => i.number !== issue?.number));
       } catch {
         // Duplicate search fetch failed
       } finally {
@@ -349,7 +381,9 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
               <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
                 {issueStatusBadge(issueState)}
                 {isBranched && (
-                  <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">branched</Badge>
+                  <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                    branched
+                  </Badge>
                 )}
                 <span>{issue.author}</span>
                 <span>opened this issue</span>
@@ -375,7 +409,9 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
             {issueDetail && issueDetail.labels.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {issueDetail.labels.map((label) => (
-                  <Badge key={label} variant="secondary">{label}</Badge>
+                  <Badge key={label} variant="secondary">
+                    {label}
+                  </Badge>
                 ))}
               </div>
             )}
@@ -424,14 +460,20 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                     {subIssueMenuOpen && (
                       <div className="absolute left-0 top-full mt-1 w-52 rounded-md border border-border bg-popover shadow-lg z-50">
                         <button
-                          onClick={() => { setSubIssueMenuOpen(false); setShowCreateSubIssue(true); }}
+                          onClick={() => {
+                            setSubIssueMenuOpen(false);
+                            setShowCreateSubIssue(true);
+                          }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
                         >
                           <Plus className="h-4 w-4" />
                           Create sub-issue
                         </button>
                         <button
-                          onClick={() => { setSubIssueMenuOpen(false); setShowAddExistingSubIssue(true); }}
+                          onClick={() => {
+                            setSubIssueMenuOpen(false);
+                            setShowAddExistingSubIssue(true);
+                          }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
                         >
                           <Link2 className="h-4 w-4" />
@@ -454,11 +496,13 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                       key={sub.id}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm"
                     >
-                      <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                        sub.state === 'open'
-                          ? 'bg-green-500/10 text-green-500'
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
+                      <span
+                        className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          sub.state === 'open'
+                            ? 'bg-green-500/10 text-green-500'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
                         {sub.state}
                       </span>
                       <span className="truncate flex-1">{sub.title}</span>
@@ -481,7 +525,12 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                   <div key={`comment-${c.id}`} className="border rounded-md p-4">
                     <div className="flex items-center gap-2 mb-2">
                       {c.authorAvatarUrl ? (
-                        <img src={c.authorAvatarUrl} alt={c.author} className="w-5 h-5 rounded-full" loading="lazy" />
+                        <img
+                          src={c.authorAvatarUrl}
+                          alt={c.author}
+                          className="w-5 h-5 rounded-full"
+                          loading="lazy"
+                        />
                       ) : (
                         <div className="w-5 h-5 rounded-full bg-muted" />
                       )}
@@ -530,9 +579,13 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                 />
                 <div className="max-h-48 overflow-y-auto space-y-1 styled-scroll">
                   {allIssuesLoading ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">Loading issues...</p>
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      Loading issues...
+                    </p>
                   ) : filteredDuplicateIssues.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">No issues found</p>
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      No issues found
+                    </p>
                   ) : (
                     filteredDuplicateIssues.map((di) => (
                       <button
@@ -541,11 +594,13 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                         disabled={closing}
                         className="w-full text-left flex items-center gap-2 p-2 rounded-md hover:bg-accent text-xs transition-colors"
                       >
-                        <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          di.state === 'open'
-                            ? 'bg-green-500/10 text-green-500'
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
+                        <span
+                          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            di.state === 'open'
+                              ? 'bg-green-500/10 text-green-500'
+                              : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
                           {di.state}
                         </span>
                         <span className="truncate flex-1">{di.title}</span>
@@ -584,11 +639,7 @@ export function DevelopmentIssueDetailModal({ issue, owner, repo, localPath, isB
                     View on GitHub
                   </Button>
                   {issueState === 'open' && !isBranched && (
-                    <Button
-                      size="sm"
-                      onClick={handleFixIssue}
-                      disabled={creatingBranch}
-                    >
+                    <Button size="sm" onClick={handleFixIssue} disabled={creatingBranch}>
                       <GitBranch className="h-4 w-4 mr-2" />
                       {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
                     </Button>

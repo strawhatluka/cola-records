@@ -42,9 +42,7 @@ export function ProjectsScreen({ onOpenIDE }: ProjectsScreenProps) {
     <div className="p-8">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">My Projects</h2>
-        <p className="text-muted-foreground mt-1">
-          Manage your personal projects
-        </p>
+        <p className="text-muted-foreground mt-1">Manage your personal projects</p>
       </div>
 
       <ContributionList

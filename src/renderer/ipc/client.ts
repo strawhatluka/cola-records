@@ -14,11 +14,8 @@ declare global {
         channel: K,
         ...args: Parameters<IpcChannels[K]>
       ) => Promise<ReturnType<IpcChannels[K]>>;
-      send: <K extends keyof IpcChannels>(
-        channel: K,
-        ...args: Parameters<IpcChannels[K]>
-      ) => void;
-      on: (channel: string, callback: (...args: any[]) => void) => () => void;
+      send: <K extends keyof IpcChannels>(channel: K, ...args: Parameters<IpcChannels[K]>) => void;
+      on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
     };
     process: {
       platform: NodeJS.Platform;
@@ -48,17 +45,14 @@ class IpcClient {
   /**
    * Send an IPC message (one-way)
    */
-  send<K extends keyof IpcChannels>(
-    channel: K,
-    ...args: Parameters<IpcChannels[K]>
-  ): void {
+  send<K extends keyof IpcChannels>(channel: K, ...args: Parameters<IpcChannels[K]>): void {
     window.electronAPI.send(channel, ...args);
   }
 
   /**
    * Listen for IPC events from main process
    */
-  on(channel: string, callback: (...args: any[]) => void): () => void {
+  on(channel: string, callback: (...args: unknown[]) => void): () => void {
     return window.electronAPI.on(channel, callback);
   }
 

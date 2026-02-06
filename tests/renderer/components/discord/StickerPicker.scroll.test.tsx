@@ -79,10 +79,15 @@ describe('StickerPicker Scroll Throttling', () => {
     const { container } = render(<StickerPicker onSelect={onSelect} />);
 
     // Wait for async data loading
-    await vi.waitFor(() => {
-      const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
-      return scrollContainer !== null;
-    }, { timeout: 1000 }).catch(() => null);
+    await vi
+      .waitFor(
+        () => {
+          const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
+          return scrollContainer !== null;
+        },
+        { timeout: 1000 }
+      )
+      .catch(() => null);
 
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
@@ -102,10 +107,15 @@ describe('StickerPicker Scroll Throttling', () => {
     const onSelect = vi.fn();
     const { container } = render(<StickerPicker onSelect={onSelect} />);
 
-    await vi.waitFor(() => {
-      const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
-      return scrollContainer !== null;
-    }, { timeout: 1000 }).catch(() => null);
+    await vi
+      .waitFor(
+        () => {
+          const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
+          return scrollContainer !== null;
+        },
+        { timeout: 1000 }
+      )
+      .catch(() => null);
 
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
@@ -126,10 +136,15 @@ describe('StickerPicker Scroll Throttling', () => {
     const onSelect = vi.fn();
     const { container, unmount } = render(<StickerPicker onSelect={onSelect} />);
 
-    await vi.waitFor(() => {
-      const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
-      return scrollContainer !== null;
-    }, { timeout: 1000 }).catch(() => null);
+    await vi
+      .waitFor(
+        () => {
+          const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
+          return scrollContainer !== null;
+        },
+        { timeout: 1000 }
+      )
+      .catch(() => null);
 
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
@@ -160,10 +175,15 @@ describe('StickerPicker Scroll Throttling', () => {
     const onSelect = vi.fn();
     const { container } = render(<StickerPicker onSelect={onSelect} />);
 
-    await vi.waitFor(() => {
-      const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
-      return scrollContainer !== null;
-    }, { timeout: 1000 }).catch(() => null);
+    await vi
+      .waitFor(
+        () => {
+          const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
+          return scrollContainer !== null;
+        },
+        { timeout: 1000 }
+      )
+      .catch(() => null);
 
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 

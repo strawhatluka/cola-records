@@ -17,7 +17,11 @@ interface ForumThreadListProps {
   onToggleChannelSidebar?: () => void;
 }
 
-export function ForumThreadList({ showChannelToggle, channelSidebarOpen, onToggleChannelSidebar }: ForumThreadListProps = {}) {
+export function ForumThreadList({
+  showChannelToggle,
+  channelSidebarOpen,
+  onToggleChannelSidebar,
+}: ForumThreadListProps = {}) {
   const {
     forumThreads,
     forumHasMore,
@@ -49,7 +53,7 @@ export function ForumThreadList({ showChannelToggle, channelSidebarOpen, onToggl
         selectedForumChannelId,
         newTitle.trim(),
         newContent.trim(),
-        newTags.length > 0 ? newTags : undefined,
+        newTags.length > 0 ? newTags : undefined
       );
       setShowCreate(false);
       setNewTitle('');
@@ -118,14 +122,20 @@ export function ForumThreadList({ showChannelToggle, channelSidebarOpen, onToggl
             <div className="absolute top-full left-0 mt-1 z-50 bg-popover border rounded-md shadow-md py-1 min-w-[140px]">
               <button
                 type="button"
-                onClick={() => { setForumSort('last_message_time', 'desc'); setShowSortMenu(false); }}
+                onClick={() => {
+                  setForumSort('last_message_time', 'desc');
+                  setShowSortMenu(false);
+                }}
                 className={`w-full text-left px-3 py-1 text-[10px] hover:bg-muted transition-colors ${forumSortBy === 'last_message_time' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
               >
                 Recent Activity
               </button>
               <button
                 type="button"
-                onClick={() => { setForumSort('creation_time', 'desc'); setShowSortMenu(false); }}
+                onClick={() => {
+                  setForumSort('creation_time', 'desc');
+                  setShowSortMenu(false);
+                }}
                 className={`w-full text-left px-3 py-1 text-[10px] hover:bg-muted transition-colors ${forumSortBy === 'creation_time' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
               >
                 Creation Date
@@ -171,7 +181,9 @@ export function ForumThreadList({ showChannelToggle, channelSidebarOpen, onToggl
         )}
 
         {forumTotalResults > 0 && (
-          <span className="text-[10px] text-muted-foreground ml-auto">{forumTotalResults} posts</span>
+          <span className="text-[10px] text-muted-foreground ml-auto">
+            {forumTotalResults} posts
+          </span>
         )}
       </div>
 
@@ -202,7 +214,11 @@ export function ForumThreadList({ showChannelToggle, channelSidebarOpen, onToggl
                   <button
                     key={tag.id}
                     type="button"
-                    onClick={() => setNewTags(selected ? newTags.filter((t) => t !== tag.id) : [...newTags, tag.id])}
+                    onClick={() =>
+                      setNewTags(
+                        selected ? newTags.filter((t) => t !== tag.id) : [...newTags, tag.id]
+                      )
+                    }
                     className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors ${
                       selected
                         ? 'bg-primary text-primary-foreground'
@@ -219,7 +235,12 @@ export function ForumThreadList({ showChannelToggle, channelSidebarOpen, onToggl
           <div className="flex items-center gap-2 justify-end">
             <button
               type="button"
-              onClick={() => { setShowCreate(false); setNewTitle(''); setNewContent(''); setNewTags([]); }}
+              onClick={() => {
+                setShowCreate(false);
+                setNewTitle('');
+                setNewContent('');
+                setNewTags([]);
+              }}
               className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors"
             >
               Cancel
@@ -257,7 +278,10 @@ export function ForumThreadList({ showChannelToggle, channelSidebarOpen, onToggl
               {thread.appliedTags.length > 0 && (
                 <div className="flex items-center gap-1">
                   {thread.appliedTags.map((tagId) => (
-                    <span key={tagId} className="text-[9px] bg-muted px-1 py-0.5 rounded text-muted-foreground">
+                    <span
+                      key={tagId}
+                      className="text-[9px] bg-muted px-1 py-0.5 rounded text-muted-foreground"
+                    >
                       {getTagName(tagId)}
                     </span>
                   ))}

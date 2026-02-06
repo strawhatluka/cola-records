@@ -33,7 +33,7 @@ export function APITab({ settings, onUpdate }: APITabProps) {
         await onUpdate({ githubToken });
         alert('GitHub token validated and saved successfully!');
       }
-    } catch (error) {
+    } catch {
       setTokenValid(false);
       alert('Token validation failed. Please check your token.');
     } finally {
@@ -82,7 +82,9 @@ export function APITab({ settings, onUpdate }: APITabProps) {
               <code className="bg-muted px-1">read:user</code>
             </p>
             {tokenValid === false && (
-              <p className="text-xs text-destructive mt-1">Invalid token. Please check and try again.</p>
+              <p className="text-xs text-destructive mt-1">
+                Invalid token. Please check and try again.
+              </p>
             )}
           </div>
         </CardContent>
@@ -127,11 +129,10 @@ export function APITab({ settings, onUpdate }: APITabProps) {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Create an app at{' '}
-              <span className="font-medium">developer.spotify.com</span>{' '}
-              and copy the Client ID. Add{' '}
-              <code className="bg-muted px-1">http://127.0.0.1:3001/api/spotify/callback</code>{' '}
-              as a redirect URI.
+              Create an app at <span className="font-medium">developer.spotify.com</span> and copy
+              the Client ID. Add{' '}
+              <code className="bg-muted px-1">http://127.0.0.1:3001/api/spotify/callback</code> as a
+              redirect URI.
             </p>
           </div>
         </CardContent>
@@ -177,12 +178,11 @@ export function APITab({ settings, onUpdate }: APITabProps) {
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Open Discord in a browser (discord.com/app), press{' '}
-              <code className="bg-muted px-1">F12</code>{' '}
-              to open DevTools → <code className="bg-muted px-1">Network</code>{' '}
-              tab → filter by <code className="bg-muted px-1">XHR</code>{' '}
-              → click any request → find the{' '}
-              <code className="bg-muted px-1">Authorization</code>{' '}
-              header value in the Request Headers.
+              <code className="bg-muted px-1">F12</code> to open DevTools →{' '}
+              <code className="bg-muted px-1">Network</code> tab → filter by{' '}
+              <code className="bg-muted px-1">XHR</code> → click any request → find the{' '}
+              <code className="bg-muted px-1">Authorization</code> header value in the Request
+              Headers.
             </p>
           </div>
         </CardContent>

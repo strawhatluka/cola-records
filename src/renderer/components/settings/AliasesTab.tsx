@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Separator } from '../ui/Separator';
-import type { AppSettings, Alias } from '../../../main/ipc/channels';
+import type { AppSettings } from '../../../main/ipc/channels';
 
 interface AliasesTabProps {
   settings: AppSettings;
@@ -23,7 +23,8 @@ export function AliasesTab({ settings, onUpdate }: AliasesTabProps) {
   const validateName = (name: string, excludeIndex?: number): string | null => {
     if (!name.trim()) return 'Alias name is required';
     if (/\s/.test(name)) return 'Alias name cannot contain spaces';
-    if (!/^[a-zA-Z0-9_-]+$/.test(name)) return 'Alias name can only contain letters, numbers, hyphens, and underscores';
+    if (!/^[a-zA-Z0-9_-]+$/.test(name))
+      return 'Alias name can only contain letters, numbers, hyphens, and underscores';
     const duplicate = aliases.findIndex((a, i) => a.name === name && i !== excludeIndex);
     if (duplicate !== -1) return `Alias "${name}" already exists`;
     return null;
@@ -107,8 +108,8 @@ export function AliasesTab({ settings, onUpdate }: AliasesTabProps) {
         <CardHeader>
           <CardTitle>Shell Aliases</CardTitle>
           <CardDescription>
-            Custom terminal aliases for the Development environment.
-            Changes take effect on next Development session start.
+            Custom terminal aliases for the Development environment. Changes take effect on next
+            Development session start.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -141,9 +142,13 @@ export function AliasesTab({ settings, onUpdate }: AliasesTabProps) {
                     </div>
                   ) : (
                     <div className="flex gap-2 items-center group">
-                      <code className="bg-muted px-2 py-1 rounded text-sm w-36 truncate">{alias.name}</code>
+                      <code className="bg-muted px-2 py-1 rounded text-sm w-36 truncate">
+                        {alias.name}
+                      </code>
                       <span className="text-muted-foreground text-sm">=</span>
-                      <code className="bg-muted px-2 py-1 rounded text-sm flex-1 truncate">{alias.command}</code>
+                      <code className="bg-muted px-2 py-1 rounded text-sm flex-1 truncate">
+                        {alias.command}
+                      </code>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -179,13 +184,19 @@ export function AliasesTab({ settings, onUpdate }: AliasesTabProps) {
             <div className="flex gap-2 mt-2" onKeyDown={handleKeyDown}>
               <Input
                 value={newName}
-                onChange={(e) => { setNewName(e.target.value); setError(null); }}
+                onChange={(e) => {
+                  setNewName(e.target.value);
+                  setError(null);
+                }}
                 placeholder="name (e.g. gp)"
                 className="w-36"
               />
               <Input
                 value={newCommand}
-                onChange={(e) => { setNewCommand(e.target.value); setError(null); }}
+                onChange={(e) => {
+                  setNewCommand(e.target.value);
+                  setError(null);
+                }}
                 placeholder="command (e.g. git push)"
                 className="flex-1"
               />
@@ -194,13 +205,12 @@ export function AliasesTab({ settings, onUpdate }: AliasesTabProps) {
                 Add
               </Button>
             </div>
-            {error && (
-              <p className="text-xs text-destructive mt-1">{error}</p>
-            )}
+            {error && <p className="text-xs text-destructive mt-1">{error}</p>}
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Default aliases (ll, gs, gd, gl) are always included. Custom aliases with the same name will override defaults.
+            Default aliases (ll, gs, gd, gl) are always included. Custom aliases with the same name
+            will override defaults.
           </p>
         </CardContent>
       </Card>

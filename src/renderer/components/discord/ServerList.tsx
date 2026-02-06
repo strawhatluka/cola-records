@@ -18,9 +18,7 @@ export function ServerList() {
         }`}
         title="Direct Messages"
       >
-        {isDMsActive && (
-          <div className="absolute left-[-6px] w-1 h-6 bg-foreground rounded-r" />
-        )}
+        {isDMsActive && <div className="absolute left-[-6px] w-1 h-6 bg-foreground rounded-r" />}
         <MessageSquare className="h-4 w-4" />
       </button>
 
@@ -46,17 +44,18 @@ export function ServerList() {
             type="button"
             onClick={() => selectGuild(guild.id)}
             className={`relative flex h-10 w-10 items-center justify-center rounded-2xl transition-[border-radius,background-color] overflow-hidden ${
-              isActive
-                ? 'rounded-xl ring-2 ring-[#5865F2]'
-                : 'hover:rounded-xl'
+              isActive ? 'rounded-xl ring-2 ring-[#5865F2]' : 'hover:rounded-xl'
             }`}
             title={guild.name}
           >
-            {isActive && (
-              <div className="absolute left-[-6px] w-1 h-6 bg-foreground rounded-r" />
-            )}
+            {isActive && <div className="absolute left-[-6px] w-1 h-6 bg-foreground rounded-r" />}
             {iconUrl ? (
-              <img src={iconUrl} alt={guild.name} className="h-10 w-10 object-cover" loading="lazy" />
+              <img
+                src={iconUrl}
+                alt={guild.name}
+                className="h-10 w-10 object-cover"
+                loading="lazy"
+              />
             ) : (
               <div className="h-10 w-10 bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground">
                 {initials}

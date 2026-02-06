@@ -48,14 +48,21 @@ describe('MessageItem', () => {
   });
 
   it('renders the author avatar image with CDN URL', () => {
-    const author = createMockDiscordUser({ id: '111222333', avatar: 'abc123', globalName: 'Avatar User' });
+    const author = createMockDiscordUser({
+      id: '111222333',
+      avatar: 'abc123',
+      globalName: 'Avatar User',
+    });
     const message = createMockDiscordMessage({ author });
 
     render(<MessageItem message={message} {...defaultProps()} />);
 
     const avatar = screen.getByAltText('Avatar User');
     expect(avatar).toBeInTheDocument();
-    expect(avatar).toHaveAttribute('src', 'https://cdn.discordapp.com/avatars/111222333/abc123.png?size=64');
+    expect(avatar).toHaveAttribute(
+      'src',
+      'https://cdn.discordapp.com/avatars/111222333/abc123.png?size=64'
+    );
   });
 
   it('renders the message timestamp', () => {
@@ -83,7 +90,10 @@ describe('MessageItem', () => {
 
     const img = screen.getByAltText('screenshot.png');
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', 'https://media.discordapp.net/attachments/1/2/screenshot.png');
+    expect(img).toHaveAttribute(
+      'src',
+      'https://media.discordapp.net/attachments/1/2/screenshot.png'
+    );
   });
 
   it('renders embeds with title and description', () => {

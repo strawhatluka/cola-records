@@ -3,13 +3,7 @@ import { Folder } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/Select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
 import { ipc } from '../../ipc/client';
 import { useTheme } from '../../providers/ThemeProvider';
 import type { AppSettings } from '../../../main/ipc/channels';
@@ -21,8 +15,12 @@ interface GeneralTabProps {
 
 export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
   const [defaultClonePath, setDefaultClonePath] = React.useState(settings.defaultClonePath);
-  const [defaultProjectsPath, setDefaultProjectsPath] = React.useState(settings.defaultProjectsPath);
-  const [defaultProfessionalProjectsPath, setDefaultProfessionalProjectsPath] = React.useState(settings.defaultProfessionalProjectsPath);
+  const [defaultProjectsPath, setDefaultProjectsPath] = React.useState(
+    settings.defaultProjectsPath
+  );
+  const [defaultProfessionalProjectsPath, setDefaultProfessionalProjectsPath] = React.useState(
+    settings.defaultProfessionalProjectsPath
+  );
   const [localTheme, setLocalTheme] = React.useState(settings.theme);
   const { setTheme: setAppTheme } = useTheme();
 
@@ -31,7 +29,12 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
     setDefaultProjectsPath(settings.defaultProjectsPath);
     setDefaultProfessionalProjectsPath(settings.defaultProfessionalProjectsPath);
     setLocalTheme(settings.theme);
-  }, [settings.defaultClonePath, settings.defaultProjectsPath, settings.defaultProfessionalProjectsPath, settings.theme]);
+  }, [
+    settings.defaultClonePath,
+    settings.defaultProjectsPath,
+    settings.defaultProfessionalProjectsPath,
+    settings.theme,
+  ]);
 
   const handleSelectCloneDirectory = async () => {
     try {
@@ -159,7 +162,10 @@ export function GeneralTab({ settings, onUpdate }: GeneralTabProps) {
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium">Theme</label>
-            <Select value={localTheme} onValueChange={(value: any) => setLocalTheme(value)}>
+            <Select
+              value={localTheme}
+              onValueChange={(value: 'light' | 'dark' | 'system') => setLocalTheme(value)}
+            >
               <SelectTrigger className="mt-2">
                 <SelectValue />
               </SelectTrigger>

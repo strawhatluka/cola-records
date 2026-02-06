@@ -164,10 +164,14 @@ describe('useContributionsStore', () => {
 
       let result: any;
       await act(async () => {
-        result = await useContributionsStore.getState().updateContribution('update-me', { status: 'ready' });
+        result = await useContributionsStore
+          .getState()
+          .updateContribution('update-me', { status: 'ready' });
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('contribution:update', 'update-me', { status: 'ready' });
+      expect(mockInvoke).toHaveBeenCalledWith('contribution:update', 'update-me', {
+        status: 'ready',
+      });
       expect(result.status).toBe('ready');
       expect(useContributionsStore.getState().contributions[0].status).toBe('ready');
     });
@@ -179,7 +183,9 @@ describe('useContributionsStore', () => {
 
       await expect(
         act(async () => {
-          await useContributionsStore.getState().updateContribution('fail-update', { status: 'ready' });
+          await useContributionsStore
+            .getState()
+            .updateContribution('fail-update', { status: 'ready' });
         })
       ).rejects.toThrow('Update failed');
 

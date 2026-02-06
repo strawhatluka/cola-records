@@ -53,6 +53,17 @@ interface Issue {
   authorAvatarUrl: string;
 }
 
+interface PRComment {
+  author: string;
+  updatedAt?: string;
+  createdAt: string;
+}
+
+interface PRReview {
+  author: string;
+  submittedAt: string;
+}
+
 export function extractOwnerRepo(repoUrl: string): { owner: string; repo: string } | null {
   const match = repoUrl.match(/github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/);
   if (!match) return null;
@@ -88,7 +99,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   useEffect(() => {
     if (!contribution.localPath) return;
     setRemotesLoading(true);
-    ipc.invoke('git:get-remotes', contribution.localPath)
+    ipc
+      .invoke('git:get-remotes', contribution.localPath)
       .then((result) => {
         if (isMounted.current) setRemotes(result);
       })
@@ -102,7 +114,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
 
   // Fetch authenticated user on mount
   useEffect(() => {
-    ipc.invoke('github:get-authenticated-user')
+    ipc
+      .invoke('github:get-authenticated-user')
       .then((user) => {
         if (isMounted.current) setGithubUsername(user.login);
       })
@@ -120,7 +133,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
 
     setPrsLoading(true);
     setPrsError(null);
-    ipc.invoke('github:list-pull-requests', parsed.owner, parsed.repo, 'all')
+    ipc
+      .invoke('github:list-pull-requests', parsed.owner, parsed.repo, 'all')
       .then((result) => {
         if (isMounted.current) setPullRequests(result);
       })
@@ -146,7 +160,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   // Fetch all branches on mount (for issue-button color logic)
   useEffect(() => {
     if (!contribution.localPath) return;
-    ipc.invoke('git:get-branches', contribution.localPath)
+    ipc
+      .invoke('git:get-branches', contribution.localPath)
       .then((result) => {
         if (isMounted.current) setBranches(result);
       })
@@ -185,8 +200,14 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
 
         // Combine all activity and find the latest from user and from others
         const allActivity = [
-          ...comments.map((c: any) => ({ author: c.author, date: new Date(c.updatedAt || c.createdAt).getTime() })),
-          ...reviews.map((r: any) => ({ author: r.author, date: new Date(r.submittedAt).getTime() })),
+          ...(comments as PRComment[]).map((c) => ({
+            author: c.author,
+            date: new Date(c.updatedAt || c.createdAt).getTime(),
+          })),
+          ...(reviews as PRReview[]).map((r) => ({
+            author: r.author,
+            date: new Date(r.submittedAt).getTime(),
+          })),
         ];
 
         const latestFromOther = allActivity
@@ -206,7 +227,13 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       .catch(() => {
         // PR response check is best-effort
       });
-  }, [pullRequests, githubUsername, contribution.type, contribution.upstreamUrl, contribution.repositoryUrl]);
+  }, [
+    pullRequests,
+    githubUsername,
+    contribution.type,
+    contribution.upstreamUrl,
+    contribution.repositoryUrl,
+  ]);
 
   // Reusable function to fetch issues
   const fetchIssues = useCallback(() => {
@@ -218,7 +245,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
 
     setIssuesLoading(true);
     setIssuesError(null);
-    ipc.invoke('github:list-issues', parsed.owner, parsed.repo, 'open')
+    ipc
+      .invoke('github:list-issues', parsed.owner, parsed.repo, 'open')
       .then((result) => {
         if (isMounted.current) setIssues(result);
       })
@@ -362,13 +390,11 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   // Yellow: open issues exist AND at least one has a branch matching its number
   // Red: open issues exist but NONE have a branch matching their number
   const openIssues = issues.filter((i) => i.state === 'open');
-  const hasBranchedIssue = openIssues.length > 0 && openIssues.some((i) =>
-    branches.some((b) => new RegExp(`\\b${i.number}\\b`).test(b))
-  );
+  const hasBranchedIssue =
+    openIssues.length > 0 &&
+    openIssues.some((i) => branches.some((b) => new RegExp(`\\b${i.number}\\b`).test(b)));
   const issueButtonColor: 'red' | 'yellow' | 'green' =
-    openIssues.length === 0 ? 'green'
-    : hasBranchedIssue ? 'yellow'
-    : 'red';
+    openIssues.length === 0 ? 'green' : hasBranchedIssue ? 'yellow' : 'red';
 
   // PR button color logic — differs between contributions and projects
   const openPRs = pullRequests.filter((pr) => !pr.merged && pr.state === 'open');
@@ -378,9 +404,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       return openPRs.length === 0 ? 'green' : 'red';
     }
     // Contributions: null = no user PRs, orange = awaiting response, blue = has open PR
-    const myOpenPRs = githubUsername
-      ? openPRs.filter((pr) => pr.author === githubUsername)
-      : [];
+    const myOpenPRs = githubUsername ? openPRs.filter((pr) => pr.author === githubUsername) : [];
     if (myOpenPRs.length === 0) return null;
     if (awaitingResponse) return 'orange';
     return 'blue';
@@ -393,12 +417,12 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium truncate max-w-md">
             {contribution.repositoryUrl
-              ? contribution.repositoryUrl.replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '')
+              ? contribution.repositoryUrl
+                  .replace(/^https?:\/\/github\.com\//, '')
+                  .replace(/\.git$/, '')
               : 'Unknown Issue'}
           </span>
-          <span className="text-xs text-muted-foreground">
-            {contribution.localPath}
-          </span>
+          <span className="text-xs text-muted-foreground">{contribution.localPath}</span>
         </div>
         <div className="flex gap-2" ref={dropdownRef}>
           {(['issues', 'remotes', 'pull-requests', 'tools'] as const).map((name) => (
@@ -410,40 +434,42 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                     ? activeDropdown === name
                       ? 'border-red-500 bg-red-500 text-white'
                       : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
-                  : name === 'issues' && issueButtonColor === 'yellow'
-                    ? activeDropdown === name
-                      ? 'border-yellow-500 bg-yellow-500 text-white'
-                      : 'border-yellow-500 bg-yellow-500 text-white hover:bg-yellow-500/80'
-                  : name === 'issues' && issueButtonColor === 'green'
-                    ? activeDropdown === name
-                      ? 'border-green-500 bg-green-500 text-white'
-                      : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
-                    : name === 'remotes' && contribution.remotesValid
-                    ? activeDropdown === name
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
-                    : name === 'pull-requests' && prButtonColor === 'red'
-                    ? activeDropdown === name
-                      ? 'border-red-500 bg-red-500 text-white'
-                      : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
-                  : name === 'pull-requests' && prButtonColor === 'orange'
-                    ? activeDropdown === name
-                      ? 'border-orange-500 bg-orange-500 text-white'
-                      : 'border-orange-500 bg-orange-500 text-white hover:bg-orange-500/80'
-                  : name === 'pull-requests' && prButtonColor === 'blue'
-                    ? activeDropdown === name
-                      ? 'border-blue-500 bg-blue-500 text-white'
-                      : 'border-blue-500 bg-blue-500 text-white hover:bg-blue-500/80'
-                  : name === 'pull-requests' && prButtonColor === 'green'
-                    ? activeDropdown === name
-                      ? 'border-green-500 bg-green-500 text-white'
-                      : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
-                      : activeDropdown === name
-                        ? 'border-primary bg-accent'
-                        : 'border-border hover:bg-accent'
+                    : name === 'issues' && issueButtonColor === 'yellow'
+                      ? activeDropdown === name
+                        ? 'border-yellow-500 bg-yellow-500 text-white'
+                        : 'border-yellow-500 bg-yellow-500 text-white hover:bg-yellow-500/80'
+                      : name === 'issues' && issueButtonColor === 'green'
+                        ? activeDropdown === name
+                          ? 'border-green-500 bg-green-500 text-white'
+                          : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
+                        : name === 'remotes' && contribution.remotesValid
+                          ? activeDropdown === name
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
+                          : name === 'pull-requests' && prButtonColor === 'red'
+                            ? activeDropdown === name
+                              ? 'border-red-500 bg-red-500 text-white'
+                              : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
+                            : name === 'pull-requests' && prButtonColor === 'orange'
+                              ? activeDropdown === name
+                                ? 'border-orange-500 bg-orange-500 text-white'
+                                : 'border-orange-500 bg-orange-500 text-white hover:bg-orange-500/80'
+                              : name === 'pull-requests' && prButtonColor === 'blue'
+                                ? activeDropdown === name
+                                  ? 'border-blue-500 bg-blue-500 text-white'
+                                  : 'border-blue-500 bg-blue-500 text-white hover:bg-blue-500/80'
+                                : name === 'pull-requests' && prButtonColor === 'green'
+                                  ? activeDropdown === name
+                                    ? 'border-green-500 bg-green-500 text-white'
+                                    : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
+                                  : activeDropdown === name
+                                    ? 'border-primary bg-accent'
+                                    : 'border-border hover:bg-accent'
                 }`}
               >
-                {name === 'pull-requests' ? 'Pull Requests' : name.charAt(0).toUpperCase() + name.slice(1)}
+                {name === 'pull-requests'
+                  ? 'Pull Requests'
+                  : name.charAt(0).toUpperCase() + name.slice(1)}
               </button>
               {activeDropdown === name && name === 'remotes' && (
                 <div className="absolute right-0 top-full mt-1 w-80 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
@@ -470,11 +496,13 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                             )}
                           </div>
                           <div className="text-muted-foreground break-all pl-2">
-                            <span className="text-muted-foreground/60">fetch:</span> {remote.fetchUrl}
+                            <span className="text-muted-foreground/60">fetch:</span>{' '}
+                            {remote.fetchUrl}
                           </div>
                           {remote.pushUrl && remote.pushUrl !== remote.fetchUrl && (
                             <div className="text-muted-foreground break-all pl-2">
-                              <span className="text-muted-foreground/60">push:</span> {remote.pushUrl}
+                              <span className="text-muted-foreground/60">push:</span>{' '}
+                              {remote.pushUrl}
                             </div>
                           )}
                         </div>
@@ -488,7 +516,11 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm font-medium">Pull Requests</p>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setShowCreatePR(true); setActiveDropdown(null); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowCreatePR(true);
+                        setActiveDropdown(null);
+                      }}
                       className="px-2 py-1 text-xs rounded-md border border-border hover:bg-accent transition-colors"
                     >
                       + New PR
@@ -512,40 +544,47 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                           return 0;
                         })
                         .map((pr) => {
-                        const status = pr.merged ? 'merged' : pr.state;
-                        const isMine = githubUsername && pr.author === githubUsername;
-                        return (
-                          <div
-                            key={pr.number}
-                            onClick={() => { setSelectedPR(pr); setActiveDropdown(null); }}
-                            className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs"
-                          >
-                            <span className={`mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              status === 'merged'
-                                ? 'bg-primary/10 text-primary'
-                                : status === 'open'
-                                  ? 'bg-green-500/10 text-green-500'
-                                  : 'bg-muted text-muted-foreground'
-                            }`}>
-                              {status}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-medium text-sm truncate">{pr.title}</span>
-                                <span className="text-muted-foreground shrink-0">#{pr.number}</span>
-                                {isMine && (
-                                  <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
-                                    submitted
+                          const status = pr.merged ? 'merged' : pr.state;
+                          const isMine = githubUsername && pr.author === githubUsername;
+                          return (
+                            <div
+                              key={pr.number}
+                              onClick={() => {
+                                setSelectedPR(pr);
+                                setActiveDropdown(null);
+                              }}
+                              className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs"
+                            >
+                              <span
+                                className={`mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  status === 'merged'
+                                    ? 'bg-primary/10 text-primary'
+                                    : status === 'open'
+                                      ? 'bg-green-500/10 text-green-500'
+                                      : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                {status}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium text-sm truncate">{pr.title}</span>
+                                  <span className="text-muted-foreground shrink-0">
+                                    #{pr.number}
                                   </span>
-                                )}
-                              </div>
-                              <div className="text-muted-foreground mt-0.5">
-                                {pr.headBranch} &middot; {pr.author}
+                                  {isMine && (
+                                    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
+                                      submitted
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-muted-foreground mt-0.5">
+                                  {pr.headBranch} &middot; {pr.author}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   )}
                 </div>
@@ -555,7 +594,11 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm font-medium">Issues</p>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setShowCreateIssue(true); setActiveDropdown(null); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowCreateIssue(true);
+                        setActiveDropdown(null);
+                      }}
                       className="px-2 py-1 text-xs rounded-md border border-border hover:bg-accent transition-colors"
                     >
                       + New Issue
@@ -572,47 +615,62 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                       {[...issues]
                         .sort((a, b) => {
                           // Sort branched issues to the top
-                          const aBranched = branches.some((br) => new RegExp(`\\b${a.number}\\b`).test(br));
-                          const bBranched = branches.some((br) => new RegExp(`\\b${b.number}\\b`).test(br));
+                          const aBranched = branches.some((br) =>
+                            new RegExp(`\\b${a.number}\\b`).test(br)
+                          );
+                          const bBranched = branches.some((br) =>
+                            new RegExp(`\\b${b.number}\\b`).test(br)
+                          );
                           if (aBranched && !bBranched) return -1;
                           if (!aBranched && bBranched) return 1;
                           return 0; // Keep original order within each group
                         })
                         .map((issue) => {
-                        const branchMatches = branches.some((br) => new RegExp(`\\b${issue.number}\\b`).test(br));
-                        return (
-                          <div
-                            key={issue.number}
-                            onClick={() => { setSelectedIssue(issue); setActiveDropdown(null); }}
-                            className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs"
-                          >
-                            <span className={`mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              issue.state === 'open'
-                                ? 'bg-green-500/10 text-green-500'
-                                : 'bg-muted text-muted-foreground'
-                            }`}>
-                              {issue.state}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-medium text-sm truncate">{issue.title}</span>
-                                <span className="text-muted-foreground shrink-0">#{issue.number}</span>
-                                {branchMatches && (
-                                  <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
-                                    branched
+                          const branchMatches = branches.some((br) =>
+                            new RegExp(`\\b${issue.number}\\b`).test(br)
+                          );
+                          return (
+                            <div
+                              key={issue.number}
+                              onClick={() => {
+                                setSelectedIssue(issue);
+                                setActiveDropdown(null);
+                              }}
+                              className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs"
+                            >
+                              <span
+                                className={`mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  issue.state === 'open'
+                                    ? 'bg-green-500/10 text-green-500'
+                                    : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                {issue.state}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium text-sm truncate">
+                                    {issue.title}
                                   </span>
-                                )}
-                              </div>
-                              <div className="text-muted-foreground mt-0.5">
-                                {issue.author}
-                                {issue.labels.length > 0 && (
-                                  <span> &middot; {issue.labels.slice(0, 3).join(', ')}</span>
-                                )}
+                                  <span className="text-muted-foreground shrink-0">
+                                    #{issue.number}
+                                  </span>
+                                  {branchMatches && (
+                                    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
+                                      branched
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-muted-foreground mt-0.5">
+                                  {issue.author}
+                                  {issue.labels.length > 0 && (
+                                    <span> &middot; {issue.labels.slice(0, 3).join(', ')}</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   )}
                 </div>
@@ -635,82 +693,95 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       </div>
 
       {/* VS Code webview */}
-      <webview
-        ref={webviewRef}
-        src={url!}
-        style={{ flex: 1, width: '100%', height: '100%' }}
-        // @ts-expect-error - webview attributes not in React types
-        allowpopups="true"
-      />
+      {/* eslint-disable react/no-unknown-property -- Electron webview attributes */}
+      {url && (
+        <webview
+          ref={webviewRef}
+          src={url}
+          style={{ flex: 1, width: '100%', height: '100%' }}
+          // @ts-expect-error - webview attributes not in React types
+          allowpopups="true"
+        />
+      )}
+      {/* eslint-enable react/no-unknown-property */}
 
       {/* PR Detail Modal */}
-      {selectedPR && (() => {
-        const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-        const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-        return parsed ? (
-          <PullRequestDetailModal
-            pr={selectedPR}
-            owner={parsed.owner}
-            repo={parsed.repo}
-            githubUsername={githubUsername}
-            onClose={() => setSelectedPR(null)}
-            onRefresh={() => fetchPullRequests()}
-            canWrite={contribution.type === 'project'}
-          />
-        ) : null;
-      })()}
+      {selectedPR &&
+        (() => {
+          const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+          const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
+          return parsed ? (
+            <PullRequestDetailModal
+              pr={selectedPR}
+              owner={parsed.owner}
+              repo={parsed.repo}
+              githubUsername={githubUsername}
+              onClose={() => setSelectedPR(null)}
+              onRefresh={() => fetchPullRequests()}
+              canWrite={contribution.type === 'project'}
+            />
+          ) : null;
+        })()}
 
       {/* Issue Detail Modal */}
-      {selectedIssue && (() => {
-        const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-        const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-        const branchMatches = branches.some((br) => new RegExp(`\\b${selectedIssue.number}\\b`).test(br));
-        return parsed ? (
-          <DevelopmentIssueDetailModal
-            issue={selectedIssue}
-            owner={parsed.owner}
-            repo={parsed.repo}
-            localPath={contribution.localPath}
-            isBranched={branchMatches}
-            githubUsername={githubUsername}
-            onClose={() => { setSelectedIssue(null); fetchIssues(); }}
-          />
-        ) : null;
-      })()}
+      {selectedIssue &&
+        (() => {
+          const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+          const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
+          const branchMatches = branches.some((br) =>
+            new RegExp(`\\b${selectedIssue.number}\\b`).test(br)
+          );
+          return parsed ? (
+            <DevelopmentIssueDetailModal
+              issue={selectedIssue}
+              owner={parsed.owner}
+              repo={parsed.repo}
+              localPath={contribution.localPath}
+              isBranched={branchMatches}
+              githubUsername={githubUsername}
+              onClose={() => {
+                setSelectedIssue(null);
+                fetchIssues();
+              }}
+            />
+          ) : null;
+        })()}
 
       {/* Create Issue Modal */}
-      {showCreateIssue && (() => {
-        const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-        const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-        return parsed ? (
-          <CreateIssueModal
-            open={showCreateIssue}
-            owner={parsed.owner}
-            repo={parsed.repo}
-            onClose={() => setShowCreateIssue(false)}
-            onCreated={() => fetchIssues()}
-          />
-        ) : null;
-      })()}
+      {showCreateIssue &&
+        (() => {
+          const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+          const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
+          return parsed ? (
+            <CreateIssueModal
+              open={showCreateIssue}
+              owner={parsed.owner}
+              repo={parsed.repo}
+              onClose={() => setShowCreateIssue(false)}
+              onCreated={() => fetchIssues()}
+            />
+          ) : null;
+        })()}
 
       {/* Create PR Modal */}
-      {showCreatePR && (() => {
-        const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-        const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-        return parsed ? (
-          <CreatePullRequestModal
-            open={showCreatePR}
-            owner={parsed.owner}
-            repo={parsed.repo}
-            localPath={contribution.localPath}
-            branches={branches}
-            remotes={remotes}
-            defaultBranchName={contribution.branchName}
-            onClose={() => setShowCreatePR(false)}
-            onCreated={() => fetchPullRequests()}
-          />
-        ) : null;
-      })()}
+      {showCreatePR &&
+        (() => {
+          const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
+          const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
+          return parsed ? (
+            <CreatePullRequestModal
+              open={showCreatePR}
+              owner={parsed.owner}
+              repo={parsed.repo}
+              localPath={contribution.localPath}
+              branches={branches}
+              remotes={remotes}
+              defaultBranchName={contribution.branchName}
+              onClose={() => setShowCreatePR(false)}
+              onCreated={() => fetchPullRequests()}
+            />
+          ) : null;
+        })()}
     </div>
   );
 }

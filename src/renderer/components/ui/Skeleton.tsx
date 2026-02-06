@@ -5,10 +5,7 @@ import { cn } from '../../lib/utils';
  *
  * Provides animated skeleton placeholders for loading states
  */
-export function Skeleton({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn('animate-pulse rounded-md bg-muted', className)}

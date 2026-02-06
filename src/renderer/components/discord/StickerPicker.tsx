@@ -15,12 +15,23 @@ function getGuildIconUrl(guildId: string, icon: string | null): string | null {
   return `https://cdn.discordapp.com/icons/${guildId}/${icon}.png?size=64`;
 }
 
-export function StickerPicker({ onSelect, onClose, embedded = false, guilds = [] }: StickerPickerProps) {
+export function StickerPicker({
+  onSelect,
+  onClose,
+  embedded = false,
+  guilds = [],
+}: StickerPickerProps) {
   const [query, setQuery] = useState('');
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const { stickerPacks, guildStickers, guilds: storeGuilds, fetchStickerPacks, fetchGuildStickers } = useDiscordStore();
+  const {
+    stickerPacks,
+    guildStickers,
+    guilds: storeGuilds,
+    fetchStickerPacks,
+    fetchGuildStickers,
+  } = useDiscordStore();
   const fetchedRef = useRef<Set<string>>(new Set());
 
   const allGuilds = guilds.length > 0 ? guilds : storeGuilds;
@@ -37,7 +48,12 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
 
   // Group guild stickers by server
   const guildStickerGroups = useMemo(() => {
-    const groups: { guildId: string; guildName: string; guildIcon: string | null; stickers: DiscordSticker[] }[] = [];
+    const groups: {
+      guildId: string;
+      guildName: string;
+      guildIcon: string | null;
+      stickers: DiscordSticker[];
+    }[] = [];
     for (const [guildId, stickers] of Object.entries(guildStickers)) {
       if (stickers.length === 0) continue;
       const guild = allGuilds.find((g) => g.id === guildId);
@@ -53,7 +69,12 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
 
   // All sections: guild stickers + sticker packs
   const allSections = useMemo(() => {
-    const sections: { id: string; label: string; guildIcon?: string | null; stickers: DiscordSticker[] }[] = [];
+    const sections: {
+      id: string;
+      label: string;
+      guildIcon?: string | null;
+      stickers: DiscordSticker[];
+    }[] = [];
 
     for (const group of guildStickerGroups) {
       sections.push({
@@ -77,13 +98,16 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
 
   // Filter
   const filtered = query.trim()
-    ? allSections.map((section) => ({
-        ...section,
-        stickers: section.stickers.filter((s) =>
-          s.name.toLowerCase().includes(query.toLowerCase()) ||
-          s.tags.toLowerCase().includes(query.toLowerCase())
-        ),
-      })).filter((s) => s.stickers.length > 0)
+    ? allSections
+        .map((section) => ({
+          ...section,
+          stickers: section.stickers.filter(
+            (s) =>
+              s.name.toLowerCase().includes(query.toLowerCase()) ||
+              s.tags.toLowerCase().includes(query.toLowerCase())
+          ),
+        }))
+        .filter((s) => s.stickers.length > 0)
     : allSections;
 
   const scrollToSection = (sectionId: string) => {
@@ -154,7 +178,12 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
                   title={section.label}
                 >
                   {iconUrl ? (
-                    <img src={iconUrl} alt="" className="w-6 h-6 rounded-full object-cover" loading="lazy" />
+                    <img
+                      src={iconUrl}
+                      alt=""
+                      className="w-6 h-6 rounded-full object-cover"
+                      loading="lazy"
+                    />
                   ) : (
                     <span className="text-[8px] font-bold text-muted-foreground leading-tight text-center">
                       {section.label.slice(0, 3)}
@@ -178,7 +207,9 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
           {filtered.map((section) => (
             <div
               key={section.id}
-              ref={(el) => { sectionRefs.current[section.id] = el; }}
+              ref={(el) => {
+                sectionRefs.current[section.id] = el;
+              }}
             >
               <p className="text-[10px] font-semibold text-muted-foreground uppercase px-1 py-1.5 sticky top-0 bg-background z-10">
                 {section.label}
@@ -198,7 +229,9 @@ export function StickerPicker({ onSelect, onClose, embedded = false, guilds = []
                       title={sticker.name}
                     >
                       {isLottie ? (
-                        <span className="text-[9px] text-muted-foreground text-center">{sticker.name}</span>
+                        <span className="text-[9px] text-muted-foreground text-center">
+                          {sticker.name}
+                        </span>
                       ) : (
                         <img
                           src={url}

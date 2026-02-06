@@ -25,8 +25,18 @@ describe('AddExistingSubIssueModal', () => {
 
   const mockIssues = [
     { number: 1, title: 'Bug report', state: 'open', url: 'https://github.com/org/repo/issues/1' },
-    { number: 2, title: 'Feature request', state: 'open', url: 'https://github.com/org/repo/issues/2' },
-    { number: 3, title: 'Closed issue', state: 'closed', url: 'https://github.com/org/repo/issues/3' },
+    {
+      number: 2,
+      title: 'Feature request',
+      state: 'open',
+      url: 'https://github.com/org/repo/issues/2',
+    },
+    {
+      number: 3,
+      title: 'Closed issue',
+      state: 'closed',
+      url: 'https://github.com/org/repo/issues/3',
+    },
   ];
 
   beforeEach(() => {
@@ -119,7 +129,13 @@ describe('AddExistingSubIssueModal', () => {
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith('github:get-issue', 'org', 'repo', 1);
-      expect(mockInvoke).toHaveBeenCalledWith('github:add-existing-sub-issue', 'org', 'repo', 10, 12345);
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'github:add-existing-sub-issue',
+        'org',
+        'repo',
+        10,
+        12345
+      );
       expect(mockOnAdded).toHaveBeenCalled();
       expect(mockOnClose).toHaveBeenCalled();
     });
@@ -150,7 +166,12 @@ describe('AddExistingSubIssueModal', () => {
   it('excludes parent issue from results', async () => {
     const issuesWithParent = [
       ...mockIssues,
-      { number: 10, title: 'Parent issue', state: 'open', url: 'https://github.com/org/repo/issues/10' },
+      {
+        number: 10,
+        title: 'Parent issue',
+        state: 'open',
+        url: 'https://github.com/org/repo/issues/10',
+      },
     ];
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:list-issues') return issuesWithParent;

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from '@testing-library/react';
-import { createMockSpotifyPlaybackState, createMockSpotifyPlaylist, createMockSpotifyTrack } from '../../mocks/factories';
+import {
+  createMockSpotifyPlaybackState,
+  createMockSpotifyPlaylist,
+  createMockSpotifyTrack,
+} from '../../mocks/factories';
 
 const mockInvoke = vi.fn();
 
@@ -70,8 +74,12 @@ describe('useSpotifyStore', () => {
   });
 
   describe('startAuth', () => {
-    beforeEach(() => { vi.useFakeTimers(); });
-    afterEach(() => { vi.useRealTimers(); });
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
     it('invokes spotify:start-auth and sets loading', async () => {
       mockInvoke.mockResolvedValueOnce(undefined); // start-auth
@@ -344,7 +352,10 @@ describe('useSpotifyStore', () => {
 
   describe('fetchPlaylists', () => {
     it('fetches and stores playlists', async () => {
-      const playlists = [createMockSpotifyPlaylist(), createMockSpotifyPlaylist({ id: 'p2', name: 'Second' })];
+      const playlists = [
+        createMockSpotifyPlaylist(),
+        createMockSpotifyPlaylist({ id: 'p2', name: 'Second' }),
+      ];
       mockInvoke.mockResolvedValueOnce(playlists);
 
       await act(async () => {
@@ -497,7 +508,11 @@ describe('useSpotifyStore', () => {
     it('interpolates progress when playing', () => {
       const now = Date.now();
       useSpotifyStore.setState({
-        playback: createMockSpotifyPlaybackState({ progressMs: 5000, isPlaying: true, durationMs: 210000 }),
+        playback: createMockSpotifyPlaybackState({
+          progressMs: 5000,
+          isPlaying: true,
+          durationMs: 210000,
+        }),
         lastFetchedAt: now - 2000,
       });
 

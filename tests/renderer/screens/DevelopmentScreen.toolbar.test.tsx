@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+// Type alias for the IPC mock implementation function
+type IpcMockFn = (channel: string, ...args: unknown[]) => Promise<unknown>;
+
 // Mock IPC
 const mockInvoke = vi.fn();
 vi.mock('../../../src/renderer/ipc/client', () => ({
@@ -36,24 +39,54 @@ vi.mock('../../../src/renderer/components/issues/DevelopmentIssueDetailModal', (
 
 // Mock CreateIssueModal
 vi.mock('../../../src/renderer/components/issues/CreateIssueModal', () => ({
-  CreateIssueModal: ({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) =>
+  CreateIssueModal: ({
+    open,
+    onClose,
+    onCreated,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    onCreated: () => void;
+  }) =>
     open ? (
       <div data-testid="create-issue-modal">
         <span>Create Issue Modal</span>
         <button onClick={onClose}>Close Create Issue</button>
-        <button onClick={() => { onCreated(); onClose(); }}>Submit Issue</button>
+        <button
+          onClick={() => {
+            onCreated();
+            onClose();
+          }}
+        >
+          Submit Issue
+        </button>
       </div>
     ) : null,
 }));
 
 // Mock CreatePullRequestModal
 vi.mock('../../../src/renderer/components/pull-requests/CreatePullRequestModal', () => ({
-  CreatePullRequestModal: ({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) =>
+  CreatePullRequestModal: ({
+    open,
+    onClose,
+    onCreated,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    onCreated: () => void;
+  }) =>
     open ? (
       <div data-testid="create-pr-modal">
         <span>Create PR Modal</span>
         <button onClick={onClose}>Close Create PR</button>
-        <button onClick={() => { onCreated(); onClose(); }}>Submit PR</button>
+        <button
+          onClick={() => {
+            onCreated();
+            onClose();
+          }}
+        >
+          Submit PR
+        </button>
       </div>
     ) : null,
 }));
@@ -87,8 +120,16 @@ function setupRunningState() {
         return undefined;
       case 'git:get-remotes':
         return [
-          { name: 'origin', fetchUrl: 'https://github.com/user/repo.git', pushUrl: 'https://github.com/user/repo.git' },
-          { name: 'upstream', fetchUrl: 'https://github.com/upstream/repo.git', pushUrl: 'https://github.com/upstream/repo.git' },
+          {
+            name: 'origin',
+            fetchUrl: 'https://github.com/user/repo.git',
+            pushUrl: 'https://github.com/user/repo.git',
+          },
+          {
+            name: 'upstream',
+            fetchUrl: 'https://github.com/upstream/repo.git',
+            pushUrl: 'https://github.com/upstream/repo.git',
+          },
         ];
       case 'git:get-branches':
         return ['main', 'feature-branch'];
@@ -204,7 +245,7 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'github:list-pull-requests') return [];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
       render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
@@ -235,10 +276,15 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'github:list-pull-requests') return [];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
-      render(<DevelopmentScreen contribution={{ ...baseContribution, type: 'project' }} onNavigateBack={vi.fn()} />);
+      render(
+        <DevelopmentScreen
+          contribution={{ ...baseContribution, type: 'project' }}
+          onNavigateBack={vi.fn()}
+        />
+      );
       await waitFor(() => {
         expect(screen.getByText('Stop & Back')).toBeDefined();
       });
@@ -280,7 +326,7 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'git:get-remotes') return [];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
       render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
@@ -301,7 +347,7 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'git:get-remotes') throw new Error('git error');
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
       render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
@@ -337,7 +383,7 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'github:list-pull-requests') return [];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
       render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
@@ -358,7 +404,7 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'github:list-pull-requests') throw new Error('PR fetch failed');
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
       render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
@@ -454,10 +500,15 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'git:get-branches') return ['main', 'fix-10-login'];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
-      render(<DevelopmentScreen contribution={{ ...baseContribution, branchName: 'fix-10-login' }} onNavigateBack={vi.fn()} />);
+      render(
+        <DevelopmentScreen
+          contribution={{ ...baseContribution, branchName: 'fix-10-login' }}
+          onNavigateBack={vi.fn()}
+        />
+      );
       await waitFor(() => {
         expect(screen.getByText('Stop & Back')).toBeDefined();
       });
@@ -474,10 +525,15 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'git:get-branches') return ['main', 'unrelated-branch'];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
-      render(<DevelopmentScreen contribution={{ ...baseContribution, branchName: 'unrelated-branch' }} onNavigateBack={vi.fn()} />);
+      render(
+        <DevelopmentScreen
+          contribution={{ ...baseContribution, branchName: 'unrelated-branch' }}
+          onNavigateBack={vi.fn()}
+        />
+      );
       await waitFor(() => {
         expect(screen.getByText('Stop & Back')).toBeDefined();
       });
@@ -493,7 +549,7 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'github:list-issues') return [];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
       render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
@@ -527,7 +583,7 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'github:list-issues') return [];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
       render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
@@ -548,7 +604,7 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'github:list-issues') throw new Error('Issues fetch failed');
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
       render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
@@ -570,10 +626,15 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
       const originalImpl = mockInvoke.getMockImplementation()!;
       mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
         if (channel === 'git:get-branches') return ['main', 'feature-branch', 'fix-10-login'];
-        return (originalImpl as Function)(channel, ...args);
+        return (originalImpl as IpcMockFn)(channel, ...args);
       });
 
-      render(<DevelopmentScreen contribution={{ ...baseContribution, branchName: 'fix-10-login' }} onNavigateBack={vi.fn()} />);
+      render(
+        <DevelopmentScreen
+          contribution={{ ...baseContribution, branchName: 'fix-10-login' }}
+          onNavigateBack={vi.fn()}
+        />
+      );
       await waitFor(() => {
         expect(screen.getByText('Stop & Back')).toBeDefined();
       });

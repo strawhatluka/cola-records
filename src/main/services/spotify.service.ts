@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Spotify API responses are dynamically typed */
 import { shell } from 'electron';
 import * as http from 'http';
 import * as crypto from 'crypto';
@@ -46,10 +47,7 @@ export class SpotifyService {
     }
 
     const codeVerifier = crypto.randomBytes(32).toString('base64url');
-    const codeChallenge = crypto
-      .createHash('sha256')
-      .update(codeVerifier)
-      .digest('base64url');
+    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
 
     // Start local callback server
     await this.startCallbackServer(codeVerifier, clientId);
@@ -254,7 +252,12 @@ export class SpotifyService {
     await secureStorage.setItem(STORAGE_KEYS.expiresAt, expiresAt.toString());
   }
 
-  private async apiRequest(method: string, path: string, body?: unknown, retry = true): Promise<Response> {
+  private async apiRequest(
+    method: string,
+    path: string,
+    body?: unknown,
+    retry = true
+  ): Promise<Response> {
     const token = await this.getValidToken();
     const options: RequestInit = {
       method,
@@ -324,7 +327,9 @@ export class SpotifyService {
 
           if (error) {
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end('<html><body><h1>Authorization Failed</h1><p>You can close this tab.</p></body></html>');
+            res.end(
+              '<html><body><h1>Authorization Failed</h1><p>You can close this tab.</p></body></html>'
+            );
             this.callbackServer?.close();
             this.callbackServer = null;
             return;
@@ -354,10 +359,14 @@ export class SpotifyService {
               await this.storeTokens(tokenData);
 
               res.writeHead(200, { 'Content-Type': 'text/html' });
-              res.end('<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h1>Connected to Spotify!</h1><p>You can close this tab and return to Cola Records.</p></body></html>');
+              res.end(
+                '<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h1>Connected to Spotify!</h1><p>You can close this tab and return to Cola Records.</p></body></html>'
+              );
             } catch {
               res.writeHead(200, { 'Content-Type': 'text/html' });
-              res.end('<html><body><h1>Connection Failed</h1><p>Please try again.</p></body></html>');
+              res.end(
+                '<html><body><h1>Connection Failed</h1><p>Please try again.</p></body></html>'
+              );
             }
           }
 

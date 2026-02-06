@@ -137,7 +137,9 @@ describe('ContributionWorkflowModal', () => {
     const closeButtons = screen.getAllByRole('button', { name: 'Close' });
     expect(closeButtons.length).toBe(2);
     // The destructive variant is the explicit close button
-    expect(closeButtons.find(b => b.getAttribute('data-variant') === 'destructive')).toBeDefined();
+    expect(
+      closeButtons.find((b) => b.getAttribute('data-variant') === 'destructive')
+    ).toBeDefined();
   });
 
   it('shows helpful message for Windows-incompatible path errors', () => {

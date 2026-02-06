@@ -66,7 +66,9 @@ describe('useSettingsStore', () => {
     it('sets loading state during fetch', async () => {
       let resolvePromise: (value: unknown) => void;
       mockInvoke.mockReturnValueOnce(
-        new Promise((resolve) => { resolvePromise = resolve; })
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        })
       );
 
       const fetchPromise = useSettingsStore.getState().fetchSettings();
@@ -106,9 +108,9 @@ describe('useSettingsStore', () => {
     it('throws and sets error on failure', async () => {
       mockInvoke.mockRejectedValueOnce(new Error('Update failed'));
 
-      await expect(
-        useSettingsStore.getState().updateSettings({ theme: 'dark' })
-      ).rejects.toThrow('Update failed');
+      await expect(useSettingsStore.getState().updateSettings({ theme: 'dark' })).rejects.toThrow(
+        'Update failed'
+      );
 
       expect(useSettingsStore.getState().error).toContain('Update failed');
     });
@@ -162,21 +164,27 @@ describe('useSettingsStore', () => {
         await useSettingsStore.getState().setDefaultProjectsPath('/projects');
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('settings:update', { defaultProjectsPath: '/projects' });
+      expect(mockInvoke).toHaveBeenCalledWith('settings:update', {
+        defaultProjectsPath: '/projects',
+      });
       expect(useSettingsStore.getState().defaultProjectsPath).toBe('/projects');
     });
   });
 
   describe('setDefaultProfessionalProjectsPath', () => {
     it('delegates to updateSettings', async () => {
-      const updatedSettings = createMockSettings({ defaultProfessionalProjectsPath: '/professional' });
+      const updatedSettings = createMockSettings({
+        defaultProfessionalProjectsPath: '/professional',
+      });
       mockInvoke.mockResolvedValueOnce(updatedSettings);
 
       await act(async () => {
         await useSettingsStore.getState().setDefaultProfessionalProjectsPath('/professional');
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith('settings:update', { defaultProfessionalProjectsPath: '/professional' });
+      expect(mockInvoke).toHaveBeenCalledWith('settings:update', {
+        defaultProfessionalProjectsPath: '/professional',
+      });
       expect(useSettingsStore.getState().defaultProfessionalProjectsPath).toBe('/professional');
     });
   });

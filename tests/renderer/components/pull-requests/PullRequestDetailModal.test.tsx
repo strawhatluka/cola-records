@@ -30,48 +30,74 @@ vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
 // Mock react-markdown
 vi.mock('react-markdown', () => ({
-  default: ({ children }: { children: string }) => (
-    <div data-testid="markdown">{children}</div>
-  ),
+  default: ({ children }: { children: string }) => <div data-testid="markdown">{children}</div>,
 }));
 
 // Mock Dialog components - render without portals
 vi.mock('../../../../src/renderer/components/ui/Dialog', () => ({
-  Dialog: ({ children, open, onOpenChange }: { children: React.ReactNode; open: boolean; onOpenChange?: (open: boolean) => void }) => {
+  Dialog: ({
+    children,
+    open,
+    onOpenChange: _onOpenChange,
+  }: {
+    children: React.ReactNode;
+    open: boolean;
+    onOpenChange?: (open: boolean) => void;
+  }) => {
     // Always render when open is truthy
     return open ? <div data-testid="dialog">{children}</div> : null;
   },
   DialogContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="dialog-content" className={className}>{children}</div>
+    <div data-testid="dialog-content" className={className}>
+      {children}
+    </div>
   ),
   DialogHeader: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="dialog-header">{children}</div>
   ),
   DialogTitle: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <h2 data-testid="dialog-title" className={className}>{children}</h2>
+    <h2 data-testid="dialog-title" className={className}>
+      {children}
+    </h2>
   ),
-  DialogDescription: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <p className={className}>{children}</p>
-  ),
+  DialogDescription: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => <p className={className}>{children}</p>,
 }));
 
 // Mock DropdownMenu components
 vi.mock('../../../../src/renderer/components/ui/DropdownMenu', () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
-    asChild ? <>{children}</> : <button>{children}</button>
-  ),
+  DropdownMenuTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) =>
+    asChild ? <>{children}</> : <button>{children}</button>,
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="dropdown-content">{children}</div>
   ),
-  DropdownMenuItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
-    <div role="menuitem" onClick={onClick}>{children}</div>
+  DropdownMenuItem: ({
+    children,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <div role="menuitem" onClick={onClick}>
+      {children}
+    </div>
   ),
 }));
 
 // Mock MarkdownEditor - simple textarea
 vi.mock('../../../../src/renderer/components/pull-requests/MarkdownEditor', () => ({
-  MarkdownEditor: ({ value, onChange, placeholder, disabled }: {
+  MarkdownEditor: ({
+    value,
+    onChange,
+    placeholder,
+    disabled,
+  }: {
     value: string;
     onChange: (v: string) => void;
     placeholder?: string;
@@ -93,7 +119,12 @@ vi.mock('../../../../src/renderer/components/ui/ReactionPicker', () => ({
 }));
 
 // Import component after mocks
-import { PullRequestDetailModal, reviewStateBadge, statusBadge, formatDate } from '../../../../src/renderer/components/pull-requests/PullRequestDetailModal';
+import {
+  PullRequestDetailModal,
+  reviewStateBadge,
+  statusBadge,
+  formatDate,
+} from '../../../../src/renderer/components/pull-requests/PullRequestDetailModal';
 
 // ============================================
 // Test Data
@@ -161,12 +192,14 @@ const createReviewComment = (overrides = {}) => ({
 // Test Helpers
 // ============================================
 
-function setupSuccessfulFetch(options: {
-  detail?: ReturnType<typeof createPRDetail>;
-  comments?: ReturnType<typeof createComment>[];
-  reviews?: ReturnType<typeof createReview>[];
-  reviewComments?: ReturnType<typeof createReviewComment>[];
-} = {}) {
+function setupSuccessfulFetch(
+  options: {
+    detail?: ReturnType<typeof createPRDetail>;
+    comments?: ReturnType<typeof createComment>[];
+    reviews?: ReturnType<typeof createReview>[];
+    reviewComments?: ReturnType<typeof createReviewComment>[];
+  } = {}
+) {
   mockInvoke.mockImplementation(async (channel: string) => {
     switch (channel) {
       case 'github:get-pull-request':
@@ -219,9 +252,7 @@ describe('PullRequestDetailModal', () => {
 
   describe('rendering states', () => {
     it('renders nothing when pr is null', () => {
-      const { container } = render(
-        <PullRequestDetailModal pr={null} {...defaultProps} />
-      );
+      const { container } = render(<PullRequestDetailModal pr={null} {...defaultProps} />);
       expect(container.innerHTML).toBe('');
     });
 
@@ -291,7 +322,9 @@ describe('PullRequestDetailModal', () => {
     it('displays head branch', async () => {
       setupSuccessfulFetch();
 
-      render(<PullRequestDetailModal pr={createBasePR({ headBranch: 'my-feature' })} {...defaultProps} />);
+      render(
+        <PullRequestDetailModal pr={createBasePR({ headBranch: 'my-feature' })} {...defaultProps} />
+      );
 
       await waitFor(() => {
         expect(screen.getByText('my-feature')).toBeDefined();
@@ -516,7 +549,13 @@ describe('PullRequestDetailModal', () => {
     it('hides merge/close buttons when canWrite is false', async () => {
       setupSuccessfulFetch();
 
-      render(<PullRequestDetailModal pr={createBasePR({ state: 'open' })} {...defaultProps} canWrite={false} />);
+      render(
+        <PullRequestDetailModal
+          pr={createBasePR({ state: 'open' })}
+          {...defaultProps}
+          canWrite={false}
+        />
+      );
 
       await waitFor(() => {
         expect(screen.getByText('Detailed PR Title')).toBeDefined();
@@ -583,12 +622,7 @@ describe('PullRequestDetailModal', () => {
       await user.click(screen.getByText('Close pull request'));
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith(
-          'github:close-pull-request',
-          'owner',
-          'repo',
-          123
-        );
+        expect(mockInvoke).toHaveBeenCalledWith('github:close-pull-request', 'owner', 'repo', 123);
       });
 
       expect(onRefresh).toHaveBeenCalled();

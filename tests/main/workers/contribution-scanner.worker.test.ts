@@ -88,9 +88,7 @@ describe('Contribution Scanner Worker', () => {
 
   describe('Message Protocol', () => {
     it('responds with { type: "result", data: [...] } on successful scan', async () => {
-      mockReaddir.mockResolvedValue([
-        { name: 'repo1', isDirectory: () => true },
-      ]);
+      mockReaddir.mockResolvedValue([{ name: 'repo1', isDirectory: () => true }]);
 
       await importWorker();
 
@@ -134,17 +132,13 @@ describe('Contribution Scanner Worker', () => {
     });
 
     it('handles null githubToken (skips GitHub API calls)', async () => {
-      mockReaddir.mockResolvedValue([
-        { name: 'repo1', isDirectory: () => true },
-      ]);
+      mockReaddir.mockResolvedValue([{ name: 'repo1', isDirectory: () => true }]);
 
       await importWorker();
       await messageHandler!({ type: 'scan', directoryPath: '/test', githubToken: null });
 
       // Should complete without Octokit calls
-      expect(mockPostMessage).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'result' })
-      );
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'result' }));
     });
   });
 
@@ -184,9 +178,7 @@ describe('Contribution Scanner Worker', () => {
     });
 
     it('returns ScannedContribution[] matching expected interface', async () => {
-      mockReaddir.mockResolvedValue([
-        { name: 'my-repo', isDirectory: () => true },
-      ]);
+      mockReaddir.mockResolvedValue([{ name: 'my-repo', isDirectory: () => true }]);
 
       await importWorker();
       await messageHandler!({ type: 'scan', directoryPath: '/test', githubToken: null });
@@ -207,9 +199,7 @@ describe('Contribution Scanner Worker', () => {
     });
 
     it('extracts issue number from branch name (issue-123 pattern)', async () => {
-      mockReaddir.mockResolvedValue([
-        { name: 'repo', isDirectory: () => true },
-      ]);
+      mockReaddir.mockResolvedValue([{ name: 'repo', isDirectory: () => true }]);
       mockRevparse.mockResolvedValue('issue-42');
 
       await importWorker();
@@ -226,9 +216,7 @@ describe('Contribution Scanner Worker', () => {
     });
 
     it('extracts issue number from branch name (feature/issue_99 pattern)', async () => {
-      mockReaddir.mockResolvedValue([
-        { name: 'repo', isDirectory: () => true },
-      ]);
+      mockReaddir.mockResolvedValue([{ name: 'repo', isDirectory: () => true }]);
       mockRevparse.mockResolvedValue('feature/issue_99');
 
       await importWorker();
@@ -247,9 +235,7 @@ describe('Contribution Scanner Worker', () => {
 
   describe('GitHub API Integration', () => {
     it('creates Octokit client with provided token', async () => {
-      mockReaddir.mockResolvedValue([
-        { name: 'repo', isDirectory: () => true },
-      ]);
+      mockReaddir.mockResolvedValue([{ name: 'repo', isDirectory: () => true }]);
       mockGetRemotes.mockResolvedValue([
         { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git' } },
         { name: 'upstream', refs: { fetch: 'https://github.com/org/repo.git' } },
@@ -265,9 +251,7 @@ describe('Contribution Scanner Worker', () => {
     });
 
     it('checks PR status when both remotes exist', async () => {
-      mockReaddir.mockResolvedValue([
-        { name: 'repo', isDirectory: () => true },
-      ]);
+      mockReaddir.mockResolvedValue([{ name: 'repo', isDirectory: () => true }]);
       mockGetRemotes.mockResolvedValue([
         { name: 'origin', refs: { fetch: 'https://github.com/user/repo.git' } },
         { name: 'upstream', refs: { fetch: 'https://github.com/org/repo.git' } },

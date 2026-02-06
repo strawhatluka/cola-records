@@ -3,7 +3,9 @@ import { render, screen } from '@testing-library/react';
 
 // Mock ContributionCard to isolate ContributionList behavior
 vi.mock('../../../../src/renderer/components/contributions/ContributionCard', () => ({
-  ContributionCard: (props: any) => <div data-testid={`card-${props.contribution.id}`}>{props.contribution.branchName}</div>,
+  ContributionCard: (props: any) => (
+    <div data-testid={`card-${props.contribution.id}`}>{props.contribution.branchName}</div>
+  ),
 }));
 
 import { ContributionList } from '../../../../src/renderer/components/contributions/ContributionList';

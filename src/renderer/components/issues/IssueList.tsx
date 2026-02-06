@@ -32,11 +32,7 @@ export function IssueList({ issues, onIssueSelect, loading }: IssueListProps) {
     <div className="h-full w-full overflow-auto styled-scroll">
       <div className="space-y-3 p-4">
         {issues.map((issue) => (
-          <IssueCard
-            key={issue.id}
-            issue={issue}
-            onViewDetails={() => onIssueSelect(issue)}
-          />
+          <IssueCard key={issue.id} issue={issue} onViewDetails={() => onIssueSelect(issue)} />
         ))}
       </div>
     </div>

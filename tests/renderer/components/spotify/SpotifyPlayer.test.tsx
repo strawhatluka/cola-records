@@ -36,11 +36,17 @@ vi.mock('../../../../src/renderer/components/spotify/SearchPanel', () => ({
 vi.mock('@radix-ui/react-popover', () => ({
   Root: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Trigger: ({ children, asChild, ...props }: any) => (
-    <div data-testid="popover-trigger" {...props}>{children}</div>
+    <div data-testid="popover-trigger" {...props}>
+      {children}
+    </div>
   ),
   Anchor: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   Portal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Content: ({ children, ...props }: any) => <div data-testid="popover-content" {...props}>{children}</div>,
+  Content: ({ children, ...props }: any) => (
+    <div data-testid="popover-content" {...props}>
+      {children}
+    </div>
+  ),
 }));
 
 import { useSpotifyStore } from '../../../../src/renderer/stores/useSpotifyStore';

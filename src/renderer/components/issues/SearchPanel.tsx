@@ -2,13 +2,7 @@ import * as React from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/Select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
 import { Checkbox } from '../ui/Checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 
@@ -29,12 +23,7 @@ const languages = [
   'Dart',
 ];
 
-const availableLabels = [
-  'good first issue',
-  'beginner-friendly',
-  'help wanted',
-  'documentation',
-];
+const availableLabels = ['good first issue', 'beginner-friendly', 'help wanted', 'documentation'];
 
 interface SearchPanelProps {
   onSearch: (query: string, labels: string[]) => void;
@@ -43,7 +32,12 @@ interface SearchPanelProps {
   onHideNoDescriptionChange?: (value: boolean) => void;
 }
 
-export function SearchPanel({ onSearch, loading, hideNoDescription = false, onHideNoDescriptionChange }: SearchPanelProps) {
+export function SearchPanel({
+  onSearch,
+  loading,
+  hideNoDescription = false,
+  onHideNoDescriptionChange,
+}: SearchPanelProps) {
   const [searchText, setSearchText] = React.useState('');
   const [language, setLanguage] = React.useState('All');
   const [minStars, setMinStars] = React.useState('');

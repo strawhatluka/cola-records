@@ -58,7 +58,11 @@ class ContributionScannerService {
   /**
    * Get issue title from GitHub API
    */
-  async getIssueTitle(owner: string, repo: string, issueNumber: number): Promise<string | undefined> {
+  async getIssueTitle(
+    owner: string,
+    repo: string,
+    issueNumber: number
+  ): Promise<string | undefined> {
     try {
       const issue = await gitHubRestService.getIssue(owner, repo, issueNumber);
       return issue.title;

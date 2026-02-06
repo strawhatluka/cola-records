@@ -31,7 +31,11 @@ const defaultProps = {
   localPath: '/mock/local/repo',
   branches: ['main', 'develop', 'feature-branch'],
   remotes: [
-    { name: 'origin', fetchUrl: 'https://github.com/test-owner/test-repo.git', pushUrl: 'https://github.com/test-owner/test-repo.git' },
+    {
+      name: 'origin',
+      fetchUrl: 'https://github.com/test-owner/test-repo.git',
+      pushUrl: 'https://github.com/test-owner/test-repo.git',
+    },
   ],
   onClose: vi.fn(),
   onCreated: vi.fn(),
@@ -127,13 +131,7 @@ describe('CreatePullRequestModal', () => {
     const onClose = vi.fn();
     const onCreated = vi.fn();
 
-    render(
-      <CreatePullRequestModal
-        {...defaultProps}
-        onClose={onClose}
-        onCreated={onCreated}
-      />
-    );
+    render(<CreatePullRequestModal {...defaultProps} onClose={onClose} onCreated={onCreated} />);
 
     // Wait for auto-init
     await waitFor(() => {

@@ -56,13 +56,20 @@ function createClient(token: string): Octokit {
   });
 }
 
-async function getRepository(client: Octokit, owner: string, repo: string): Promise<any> {
+interface RepoData {
+  fork: boolean;
+  parent?: { full_name: string };
+}
+
+async function getRepository(client: Octokit, owner: string, repo: string): Promise<RepoData> {
   const response = await client.repos.get({ owner, repo });
   return {
     fork: response.data.fork,
-    parent: response.data.parent ? {
-      full_name: response.data.parent.full_name,
-    } : undefined,
+    parent: response.data.parent
+      ? {
+          full_name: response.data.parent.full_name,
+        }
+      : undefined,
   };
 }
 
@@ -80,7 +87,7 @@ async function checkPRStatus(
       per_page: 100,
     });
 
-    const pr = response.data.find((p: any) => p.head?.ref === headBranch);
+    const pr = response.data.find((p) => p.head?.ref === headBranch);
     if (!pr) return null;
 
     const status = pr.merged_at !== null ? 'merged' : (pr.state as 'open' | 'closed');
@@ -133,7 +140,8 @@ async function validateRemotes(
     const isFork = repoInfo.fork === true;
     const remotesValid =
       isFork &&
-      repoInfo.parent?.full_name?.toLowerCase() === `${upstreamRepo.owner}/${upstreamRepo.repo}`.toLowerCase();
+      repoInfo.parent?.full_name?.toLowerCase() ===
+        `${upstreamRepo.owner}/${upstreamRepo.repo}`.toLowerCase();
     return { isFork, remotesValid };
   } catch {
     return { isFork: true, remotesValid: true };
@@ -200,7 +208,12 @@ async function scanRepository(
       try {
         const upstreamInfo = extractRepoInfo(upstreamUrl);
         if (upstreamInfo) {
-          const prInfo = await checkPRStatus(client, upstreamInfo.owner, upstreamInfo.repo, branchName);
+          const prInfo = await checkPRStatus(
+            client,
+            upstreamInfo.owner,
+            upstreamInfo.repo,
+            branchName
+          );
           if (prInfo) {
             prUrl = prInfo.url;
             prNumber = prInfo.number;
@@ -254,7 +267,9 @@ async function scanDirectory(
   );
 
   return results
-    .filter((r): r is PromiseFulfilledResult<ScannedContribution | null> => r.status === 'fulfilled')
+    .filter(
+      (r): r is PromiseFulfilledResult<ScannedContribution | null> => r.status === 'fulfilled'
+    )
     .map((r) => r.value)
     .filter((c): c is ScannedContribution => c !== null);
 }

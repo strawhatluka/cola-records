@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 
 export function DashboardScreen() {
@@ -15,7 +14,7 @@ export function DashboardScreen() {
         <Card>
           <CardHeader>
             <CardTitle>Active Contributions</CardTitle>
-            <CardDescription>Projects you're currently working on</CardDescription>
+            <CardDescription>Projects you&apos;re currently working on</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-bold">0</div>
@@ -25,7 +24,7 @@ export function DashboardScreen() {
         <Card>
           <CardHeader>
             <CardTitle>Issues Viewed</CardTitle>
-            <CardDescription>Total issues you've explored</CardDescription>
+            <CardDescription>Total issues you&apos;ve explored</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-bold">0</div>
@@ -40,11 +39,21 @@ export function DashboardScreen() {
             <CardDescription>Start your open source journey</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-sm">1. Navigate to <strong>Issues</strong> to discover open source projects</p>
-            <p className="text-sm">2. Filter by your preferred programming language and difficulty</p>
-            <p className="text-sm">3. Click <strong>Contribute</strong> to fork and clone a repository</p>
-            <p className="text-sm">4. Manage your contributions in the <strong>Contributions</strong> tab</p>
-            <p className="text-sm">5. Configure your GitHub token in <strong>Settings</strong></p>
+            <p className="text-sm">
+              1. Navigate to <strong>Issues</strong> to discover open source projects
+            </p>
+            <p className="text-sm">
+              2. Filter by your preferred programming language and difficulty
+            </p>
+            <p className="text-sm">
+              3. Click <strong>Contribute</strong> to fork and clone a repository
+            </p>
+            <p className="text-sm">
+              4. Manage your contributions in the <strong>Contributions</strong> tab
+            </p>
+            <p className="text-sm">
+              5. Configure your GitHub token in <strong>Settings</strong>
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -87,11 +87,10 @@ export const MessageItem = memo(function MessageItem({
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-0.5">
             <span className="text-muted-foreground/60">↩</span>
             <span className="font-medium">
-              {message.referencedMessage.author.globalName || message.referencedMessage.author.username}
+              {message.referencedMessage.author.globalName ||
+                message.referencedMessage.author.username}
             </span>
-            <span className="truncate max-w-[200px]">
-              {message.referencedMessage.content}
-            </span>
+            <span className="truncate max-w-[200px]">{message.referencedMessage.content}</span>
           </div>
         )}
 
@@ -194,7 +193,10 @@ function StickerRenderer({ sticker }: { sticker: DiscordStickerItem }) {
   if (sticker.formatType === 3) {
     // Lottie stickers can't be rendered as images — show placeholder
     return (
-      <div className="mt-1 h-24 w-24 rounded bg-muted/50 flex items-center justify-center" title={sticker.name}>
+      <div
+        className="mt-1 h-24 w-24 rounded bg-muted/50 flex items-center justify-center"
+        title={sticker.name}
+      >
         <span className="text-[10px] text-muted-foreground">{sticker.name}</span>
       </div>
     );
@@ -216,14 +218,23 @@ function StickerRenderer({ sticker }: { sticker: DiscordStickerItem }) {
 
 function getSystemMessageText(type: number): string {
   switch (type) {
-    case 1: return 'added someone to the group.';
-    case 2: return 'removed someone from the group.';
-    case 3: return 'started a call.';
-    case 4: return 'changed the channel name.';
-    case 5: return 'changed the channel icon.';
-    case 6: return 'pinned a message.';
-    case 7: return 'joined the server.';
-    case 8: return 'boosted the server!';
-    default: return 'performed an action.';
+    case 1:
+      return 'added someone to the group.';
+    case 2:
+      return 'removed someone from the group.';
+    case 3:
+      return 'started a call.';
+    case 4:
+      return 'changed the channel name.';
+    case 5:
+      return 'changed the channel icon.';
+    case 6:
+      return 'pinned a message.';
+    case 7:
+      return 'joined the server.';
+    case 8:
+      return 'boosted the server!';
+    default:
+      return 'performed an action.';
   }
 }

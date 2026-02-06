@@ -112,12 +112,18 @@ describe('Spotify Components Image Lazy Loading', () => {
         createMockSpotifyTrack({
           id: 't1',
           name: 'Track 1',
-          album: { name: 'Album 1', images: [{ url: 'https://i.scdn.co/image/t1', width: 64, height: 64 }] },
+          album: {
+            name: 'Album 1',
+            images: [{ url: 'https://i.scdn.co/image/t1', width: 64, height: 64 }],
+          },
         }),
         createMockSpotifyTrack({
           id: 't2',
           name: 'Track 2',
-          album: { name: 'Album 2', images: [{ url: 'https://i.scdn.co/image/t2', width: 64, height: 64 }] },
+          album: {
+            name: 'Album 2',
+            images: [{ url: 'https://i.scdn.co/image/t2', width: 64, height: 64 }],
+          },
         }),
       ];
       useSpotifyStore.setState({ searchResults, searchQuery: 'test' });

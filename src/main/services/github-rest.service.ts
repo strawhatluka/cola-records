@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- GitHub REST API responses use Octokit's generic types */
 import type { GitHubRepository } from '../ipc/channels';
 import { Octokit } from '@octokit/rest';
 import { env } from './environment.service';
@@ -21,7 +22,9 @@ export class GitHubRestService {
       const token = settings.githubToken || env.get('GITHUB_TOKEN');
 
       if (!token) {
-        throw new Error('GitHub token not configured. Please set GITHUB_TOKEN in settings or .env file.');
+        throw new Error(
+          'GitHub token not configured. Please set GITHUB_TOKEN in settings or .env file.'
+        );
       }
 
       this.client = new Octokit({
@@ -190,11 +193,7 @@ export class GitHubRestService {
   /**
    * List comments on an issue
    */
-  async listIssueComments(
-    owner: string,
-    repo: string,
-    issueNumber: number
-  ): Promise<any[]> {
+  async listIssueComments(owner: string, repo: string, issueNumber: number): Promise<any[]> {
     try {
       const client = this.getClient();
       const response = await client.issues.listComments({
@@ -278,11 +277,7 @@ export class GitHubRestService {
   /**
    * Get repository contents
    */
-  async getRepositoryContents(
-    owner: string,
-    repo: string,
-    filePath: string = ''
-  ): Promise<any[]> {
+  async getRepositoryContents(owner: string, repo: string, filePath: string = ''): Promise<any[]> {
     try {
       const client = this.getClient();
       const response = await client.repos.getContent({
@@ -423,12 +418,14 @@ export class GitHubRestService {
         stars: response.data.stargazers_count,
         forks: response.data.forks_count,
         fork: response.data.fork,
-        parent: response.data.parent ? {
-          id: response.data.parent.id.toString(),
-          name: response.data.parent.name,
-          full_name: response.data.parent.full_name,
-          url: response.data.parent.html_url,
-        } : undefined,
+        parent: response.data.parent
+          ? {
+              id: response.data.parent.id.toString(),
+              name: response.data.parent.name,
+              full_name: response.data.parent.full_name,
+              url: response.data.parent.html_url,
+            }
+          : undefined,
       };
     } catch (error) {
       throw new Error(`Failed to get repository ${owner}/${repo}: ${error}`);
@@ -515,7 +512,7 @@ export class GitHubRestService {
         return null;
       }
 
-      const status = pr.merged ? 'merged' : pr.state as 'open' | 'closed';
+      const status = pr.merged ? 'merged' : (pr.state as 'open' | 'closed');
       return {
         number: pr.number,
         url: pr.url,
@@ -528,11 +525,7 @@ export class GitHubRestService {
   /**
    * List comments on a pull request (uses issues API - GitHub treats PR comments as issue comments)
    */
-  async listPRComments(
-    owner: string,
-    repo: string,
-    prNumber: number
-  ): Promise<any[]> {
+  async listPRComments(owner: string, repo: string, prNumber: number): Promise<any[]> {
     try {
       const client = this.getClient();
       const response = await client.issues.listComments({
@@ -558,11 +551,7 @@ export class GitHubRestService {
   /**
    * List reviews on a pull request
    */
-  async listPRReviews(
-    owner: string,
-    repo: string,
-    prNumber: number
-  ): Promise<any[]> {
+  async listPRReviews(owner: string, repo: string, prNumber: number): Promise<any[]> {
     try {
       const client = this.getClient();
       const response = await client.pulls.listReviews({
@@ -588,11 +577,7 @@ export class GitHubRestService {
   /**
    * List review comments (inline code comments) on a pull request
    */
-  async listPRReviewComments(
-    owner: string,
-    repo: string,
-    prNumber: number
-  ): Promise<any[]> {
+  async listPRReviewComments(owner: string, repo: string, prNumber: number): Promise<any[]> {
     try {
       const client = this.getClient();
       const response = await client.pulls.listReviewComments({
@@ -618,11 +603,7 @@ export class GitHubRestService {
   }
   // ─── Reactions ───────────────────────────────────────────────
 
-  async listIssueReactions(
-    owner: string,
-    repo: string,
-    issueNumber: number
-  ): Promise<any[]> {
+  async listIssueReactions(owner: string, repo: string, issueNumber: number): Promise<any[]> {
     try {
       const client = this.getClient();
       const response = await client.reactions.listForIssue({
@@ -686,11 +667,7 @@ export class GitHubRestService {
     }
   }
 
-  async listCommentReactions(
-    owner: string,
-    repo: string,
-    commentId: number
-  ): Promise<any[]> {
+  async listCommentReactions(owner: string, repo: string, commentId: number): Promise<any[]> {
     try {
       const client = this.getClient();
       const response = await client.reactions.listForIssueComment({
@@ -756,19 +733,18 @@ export class GitHubRestService {
 
   // ─── Sub-Issues ─────────────────────────────────────────────
 
-  async listSubIssues(
-    owner: string,
-    repo: string,
-    issueNumber: number
-  ): Promise<any[]> {
+  async listSubIssues(owner: string, repo: string, issueNumber: number): Promise<any[]> {
     try {
       const client = this.getClient();
-      const response = await client.request('GET /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
-        owner,
-        repo,
-        issue_number: issueNumber,
-        per_page: 100,
-      });
+      const response = await client.request(
+        'GET /repos/{owner}/{repo}/issues/{issue_number}/sub_issues',
+        {
+          owner,
+          repo,
+          issue_number: issueNumber,
+          per_page: 100,
+        }
+      );
 
       return (response.data as any[]).map((item: any) => ({
         id: item.id,
@@ -821,7 +797,9 @@ export class GitHubRestService {
         url: issueResponse.data.html_url,
       };
     } catch (error) {
-      throw new Error(`Failed to create sub-issue for ${owner}/${repo}#${parentIssueNumber}: ${error}`);
+      throw new Error(
+        `Failed to create sub-issue for ${owner}/${repo}#${parentIssueNumber}: ${error}`
+      );
     }
   }
 

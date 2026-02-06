@@ -1,13 +1,9 @@
 import { app, BrowserWindow, shell } from 'electron';
 import path from 'path';
+import electronSquirrelStartup from 'electron-squirrel-startup';
 import { handleIpc, removeAllIpcHandlers } from './ipc';
 import { database } from './database';
-import {
-  fileSystemService,
-  gitService,
-  gitIgnoreService,
-  gitHubService,
-} from './services';
+import { fileSystemService, gitService, gitIgnoreService, gitHubService } from './services';
 import { gitHubGraphQLService } from './services/github-graphql.service';
 import { codeServerService } from './services/code-server.service';
 import { spotifyService } from './services/spotify.service';
@@ -20,7 +16,7 @@ app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
-if (require('electron-squirrel-startup')) {
+if (electronSquirrelStartup) {
   app.quit();
 }
 
@@ -151,11 +147,16 @@ const setupIpcHandlers = () => {
   handleIpc('contribution:delete', async (_event, id) => {
     const contribution = database.getContributionById(id);
     if (contribution) {
-          // Delete the repository directory from file system
+      // Delete the repository directory from file system
       const fs = await import('fs');
       if (fs.existsSync(contribution.localPath)) {
         try {
-          fs.rmSync(contribution.localPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+          fs.rmSync(contribution.localPath, {
+            recursive: true,
+            force: true,
+            maxRetries: 3,
+            retryDelay: 100,
+          });
         } catch {
           // If immediate deletion fails, try with rimraf-style deletion
           const path = await import('path');
@@ -171,7 +172,9 @@ const setupIpcHandlers = () => {
                 // Remove read-only attribute on Windows
                 try {
                   fs.chmodSync(fullPath, 0o666);
-                } catch {}
+                } catch {
+                  // chmod may fail on some file systems; proceed with unlink anyway
+                }
                 fs.unlinkSync(fullPath);
               }
             }
@@ -190,12 +193,12 @@ const setupIpcHandlers = () => {
     const scanned = await contributionScannerService.scanDirectory(directoryPath);
 
     // Import scanned contributions into database
-    const contributions: any[] = [];
+    const contributions: import('./ipc/channels').Contribution[] = [];
     for (const scannedContribution of scanned) {
       // Check if contribution already exists in database
-      const existing = database.getAllContributions().find(
-        (c: any) => c.localPath === scannedContribution.localPath
-      );
+      const existing = database
+        .getAllContributions()
+        .find((c) => c.localPath === scannedContribution.localPath);
 
       if (existing) {
         // Update existing contribution with latest metadata and correct createdAt from directory
@@ -211,20 +214,23 @@ const setupIpcHandlers = () => {
         contributions.push(updated);
       } else {
         // Create new contribution entry with directory creation date
-        const created = database.createContribution({
-          repositoryUrl: scannedContribution.repositoryUrl,
-          localPath: scannedContribution.localPath,
-          issueNumber: scannedContribution.issueNumber || 0,
-          issueTitle: scannedContribution.issueTitle || 'Unknown Issue',
-          branchName: scannedContribution.branchName,
-          status: 'in_progress',
-          isFork: scannedContribution.isFork,
-          remotesValid: scannedContribution.remotesValid,
-          upstreamUrl: scannedContribution.upstreamUrl,
-          prUrl: scannedContribution.prUrl,
-          prNumber: scannedContribution.prNumber,
-          prStatus: scannedContribution.prStatus,
-        }, scannedContribution.createdAt);
+        const created = database.createContribution(
+          {
+            repositoryUrl: scannedContribution.repositoryUrl,
+            localPath: scannedContribution.localPath,
+            issueNumber: scannedContribution.issueNumber || 0,
+            issueTitle: scannedContribution.issueTitle || 'Unknown Issue',
+            branchName: scannedContribution.branchName,
+            status: 'in_progress',
+            isFork: scannedContribution.isFork,
+            remotesValid: scannedContribution.remotesValid,
+            upstreamUrl: scannedContribution.upstreamUrl,
+            prUrl: scannedContribution.prUrl,
+            prNumber: scannedContribution.prNumber,
+            prStatus: scannedContribution.prStatus,
+          },
+          scannedContribution.createdAt
+        );
         contributions.push(created);
       }
     }
@@ -266,13 +272,11 @@ const setupIpcHandlers = () => {
     const { contributionScannerService } = await import('./services/contribution-scanner.service');
     const scanned = await contributionScannerService.scanDirectory(directoryPath);
 
-    const projects: any[] = [];
+    const projects: import('./ipc/channels').Contribution[] = [];
     const existingProjects = database.getContributionsByType('project');
 
     for (const scannedItem of scanned) {
-      const existing = existingProjects.find(
-        (c: any) => c.localPath === scannedItem.localPath
-      );
+      const existing = existingProjects.find((c) => c.localPath === scannedItem.localPath);
 
       if (existing) {
         const updated = database.updateContribution(existing.id, {
@@ -286,21 +290,24 @@ const setupIpcHandlers = () => {
         });
         projects.push(updated);
       } else {
-        const created = database.createContribution({
-          repositoryUrl: scannedItem.repositoryUrl,
-          localPath: scannedItem.localPath,
-          issueNumber: scannedItem.issueNumber || 0,
-          issueTitle: scannedItem.issueTitle || '',
-          branchName: scannedItem.branchName,
-          status: 'in_progress',
-          type: 'project',
-          isFork: scannedItem.isFork,
-          remotesValid: scannedItem.remotesValid,
-          upstreamUrl: scannedItem.upstreamUrl,
-          prUrl: scannedItem.prUrl,
-          prNumber: scannedItem.prNumber,
-          prStatus: scannedItem.prStatus,
-        }, scannedItem.createdAt);
+        const created = database.createContribution(
+          {
+            repositoryUrl: scannedItem.repositoryUrl,
+            localPath: scannedItem.localPath,
+            issueNumber: scannedItem.issueNumber || 0,
+            issueTitle: scannedItem.issueTitle || '',
+            branchName: scannedItem.branchName,
+            status: 'in_progress',
+            type: 'project',
+            isFork: scannedItem.isFork,
+            remotesValid: scannedItem.remotesValid,
+            upstreamUrl: scannedItem.upstreamUrl,
+            prUrl: scannedItem.prUrl,
+            prNumber: scannedItem.prNumber,
+            prStatus: scannedItem.prStatus,
+          },
+          scannedItem.createdAt
+        );
         projects.push(created);
       }
     }
@@ -361,7 +368,11 @@ const setupIpcHandlers = () => {
     }
 
     let aliases: import('./ipc/channels').Alias[] = [];
-    try { aliases = JSON.parse(settings.aliases || '[]'); } catch { aliases = []; }
+    try {
+      aliases = JSON.parse(settings.aliases || '[]');
+    } catch {
+      aliases = [];
+    }
 
     return {
       githubToken: settings.githubToken,
@@ -405,13 +416,20 @@ const setupIpcHandlers = () => {
       database.setSetting('defaultProjectsPath', updates.defaultProjectsPath);
     }
     if (updates.defaultProfessionalProjectsPath !== undefined) {
-      database.setSetting('defaultProfessionalProjectsPath', updates.defaultProfessionalProjectsPath);
+      database.setSetting(
+        'defaultProfessionalProjectsPath',
+        updates.defaultProfessionalProjectsPath
+      );
     }
 
     // Return updated settings
     const settings = database.getAllSettings();
     let aliases: import('./ipc/channels').Alias[] = [];
-    try { aliases = JSON.parse(settings.aliases || '[]'); } catch { aliases = []; }
+    try {
+      aliases = JSON.parse(settings.aliases || '[]');
+    } catch {
+      aliases = [];
+    }
 
     return {
       githubToken: settings.githubToken,
@@ -443,165 +461,194 @@ const setupIpcHandlers = () => {
     return await gitHubService.validateToken(token);
   });
   // Additional GitHub handlers
-  handleIpc("github:fork-repository", async (_event, repoFullName) => {
-    const [owner, repo] = repoFullName.split("/");
+  handleIpc('github:fork-repository', async (_event, repoFullName) => {
+    const [owner, repo] = repoFullName.split('/');
     return await gitHubService.forkRepository(owner, repo);
   });
 
   // Git remote handlers
-  handleIpc("git:add-remote", async (_event, repoPath, remoteName, url) => {
+  handleIpc('git:add-remote', async (_event, repoPath, remoteName, url) => {
     await gitService.addRemote(repoPath, remoteName, url);
   });
 
-  handleIpc("git:get-remotes", async (_event, repoPath) => {
+  handleIpc('git:get-remotes', async (_event, repoPath) => {
     return await gitService.getRemotes(repoPath);
   });
 
-  handleIpc("github:list-pull-requests", async (_event, owner, repo, state) => {
+  handleIpc('github:list-pull-requests', async (_event, owner, repo, state) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listPullRequests(owner, repo, { state: state || 'all' });
   });
 
   // PR Detail handlers (WO-004)
-  handleIpc("github:get-pull-request", async (_event, owner, repo, prNumber) => {
+  handleIpc('github:get-pull-request', async (_event, owner, repo, prNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.getPullRequest(owner, repo, prNumber);
   });
 
-  handleIpc("github:list-pr-comments", async (_event, owner, repo, prNumber) => {
+  handleIpc('github:list-pr-comments', async (_event, owner, repo, prNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listPRComments(owner, repo, prNumber);
   });
 
-  handleIpc("github:list-pr-reviews", async (_event, owner, repo, prNumber) => {
+  handleIpc('github:list-pr-reviews', async (_event, owner, repo, prNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listPRReviews(owner, repo, prNumber);
   });
 
-  handleIpc("github:list-pr-review-comments", async (_event, owner, repo, prNumber) => {
+  handleIpc('github:list-pr-review-comments', async (_event, owner, repo, prNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listPRReviewComments(owner, repo, prNumber);
   });
 
-  handleIpc("github:create-pr-comment", async (_event, owner, repo, prNumber, body) => {
+  handleIpc('github:create-pr-comment', async (_event, owner, repo, prNumber, body) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     await gitHubRestService.createIssueComment(owner, repo, prNumber, body);
   });
 
   // Issue Detail handlers (WO-005)
-  handleIpc("github:list-issues", async (_event, owner, repo, state) => {
+  handleIpc('github:list-issues', async (_event, owner, repo, state) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listIssues(owner, repo, { state: state || 'open' });
   });
 
-  handleIpc("github:get-issue", async (_event, owner, repo, issueNumber) => {
+  handleIpc('github:get-issue', async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.getIssue(owner, repo, issueNumber);
   });
 
-  handleIpc("github:list-issue-comments", async (_event, owner, repo, issueNumber) => {
+  handleIpc('github:list-issue-comments', async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listIssueComments(owner, repo, issueNumber);
   });
 
-  handleIpc("github:create-issue-comment", async (_event, owner, repo, issueNumber, body) => {
+  handleIpc('github:create-issue-comment', async (_event, owner, repo, issueNumber, body) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     await gitHubRestService.createIssueComment(owner, repo, issueNumber, body);
   });
 
-  handleIpc("github:update-issue", async (_event, owner, repo, issueNumber, updates) => {
+  handleIpc('github:update-issue', async (_event, owner, repo, issueNumber, updates) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     await gitHubRestService.updateIssue(owner, repo, issueNumber, updates);
   });
 
-  handleIpc("github:create-issue", async (_event, owner, repo, title, body, labels) => {
+  handleIpc('github:create-issue', async (_event, owner, repo, title, body, labels) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.createIssue(owner, repo, title, body, labels);
   });
 
-  handleIpc("github:create-pull-request", async (_event, owner, repo, title, head, base, body) => {
+  handleIpc('github:create-pull-request', async (_event, owner, repo, title, head, base, body) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.createPullRequest(owner, repo, title, head, base, body);
   });
 
-  handleIpc("github:merge-pull-request", async (_event, owner, repo, prNumber, mergeMethod, commitTitle, commitMessage) => {
-    const { gitHubRestService } = await import('./services/github-rest.service');
-    return await gitHubRestService.mergePullRequest(owner, repo, prNumber, mergeMethod, commitTitle, commitMessage);
-  });
+  handleIpc(
+    'github:merge-pull-request',
+    async (_event, owner, repo, prNumber, mergeMethod, commitTitle, commitMessage) => {
+      const { gitHubRestService } = await import('./services/github-rest.service');
+      return await gitHubRestService.mergePullRequest(
+        owner,
+        repo,
+        prNumber,
+        mergeMethod,
+        commitTitle,
+        commitMessage
+      );
+    }
+  );
 
-  handleIpc("github:close-pull-request", async (_event, owner, repo, prNumber) => {
+  handleIpc('github:close-pull-request', async (_event, owner, repo, prNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.closePullRequest(owner, repo, prNumber);
   });
 
   // Reaction handlers
-  handleIpc("github:list-issue-reactions", async (_event, owner, repo, issueNumber) => {
+  handleIpc('github:list-issue-reactions', async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listIssueReactions(owner, repo, issueNumber);
   });
 
-  handleIpc("github:add-issue-reaction", async (_event, owner, repo, issueNumber, content) => {
+  handleIpc('github:add-issue-reaction', async (_event, owner, repo, issueNumber, content) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.addIssueReaction(owner, repo, issueNumber, content);
   });
 
-  handleIpc("github:delete-issue-reaction", async (_event, owner, repo, issueNumber, reactionId) => {
-    const { gitHubRestService } = await import('./services/github-rest.service');
-    await gitHubRestService.deleteIssueReaction(owner, repo, issueNumber, reactionId);
-  });
+  handleIpc(
+    'github:delete-issue-reaction',
+    async (_event, owner, repo, issueNumber, reactionId) => {
+      const { gitHubRestService } = await import('./services/github-rest.service');
+      await gitHubRestService.deleteIssueReaction(owner, repo, issueNumber, reactionId);
+    }
+  );
 
-  handleIpc("github:list-comment-reactions", async (_event, owner, repo, commentId) => {
+  handleIpc('github:list-comment-reactions', async (_event, owner, repo, commentId) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listCommentReactions(owner, repo, commentId);
   });
 
-  handleIpc("github:add-comment-reaction", async (_event, owner, repo, commentId, content) => {
+  handleIpc('github:add-comment-reaction', async (_event, owner, repo, commentId, content) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.addCommentReaction(owner, repo, commentId, content);
   });
 
-  handleIpc("github:delete-comment-reaction", async (_event, owner, repo, commentId, reactionId) => {
-    const { gitHubRestService } = await import('./services/github-rest.service');
-    await gitHubRestService.deleteCommentReaction(owner, repo, commentId, reactionId);
-  });
+  handleIpc(
+    'github:delete-comment-reaction',
+    async (_event, owner, repo, commentId, reactionId) => {
+      const { gitHubRestService } = await import('./services/github-rest.service');
+      await gitHubRestService.deleteCommentReaction(owner, repo, commentId, reactionId);
+    }
+  );
 
   // Sub-issue handlers
-  handleIpc("github:list-sub-issues", async (_event, owner, repo, issueNumber) => {
+  handleIpc('github:list-sub-issues', async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listSubIssues(owner, repo, issueNumber);
   });
 
-  handleIpc("github:create-sub-issue", async (_event, owner, repo, parentIssueNumber, title, body, labels) => {
-    const { gitHubRestService } = await import('./services/github-rest.service');
-    return await gitHubRestService.createSubIssue(owner, repo, parentIssueNumber, title, body, labels);
-  });
+  handleIpc(
+    'github:create-sub-issue',
+    async (_event, owner, repo, parentIssueNumber, title, body, labels) => {
+      const { gitHubRestService } = await import('./services/github-rest.service');
+      return await gitHubRestService.createSubIssue(
+        owner,
+        repo,
+        parentIssueNumber,
+        title,
+        body,
+        labels
+      );
+    }
+  );
 
-  handleIpc("github:add-existing-sub-issue", async (_event, owner, repo, parentIssueNumber, subIssueId) => {
-    const { gitHubRestService } = await import('./services/github-rest.service');
-    await gitHubRestService.addExistingSubIssue(owner, repo, parentIssueNumber, subIssueId);
-  });
+  handleIpc(
+    'github:add-existing-sub-issue',
+    async (_event, owner, repo, parentIssueNumber, subIssueId) => {
+      const { gitHubRestService } = await import('./services/github-rest.service');
+      await gitHubRestService.addExistingSubIssue(owner, repo, parentIssueNumber, subIssueId);
+    }
+  );
 
   // Dialog handlers
-  handleIpc("dialog:open-directory", async () => {
-    const { dialog } = await import("electron");
+  handleIpc('dialog:open-directory', async () => {
+    const { dialog } = await import('electron');
     const result = await dialog.showOpenDialog({
-      properties: ["openDirectory"]
+      properties: ['openDirectory'],
     });
     return result.canceled ? null : result.filePaths[0];
   });
 
   // Shell handlers
-  handleIpc("shell:execute", async (_event, command) => {
-    const { shell } = await import("electron");
+  handleIpc('shell:execute', async (_event, command) => {
+    const { shell } = await import('electron');
     await shell.openPath(command);
   });
 
-  handleIpc("shell:open-external", async (_event, url) => {
+  handleIpc('shell:open-external', async (_event, url) => {
     await shell.openExternal(url);
   });
 
-  handleIpc("shell:launch-app", async (_event, appName) => {
-    const { exec } = await import("child_process");
+  handleIpc('shell:launch-app', async (_event, appName) => {
+    const { exec } = await import('child_process');
     const allowedApps: Record<string, string> = {
       chrome: 'start chrome',
       spotify: 'start spotify:',
@@ -613,8 +660,8 @@ const setupIpcHandlers = () => {
     }
   });
 
-  handleIpc("github:get-repository-tree", async (_event, owner, repo, branch) => {
-    return await gitHubService.getRepositoryTree(owner, repo, branch || "main");
+  handleIpc('github:get-repository-tree', async (_event, owner, repo, branch) => {
+    return await gitHubService.getRepositoryTree(owner, repo, branch || 'main');
   });
 
   // Spotify handlers
@@ -763,9 +810,12 @@ const setupIpcHandlers = () => {
     return await discordService.createDM(userId);
   });
 
-  handleIpc('discord:send-message-with-attachments', async (_event, channelId, content, files, replyToId) => {
-    return await discordService.sendMessageWithAttachments(channelId, content, files, replyToId);
-  });
+  handleIpc(
+    'discord:send-message-with-attachments',
+    async (_event, channelId, content, files, replyToId) => {
+      return await discordService.sendMessageWithAttachments(channelId, content, files, replyToId);
+    }
+  );
 
   handleIpc('discord:search-gifs', async (_event, query) => {
     return await discordService.searchGifs(query);
@@ -787,13 +837,32 @@ const setupIpcHandlers = () => {
     return await discordService.sendSticker(channelId, stickerId);
   });
 
-  handleIpc('discord:create-poll', async (_event, channelId, question, answers, duration, allowMultiselect) => {
-    return await discordService.createPoll(channelId, question, answers, duration, allowMultiselect);
-  });
+  handleIpc(
+    'discord:create-poll',
+    async (_event, channelId, question, answers, duration, allowMultiselect) => {
+      return await discordService.createPoll(
+        channelId,
+        question,
+        answers,
+        duration,
+        allowMultiselect
+      );
+    }
+  );
 
-  handleIpc('discord:get-forum-threads', async (_event, channelId, guildId, sortBy, sortOrder, tagIds, offset) => {
-    return await discordService.getForumThreads(channelId, guildId, sortBy, sortOrder, tagIds, offset);
-  });
+  handleIpc(
+    'discord:get-forum-threads',
+    async (_event, channelId, guildId, sortBy, sortOrder, tagIds, offset) => {
+      return await discordService.getForumThreads(
+        channelId,
+        guildId,
+        sortBy,
+        sortOrder,
+        tagIds,
+        offset
+      );
+    }
+  );
 
   handleIpc('discord:get-thread-messages', async (_event, threadId, before, limit) => {
     return await discordService.getThreadMessages(threadId, before, limit);
@@ -803,9 +872,12 @@ const setupIpcHandlers = () => {
     return await discordService.sendThreadMessage(threadId, content);
   });
 
-  handleIpc('discord:create-forum-thread', async (_event, channelId, name, content, appliedTags) => {
-    return await discordService.createForumThread(channelId, name, content, appliedTags);
-  });
+  handleIpc(
+    'discord:create-forum-thread',
+    async (_event, channelId, name, content, appliedTags) => {
+      return await discordService.createForumThread(channelId, name, content, appliedTags);
+    }
+  );
 
   // Code Server handlers
   handleIpc('code-server:start', async (_event, projectPath) => {
@@ -819,7 +891,6 @@ const setupIpcHandlers = () => {
   handleIpc('code-server:status', async () => {
     return codeServerService.getStatus();
   });
-
 };
 
 const initializeServices = async () => {
@@ -851,9 +922,7 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
-    );
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
   // Open DevTools in development

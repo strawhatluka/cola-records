@@ -86,23 +86,29 @@ describe('DatabaseService', () => {
     });
 
     it('returns all contributions ordered by created_at DESC', () => {
-      dbService.createContribution({
-        repositoryUrl: 'https://github.com/test/first',
-        localPath: '/test/first',
-        issueNumber: 1,
-        issueTitle: 'First',
-        branchName: 'fix-1',
-        status: 'in_progress' as const,
-      }, new Date('2025-01-01'));
+      dbService.createContribution(
+        {
+          repositoryUrl: 'https://github.com/test/first',
+          localPath: '/test/first',
+          issueNumber: 1,
+          issueTitle: 'First',
+          branchName: 'fix-1',
+          status: 'in_progress' as const,
+        },
+        new Date('2025-01-01')
+      );
 
-      dbService.createContribution({
-        repositoryUrl: 'https://github.com/test/second',
-        localPath: '/test/second',
-        issueNumber: 2,
-        issueTitle: 'Second',
-        branchName: 'fix-2',
-        status: 'ready' as const,
-      }, new Date('2025-06-01'));
+      dbService.createContribution(
+        {
+          repositoryUrl: 'https://github.com/test/second',
+          localPath: '/test/second',
+          issueNumber: 2,
+          issueTitle: 'Second',
+          branchName: 'fix-2',
+          status: 'ready' as const,
+        },
+        new Date('2025-06-01')
+      );
 
       const all = dbService.getAllContributions();
       expect(all).toHaveLength(2);
@@ -283,7 +289,7 @@ describe('DatabaseService', () => {
 
       Date.now = () => baseTime;
       dbService.setCacheValue('fresh', 'value', 60_000); // Not expired
-      dbService.setCacheValue('stale', 'value', 100);    // Will expire
+      dbService.setCacheValue('stale', 'value', 100); // Will expire
 
       Date.now = () => baseTime + 200;
       dbService.cleanupExpiredCache();
