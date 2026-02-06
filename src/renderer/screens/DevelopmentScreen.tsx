@@ -655,6 +655,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             githubUsername={githubUsername}
             onClose={() => setSelectedPR(null)}
             onRefresh={() => fetchPullRequests()}
+            canWrite={contribution.type === 'project'}
           />
         ) : null;
       })()}

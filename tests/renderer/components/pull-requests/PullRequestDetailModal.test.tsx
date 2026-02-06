@@ -205,6 +205,7 @@ const defaultProps = {
   githubUsername: 'currentuser',
   onClose: vi.fn(),
   onRefresh: vi.fn(),
+  canWrite: true,
 };
 
 // ============================================
@@ -510,6 +511,19 @@ describe('PullRequestDetailModal', () => {
       });
 
       expect(screen.queryByText('Merge pull request')).toBeNull();
+    });
+
+    it('hides merge/close buttons when canWrite is false', async () => {
+      setupSuccessfulFetch();
+
+      render(<PullRequestDetailModal pr={createBasePR({ state: 'open' })} {...defaultProps} canWrite={false} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed PR Title')).toBeDefined();
+      });
+
+      expect(screen.queryByText('Merge pull request')).toBeNull();
+      expect(screen.queryByText('Close pull request')).toBeNull();
     });
 
     it('calls merge IPC and callbacks on merge', async () => {

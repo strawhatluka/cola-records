@@ -14,7 +14,10 @@
     "clean": "rimraf dist .vite out",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
   },
   "repository": {
     "type": "git",
@@ -49,17 +52,18 @@
     "autoprefixer": "^10.4.23",
     "canvas": "^3.2.1",
     "electron": "^40.0.0",
-    "eslint": "^9.39.2",
+    "eslint": "^8.50.0",
     "happy-dom": "^20.3.7",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
-    "prettier": "^3.8.1",
+    "prettier": "^3.0.0",
     "rimraf": "^6.1.2",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.0.18",
-    "vitest-axe": "^0.1.0"
+    "vitest-axe": "^0.1.0",
+    "eslint-plugin-react": "^7.33.0"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

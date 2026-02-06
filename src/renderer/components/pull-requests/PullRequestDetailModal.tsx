@@ -86,6 +86,8 @@ interface PullRequestDetailModalProps {
   githubUsername: string;
   onClose: () => void;
   onRefresh?: () => void;
+  /** Whether the user has write access to the repository (can merge/close PRs) */
+  canWrite?: boolean;
 }
 
 export function reviewStateBadge(state: string) {
@@ -123,7 +125,7 @@ export function formatDate(date: Date): string {
   });
 }
 
-export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClose, onRefresh }: PullRequestDetailModalProps) {
+export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClose, onRefresh, canWrite = true }: PullRequestDetailModalProps) {
   const [prDetail, setPrDetail] = useState<PRDetail | null>(null);
   const [comments, setComments] = useState<PRComment[]>([]);
   const [reviews, setReviews] = useState<PRReview[]>([]);
@@ -503,8 +505,8 @@ export function PullRequestDetailModal({ pr, owner, repo, githubUsername, onClos
               </div>
             </div>
 
-            {/* Merge/Close Actions - only for open PRs */}
-            {pr.state === 'open' && !pr.merged && (
+            {/* Merge/Close Actions - only for open PRs when user has write access */}
+            {pr.state === 'open' && !pr.merged && canWrite && (
               <div className="border-t pt-4">
                 {actionError && (
                   <p className="text-sm text-destructive mb-3">{actionError}</p>
