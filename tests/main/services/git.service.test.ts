@@ -1,5 +1,35 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Mock electron
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/mock/user/data'),
+  },
+}));
+
+// Mock the database module
+vi.mock('../../../src/main/database', () => ({
+  database: {
+    getAllSettings: vi.fn(() => ({})),
+    getSetting: vi.fn(() => null),
+    setSetting: vi.fn(),
+  },
+}));
+
+// Mock environment service
+vi.mock('../../../src/main/services/environment.service', () => ({
+  env: {
+    get: vi.fn(() => null),
+  },
+}));
+
+// Mock fs module for syncTokenToGitCredentials
+vi.mock('fs', () => ({
+  existsSync: vi.fn(() => false),
+  readFileSync: vi.fn(() => ''),
+  writeFileSync: vi.fn(),
+}));
+
 // Mock simple-git
 const mockStatus = vi.fn();
 const mockLog = vi.fn();
@@ -18,6 +48,8 @@ const mockAddRemote = vi.fn();
 
 const mockDiffSummary = vi.fn();
 const mockDiff = vi.fn();
+const mockRemote = vi.fn();
+const mockBranch = vi.fn();
 
 const mockGitInstance = {
   status: mockStatus,
@@ -36,6 +68,8 @@ const mockGitInstance = {
   addRemote: mockAddRemote,
   diffSummary: mockDiffSummary,
   diff: mockDiff,
+  remote: mockRemote,
+  branch: mockBranch,
 };
 
 vi.mock('simple-git', () => ({
@@ -139,6 +173,11 @@ describe('GitService', () => {
   });
 
   describe('push', () => {
+    beforeEach(() => {
+      // Mock getRemotes for withAuthenticatedRemote (no remotes = no auth rewriting)
+      mockGetRemotes.mockResolvedValue([]);
+    });
+
     it('pushes to default remote', async () => {
       mockPush.mockResolvedValue(undefined);
       await service.push('/repo');
@@ -159,6 +198,11 @@ describe('GitService', () => {
   });
 
   describe('pull', () => {
+    beforeEach(() => {
+      // Mock getRemotes for withAuthenticatedRemote (no remotes = no auth rewriting)
+      mockGetRemotes.mockResolvedValue([]);
+    });
+
     it('pulls from default remote', async () => {
       mockPull.mockResolvedValue(undefined);
       await service.pull('/repo');
@@ -247,6 +291,11 @@ describe('GitService', () => {
   });
 
   describe('fetch', () => {
+    beforeEach(() => {
+      // Mock getRemotes for withAuthenticatedRemote (no remotes = no auth rewriting)
+      mockGetRemotes.mockResolvedValue([]);
+    });
+
     it('fetches from remote', async () => {
       mockFetch.mockResolvedValue(undefined);
       await service.fetch('/repo', 'origin');

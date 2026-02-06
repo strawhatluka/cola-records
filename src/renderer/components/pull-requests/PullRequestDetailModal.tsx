@@ -13,6 +13,9 @@ import {
   Quote,
   CheckCircle2,
   CircleDot,
+  GitCommit,
+  Tag,
+  Pencil,
 } from 'lucide-react';
 import { MarkdownEditor } from './MarkdownEditor';
 import { ReactionDisplay } from '../ui/ReactionPicker';
@@ -105,10 +108,34 @@ interface ReviewThreadInfo {
   comments: { databaseId: number }[];
 }
 
+/** Commit on a PR */
+interface PRCommit {
+  sha: string;
+  message: string;
+  author: string;
+  authorAvatarUrl: string;
+  date: Date;
+  url: string;
+}
+
+/** Timeline event (renamed, closed, reopened, merged, labeled, etc.) */
+interface PREvent {
+  id: number;
+  event: string;
+  actor: string;
+  actorAvatarUrl: string;
+  createdAt: Date;
+  rename?: { from: string; to: string };
+  label?: { name: string; color: string };
+  commitId?: string;
+}
+
 type TimelineItem =
   | { type: 'comment'; date: Date; data: PRComment }
   | { type: 'review'; date: Date; data: PRReview }
-  | { type: 'review-thread'; date: Date; data: ReviewThread };
+  | { type: 'review-thread'; date: Date; data: ReviewThread }
+  | { type: 'commit'; date: Date; data: PRCommit }
+  | { type: 'event'; date: Date; data: PREvent };
 
 interface PullRequestDetailModalProps {
   pr: PullRequestSummary | null;
@@ -217,6 +244,8 @@ export function PullRequestDetailModal({
   const [reviews, setReviews] = useState<PRReview[]>([]);
   const [reviewComments, setReviewComments] = useState<PRReviewComment[]>([]);
   const [reviewThreadInfos, setReviewThreadInfos] = useState<ReviewThreadInfo[]>([]);
+  const [commits, setCommits] = useState<PRCommit[]>([]);
+  const [events, setEvents] = useState<PREvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
@@ -284,12 +313,14 @@ export function PullRequestDetailModal({
     setError(null);
 
     try {
-      const [detail, cmts, revs, revCmts, threadInfos] = await Promise.all([
+      const [detail, cmts, revs, revCmts, threadInfos, prCommits, prEvents] = await Promise.all([
         ipc.invoke('github:get-pull-request', owner, repo, prNumber),
         ipc.invoke('github:list-pr-comments', owner, repo, prNumber),
         ipc.invoke('github:list-pr-reviews', owner, repo, prNumber),
         ipc.invoke('github:list-pr-review-comments', owner, repo, prNumber),
         ipc.invoke('github:get-pr-review-threads', owner, repo, prNumber),
+        ipc.invoke('github:list-pr-commits', owner, repo, prNumber),
+        ipc.invoke('github:list-pr-events', owner, repo, prNumber),
       ]);
 
       if (isMounted.current) {
@@ -298,6 +329,8 @@ export function PullRequestDetailModal({
         setReviews(revs);
         setReviewComments(revCmts);
         setReviewThreadInfos(threadInfos);
+        setCommits(prCommits);
+        setEvents(prEvents);
       }
 
       // Fetch reactions in background
@@ -587,6 +620,16 @@ export function PullRequestDetailModal({
   // Add threads to timeline
   threadMap.forEach((thread) => {
     timeline.push({ type: 'review-thread', date: thread.date, data: thread });
+  });
+
+  // Add commits to timeline
+  commits.forEach((commit) => {
+    timeline.push({ type: 'commit', date: new Date(commit.date), data: commit });
+  });
+
+  // Add events to timeline
+  events.forEach((event) => {
+    timeline.push({ type: 'event', date: new Date(event.createdAt), data: event });
   });
 
   timeline.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -1015,6 +1058,234 @@ export function PullRequestDetailModal({
                               {submittingReply === thread.id ? 'Replying...' : 'Reply'}
                             </Button>
                           </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (item.type === 'commit') {
+                    const commit = item.data as PRCommit;
+                    const shortSha = commit.sha.substring(0, 7);
+                    const firstLine = commit.message.split('\n')[0];
+
+                    return (
+                      <div
+                        key={`commit-${commit.sha}`}
+                        className="flex items-center gap-3 py-2 text-sm"
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                          <GitCommit className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {commit.authorAvatarUrl ? (
+                              <img
+                                src={commit.authorAvatarUrl}
+                                alt={commit.author}
+                                className="w-4 h-4 rounded-full"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full bg-muted" />
+                            )}
+                            <span className="font-medium">{commit.author}</span>
+                            <span className="text-muted-foreground">added a commit</span>
+                            <span className="text-muted-foreground">
+                              {formatRelativeTime(commit.date)}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2">
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto p-0 text-xs font-mono"
+                              onClick={async () => {
+                                try {
+                                  await ipc.invoke('shell:open-external', commit.url);
+                                } catch {
+                                  // URL open failed
+                                }
+                              }}
+                            >
+                              {shortSha}
+                            </Button>
+                            <span className="text-muted-foreground truncate">{firstLine}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (item.type === 'event') {
+                    const event = item.data as PREvent;
+
+                    // Render different event types
+                    const renderEventContent = () => {
+                      switch (event.event) {
+                        case 'renamed':
+                          return (
+                            <>
+                              <Pencil className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground"> changed the title </span>
+                                <span className="line-through text-muted-foreground">
+                                  {event.rename?.from}
+                                </span>
+                                <span className="text-muted-foreground"> → </span>
+                                <span className="font-medium">{event.rename?.to}</span>
+                              </span>
+                            </>
+                          );
+                        case 'closed':
+                          return (
+                            <>
+                              <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground"> closed this</span>
+                              </span>
+                            </>
+                          );
+                        case 'reopened':
+                          return (
+                            <>
+                              <CircleDot className="h-4 w-4 text-green-500 flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground"> reopened this</span>
+                              </span>
+                            </>
+                          );
+                        case 'merged':
+                          return (
+                            <>
+                              <GitMerge className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground"> merged commit </span>
+                                <code className="text-xs bg-muted px-1 rounded">
+                                  {event.commitId?.substring(0, 7)}
+                                </code>
+                              </span>
+                            </>
+                          );
+                        case 'labeled':
+                          return (
+                            <>
+                              <Tag className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground"> added the </span>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs"
+                                  style={{
+                                    backgroundColor: event.label?.color
+                                      ? `#${event.label.color}20`
+                                      : undefined,
+                                    borderColor: event.label?.color
+                                      ? `#${event.label.color}`
+                                      : undefined,
+                                  }}
+                                >
+                                  {event.label?.name}
+                                </Badge>
+                                <span className="text-muted-foreground"> label</span>
+                              </span>
+                            </>
+                          );
+                        case 'unlabeled':
+                          return (
+                            <>
+                              <Tag className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground"> removed the </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {event.label?.name}
+                                </Badge>
+                                <span className="text-muted-foreground"> label</span>
+                              </span>
+                            </>
+                          );
+                        case 'head_ref_force_pushed':
+                          return (
+                            <>
+                              <GitCommit className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground">
+                                  {' '}
+                                  force-pushed the branch
+                                </span>
+                              </span>
+                            </>
+                          );
+                        case 'ready_for_review':
+                          return (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground">
+                                  {' '}
+                                  marked this pull request as ready for review
+                                </span>
+                              </span>
+                            </>
+                          );
+                        case 'converted_to_draft':
+                          return (
+                            <>
+                              <Pencil className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground">
+                                  {' '}
+                                  converted this to a draft
+                                </span>
+                              </span>
+                            </>
+                          );
+                        default:
+                          return (
+                            <>
+                              <CircleDot className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{event.actor}</span>
+                                <span className="text-muted-foreground">
+                                  {' '}
+                                  {event.event.replace(/_/g, ' ')}
+                                </span>
+                              </span>
+                            </>
+                          );
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={`event-${event.id}`}
+                        className="flex items-center gap-3 py-2 text-sm"
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                          {event.actorAvatarUrl ? (
+                            <img
+                              src={event.actorAvatarUrl}
+                              alt={event.actor}
+                              className="w-5 h-5 rounded-full"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-muted" />
+                          )}
+                        </div>
+                        <div className="flex-1 flex items-center gap-2 flex-wrap">
+                          {renderEventContent()}
+                          <span className="text-muted-foreground text-xs">
+                            {formatRelativeTime(event.createdAt)}
+                          </span>
                         </div>
                       </div>
                     );

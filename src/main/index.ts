@@ -399,6 +399,8 @@ const setupIpcHandlers = () => {
       database.setSetting('githubToken', updates.githubToken);
       // Reset GitHub GraphQL client to use new token
       gitHubGraphQLService.resetClient();
+      // Sync token to ~/.git-credentials for code-server authentication
+      gitService.syncTokenToGitCredentials(updates.githubToken || null);
     }
     if (updates.theme !== undefined) {
       database.setSetting('theme', updates.theme);
@@ -650,6 +652,17 @@ const setupIpcHandlers = () => {
   handleIpc('github:unresolve-review-thread', async (_event, threadId) => {
     const { gitHubGraphQLService } = await import('./services/github-graphql.service');
     await gitHubGraphQLService.unresolveReviewThread(threadId);
+  });
+
+  // PR Timeline Events handlers (WO-003)
+  handleIpc('github:list-pr-commits', async (_event, owner, repo, prNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listPRCommits(owner, repo, prNumber);
+  });
+
+  handleIpc('github:list-pr-events', async (_event, owner, repo, prNumber) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listPREvents(owner, repo, prNumber);
   });
 
   // Sub-issue handlers

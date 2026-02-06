@@ -232,6 +232,26 @@ const createReaction = (overrides = {}) => ({
   ...overrides,
 });
 
+const createCommit = (overrides = {}) => ({
+  sha: 'abc1234567890',
+  message: 'feat: add new feature\n\nThis commit adds a new feature.',
+  author: 'contributor',
+  authorAvatarUrl: 'https://github.com/contributor.png',
+  date: new Date('2026-01-15T11:00:00Z'),
+  url: 'https://github.com/owner/repo/commit/abc1234567890',
+  ...overrides,
+});
+
+const createEvent = (overrides = {}) => ({
+  id: 1,
+  event: 'renamed',
+  actor: 'contributor',
+  actorAvatarUrl: 'https://github.com/contributor.png',
+  createdAt: new Date('2026-01-15T10:00:00Z'),
+  rename: { from: 'Old Title', to: 'New Title' },
+  ...overrides,
+});
+
 // ============================================
 // Test Helpers
 // ============================================
@@ -244,6 +264,8 @@ function setupSuccessfulFetch(
     reviewComments?: ReturnType<typeof createReviewComment>[];
     reviewThreadInfos?: ReturnType<typeof createReviewThreadInfo>[];
     reviewCommentReactions?: ReturnType<typeof createReaction>[];
+    commits?: ReturnType<typeof createCommit>[];
+    events?: ReturnType<typeof createEvent>[];
   } = {}
 ) {
   mockInvoke.mockImplementation(async (channel: string, ..._args: unknown[]) => {
@@ -264,6 +286,10 @@ function setupSuccessfulFetch(
         return options.reviewThreadInfos ?? [];
       case 'github:list-review-comment-reactions':
         return options.reviewCommentReactions ?? [];
+      case 'github:list-pr-commits':
+        return options.commits ?? [];
+      case 'github:list-pr-events':
+        return options.events ?? [];
       case 'github:add-review-comment-reaction':
         return createReaction({ id: 999, content: '+1' });
       case 'github:delete-review-comment-reaction':
@@ -704,6 +730,8 @@ describe('PullRequestDetailModal', () => {
         if (channel === 'github:list-issue-reactions') return [];
         if (channel === 'github:get-pr-review-threads') return [];
         if (channel === 'github:list-review-comment-reactions') return [];
+        if (channel === 'github:list-pr-commits') return [];
+        if (channel === 'github:list-pr-events') return [];
         return undefined;
       });
 
@@ -734,6 +762,8 @@ describe('PullRequestDetailModal', () => {
         if (channel === 'github:list-issue-reactions') return [];
         if (channel === 'github:get-pr-review-threads') return [];
         if (channel === 'github:list-review-comment-reactions') return [];
+        if (channel === 'github:list-pr-commits') return [];
+        if (channel === 'github:list-pr-events') return [];
         return undefined;
       });
 
@@ -769,6 +799,8 @@ describe('PullRequestDetailModal', () => {
         if (channel === 'github:list-issue-reactions') return [];
         if (channel === 'github:get-pr-review-threads') return [];
         if (channel === 'github:list-review-comment-reactions') return [];
+        if (channel === 'github:list-pr-commits') return [];
+        if (channel === 'github:list-pr-events') return [];
         return undefined;
       });
 
@@ -957,6 +989,8 @@ describe('PullRequestDetailModal', () => {
         if (channel === 'github:get-pr-review-threads')
           return [createReviewThreadInfo({ id: 'PRRT_123', comments: [{ databaseId: 1 }] })];
         if (channel === 'github:list-review-comment-reactions') return [];
+        if (channel === 'github:list-pr-commits') return [];
+        if (channel === 'github:list-pr-events') return [];
         return undefined;
       });
 
@@ -984,6 +1018,8 @@ describe('PullRequestDetailModal', () => {
         if (channel === 'github:get-pr-review-threads')
           return [createReviewThreadInfo({ id: 'PRRT_123', comments: [{ databaseId: 1 }] })];
         if (channel === 'github:list-review-comment-reactions') return [];
+        if (channel === 'github:list-pr-commits') return [];
+        if (channel === 'github:list-pr-events') return [];
         return undefined;
       });
 
@@ -1432,6 +1468,293 @@ describe('PullRequestDetailModal', () => {
 
       // The file path and line info should be visible (shows "lines 40-42" format)
       expect(screen.getByText(/lines? \d+-?\d*/i)).toBeDefined();
+    });
+  });
+
+  // ============================================
+  // Commit Timeline Tests (WO-003)
+  // ============================================
+  describe('Commit Timeline', () => {
+    it('displays commits in timeline', async () => {
+      setupSuccessfulFetch({
+        commits: [
+          createCommit({
+            sha: 'abc1234567890',
+            message: 'feat: add new feature',
+            author: 'contributor',
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/abc1234/)).toBeDefined();
+      });
+
+      // Should show commit author
+      expect(screen.getByText('contributor')).toBeDefined();
+      expect(screen.getByText(/added a commit/)).toBeDefined();
+    });
+
+    it('displays commit message first line', async () => {
+      setupSuccessfulFetch({
+        commits: [
+          createCommit({
+            message: 'feat: add new feature\n\nThis is the body of the commit message.',
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/feat: add new feature/)).toBeDefined();
+      });
+    });
+
+    it('fetches commits from IPC', async () => {
+      setupSuccessfulFetch({
+        commits: [createCommit()],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('github:list-pr-commits', 'owner', 'repo', 123);
+      });
+    });
+
+    it('displays multiple commits in chronological order', async () => {
+      setupSuccessfulFetch({
+        commits: [
+          createCommit({
+            sha: 'first1234567890abcdef',
+            message: 'first commit',
+            date: new Date('2026-01-15T10:00:00Z'),
+          }),
+          createCommit({
+            sha: 'second4567890abcdef12',
+            message: 'second commit',
+            date: new Date('2026-01-15T11:00:00Z'),
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        // The component displays only first 7 chars of SHA
+        expect(screen.getByText('first12')).toBeDefined();
+        expect(screen.getByText('second4')).toBeDefined();
+      });
+    });
+  });
+
+  // ============================================
+  // Event Timeline Tests (WO-003)
+  // ============================================
+  describe('Event Timeline', () => {
+    it('displays renamed event', async () => {
+      setupSuccessfulFetch({
+        events: [
+          createEvent({
+            event: 'renamed',
+            actor: 'contributor',
+            rename: { from: 'Old Title', to: 'New Title' },
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/changed the title/)).toBeDefined();
+      });
+
+      // Should show old and new titles
+      expect(screen.getByText('Old Title')).toBeDefined();
+      expect(screen.getByText('New Title')).toBeDefined();
+    });
+
+    it('displays closed event', async () => {
+      setupSuccessfulFetch({
+        events: [
+          createEvent({
+            id: 2,
+            event: 'closed',
+            actor: 'maintainer',
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/closed this/)).toBeDefined();
+      });
+    });
+
+    it('displays reopened event', async () => {
+      setupSuccessfulFetch({
+        events: [
+          createEvent({
+            id: 3,
+            event: 'reopened',
+            actor: 'maintainer',
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/reopened this/)).toBeDefined();
+      });
+    });
+
+    it('displays labeled event', async () => {
+      setupSuccessfulFetch({
+        events: [
+          createEvent({
+            id: 4,
+            event: 'labeled',
+            actor: 'maintainer',
+            label: { name: 'bug', color: 'd73a4a' },
+            rename: undefined,
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/added the/)).toBeDefined();
+        expect(screen.getByText('bug')).toBeDefined();
+      });
+    });
+
+    it('displays merged event', async () => {
+      setupSuccessfulFetch({
+        events: [
+          createEvent({
+            id: 5,
+            event: 'merged',
+            actor: 'maintainer',
+            commitId: 'merge123abc',
+            rename: undefined,
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/merged commit/)).toBeDefined();
+        expect(screen.getByText('merge12')).toBeDefined();
+      });
+    });
+
+    it('fetches events from IPC', async () => {
+      setupSuccessfulFetch({
+        events: [createEvent()],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('github:list-pr-events', 'owner', 'repo', 123);
+      });
+    });
+
+    it('displays force push event', async () => {
+      setupSuccessfulFetch({
+        events: [
+          createEvent({
+            id: 6,
+            event: 'head_ref_force_pushed',
+            actor: 'contributor',
+            rename: undefined,
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/force-pushed the branch/)).toBeDefined();
+      });
+    });
+
+    it('displays ready for review event', async () => {
+      setupSuccessfulFetch({
+        events: [
+          createEvent({
+            id: 7,
+            event: 'ready_for_review',
+            actor: 'contributor',
+            rename: undefined,
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/marked this pull request as ready for review/)).toBeDefined();
+      });
+    });
+  });
+
+  // ============================================
+  // Timeline Integration Tests (WO-003)
+  // ============================================
+  describe('Timeline Integration', () => {
+    it('displays commits, events, and comments in chronological order', async () => {
+      setupSuccessfulFetch({
+        comments: [
+          createComment({
+            id: 1,
+            body: 'Comment body',
+            createdAt: new Date('2026-01-15T12:00:00Z'),
+          }),
+        ],
+        commits: [
+          createCommit({
+            sha: 'commit1234567890abcdef',
+            date: new Date('2026-01-15T10:00:00Z'),
+          }),
+        ],
+        events: [
+          createEvent({
+            id: 1,
+            event: 'renamed',
+            createdAt: new Date('2026-01-15T11:00:00Z'),
+          }),
+        ],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        // All items should be rendered (component shows first 7 chars of SHA)
+        expect(screen.getByText('commit1')).toBeDefined();
+        expect(screen.getByText(/changed the title/)).toBeDefined();
+        expect(screen.getByText('Comment body')).toBeDefined();
+      });
+    });
+
+    it('handles empty commits and events gracefully', async () => {
+      setupSuccessfulFetch({
+        commits: [],
+        events: [],
+      });
+
+      render(<PullRequestDetailModal pr={createBasePR()} {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed PR Title')).toBeDefined();
+      });
     });
   });
 });

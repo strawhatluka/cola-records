@@ -559,6 +559,34 @@ export interface IpcChannels {
   'github:resolve-review-thread': (threadId: string) => void;
   'github:unresolve-review-thread': (threadId: string) => void;
 
+  // PR Timeline Events (WO-003)
+  'github:list-pr-commits': (
+    owner: string,
+    repo: string,
+    prNumber: number
+  ) => {
+    sha: string;
+    message: string;
+    author: string;
+    authorAvatarUrl: string;
+    date: Date;
+    url: string;
+  }[];
+  'github:list-pr-events': (
+    owner: string,
+    repo: string,
+    prNumber: number
+  ) => {
+    id: number;
+    event: string;
+    actor: string;
+    actorAvatarUrl: string;
+    createdAt: Date;
+    rename?: { from: string; to: string };
+    label?: { name: string; color: string };
+    commitId?: string;
+  }[];
+
   // Issue Detail Channels (WO-005)
   'github:list-issues': (
     owner: string,

@@ -1,14 +1,132 @@
 import simpleGit, { SimpleGit, StatusResult, LogResult } from 'simple-git';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import type { GitStatus, GitCommit, BranchComparison } from '../ipc/channels';
+import { database } from '../database';
+import { env } from './environment.service';
 
 /**
  * Git Service
  *
- * Provides git operations for repositories
+ * Provides git operations for repositories.
+ * Uses stored GitHub token for authentication on push/pull/fetch operations.
+ * Authentication is done by temporarily rewriting remote URLs to include the token.
+ *
+ * For code-server (Docker container), the token is also written to ~/.git-credentials
+ * so that Git operations inside the container can authenticate using credential.helper = store.
  */
 export class GitService {
   /**
+   * Get the stored GitHub token
+   */
+  private getGitHubToken(): string | null {
+    const settings = database.getAllSettings();
+    return settings.githubToken || env.get('GITHUB_TOKEN') || null;
+  }
+
+  /**
+   * Sync GitHub token to ~/.git-credentials file.
+   * This enables Git authentication inside the code-server Docker container,
+   * which mounts this file and uses credential.helper = store.
+   *
+   * Format: https://x-access-token:{token}@github.com
+   *
+   * If token is empty/null, removes the GitHub entry from the file.
+   */
+  syncTokenToGitCredentials(token: string | null): void {
+    const credentialsPath = path.join(os.homedir(), '.git-credentials');
+    const githubEntry = token ? `https://x-access-token:${token}@github.com` : null;
+
+    try {
+      let lines: string[] = [];
+
+      // Read existing credentials if file exists
+      if (fs.existsSync(credentialsPath)) {
+        const content = fs.readFileSync(credentialsPath, 'utf-8');
+        lines = content.split('\n').filter((line) => line.trim() !== '');
+      }
+
+      // Remove any existing GitHub entries
+      lines = lines.filter((line) => !line.includes('github.com'));
+
+      // Add new GitHub entry if token is provided
+      if (githubEntry) {
+        lines.push(githubEntry);
+      }
+
+      // Write back to file (or create it)
+      // File should have restricted permissions (readable only by owner)
+      const content = lines.length > 0 ? lines.join('\n') + '\n' : '';
+      fs.writeFileSync(credentialsPath, content, { mode: 0o600 });
+    } catch {
+      // Best-effort - if we can't write the file, Git operations through
+      // the Electron UI will still work (using URL rewriting)
+    }
+  }
+
+  /**
+   * Rewrites a GitHub HTTPS URL to include the token for authentication.
+   * Format: https://x-access-token:{token}@github.com/owner/repo.git
+   */
+  private getAuthenticatedUrl(url: string): string {
+    const token = this.getGitHubToken();
+    if (!token) return url;
+
+    // Only rewrite GitHub HTTPS URLs
+    const githubHttpsPattern = /^https:\/\/github\.com\//;
+    if (!githubHttpsPattern.test(url)) return url;
+
+    // Insert token into URL: https://x-access-token:{token}@github.com/...
+    return url.replace('https://github.com/', `https://x-access-token:${token}@github.com/`);
+  }
+
+  /**
+   * Execute a Git operation with temporarily authenticated remote URL.
+   * This temporarily sets the remote URL to include the token,
+   * performs the operation, and then restores the original URL.
+   */
+  private async withAuthenticatedRemote(
+    repoPath: string,
+    remote: string,
+    operation: (git: SimpleGit) => Promise<void>
+  ): Promise<void> {
+    const git = this.getGit(repoPath);
+
+    // Get the current remote URL
+    const remotes = await git.getRemotes(true);
+    const remoteObj = remotes.find((r) => r.name === remote);
+    const originalUrl = remoteObj?.refs.push || remoteObj?.refs.fetch;
+
+    if (!originalUrl) {
+      // No remote configured, just run the operation
+      await operation(git);
+      return;
+    }
+
+    const authUrl = this.getAuthenticatedUrl(originalUrl);
+
+    // If no token or URL wasn't rewritten, just run the operation
+    if (authUrl === originalUrl) {
+      await operation(git);
+      return;
+    }
+
+    try {
+      // Temporarily set the authenticated URL
+      await git.remote(['set-url', remote, authUrl]);
+
+      // Perform the operation
+      await operation(git);
+    } finally {
+      // Always restore the original URL (without token)
+      await git.remote(['set-url', remote, originalUrl]);
+    }
+  }
+
+  /**
    * Get a SimpleGit instance for a repository
+   * @param repoPath - Path to the repository
    */
   private getGit(repoPath: string): SimpleGit {
     return simpleGit(repoPath, {
@@ -85,6 +203,7 @@ export class GitService {
 
   /**
    * Push changes
+   * Uses stored GitHub token for authentication via temporary URL rewriting
    */
   async push(
     repoPath: string,
@@ -93,13 +212,14 @@ export class GitService {
     setUpstream = false
   ): Promise<void> {
     try {
-      const git = this.getGit(repoPath);
-      if (branch) {
-        const options = setUpstream ? ['-u'] : [];
-        await git.push(remote, branch, options);
-      } else {
-        await git.push();
-      }
+      await this.withAuthenticatedRemote(repoPath, remote, async (git) => {
+        if (branch) {
+          const options = setUpstream ? ['-u'] : [];
+          await git.push(remote, branch, options);
+        } else {
+          await git.push();
+        }
+      });
     } catch (error) {
       throw new Error(`Failed to push in ${repoPath}: ${error}`);
     }
@@ -107,15 +227,17 @@ export class GitService {
 
   /**
    * Pull changes
+   * Uses stored GitHub token for authentication via temporary URL rewriting
    */
   async pull(repoPath: string, remote = 'origin', branch?: string): Promise<void> {
     try {
-      const git = this.getGit(repoPath);
-      if (branch) {
-        await git.pull(remote, branch);
-      } else {
-        await git.pull();
-      }
+      await this.withAuthenticatedRemote(repoPath, remote, async (git) => {
+        if (branch) {
+          await git.pull(remote, branch);
+        } else {
+          await git.pull();
+        }
+      });
     } catch (error) {
       throw new Error(`Failed to pull in ${repoPath}: ${error}`);
     }
@@ -123,11 +245,20 @@ export class GitService {
 
   /**
    * Clone repository
+   * Uses stored GitHub token for authentication via URL rewriting
    */
   async clone(url: string, targetPath: string): Promise<void> {
     try {
+      const authUrl = this.getAuthenticatedUrl(url);
       const git = simpleGit();
-      await git.clone(url, targetPath);
+      await git.clone(authUrl, targetPath);
+
+      // After cloning, reset the remote URL to the original (without token)
+      // This prevents the token from being stored in .git/config
+      if (authUrl !== url) {
+        const repoGit = this.getGit(targetPath);
+        await repoGit.remote(['set-url', 'origin', url]);
+      }
     } catch (error) {
       throw new Error(`Failed to clone ${url} to ${targetPath}: ${error}`);
     }
@@ -209,21 +340,26 @@ export class GitService {
 
   /**
    * Get remote branches from a specific remote
+   * Uses stored GitHub token for authentication (for fetch)
    */
   async getRemoteBranches(repoPath: string, remote: string): Promise<string[]> {
     try {
-      const git = this.getGit(repoPath);
-      // Fetch latest remote refs
-      await git.fetch(remote, undefined, ['--prune']);
-      // Get remote branches
-      const result = await git.branch(['-r']);
-      // Filter to just branches from the specified remote and strip prefix
-      // eslint-disable-next-line no-control-regex -- intentionally stripping ANSI escape codes
-      const ansiPattern = /\x1b\[\d+m/g;
-      const remoteBranches = result.all
-        .filter((b) => b.startsWith(`${remote}/`))
-        .map((b) => b.replace(`${remote}/`, '').replace(ansiPattern, '').trim())
-        .filter((b) => b !== 'HEAD');
+      let remoteBranches: string[] = [];
+
+      await this.withAuthenticatedRemote(repoPath, remote, async (git) => {
+        // Fetch latest remote refs
+        await git.fetch(remote, undefined, ['--prune']);
+        // Get remote branches
+        const result = await git.branch(['-r']);
+        // Filter to just branches from the specified remote and strip prefix
+        // eslint-disable-next-line no-control-regex -- intentionally stripping ANSI escape codes
+        const ansiPattern = /\x1b\[\d+m/g;
+        remoteBranches = result.all
+          .filter((b) => b.startsWith(`${remote}/`))
+          .map((b) => b.replace(`${remote}/`, '').replace(ansiPattern, '').trim())
+          .filter((b) => b !== 'HEAD');
+      });
+
       return remoteBranches;
     } catch (error) {
       throw new Error(`Failed to get remote branches for ${repoPath}: ${error}`);
@@ -290,11 +426,13 @@ export class GitService {
 
   /**
    * Fetch from remote
+   * Uses stored GitHub token for authentication via temporary URL rewriting
    */
   async fetch(repoPath: string, remote = 'origin'): Promise<void> {
     try {
-      const git = this.getGit(repoPath);
-      await git.fetch(remote);
+      await this.withAuthenticatedRemote(repoPath, remote, async (git) => {
+        await git.fetch(remote);
+      });
     } catch (error) {
       throw new Error(`Failed to fetch from ${remote} in ${repoPath}: ${error}`);
     }

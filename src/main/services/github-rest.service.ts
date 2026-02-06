@@ -991,6 +991,110 @@ export class GitHubRestService {
       throw new Error(`Failed to close PR #${prNumber}: ${error}`);
     }
   }
+
+  // ─── PR Timeline Events ───────────────────────────────────────────────
+
+  /**
+   * List commits on a pull request
+   */
+  async listPRCommits(
+    owner: string,
+    repo: string,
+    prNumber: number
+  ): Promise<
+    {
+      sha: string;
+      message: string;
+      author: string;
+      authorAvatarUrl: string;
+      date: Date;
+      url: string;
+    }[]
+  > {
+    try {
+      const client = this.getClient();
+      const response = await client.pulls.listCommits({
+        owner,
+        repo,
+        pull_number: prNumber,
+        per_page: 100,
+      });
+
+      return response.data.map((commit) => ({
+        sha: commit.sha,
+        message: commit.commit.message,
+        author: commit.author?.login || commit.commit.author?.name || 'unknown',
+        authorAvatarUrl: commit.author?.avatar_url || '',
+        date: new Date(commit.commit.author?.date || commit.commit.committer?.date || ''),
+        url: commit.html_url,
+      }));
+    } catch (error) {
+      throw new Error(`Failed to list commits for PR #${prNumber}: ${error}`);
+    }
+  }
+
+  /**
+   * List timeline events for a pull request (renamed, closed, reopened, merged, etc.)
+   */
+  async listPREvents(
+    owner: string,
+    repo: string,
+    prNumber: number
+  ): Promise<
+    {
+      id: number;
+      event: string;
+      actor: string;
+      actorAvatarUrl: string;
+      createdAt: Date;
+      rename?: { from: string; to: string };
+      label?: { name: string; color: string };
+      commitId?: string;
+    }[]
+  > {
+    try {
+      const client = this.getClient();
+      const response = await client.issues.listEvents({
+        owner,
+        repo,
+        issue_number: prNumber,
+        per_page: 100,
+      });
+
+      // Filter to relevant timeline events
+      const relevantEvents = [
+        'renamed',
+        'closed',
+        'reopened',
+        'merged',
+        'assigned',
+        'unassigned',
+        'labeled',
+        'unlabeled',
+        'head_ref_force_pushed',
+        'base_ref_force_pushed',
+        'review_requested',
+        'review_request_removed',
+        'ready_for_review',
+        'converted_to_draft',
+      ];
+
+      return response.data
+        .filter((event) => relevantEvents.includes(event.event))
+        .map((event: any) => ({
+          id: event.id,
+          event: event.event,
+          actor: event.actor?.login || 'unknown',
+          actorAvatarUrl: event.actor?.avatar_url || '',
+          createdAt: new Date(event.created_at),
+          rename: event.rename ? { from: event.rename.from, to: event.rename.to } : undefined,
+          label: event.label ? { name: event.label.name, color: event.label.color } : undefined,
+          commitId: event.commit_id || undefined,
+        }));
+    } catch (error) {
+      throw new Error(`Failed to list events for PR #${prNumber}: ${error}`);
+    }
+  }
 }
 
 // Export singleton instance
