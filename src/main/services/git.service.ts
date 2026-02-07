@@ -2,7 +2,7 @@ import simpleGit, { SimpleGit, StatusResult, LogResult } from 'simple-git';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import type { GitStatus, GitCommit, BranchComparison } from '../ipc/channels';
+import type { GitStatus, GitCommit, BranchComparison, BranchInfo } from '../ipc/channels';
 import { database } from '../database';
 import { env } from './environment.service';
 
@@ -490,6 +490,97 @@ export class GitService {
       };
     } catch (error) {
       throw new Error(`Failed to compare branches ${base}...${head} in ${repoPath}: ${error}`);
+    }
+  }
+
+  /**
+   * Find the base branch for comparison (main, master, or dev)
+   */
+  private async findBaseBranch(repoPath: string): Promise<string | null> {
+    const branches = await this.getBranches(repoPath);
+    if (branches.includes('main')) return 'main';
+    if (branches.includes('master')) return 'master';
+    if (branches.includes('dev')) return 'dev';
+    return branches[0] || null;
+  }
+
+  /**
+   * Delete a local branch
+   * @throws Error if branch is currently checked out or is protected (main/dev)
+   */
+  async deleteBranch(repoPath: string, branchName: string, force = false): Promise<void> {
+    try {
+      const git = this.getGit(repoPath);
+
+      // Safety checks
+      const currentBranch = await this.getCurrentBranch(repoPath);
+      if (currentBranch === branchName) {
+        throw new Error('Cannot delete the currently checked out branch');
+      }
+
+      const protectedBranches = ['main', 'master', 'dev', 'develop'];
+      if (protectedBranches.includes(branchName)) {
+        throw new Error(`Cannot delete protected branch: ${branchName}`);
+      }
+
+      const options = force ? ['-D'] : ['-d'];
+      await git.branch([...options, branchName]);
+    } catch (error) {
+      throw new Error(`Failed to delete branch ${branchName}: ${error}`);
+    }
+  }
+
+  /**
+   * Get detailed information about a branch
+   */
+  async getBranchInfo(repoPath: string, branchName: string): Promise<BranchInfo> {
+    try {
+      const git = this.getGit(repoPath);
+      const currentBranch = await this.getCurrentBranch(repoPath);
+
+      // Get last commit info for this branch
+      const lastCommitLog = await git.log([branchName, '-1']);
+      const lastCommitInfo = lastCommitLog.all[0];
+
+      // Get commit count for this branch
+      const branchLog = await git.log([branchName]);
+      const commitCount = branchLog.total;
+
+      // Compare with base branch to get ahead/behind
+      const baseBranch = await this.findBaseBranch(repoPath);
+      let aheadBehind = { ahead: 0, behind: 0 };
+
+      if (baseBranch && baseBranch !== branchName) {
+        try {
+          const revList = await git.raw([
+            'rev-list',
+            '--left-right',
+            '--count',
+            `${baseBranch}...${branchName}`,
+          ]);
+          const [behind, ahead] = revList.trim().split('\t').map(Number);
+          aheadBehind = { ahead: ahead || 0, behind: behind || 0 };
+        } catch {
+          // If comparison fails (e.g., no common ancestor), keep defaults
+        }
+      }
+
+      return {
+        name: branchName,
+        isCurrent: branchName === currentBranch,
+        isProtected: ['main', 'master', 'dev', 'develop'].includes(branchName),
+        lastCommit: {
+          hash: lastCommitInfo?.hash || '',
+          message: lastCommitInfo?.message || '',
+          author: lastCommitInfo?.author_name || '',
+          date: lastCommitInfo?.date ? new Date(lastCommitInfo.date) : new Date(),
+        },
+        ahead: aheadBehind.ahead,
+        behind: aheadBehind.behind,
+        commitCount,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get branch info for ${branchName}: ${error}`);
     }
   }
 }

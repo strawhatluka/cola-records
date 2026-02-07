@@ -118,6 +118,14 @@ const setupIpcHandlers = () => {
     return await gitService.compareBranches(repoPath, base, head);
   });
 
+  handleIpc('git:delete-branch', async (_event, repoPath, branchName, force) => {
+    await gitService.deleteBranch(repoPath, branchName, force);
+  });
+
+  handleIpc('git:get-branch-info', async (_event, repoPath, branchName) => {
+    return await gitService.getBranchInfo(repoPath, branchName);
+  });
+
   // GitIgnore handlers
   handleIpc('gitignore:is-ignored', async (_event, repoPath, filePath) => {
     return await gitIgnoreService.isIgnored(repoPath, filePath);

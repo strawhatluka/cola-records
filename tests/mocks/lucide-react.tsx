@@ -19,7 +19,9 @@ function createIcon(name: string) {
 
 // All icons used across the codebase
 export const AlertTriangle = createIcon('AlertTriangle');
+export const ArrowDown = createIcon('ArrowDown');
 export const ArrowRight = createIcon('ArrowRight');
+export const ArrowUp = createIcon('ArrowUp');
 export const AtSign = createIcon('AtSign');
 export const Ban = createIcon('Ban');
 export const Bold = createIcon('Bold');
@@ -27,6 +29,7 @@ export const BookMarked = createIcon('BookMarked');
 export const Briefcase = createIcon('Briefcase');
 export const Calendar = createIcon('Calendar');
 export const Check = createIcon('Check');
+export const Clock = createIcon('Clock');
 export const CheckCircle = createIcon('CheckCircle');
 export const CheckCircle2 = createIcon('CheckCircle2');
 export const CircleDot = createIcon('CircleDot');
@@ -77,6 +80,7 @@ export const Strikethrough = createIcon('Strikethrough');
 export const Sun = createIcon('Sun');
 export const Tag = createIcon('Tag');
 export const Trash2 = createIcon('Trash2');
+export const User = createIcon('User');
 export const X = createIcon('X');
 export const XCircle = createIcon('XCircle');
 

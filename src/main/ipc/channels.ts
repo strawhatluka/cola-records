@@ -54,6 +54,22 @@ export interface DiffFileSummary {
   binary: boolean;
 }
 
+// Branch Info Types
+export interface BranchInfo {
+  name: string;
+  isCurrent: boolean;
+  isProtected: boolean;
+  lastCommit: {
+    hash: string;
+    message: string;
+    author: string;
+    date: Date;
+  };
+  ahead: number;
+  behind: number;
+  commitCount: number;
+}
+
 export interface BranchComparison {
   commits: GitCommit[];
   files: DiffFileSummary[];
@@ -400,6 +416,8 @@ export interface IpcChannels {
   'git:create-branch': (repoPath: string, branchName: string) => void;
   'git:get-current-branch': (repoPath: string) => string | null;
   'git:compare-branches': (repoPath: string, base: string, head: string) => BranchComparison;
+  'git:delete-branch': (repoPath: string, branchName: string, force?: boolean) => void;
+  'git:get-branch-info': (repoPath: string, branchName: string) => BranchInfo;
 
   // GitHub Channels
   'github:get-authenticated-user': () => { login: string; name: string; email: string };

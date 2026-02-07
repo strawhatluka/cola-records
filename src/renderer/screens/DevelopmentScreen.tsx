@@ -12,6 +12,7 @@ import { PullRequestDetailModal } from '../components/pull-requests/PullRequestD
 import { CreatePullRequestModal } from '../components/pull-requests/CreatePullRequestModal';
 import { DevelopmentIssueDetailModal } from '../components/issues/DevelopmentIssueDetailModal';
 import { CreateIssueModal } from '../components/issues/CreateIssueModal';
+import { BranchDetailModal } from '../components/branches/BranchDetailModal';
 
 type ScreenState = 'idle' | 'starting' | 'running' | 'error';
 
@@ -20,7 +21,7 @@ interface DevelopmentScreenProps {
   onNavigateBack: () => void;
 }
 
-type ToolDropdown = 'issues' | 'remotes' | 'pull-requests' | 'tools' | null;
+type ToolDropdown = 'branches' | 'issues' | 'remotes' | 'pull-requests' | 'tools' | null;
 
 interface GitRemote {
   name: string;
@@ -88,6 +89,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [showCreateIssue, setShowCreateIssue] = useState(false);
   const [showCreatePR, setShowCreatePR] = useState(false);
   const [branches, setBranches] = useState<string[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [githubUsername, setGithubUsername] = useState<string>('');
   const [awaitingResponse, setAwaitingResponse] = useState(false);
   const webviewRef = useRef<HTMLWebViewElement>(null);
@@ -425,7 +427,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
           <span className="text-xs text-muted-foreground">{contribution.localPath}</span>
         </div>
         <div className="flex gap-2" ref={dropdownRef}>
-          {(['issues', 'remotes', 'pull-requests', 'tools'] as const).map((name) => (
+          {(['branches', 'issues', 'remotes', 'pull-requests', 'tools'] as const).map((name) => (
             <div key={name} className="relative">
               <button
                 onClick={() => toggleDropdown(name)}
@@ -675,6 +677,43 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                   )}
                 </div>
               )}
+              {activeDropdown === name && name === 'branches' && (
+                <div className="absolute right-0 top-full mt-1 w-72 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto styled-scroll">
+                  <p className="text-sm font-medium mb-3">Branches</p>
+                  {branches.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No branches found</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {branches.map((branch) => {
+                        const isCurrent = branch === contribution.branchName;
+                        return (
+                          <div
+                            key={branch}
+                            onClick={() => {
+                              setSelectedBranch(branch);
+                              setActiveDropdown(null);
+                            }}
+                            className={`flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs ${
+                              isCurrent ? 'bg-primary/10' : ''
+                            }`}
+                          >
+                            <span
+                              className={`font-mono truncate flex-1 ${isCurrent ? 'font-semibold text-primary' : ''}`}
+                            >
+                              {branch}
+                            </span>
+                            {isCurrent && (
+                              <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">
+                                current
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
               {activeDropdown === name && name === 'tools' && (
                 <div className="absolute right-0 top-full mt-1 w-64 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
                   <p className="text-sm font-medium mb-1">Tools</p>
@@ -782,6 +821,22 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             />
           ) : null;
         })()}
+
+      {/* Branch Detail Modal */}
+      {selectedBranch && (
+        <BranchDetailModal
+          branchName={selectedBranch}
+          localPath={contribution.localPath}
+          onClose={() => setSelectedBranch(null)}
+          onDeleted={() => {
+            // Refresh branches list after deletion
+            ipc
+              .invoke('git:get-branches', contribution.localPath)
+              .then((result) => setBranches(result))
+              .catch(() => {});
+          }}
+        />
+      )}
     </div>
   );
 }

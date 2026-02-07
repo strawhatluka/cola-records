@@ -50,6 +50,7 @@ const mockDiffSummary = vi.fn();
 const mockDiff = vi.fn();
 const mockRemote = vi.fn();
 const mockBranch = vi.fn();
+const mockRaw = vi.fn();
 
 const mockGitInstance = {
   status: mockStatus,
@@ -70,6 +71,7 @@ const mockGitInstance = {
   diff: mockDiff,
   remote: mockRemote,
   branch: mockBranch,
+  raw: mockRaw,
 };
 
 vi.mock('simple-git', () => ({
@@ -410,6 +412,157 @@ describe('GitService', () => {
       mockLog.mockRejectedValue(new Error('bad ref'));
       await expect(service.compareBranches('/repo', 'main', 'bad')).rejects.toThrow(
         'Failed to compare branches'
+      );
+    });
+  });
+
+  describe('deleteBranch', () => {
+    it('deletes branch with safe delete by default', async () => {
+      // Mock current branch check
+      mockStatus.mockResolvedValue({ current: 'main' });
+      mockBranch.mockResolvedValue(undefined);
+
+      await service.deleteBranch('/repo', 'feature');
+      expect(mockBranch).toHaveBeenCalledWith(['-d', 'feature']);
+    });
+
+    it('force deletes branch when force is true', async () => {
+      mockStatus.mockResolvedValue({ current: 'main' });
+      mockBranch.mockResolvedValue(undefined);
+
+      await service.deleteBranch('/repo', 'feature', true);
+      expect(mockBranch).toHaveBeenCalledWith(['-D', 'feature']);
+    });
+
+    it('throws error when trying to delete current branch', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+
+      await expect(service.deleteBranch('/repo', 'feature')).rejects.toThrow(
+        'Cannot delete the currently checked out branch'
+      );
+    });
+
+    it('throws error when trying to delete protected branch main', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+
+      await expect(service.deleteBranch('/repo', 'main')).rejects.toThrow(
+        'Cannot delete protected branch: main'
+      );
+    });
+
+    it('throws error when trying to delete protected branch dev', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+
+      await expect(service.deleteBranch('/repo', 'dev')).rejects.toThrow(
+        'Cannot delete protected branch: dev'
+      );
+    });
+
+    it('throws error when trying to delete protected branch master', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+
+      await expect(service.deleteBranch('/repo', 'master')).rejects.toThrow(
+        'Cannot delete protected branch: master'
+      );
+    });
+
+    it('throws error when trying to delete protected branch develop', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+
+      await expect(service.deleteBranch('/repo', 'develop')).rejects.toThrow(
+        'Cannot delete protected branch: develop'
+      );
+    });
+  });
+
+  describe('getBranchInfo', () => {
+    it('returns branch info with ahead/behind stats', async () => {
+      // Mock current branch
+      mockStatus.mockResolvedValue({ current: 'main' });
+
+      // Mock last commit
+      mockLog.mockImplementation((args) => {
+        if (Array.isArray(args) && args.includes('-1')) {
+          return Promise.resolve({
+            all: [
+              {
+                hash: 'abc123def456',
+                message: 'Latest commit',
+                author_name: 'Test User',
+                date: '2026-01-15T10:00:00Z',
+              },
+            ],
+            total: 1,
+          });
+        }
+        // Branch log for commit count
+        return Promise.resolve({ all: [], total: 25 });
+      });
+
+      // Mock branches for findBaseBranch
+      mockBranchLocal.mockResolvedValue({ all: ['main', 'feature', 'dev'] });
+
+      // Mock ahead/behind
+      mockRaw.mockResolvedValue('3\t5');
+
+      const info = await service.getBranchInfo('/repo', 'feature');
+
+      expect(info.name).toBe('feature');
+      expect(info.isCurrent).toBe(false);
+      expect(info.isProtected).toBe(false);
+      expect(info.lastCommit.hash).toBe('abc123def456');
+      expect(info.lastCommit.message).toBe('Latest commit');
+      expect(info.lastCommit.author).toBe('Test User');
+      expect(info.commitCount).toBe(25);
+      expect(info.ahead).toBe(5);
+      expect(info.behind).toBe(3);
+    });
+
+    it('returns isCurrent true when branch is checked out', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+      mockLog.mockResolvedValue({
+        all: [{ hash: 'abc', message: 'test', author_name: 'User', date: '2026-01-01' }],
+        total: 10,
+      });
+      mockBranchLocal.mockResolvedValue({ all: ['main', 'feature'] });
+      mockRaw.mockResolvedValue('0\t0');
+
+      const info = await service.getBranchInfo('/repo', 'feature');
+      expect(info.isCurrent).toBe(true);
+    });
+
+    it('returns isProtected true for protected branches', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+      mockLog.mockResolvedValue({
+        all: [{ hash: 'abc', message: 'test', author_name: 'User', date: '2026-01-01' }],
+        total: 10,
+      });
+      mockBranchLocal.mockResolvedValue({ all: ['main', 'feature'] });
+      mockRaw.mockResolvedValue('0\t0');
+
+      const mainInfo = await service.getBranchInfo('/repo', 'main');
+      expect(mainInfo.isProtected).toBe(true);
+    });
+
+    it('handles missing ahead/behind gracefully', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+      mockLog.mockResolvedValue({
+        all: [{ hash: 'abc', message: 'test', author_name: 'User', date: '2026-01-01' }],
+        total: 10,
+      });
+      mockBranchLocal.mockResolvedValue({ all: ['main', 'feature'] });
+      mockRaw.mockRejectedValue(new Error('no common ancestor'));
+
+      const info = await service.getBranchInfo('/repo', 'feature');
+      expect(info.ahead).toBe(0);
+      expect(info.behind).toBe(0);
+    });
+
+    it('throws on error', async () => {
+      mockStatus.mockRejectedValue(new Error('not a repo'));
+
+      await expect(service.getBranchInfo('/repo', 'feature')).rejects.toThrow(
+        'Failed to get branch info'
       );
     });
   });
