@@ -105,6 +105,15 @@ export interface SubIssue {
   url: string;
 }
 
+// PR Check Status Types
+export interface PRCheckStatus {
+  state: 'pending' | 'success' | 'failure' | 'unknown';
+  total: number;
+  passed: number;
+  failed: number;
+  pending: number;
+}
+
 // GitHub Types
 export interface GitHubIssue {
   id: string;
@@ -494,6 +503,7 @@ export interface IpcChannels {
     createdAt: Date;
     updatedAt: Date;
     author: string;
+    headSha: string;
   };
   'github:list-pr-comments': (
     owner: string,
@@ -850,6 +860,9 @@ export interface IpcChannels {
   'code-server:start': (projectPath: string) => { port: number; url: string };
   'code-server:stop': () => void;
   'code-server:status': () => { running: boolean; port: number | null; url: string | null };
+
+  // PR Check Status Channels
+  'github:get-pr-check-status': (owner: string, repo: string, sha: string) => PRCheckStatus;
 }
 
 /**

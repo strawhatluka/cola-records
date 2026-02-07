@@ -18,8 +18,9 @@ import {
   Pencil,
 } from 'lucide-react';
 import { MarkdownEditor } from './MarkdownEditor';
+import { CheckStatusIndicator } from './CheckStatusIndicator';
 import { ReactionDisplay } from '../ui/ReactionPicker';
-import type { Reaction, ReactionContent } from '../../../main/ipc/channels';
+import type { Reaction, ReactionContent, PRCheckStatus } from '../../../main/ipc/channels';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +54,7 @@ interface PRDetail {
   createdAt: Date;
   updatedAt: Date;
   author: string;
+  headSha: string;
 }
 
 interface PRComment {
@@ -265,6 +267,9 @@ export function PullRequestDetailModal({
   const [submittingReply, setSubmittingReply] = useState<number | null>(null);
   // Thread resolution state
   const [resolvingThread, setResolvingThread] = useState<string | null>(null);
+  // Check status state
+  const [checkStatus, setCheckStatus] = useState<PRCheckStatus | null>(null);
+  const [checkStatusLoading, setCheckStatusLoading] = useState(false);
   const isMounted = useRef(true);
 
   const fetchReactions = async (
@@ -331,6 +336,22 @@ export function PullRequestDetailModal({
         setReviewThreadInfos(threadInfos);
         setCommits(prCommits);
         setEvents(prEvents);
+      }
+
+      // Fetch check status in background (needs headSha from detail)
+      if (detail.headSha) {
+        setCheckStatusLoading(true);
+        ipc
+          .invoke('github:get-pr-check-status', owner, repo, detail.headSha)
+          .then((status) => {
+            if (isMounted.current) setCheckStatus(status);
+          })
+          .catch(() => {
+            // Check status fetch failed, leave as null
+          })
+          .finally(() => {
+            if (isMounted.current) setCheckStatusLoading(false);
+          });
       }
 
       // Fetch reactions in background
@@ -647,8 +668,9 @@ export function PullRequestDetailModal({
               <DialogDescription className="sr-only">
                 Pull request #{pr.number} details
               </DialogDescription>
-              <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
+              <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
                 {statusBadge(pr.state, pr.merged)}
+                <CheckStatusIndicator status={checkStatus} loading={checkStatusLoading} />
                 <span>{pr.author}</span>
                 <span>wants to merge</span>
                 <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{pr.headBranch}</code>

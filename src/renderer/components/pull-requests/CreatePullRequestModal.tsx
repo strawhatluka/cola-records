@@ -154,6 +154,7 @@ export function CreatePullRequestModal({
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [comparisonError, setComparisonError] = useState<string | null>(null);
   const [showAllCommits, setShowAllCommits] = useState(false);
+  const [showAllFiles, setShowAllFiles] = useState(false);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
   // Track whether user has manually edited the title
@@ -196,6 +197,7 @@ export function CreatePullRequestModal({
       setComparison(null);
       setComparisonError(null);
       setShowAllCommits(false);
+      setShowAllFiles(false);
     };
 
     init();
@@ -308,11 +310,16 @@ export function CreatePullRequestModal({
     return parseUnifiedDiff(comparison.rawDiff);
   }, [comparison?.rawDiff]);
 
-  // Auto-expand all files when comparison loads
+  const MAX_FILES_SHOWN = 20;
+  const visibleFiles = showAllFiles ? parsedDiff : parsedDiff.slice(0, MAX_FILES_SHOWN);
+
+  // Auto-expand first file only when comparison loads (avoid performance issues with large diffs)
   useEffect(() => {
-    if (parsedDiff.length > 0) {
-      setExpandedFiles(new Set(parsedDiff.map((f) => f.filename)));
+    if (parsedDiff.length > 0 && parsedDiff.length <= 10) {
+      // Only auto-expand first file if there are few files
+      setExpandedFiles(new Set([parsedDiff[0].filename]));
     } else {
+      // For large diffs, start collapsed
       setExpandedFiles(new Set());
     }
   }, [parsedDiff]);
@@ -451,14 +458,18 @@ export function CreatePullRequestModal({
                       {parsedDiff.length > 0 && (
                         <div>
                           <div className="px-4 py-2 text-xs font-medium text-muted-foreground bg-muted/20 border-t">
-                            Showing {comparison.totalFilesChanged} changed file
+                            Showing {visibleFiles.length}
+                            {parsedDiff.length > MAX_FILES_SHOWN && !showAllFiles
+                              ? ` of ${parsedDiff.length}`
+                              : ''}{' '}
+                            changed file
                             {comparison.totalFilesChanged !== 1 ? 's' : ''} with{' '}
                             {comparison.totalInsertions} addition
                             {comparison.totalInsertions !== 1 ? 's' : ''} and{' '}
                             {comparison.totalDeletions} deletion
                             {comparison.totalDeletions !== 1 ? 's' : ''}
                           </div>
-                          {parsedDiff.map((fileDiff) => {
+                          {visibleFiles.map((fileDiff) => {
                             const isExpanded = expandedFiles.has(fileDiff.filename);
                             const total = fileDiff.insertions + fileDiff.deletions;
                             const blocks = Math.min(
@@ -532,9 +543,15 @@ export function CreatePullRequestModal({
                                 {/* Diff content */}
                                 {isExpanded && !fileDiff.binary && (
                                   <div className="overflow-x-auto border-t border-border/50">
+                                    {fileDiff.lines.length > 500 && (
+                                      <div className="px-4 py-2 text-xs text-muted-foreground bg-muted/20 border-b border-border/50">
+                                        Large file diff truncated. Showing first 500 of{' '}
+                                        {fileDiff.lines.length} lines.
+                                      </div>
+                                    )}
                                     <table className="w-full text-[11px] font-mono leading-[1.6]">
                                       <tbody>
-                                        {fileDiff.lines.map((line, idx) => {
+                                        {fileDiff.lines.slice(0, 500).map((line, idx) => {
                                           if (line.type === 'hunk-header') {
                                             return (
                                               <tr key={idx} className="bg-blue-500/5">
@@ -592,6 +609,14 @@ export function CreatePullRequestModal({
                               </div>
                             );
                           })}
+                          {!showAllFiles && parsedDiff.length > MAX_FILES_SHOWN && (
+                            <button
+                              onClick={() => setShowAllFiles(true)}
+                              className="w-full px-4 py-2 text-xs text-primary hover:bg-muted/20 transition-colors border-t border-border/50"
+                            >
+                              Show all {parsedDiff.length} files
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

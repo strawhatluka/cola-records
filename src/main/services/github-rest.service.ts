@@ -454,6 +454,7 @@ export class GitHubRestService {
         createdAt: new Date(response.data.created_at),
         updatedAt: new Date(response.data.updated_at),
         author: response.data.user?.login || 'unknown',
+        headSha: response.data.head.sha,
       };
     } catch (error) {
       throw new Error(`Failed to get pull request ${owner}/${repo}#${prNumber}: ${error}`);
@@ -1093,6 +1094,124 @@ export class GitHubRestService {
         }));
     } catch (error) {
       throw new Error(`Failed to list events for PR #${prNumber}: ${error}`);
+    }
+  }
+
+  // ─── PR Check Status ───────────────────────────────────────────────
+
+  /**
+   * Get the combined check status for a commit (CI workflows)
+   * Uses Combined Status API first, falls back to Check Suites for GitHub Actions
+   */
+  async getPRCheckStatus(
+    owner: string,
+    repo: string,
+    sha: string
+  ): Promise<{
+    state: 'pending' | 'success' | 'failure' | 'unknown';
+    total: number;
+    passed: number;
+    failed: number;
+    pending: number;
+  }> {
+    try {
+      const client = this.getClient();
+
+      // Try Combined Status API first
+      const statusResponse = await client.repos.getCombinedStatusForRef({
+        owner,
+        repo,
+        ref: sha,
+      });
+
+      const statuses = statusResponse.data.statuses;
+
+      // If we have statuses from the combined API, use them
+      if (statuses.length > 0) {
+        const passed = statuses.filter((s: any) => s.state === 'success').length;
+        const failed = statuses.filter(
+          (s: any) => s.state === 'failure' || s.state === 'error'
+        ).length;
+        const pending = statuses.filter((s: any) => s.state === 'pending').length;
+
+        let state: 'pending' | 'success' | 'failure' | 'unknown' = 'unknown';
+        if (failed > 0) {
+          state = 'failure';
+        } else if (pending > 0) {
+          state = 'pending';
+        } else if (passed > 0) {
+          state = 'success';
+        }
+
+        return {
+          state,
+          total: statuses.length,
+          passed,
+          failed,
+          pending,
+        };
+      }
+
+      // Fall back to Check Suites API (for GitHub Actions)
+      const checkSuitesResponse = await client.checks.listSuitesForRef({
+        owner,
+        repo,
+        ref: sha,
+      });
+
+      const suites = checkSuitesResponse.data.check_suites;
+
+      if (suites.length === 0) {
+        return {
+          state: 'unknown',
+          total: 0,
+          passed: 0,
+          failed: 0,
+          pending: 0,
+        };
+      }
+
+      // Aggregate check suite conclusions
+      const passed = suites.filter(
+        (s: any) =>
+          s.conclusion === 'success' || s.conclusion === 'skipped' || s.conclusion === 'neutral'
+      ).length;
+      const failed = suites.filter(
+        (s: any) =>
+          s.conclusion === 'failure' ||
+          s.conclusion === 'action_required' ||
+          s.conclusion === 'timed_out' ||
+          s.conclusion === 'cancelled'
+      ).length;
+      const pending = suites.filter(
+        (s: any) => s.status === 'in_progress' || s.status === 'queued' || s.conclusion === null
+      ).length;
+
+      let state: 'pending' | 'success' | 'failure' | 'unknown' = 'unknown';
+      if (failed > 0) {
+        state = 'failure';
+      } else if (pending > 0) {
+        state = 'pending';
+      } else if (passed > 0) {
+        state = 'success';
+      }
+
+      return {
+        state,
+        total: suites.length,
+        passed,
+        failed,
+        pending,
+      };
+    } catch (error) {
+      // If we can't get status, return unknown rather than throwing
+      return {
+        state: 'unknown',
+        total: 0,
+        passed: 0,
+        failed: 0,
+        pending: 0,
+      };
     }
   }
 }

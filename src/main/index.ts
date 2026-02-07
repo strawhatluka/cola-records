@@ -696,6 +696,12 @@ const setupIpcHandlers = () => {
     return await gitHubRestService.listPREvents(owner, repo, prNumber);
   });
 
+  // PR Check Status handler
+  handleIpc('github:get-pr-check-status', async (_event, owner, repo, sha) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.getPRCheckStatus(owner, repo, sha);
+  });
+
   // Sub-issue handlers
   handleIpc('github:list-sub-issues', async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');

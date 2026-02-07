@@ -30,6 +30,8 @@ const mockReactionsDeleteForIssueComment = vi.fn();
 const mockRequest = vi.fn();
 const mockPullsMerge = vi.fn();
 const mockPullsUpdate = vi.fn();
+const mockReposGetCombinedStatusForRef = vi.fn();
+const mockChecksListSuitesForRef = vi.fn();
 
 // Use a class so `new Octokit(...)` works
 vi.mock('@octokit/rest', () => ({
@@ -57,6 +59,10 @@ vi.mock('@octokit/rest', () => ({
       listForUser: mockReposListForUser,
       listForAuthenticatedUser: mockReposListForAuthenticatedUser,
       get: mockReposGet,
+      getCombinedStatusForRef: mockReposGetCombinedStatusForRef,
+    };
+    checks = {
+      listSuitesForRef: mockChecksListSuitesForRef,
     };
     pulls = {
       create: mockPullsCreate,
@@ -328,6 +334,7 @@ describe('GitHubRestService', () => {
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-02T00:00:00Z',
           user: { login: 'author' },
+          head: { sha: 'abc123def456' },
         },
       });
 
@@ -339,6 +346,7 @@ describe('GitHubRestService', () => {
       expect(pr.state).toBe('open');
       expect(pr.merged).toBe(false);
       expect(pr.author).toBe('author');
+      expect(pr.headSha).toBe('abc123def456');
       expect(pr.createdAt).toBeInstanceOf(Date);
       expect(pr.updatedAt).toBeInstanceOf(Date);
     });
@@ -355,6 +363,7 @@ describe('GitHubRestService', () => {
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-02T00:00:00Z',
           user: { login: 'author' },
+          head: { sha: 'def456' },
         },
       });
 
@@ -374,6 +383,7 @@ describe('GitHubRestService', () => {
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-02T00:00:00Z',
           user: null,
+          head: { sha: 'ghi789' },
         },
       });
 
@@ -1337,6 +1347,170 @@ describe('GitHubRestService', () => {
       await expect(service.closePullRequest('org', 'repo', 42)).rejects.toThrow(
         'Failed to close PR #42'
       );
+    });
+  });
+
+  // ─── PR Check Status ─────────────────────────────────────────
+
+  describe('getPRCheckStatus', () => {
+    it('returns success when all combined statuses pass', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: {
+          statuses: [
+            { state: 'success', context: 'CI' },
+            { state: 'success', context: 'Build' },
+          ],
+        },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('success');
+      expect(status.total).toBe(2);
+      expect(status.passed).toBe(2);
+      expect(status.failed).toBe(0);
+      expect(status.pending).toBe(0);
+    });
+
+    it('returns pending when some statuses are pending', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: {
+          statuses: [
+            { state: 'success', context: 'CI' },
+            { state: 'pending', context: 'Build' },
+          ],
+        },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('pending');
+      expect(status.total).toBe(2);
+      expect(status.passed).toBe(1);
+      expect(status.pending).toBe(1);
+    });
+
+    it('returns failure when any status fails', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: {
+          statuses: [
+            { state: 'success', context: 'CI' },
+            { state: 'failure', context: 'Build' },
+          ],
+        },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('failure');
+      expect(status.total).toBe(2);
+      expect(status.passed).toBe(1);
+      expect(status.failed).toBe(1);
+    });
+
+    it('returns failure when any status errors', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: {
+          statuses: [{ state: 'error', context: 'CI' }],
+        },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('failure');
+      expect(status.failed).toBe(1);
+    });
+
+    it('falls back to check suites when no combined statuses', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: { statuses: [] },
+      });
+      mockChecksListSuitesForRef.mockResolvedValue({
+        data: {
+          check_suites: [
+            { status: 'completed', conclusion: 'success' },
+            { status: 'completed', conclusion: 'success' },
+          ],
+        },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('success');
+      expect(status.total).toBe(2);
+      expect(status.passed).toBe(2);
+    });
+
+    it('returns pending for in_progress check suites', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: { statuses: [] },
+      });
+      mockChecksListSuitesForRef.mockResolvedValue({
+        data: {
+          check_suites: [
+            { status: 'in_progress', conclusion: null },
+            { status: 'completed', conclusion: 'success' },
+          ],
+        },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('pending');
+      expect(status.pending).toBe(1);
+      expect(status.passed).toBe(1);
+    });
+
+    it('returns failure for failed check suites', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: { statuses: [] },
+      });
+      mockChecksListSuitesForRef.mockResolvedValue({
+        data: {
+          check_suites: [
+            { status: 'completed', conclusion: 'failure' },
+            { status: 'completed', conclusion: 'success' },
+          ],
+        },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('failure');
+      expect(status.failed).toBe(1);
+      expect(status.passed).toBe(1);
+    });
+
+    it('treats skipped and neutral as passed', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: { statuses: [] },
+      });
+      mockChecksListSuitesForRef.mockResolvedValue({
+        data: {
+          check_suites: [
+            { status: 'completed', conclusion: 'skipped' },
+            { status: 'completed', conclusion: 'neutral' },
+          ],
+        },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('success');
+      expect(status.passed).toBe(2);
+    });
+
+    it('returns unknown when no statuses or check suites', async () => {
+      mockReposGetCombinedStatusForRef.mockResolvedValue({
+        data: { statuses: [] },
+      });
+      mockChecksListSuitesForRef.mockResolvedValue({
+        data: { check_suites: [] },
+      });
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('unknown');
+      expect(status.total).toBe(0);
+    });
+
+    it('returns unknown on API error (graceful degradation)', async () => {
+      mockReposGetCombinedStatusForRef.mockRejectedValue(new Error('API failure'));
+
+      const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
+      expect(status.state).toBe('unknown');
+      expect(status.total).toBe(0);
     });
   });
 });
