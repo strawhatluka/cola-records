@@ -62,7 +62,7 @@ describe('SettingsScreen', () => {
     const generalElements = screen.getAllByText('General');
     expect(generalElements.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('API')).toBeDefined();
-    expect(screen.getByText('Aliases')).toBeDefined();
+    expect(screen.getByText('Bash Profile')).toBeDefined();
   });
 
   it('shows General tab content by default', () => {
@@ -78,11 +78,11 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Personal Access Token')).toBeDefined();
   });
 
-  it('switches to Aliases tab', async () => {
+  it('switches to Bash Profile tab', async () => {
     const user = userEvent.setup();
     render(<SettingsScreen />);
 
-    await user.click(screen.getByText('Aliases'));
+    await user.click(screen.getByText('Bash Profile'));
     expect(screen.getByText('Shell Aliases')).toBeDefined();
   });
 });

@@ -14,7 +14,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as net from 'net';
 import { database } from '../database/database.service';
-import type { Alias } from '../ipc/channels';
+import type { Alias, BashProfileSettings, TerminalColor } from '../ipc/channels';
 const execFileAsync = promisify(execFile);
 
 interface CodeServerStatus {
@@ -213,12 +213,11 @@ class CodeServerService {
       settings['git.enabled'] = true;
       settings['git.path'] = '/usr/bin/git';
 
-      // Terminal profile: use our custom bashrc
-      settings['terminal.integrated.defaultProfile.linux'] = 'cola-bash';
+      // Terminal profile: use system bash (our bashrc is mounted to /etc/bash.bashrc)
+      settings['terminal.integrated.defaultProfile.linux'] = 'bash';
       settings['terminal.integrated.profiles.linux'] = {
-        'cola-bash': {
+        bash: {
           path: '/bin/bash',
-          args: ['--rcfile', '/home/coder/.local/share/code-server/bashrc'],
         },
       };
 
@@ -289,13 +288,55 @@ class CodeServerService {
   }
 
   /**
+   * Map terminal color names to ANSI escape codes.
+   */
+  private getColorCode(color: TerminalColor): string {
+    const colorMap: Record<TerminalColor, string> = {
+      green: '\\033[01;32m',
+      blue: '\\033[01;34m',
+      cyan: '\\033[01;36m',
+      red: '\\033[01;31m',
+      yellow: '\\033[01;33m',
+      magenta: '\\033[01;35m',
+      white: '\\033[01;37m',
+    };
+    return colorMap[color] || colorMap.green;
+  }
+
+  /**
+   * Get bash profile settings from database with sensible defaults.
+   */
+  private getBashProfileSettings(): BashProfileSettings {
+    const defaults: BashProfileSettings = {
+      showUsername: true,
+      showGitBranch: true,
+      usernameColor: 'green',
+      pathColor: 'blue',
+      gitBranchColor: 'yellow',
+    };
+
+    try {
+      const settingsJson = database.getSetting('bashProfile');
+      if (settingsJson) {
+        const parsed = JSON.parse(settingsJson) as Partial<BashProfileSettings>;
+        return { ...defaults, ...parsed };
+      }
+    } catch {
+      // Settings loading is best-effort
+    }
+
+    return defaults;
+  }
+
+  /**
    * Create a .bashrc file for the container terminal.
-   * Uses the host OS username in the prompt and shows the git branch.
+   * Uses configurable prompt settings from the database.
    */
   createContainerBashrc(projectPath: string): void {
     const bashrcPath = path.join(this.getUserDataDir(), 'bashrc');
     const username = os.userInfo().username;
     const projectName = path.basename(projectPath);
+    const bashProfile = this.getBashProfileSettings();
 
     const lines = [
       '# Cola Records container shell profile',
@@ -327,11 +368,37 @@ class CodeServerService {
       '  esac',
       '}',
       '',
-      '# Prompt: username project-name/subdir (branch)$',
-      `PS1='\\[\\033[01;32m\\]${username}\\[\\033[00m\\] \\[\\033[01;34m\\]$(__project_path)\\[\\033[00m\\]\\[\\033[33m\\]$(b=$(__git_branch); [ -n "$b" ] && echo " ($b)")\\[\\033[00m\\]\\$ '`,
-      '',
-      '# Aliases (defaults + user-defined from Settings)',
     ];
+
+    // Build dynamic PS1 prompt based on settings
+    const resetCode = '\\033[00m';
+    const promptParts: string[] = [];
+
+    // Username (optional, with configurable color)
+    if (bashProfile.showUsername) {
+      const usernameColor = this.getColorCode(bashProfile.usernameColor);
+      promptParts.push(`\\[${usernameColor}\\]${username}\\[${resetCode}\\] `);
+    }
+
+    // Path (always shown, with configurable color)
+    const pathColor = this.getColorCode(bashProfile.pathColor);
+    promptParts.push(`\\[${pathColor}\\]$(__project_path)\\[${resetCode}\\]`);
+
+    // Git branch (optional, with configurable color)
+    if (bashProfile.showGitBranch) {
+      const gitColor = this.getColorCode(bashProfile.gitBranchColor);
+      promptParts.push(
+        `\\[${gitColor}\\]$(b=$(__git_branch); [ -n "$b" ] && echo " ($b)")\\[${resetCode}\\]`
+      );
+    }
+
+    // Add prompt symbol
+    promptParts.push('\\$ ');
+
+    lines.push('# Prompt (configurable via Settings > Bash Profile)');
+    lines.push(`PS1='${promptParts.join('')}'`);
+    lines.push('');
+    lines.push('# Aliases (defaults + user-defined from Settings)');
 
     // Build alias map: defaults first, then user aliases override by name
     const aliasMap = new Map<string, string>([
@@ -387,6 +454,21 @@ class CodeServerService {
     }
 
     return mounts;
+  }
+
+  /**
+   * Build Docker -v arguments for the bashrc file.
+   * Mounts our generated bashrc to /etc/bash.bashrc which VS Code terminal uses.
+   */
+  getBashrcMount(): string[] {
+    const bashrcPath = path.join(this.getUserDataDir(), 'bashrc');
+
+    // Only mount if the bashrc file exists
+    if (fs.existsSync(bashrcPath)) {
+      return ['-v', `${this.toDockerPath(bashrcPath)}:/etc/bash.bashrc:ro`];
+    }
+
+    return [];
   }
 
   /**
@@ -725,6 +807,8 @@ class CodeServerService {
       `${this.toDockerPath(userDataDir)}:/config`,
       // Git mounts (conditionally included)
       ...gitMounts,
+      // Bashrc mount (our configurable shell profile to /etc/bash.bashrc)
+      ...this.getBashrcMount(),
       // Claude Code config mount (isolated from host to prevent JSON corruption)
       ...this.getClaudeMounts(),
       // LinuxServer.io required environment variables

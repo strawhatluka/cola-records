@@ -2,14 +2,14 @@ import * as React from 'react';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { GeneralTab } from '../components/settings/GeneralTab';
 import { APITab } from '../components/settings/APITab';
-import { AliasesTab } from '../components/settings/AliasesTab';
+import { BashProfileTab } from '../components/settings/BashProfileTab';
 
-type SettingsTab = 'general' | 'api' | 'aliases';
+type SettingsTab = 'general' | 'api' | 'bash-profile';
 
 const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'general', label: 'General' },
   { id: 'api', label: 'API' },
-  { id: 'aliases', label: 'Aliases' },
+  { id: 'bash-profile', label: 'Bash Profile' },
 ];
 
 export function SettingsScreen() {
@@ -47,7 +47,9 @@ export function SettingsScreen() {
       {/* Tab content */}
       {activeTab === 'general' && <GeneralTab settings={settings} onUpdate={updateSettings} />}
       {activeTab === 'api' && <APITab settings={settings} onUpdate={updateSettings} />}
-      {activeTab === 'aliases' && <AliasesTab settings={settings} onUpdate={updateSettings} />}
+      {activeTab === 'bash-profile' && (
+        <BashProfileTab settings={settings} onUpdate={updateSettings} />
+      )}
     </div>
   );
 }

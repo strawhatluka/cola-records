@@ -4,15 +4,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Separator } from '../ui/Separator';
-import type { AppSettings } from '../../../main/ipc/channels';
+import { Switch } from '../ui/Switch';
+import { Label } from '../ui/Label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
+import type { AppSettings, BashProfileSettings, TerminalColor } from '../../../main/ipc/channels';
 
-interface AliasesTabProps {
+interface BashProfileTabProps {
   settings: AppSettings;
   onUpdate: (updates: Partial<AppSettings>) => Promise<void>;
 }
 
-export function AliasesTab({ settings, onUpdate }: AliasesTabProps) {
+const COLOR_OPTIONS: { value: TerminalColor; label: string; preview: string }[] = [
+  { value: 'green', label: 'Green', preview: 'text-green-500' },
+  { value: 'blue', label: 'Blue', preview: 'text-blue-500' },
+  { value: 'cyan', label: 'Cyan', preview: 'text-cyan-500' },
+  { value: 'red', label: 'Red', preview: 'text-red-500' },
+  { value: 'yellow', label: 'Yellow', preview: 'text-yellow-500' },
+  { value: 'magenta', label: 'Magenta', preview: 'text-fuchsia-500' },
+  { value: 'white', label: 'White', preview: 'text-white' },
+];
+
+const DEFAULT_BASH_PROFILE: BashProfileSettings = {
+  showUsername: true,
+  showGitBranch: true,
+  usernameColor: 'green',
+  pathColor: 'blue',
+  gitBranchColor: 'yellow',
+};
+
+export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
   const aliases = settings.aliases || [];
+  const bashProfile = settings.bashProfile || DEFAULT_BASH_PROFILE;
+
   const [newName, setNewName] = React.useState('');
   const [newCommand, setNewCommand] = React.useState('');
   const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
@@ -102,8 +125,187 @@ export function AliasesTab({ settings, onUpdate }: AliasesTabProps) {
     }
   };
 
+  const updateBashProfile = async (updates: Partial<BashProfileSettings>) => {
+    await onUpdate({
+      bashProfile: { ...bashProfile, ...updates },
+    });
+  };
+
+  // Generate preview prompt
+  const getPromptPreview = () => {
+    const parts: React.ReactNode[] = [];
+
+    if (bashProfile.showUsername) {
+      const colorClass = COLOR_OPTIONS.find((c) => c.value === bashProfile.usernameColor)?.preview;
+      parts.push(
+        <span key="username" className={colorClass}>
+          user
+        </span>
+      );
+      parts.push(<span key="space1"> </span>);
+    }
+
+    const pathColorClass = COLOR_OPTIONS.find((c) => c.value === bashProfile.pathColor)?.preview;
+    parts.push(
+      <span key="path" className={pathColorClass}>
+        project/src
+      </span>
+    );
+
+    if (bashProfile.showGitBranch) {
+      const gitColorClass = COLOR_OPTIONS.find(
+        (c) => c.value === bashProfile.gitBranchColor
+      )?.preview;
+      parts.push(
+        <span key="git" className={gitColorClass}>
+          {' '}
+          (main)
+        </span>
+      );
+    }
+
+    parts.push(<span key="prompt">$ </span>);
+
+    return parts;
+  };
+
   return (
     <div className="space-y-6">
+      {/* Prompt Customization Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Prompt Customization</CardTitle>
+          <CardDescription>
+            Customize the terminal prompt appearance in the Development environment.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Preview */}
+          <div>
+            <Label className="text-sm font-medium">Preview</Label>
+            <div className="mt-2 bg-zinc-900 text-zinc-100 rounded-md p-3 font-mono text-sm">
+              {getPromptPreview()}
+              <span className="animate-pulse">|</span>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Visibility Toggles */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="show-username">Show Username</Label>
+                <p className="text-xs text-muted-foreground">
+                  Display your username at the start of the prompt
+                </p>
+              </div>
+              <Switch
+                id="show-username"
+                checked={bashProfile.showUsername}
+                onCheckedChange={(checked) => updateBashProfile({ showUsername: checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="show-git-branch">Show Git Branch</Label>
+                <p className="text-xs text-muted-foreground">
+                  Display the current git branch in parentheses
+                </p>
+              </div>
+              <Switch
+                id="show-git-branch"
+                checked={bashProfile.showGitBranch}
+                onCheckedChange={(checked) => updateBashProfile({ showGitBranch: checked })}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Color Selects */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Username Color</Label>
+              <Select
+                value={bashProfile.usernameColor}
+                onValueChange={(value: TerminalColor) =>
+                  updateBashProfile({ usernameColor: value })
+                }
+                disabled={!bashProfile.showUsername}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLOR_OPTIONS.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <span className={`flex items-center gap-2`}>
+                        <span className={`w-3 h-3 rounded-full ${color.preview} bg-current`} />
+                        {color.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Path Color</Label>
+              <Select
+                value={bashProfile.pathColor}
+                onValueChange={(value: TerminalColor) => updateBashProfile({ pathColor: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLOR_OPTIONS.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <span className={`flex items-center gap-2`}>
+                        <span className={`w-3 h-3 rounded-full ${color.preview} bg-current`} />
+                        {color.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Git Branch Color</Label>
+              <Select
+                value={bashProfile.gitBranchColor}
+                onValueChange={(value: TerminalColor) =>
+                  updateBashProfile({ gitBranchColor: value })
+                }
+                disabled={!bashProfile.showGitBranch}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLOR_OPTIONS.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <span className={`flex items-center gap-2`}>
+                        <span className={`w-3 h-3 rounded-full ${color.preview} bg-current`} />
+                        {color.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Changes take effect on the next Development session start.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Shell Aliases Card */}
       <Card>
         <CardHeader>
           <CardTitle>Shell Aliases</CardTitle>

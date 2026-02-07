@@ -342,6 +342,16 @@ export interface Alias {
   command: string;
 }
 
+export type TerminalColor = 'green' | 'blue' | 'cyan' | 'red' | 'yellow' | 'magenta' | 'white';
+
+export interface BashProfileSettings {
+  showUsername: boolean;
+  showGitBranch: boolean;
+  usernameColor: TerminalColor;
+  pathColor: TerminalColor;
+  gitBranchColor: TerminalColor;
+}
+
 export interface AppSettings {
   githubToken?: string;
   spotifyClientId?: string;
@@ -352,6 +362,7 @@ export interface AppSettings {
   defaultProfessionalProjectsPath: string;
   autoFetch: boolean;
   aliases?: Alias[];
+  bashProfile?: BashProfileSettings;
 }
 
 /**

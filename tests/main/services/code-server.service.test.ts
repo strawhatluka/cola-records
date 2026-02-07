@@ -34,7 +34,21 @@ vi.mock('child_process', async (importOriginal) => {
   };
 });
 
-// Mock util.promisify to return our mock
+// Configurable mock for execFileAsync (via promisify)
+let mockDockerResponse: (args: string[]) => Promise<{ stdout: string; stderr: string }> = () =>
+  Promise.resolve({ stdout: 'mock-output', stderr: '' });
+
+const setMockDockerResponse = (
+  handler: (args: string[]) => Promise<{ stdout: string; stderr: string }>
+) => {
+  mockDockerResponse = handler;
+};
+
+const resetMockDockerResponse = () => {
+  mockDockerResponse = () => Promise.resolve({ stdout: 'mock-output', stderr: '' });
+};
+
+// Mock util.promisify to return our configurable mock
 vi.mock('util', async (importOriginal) => {
   const actual = await importOriginal<typeof import('util')>();
   return {
@@ -43,7 +57,7 @@ vi.mock('util', async (importOriginal) => {
       () =>
       (...args: unknown[]) => {
         const dockerArgs = args[1] as string[];
-        return Promise.resolve({ stdout: `mock-output-${dockerArgs?.[0] || ''}`, stderr: '' });
+        return mockDockerResponse(dockerArgs || []);
       },
   };
 });
@@ -61,6 +75,7 @@ import { codeServerService } from '../../../src/main/services/code-server.servic
 describe('CodeServerService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetMockDockerResponse();
   });
 
   afterEach(() => {
@@ -355,7 +370,7 @@ describe('CodeServerService', () => {
       }
     });
 
-    it('sets terminal profile for cola-bash', () => {
+    it('sets terminal profile to bash (bashrc mounted to /etc/bash.bashrc)', () => {
       mockMkdirSync.mockImplementation(() => undefined as any);
       mockWriteFileSync.mockImplementation(() => {});
       mockExistsSync.mockReturnValue(false);
@@ -365,9 +380,9 @@ describe('CodeServerService', () => {
       const writtenContent = mockWriteFileSync.mock.calls[0]?.[1] as string;
       if (writtenContent) {
         const settings = JSON.parse(writtenContent);
-        expect(settings['terminal.integrated.defaultProfile.linux']).toBe('cola-bash');
-        expect(settings['terminal.integrated.profiles.linux']['cola-bash']).toBeDefined();
-        expect(settings['terminal.integrated.profiles.linux']['cola-bash'].path).toBe('/bin/bash');
+        expect(settings['terminal.integrated.defaultProfile.linux']).toBe('bash');
+        expect(settings['terminal.integrated.profiles.linux']['bash']).toBeDefined();
+        expect(settings['terminal.integrated.profiles.linux']['bash'].path).toBe('/bin/bash');
       }
     });
   });
@@ -446,6 +461,112 @@ describe('CodeServerService', () => {
         expect(content).toContain('alias ll=');
       }
     });
+
+    it('applies bashProfile settings to PS1 prompt', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'bashProfile') {
+          return JSON.stringify({
+            showUsername: true,
+            showGitBranch: true,
+            usernameColor: 'cyan',
+            pathColor: 'magenta',
+            gitBranchColor: 'red',
+          });
+        }
+        return null;
+      });
+
+      codeServerService.createContainerBashrc('/test/project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        expect(content).toContain('PS1=');
+        // Should contain cyan color code for username
+        expect(content).toContain('\\033[01;36m');
+        // Should contain magenta color code for path
+        expect(content).toContain('\\033[01;35m');
+        // Should contain red color code for git branch
+        expect(content).toContain('\\033[01;31m');
+      }
+    });
+
+    it('hides username when showUsername is false', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'bashProfile') {
+          return JSON.stringify({
+            showUsername: false,
+            showGitBranch: true,
+            usernameColor: 'green',
+            pathColor: 'blue',
+            gitBranchColor: 'yellow',
+          });
+        }
+        return null;
+      });
+
+      codeServerService.createContainerBashrc('/test/project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        const ps1Match = content.match(/PS1='([^']+)'/);
+        if (ps1Match) {
+          const ps1 = ps1Match[1];
+          // Path should be at the start when username is hidden
+          expect(ps1).toMatch(/^\\\[\\033\[01;34m\\\]\$\(__project_path\)/);
+        }
+      }
+    });
+
+    it('hides git branch when showGitBranch is false', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'bashProfile') {
+          return JSON.stringify({
+            showUsername: true,
+            showGitBranch: false,
+            usernameColor: 'green',
+            pathColor: 'blue',
+            gitBranchColor: 'yellow',
+          });
+        }
+        return null;
+      });
+
+      codeServerService.createContainerBashrc('/test/project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        const ps1Match = content.match(/PS1='([^']+)'/);
+        if (ps1Match) {
+          const ps1 = ps1Match[1];
+          // Should NOT contain git branch function call
+          expect(ps1).not.toContain('__git_branch');
+        }
+      }
+    });
+
+    it('uses default bashProfile settings when not set', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockReturnValue(null);
+
+      codeServerService.createContainerBashrc('/test/project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        // Default colors: username=green, path=blue, git=yellow
+        expect(content).toContain('\\033[01;32m'); // green
+        expect(content).toContain('\\033[01;34m'); // blue
+        expect(content).toContain('\\033[01;33m'); // yellow
+        // Both username and git branch should be shown by default
+        expect(content).toContain('__git_branch');
+      }
+    });
   });
 
   describe('getClaudeMounts — isolated config', () => {
@@ -461,41 +582,50 @@ describe('CodeServerService', () => {
     });
   });
 
+  describe('getBashrcMount', () => {
+    it('returns mount args when bashrc file exists', () => {
+      mockExistsSync.mockReturnValue(true);
+      const mounts = codeServerService.getBashrcMount();
+      expect(mounts).toContain('-v');
+      expect(mounts.some((m) => m.includes('/etc/bash.bashrc:ro'))).toBe(true);
+    });
+
+    it('returns empty when bashrc file does not exist', () => {
+      mockExistsSync.mockReturnValue(false);
+      const mounts = codeServerService.getBashrcMount();
+      expect(mounts).toEqual([]);
+    });
+  });
+
   describe('getContainerState', () => {
     it('returns "running" when container is running', async () => {
-      mockExecFile.mockImplementation((_cmd, args, _opts, callback) => {
-        if (args?.includes('inspect')) {
-          callback?.(null, 'true\n', '');
-        } else {
-          callback?.(null, 'mock-output', '');
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.resolve({ stdout: 'true\n', stderr: '' });
         }
-        return {} as ReturnType<typeof execFile>;
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
       });
       const state = await codeServerService.getContainerState();
       expect(state).toBe('running');
     });
 
     it('returns "stopped" when container exists but is stopped', async () => {
-      mockExecFile.mockImplementation((_cmd, args, _opts, callback) => {
-        if (args?.includes('inspect')) {
-          callback?.(null, 'false\n', '');
-        } else {
-          callback?.(null, 'mock-output', '');
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.resolve({ stdout: 'false\n', stderr: '' });
         }
-        return {} as ReturnType<typeof execFile>;
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
       });
       const state = await codeServerService.getContainerState();
       expect(state).toBe('stopped');
     });
 
     it('returns "none" when container does not exist', async () => {
-      mockExecFile.mockImplementation((_cmd, args, _opts, callback) => {
-        if (args?.includes('inspect')) {
-          callback?.(new Error('No such container'), '', 'Error');
-        } else {
-          callback?.(null, 'mock-output', '');
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.reject(new Error('No such container'));
         }
-        return {} as ReturnType<typeof execFile>;
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
       });
       const state = await codeServerService.getContainerState();
       expect(state).toBe('none');
@@ -504,26 +634,22 @@ describe('CodeServerService', () => {
 
   describe('getContainerPort', () => {
     it('returns port number when container has port mapping', async () => {
-      mockExecFile.mockImplementation((_cmd, args, _opts, callback) => {
-        if (args?.includes('inspect') && args?.some((a) => a.includes('HostPort'))) {
-          callback?.(null, '8080\n', '');
-        } else {
-          callback?.(null, 'mock-output', '');
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect') && args.some((a) => a.includes('HostPort'))) {
+          return Promise.resolve({ stdout: '8080\n', stderr: '' });
         }
-        return {} as ReturnType<typeof execFile>;
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
       });
       const port = await codeServerService.getContainerPort();
       expect(port).toBe(8080);
     });
 
     it('returns null when port cannot be determined', async () => {
-      mockExecFile.mockImplementation((_cmd, args, _opts, callback) => {
-        if (args?.includes('inspect')) {
-          callback?.(new Error('No such container'), '', 'Error');
-        } else {
-          callback?.(null, 'mock-output', '');
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.reject(new Error('No such container'));
         }
-        return {} as ReturnType<typeof execFile>;
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
       });
       const port = await codeServerService.getContainerPort();
       expect(port).toBeNull();

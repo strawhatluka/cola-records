@@ -374,6 +374,15 @@ const setupIpcHandlers = () => {
       aliases = [];
     }
 
+    let bashProfile: import('./ipc/channels').BashProfileSettings | undefined;
+    try {
+      if (settings.bashProfile) {
+        bashProfile = JSON.parse(settings.bashProfile);
+      }
+    } catch {
+      bashProfile = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -384,6 +393,7 @@ const setupIpcHandlers = () => {
       defaultProfessionalProjectsPath: defaultProfessionalProjectsPath,
       autoFetch: settings.autoFetch === 'true',
       aliases,
+      bashProfile,
     };
   });
 
@@ -414,6 +424,9 @@ const setupIpcHandlers = () => {
     if (updates.aliases !== undefined) {
       database.setSetting('aliases', JSON.stringify(updates.aliases));
     }
+    if (updates.bashProfile !== undefined) {
+      database.setSetting('bashProfile', JSON.stringify(updates.bashProfile));
+    }
     if (updates.defaultProjectsPath !== undefined) {
       database.setSetting('defaultProjectsPath', updates.defaultProjectsPath);
     }
@@ -433,6 +446,15 @@ const setupIpcHandlers = () => {
       aliases = [];
     }
 
+    let bashProfile: import('./ipc/channels').BashProfileSettings | undefined;
+    try {
+      if (settings.bashProfile) {
+        bashProfile = JSON.parse(settings.bashProfile);
+      }
+    } catch {
+      bashProfile = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -443,6 +465,7 @@ const setupIpcHandlers = () => {
       defaultProfessionalProjectsPath: settings.defaultProfessionalProjectsPath || '',
       autoFetch: settings.autoFetch === 'true',
       aliases,
+      bashProfile,
     };
   });
 
