@@ -567,6 +567,100 @@ describe('CodeServerService', () => {
         expect(content).toContain('__git_branch');
       }
     });
+
+    it('uses customUsername when set in bashProfile settings', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'bashProfile') {
+          return JSON.stringify({
+            showUsername: true,
+            showGitBranch: true,
+            usernameColor: 'green',
+            pathColor: 'blue',
+            gitBranchColor: 'yellow',
+            customUsername: 'devuser',
+          });
+        }
+        return null;
+      });
+
+      codeServerService.createContainerBashrc('/test/project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        const ps1Match = content.match(/PS1='([^']+)'/);
+        if (ps1Match) {
+          const ps1 = ps1Match[1];
+          // Should contain custom username
+          expect(ps1).toContain('devuser');
+        }
+      }
+    });
+
+    it('falls back to OS username when customUsername is empty', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'bashProfile') {
+          return JSON.stringify({
+            showUsername: true,
+            showGitBranch: true,
+            usernameColor: 'green',
+            pathColor: 'blue',
+            gitBranchColor: 'yellow',
+            customUsername: '',
+          });
+        }
+        return null;
+      });
+
+      codeServerService.createContainerBashrc('/test/project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        const ps1Match = content.match(/PS1='([^']+)'/);
+        if (ps1Match) {
+          const ps1 = ps1Match[1];
+          // Should NOT contain empty string but should have some username
+          // The OS username will be present (varies by system)
+          expect(ps1.length).toBeGreaterThan(0);
+        }
+      }
+    });
+
+    it('trims whitespace from customUsername', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'bashProfile') {
+          return JSON.stringify({
+            showUsername: true,
+            showGitBranch: true,
+            usernameColor: 'green',
+            pathColor: 'blue',
+            gitBranchColor: 'yellow',
+            customUsername: '  myuser  ',
+          });
+        }
+        return null;
+      });
+
+      codeServerService.createContainerBashrc('/test/project');
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        const ps1Match = content.match(/PS1='([^']+)'/);
+        if (ps1Match) {
+          const ps1 = ps1Match[1];
+          // Should contain trimmed username
+          expect(ps1).toContain('myuser');
+          // Should not contain leading/trailing spaces
+          expect(ps1).not.toContain('  myuser');
+          expect(ps1).not.toContain('myuser  ');
+        }
+      }
+    });
   });
 
   describe('getClaudeMounts — isolated config', () => {

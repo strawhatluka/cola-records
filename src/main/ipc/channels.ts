@@ -350,6 +350,7 @@ export interface BashProfileSettings {
   usernameColor: TerminalColor;
   pathColor: TerminalColor;
   gitBranchColor: TerminalColor;
+  customUsername?: string;
 }
 
 export interface AppSettings {

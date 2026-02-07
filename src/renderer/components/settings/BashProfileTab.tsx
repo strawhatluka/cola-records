@@ -137,9 +137,10 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
 
     if (bashProfile.showUsername) {
       const colorClass = COLOR_OPTIONS.find((c) => c.value === bashProfile.usernameColor)?.preview;
+      const displayName = bashProfile.customUsername?.trim() || 'user';
       parts.push(
         <span key="username" className={colorClass}>
-          user
+          {displayName}
         </span>
       );
       parts.push(<span key="space1"> </span>);
@@ -206,6 +207,22 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
                 onCheckedChange={(checked) => updateBashProfile({ showUsername: checked })}
               />
             </div>
+
+            {bashProfile.showUsername && (
+              <div className="space-y-2 pl-4 border-l-2 border-muted">
+                <Label htmlFor="custom-username">Custom Username</Label>
+                <Input
+                  id="custom-username"
+                  value={bashProfile.customUsername || ''}
+                  onChange={(e) => updateBashProfile({ customUsername: e.target.value })}
+                  placeholder="Leave empty to use system username"
+                  className="max-w-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Override the displayed username in the prompt
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between">
               <div>

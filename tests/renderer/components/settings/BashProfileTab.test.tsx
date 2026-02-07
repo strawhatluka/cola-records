@@ -257,5 +257,93 @@ describe('BashProfileTab', () => {
         screen.getByText(/Changes take effect on the next Development session start/)
       ).toBeDefined();
     });
+
+    it('shows custom username input when showUsername is true', () => {
+      const settings = createMockSettings({
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      expect(screen.getByText('Custom Username')).toBeDefined();
+      expect(screen.getByPlaceholderText('Leave empty to use system username')).toBeDefined();
+    });
+
+    it('hides custom username input when showUsername is false', () => {
+      const settings = createMockSettings({
+        bashProfile: {
+          showUsername: false,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      expect(screen.queryByText('Custom Username')).toBeNull();
+    });
+
+    it('updates customUsername when input changes', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      const input = screen.getByPlaceholderText('Leave empty to use system username');
+      await user.type(input, 'x');
+
+      // Check that onUpdate was called with customUsername in the bashProfile
+      expect(mockOnUpdate).toHaveBeenCalled();
+      const call = mockOnUpdate.mock.calls[0][0];
+      expect(call.bashProfile).toBeDefined();
+      expect(call.bashProfile.customUsername).toBe('x');
+    });
+
+    it('shows custom username in preview when set', () => {
+      const settings = createMockSettings({
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+          customUsername: 'devuser',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // The preview should show 'devuser' instead of 'user'
+      expect(screen.getByText('devuser')).toBeDefined();
+    });
+
+    it('shows default user in preview when customUsername is empty', () => {
+      const settings = createMockSettings({
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+          customUsername: '',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // The preview should show 'user' (default)
+      expect(screen.getByText('user')).toBeDefined();
+    });
   });
 });

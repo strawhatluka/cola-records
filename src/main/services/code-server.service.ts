@@ -334,9 +334,10 @@ class CodeServerService {
    */
   createContainerBashrc(projectPath: string): void {
     const bashrcPath = path.join(this.getUserDataDir(), 'bashrc');
-    const username = os.userInfo().username;
     const projectName = path.basename(projectPath);
     const bashProfile = this.getBashProfileSettings();
+    // Use custom username if set, otherwise fall back to OS username
+    const username = bashProfile.customUsername?.trim() || os.userInfo().username;
 
     const lines = [
       '# Cola Records container shell profile',
