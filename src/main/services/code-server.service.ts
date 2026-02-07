@@ -73,23 +73,6 @@ class CodeServerService {
   }
 
   /**
-   * Named Docker volume for npm global packages.
-   * Using a named volume instead of bind mount for much better I/O performance
-   * on Windows (avoids WSL2 filesystem bridge overhead).
-   */
-  getNpmGlobalVolumeName(): string {
-    return 'cola-npm-global';
-  }
-
-  /**
-   * Named Docker volume for Python installation.
-   * Using standalone Python build to persist across container restarts.
-   */
-  getPythonVolumeName(): string {
-    return 'cola-python';
-  }
-
-  /**
    * Directory for isolated Claude Code configuration.
    * Uses a separate directory within code-server user data to prevent
    * conflicts with the host's Claude Code config (~/.claude.json).
@@ -317,11 +300,8 @@ class CodeServerService {
     const lines = [
       '# Cola Records container shell profile',
       '',
-      '# Add Python, npm global bin, and code-server node to PATH',
-      'export PATH="/home/coder/.python/bin:/home/coder/.npm-global/bin:/usr/lib/code-server/lib:$PATH"',
-      '',
-      '# Alias node to code-server bundled node for CLI tools',
-      'alias node="/usr/lib/code-server/lib/node"',
+      '# Node.js, npm, and Python are pre-installed in the Docker image',
+      '# and are available in the default PATH (/usr/bin)',
       '',
       '# Git branch helper',
       '__git_branch() {',
@@ -329,10 +309,10 @@ class CodeServerService {
       '}',
       '',
       '# Show path relative to project root using actual host folder name',
-      `# /home/coder/project -> ${projectName}, /home/coder/project/src -> ${projectName}/src`,
+      `# /config/workspace -> ${projectName}, /config/workspace/src -> ${projectName}/src`,
       '__project_path() {',
       '  local cwd="$PWD"',
-      '  local project_root="/home/coder/project"',
+      '  local project_root="/config/workspace"',
       `  local project_name="${projectName}"`,
       '  case "$cwd" in',
       '    "$project_root")',
@@ -401,8 +381,9 @@ class CodeServerService {
     const mounts: string[] = [];
     const gitCredentials = path.join(os.homedir(), '.git-credentials');
 
+    // LinuxServer.io uses 'abc' user with home at /config
     if (fs.existsSync(gitCredentials)) {
-      mounts.push('-v', `${this.toDockerPath(gitCredentials)}:/home/coder/.git-credentials:ro`);
+      mounts.push('-v', `${this.toDockerPath(gitCredentials)}:/config/.git-credentials:ro`);
     }
 
     return mounts;
@@ -427,8 +408,8 @@ class CodeServerService {
     // Ensure the isolated Claude config directory exists
     fs.mkdirSync(claudeConfigDir, { recursive: true });
 
-    // Mount the isolated config directory
-    return ['-v', `${this.toDockerPath(claudeConfigDir)}:/home/coder/.claude-config`];
+    // Mount the isolated config directory (LinuxServer.io uses /config as home)
+    return ['-v', `${this.toDockerPath(claudeConfigDir)}:/home/abc/.claude-config`];
   }
 
   // ── Docker Operations ────────────────────────────────────────────
@@ -459,17 +440,22 @@ class CodeServerService {
   }
 
   /**
-   * Poll the code-server /healthz endpoint until it returns 200.
-   * Retries every second for up to 60 seconds.
+   * Poll the code-server until it responds.
+   * LinuxServer.io image takes longer to initialize due to s6-overlay.
+   * Retries every second for up to 90 seconds.
    */
   async waitForReady(port: number): Promise<void> {
-    const maxAttempts = 60;
+    const maxAttempts = 90;
     const delay = 1000;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const response = await fetch(`http://127.0.0.1:${port}/healthz`);
-        if (response.ok) {
+        // Try root endpoint - code-server will redirect to login or workspace
+        const response = await fetch(`http://127.0.0.1:${port}/`, {
+          redirect: 'manual', // Don't follow redirects, just check for response
+        });
+        // Any response (200, 302, etc.) means server is ready
+        if (response.status > 0) {
           return;
         }
       } catch {
@@ -481,213 +467,147 @@ class CodeServerService {
     throw new Error(`code-server did not become ready within ${maxAttempts} seconds`);
   }
 
+  // ── Image Management ─────────────────────────────────────────────
+
   /**
-   * Bootstrap Python into a persistent named volume.
-   * Uses standalone Python build from python-build-standalone project.
+   * Get the path to the Dockerfile for building the custom image.
+   * The Dockerfile is located in the docker/code-server directory.
    */
-  async bootstrapPython(containerName: string): Promise<void> {
-    const pythonDir = '/home/coder/.python';
-    const pythonVersion = '3.12.1';
-
-    console.log('[CodeServer] Setting up Python...');
-
-    // Fix ownership of named volume (Docker creates it as root)
-    try {
-      await this.dockerExec([
-        'exec',
-        '-u',
-        'root',
-        containerName,
-        'chown',
-        '-R',
-        'coder:coder',
-        pythonDir,
-      ]);
-    } catch {
-      // Best effort - may already be correct
+  private getDockerfilePath(): string {
+    // In production, use the app's resource path; in development, use project root
+    const isDev = !app.isPackaged;
+    if (isDev) {
+      return path.join(app.getAppPath(), 'docker', 'code-server');
     }
-
-    // Check if Python is already bootstrapped
-    try {
-      await this.dockerExec(['exec', containerName, 'test', '-f', `${pythonDir}/bin/python3`]);
-      console.log('[CodeServer] Python already bootstrapped');
-      return;
-    } catch {
-      // Python not found - need to bootstrap
-    }
-
-    console.log('[CodeServer] Bootstrapping Python into persistent volume...');
-    try {
-      // Download standalone Python build (python-build-standalone project)
-      // Using the install_only variant which is smaller and pre-built
-      await this.dockerExec([
-        'exec',
-        containerName,
-        'bash',
-        '-c',
-        `
-          set -e
-          cd ${pythonDir}
-
-          # Download standalone Python build for Linux x86_64
-          curl -sL "https://github.com/indygreg/python-build-standalone/releases/download/20240107/cpython-${pythonVersion}+20240107-x86_64-unknown-linux-gnu-install_only.tar.gz" -o python.tar.gz
-
-          # Extract (creates a 'python' directory)
-          tar -xzf python.tar.gz
-
-          # Move contents up and cleanup
-          mv python/* .
-          rmdir python
-          rm python.tar.gz
-
-          # Create pip wrapper that uses our Python
-          ./bin/python3 -m ensurepip --upgrade 2>/dev/null || true
-        `,
-      ]);
-      console.log('[CodeServer] Python bootstrapped successfully');
-    } catch (err) {
-      console.error('[CodeServer] Failed to bootstrap Python:', err);
-    }
+    // In production, the docker directory is copied to resources
+    return path.join(process.resourcesPath, 'docker', 'code-server');
   }
 
   /**
-   * Install or update global npm packages in the container.
-   * This runs in the background after the container starts.
-   *
-   * Since the code-server image doesn't include npm and apt-installed packages
-   * aren't persistent (container uses --rm), we bootstrap npm into the persistent
-   * npm-global volume using curl and the code-server's bundled node.
+   * Check if the cola-code-server image exists, build it if not.
+   * This ensures the custom image with pre-installed tools is available.
    */
-  async installGlobalPackages(containerName: string): Promise<void> {
-    const packages = ['trinity-method-sdk'];
-    const npmGlobalDir = '/home/coder/.npm-global';
+  async ensureImageExists(): Promise<void> {
+    const imageName = 'cola-code-server:latest';
 
-    console.log('[CodeServer] Setting up npm and installing packages:', packages);
-
-    // Fix ownership of named volume (Docker creates it as root)
-    // This is idempotent and fast if already owned by coder
     try {
-      await this.dockerExec([
-        'exec',
-        '-u',
-        'root',
-        containerName,
-        'chown',
-        '-R',
-        'coder:coder',
-        npmGlobalDir,
-      ]);
-    } catch {
-      // Best effort - may already be correct
-    }
-
-    // Check if npm is already bootstrapped in the persistent volume
-    try {
-      await this.dockerExec([
-        'exec',
-        containerName,
-        'test',
-        '-f',
-        `${npmGlobalDir}/lib/node_modules/npm/bin/npm-cli.js`,
-      ]);
-      console.log('[CodeServer] npm already bootstrapped');
-    } catch {
-      // npm not found - need to bootstrap it
-      console.log('[CodeServer] Bootstrapping npm into persistent volume...');
-      try {
-        // Download and extract npm to the persistent volume
-        // We use the standalone npm tarball and extract it
-        await this.dockerExec([
-          'exec',
-          containerName,
-          'bash',
-          '-c',
-          `
-            set -e
-            cd ${npmGlobalDir}
-
-            # Download npm tarball
-            curl -sL https://registry.npmjs.org/npm/-/npm-10.9.2.tgz -o npm.tgz
-
-            # Extract to lib/node_modules/npm
-            mkdir -p lib/node_modules
-            tar -xzf npm.tgz -C lib/node_modules
-            mv lib/node_modules/package lib/node_modules/npm
-            rm npm.tgz
-
-            # Create npm wrapper script in bin
-            mkdir -p bin
-            cat > bin/npm << 'NPMSCRIPT'
-#!/bin/bash
-exec /usr/lib/code-server/lib/node /home/coder/.npm-global/lib/node_modules/npm/bin/npm-cli.js "$@"
-NPMSCRIPT
-            chmod +x bin/npm
-
-            # Create npx wrapper too
-            cat > bin/npx << 'NPXSCRIPT'
-#!/bin/bash
-exec /usr/lib/code-server/lib/node /home/coder/.npm-global/lib/node_modules/npm/bin/npx-cli.js "$@"
-NPXSCRIPT
-            chmod +x bin/npx
-          `,
-        ]);
-        console.log('[CodeServer] npm bootstrapped successfully');
-      } catch (err) {
-        console.error('[CodeServer] Failed to bootstrap npm:', err);
+      // Check if image already exists
+      const images = await this.dockerExec(['images', '-q', imageName]);
+      if (images.trim()) {
+        console.log('[CodeServer] Image cola-code-server:latest already exists');
         return;
       }
+    } catch {
+      // Error checking images - proceed to build
     }
 
-    // Now use our bootstrapped npm to install packages
-    const npmCmd = `${npmGlobalDir}/bin/npm`;
+    console.log('[CodeServer] Building cola-code-server image (this may take a few minutes)...');
 
-    for (const pkg of packages) {
-      try {
-        // Check if package already exists
-        const pkgExists = await this.dockerExec([
-          'exec',
-          containerName,
-          'test',
-          '-d',
-          `${npmGlobalDir}/lib/node_modules/${pkg}`,
-        ])
-          .then(() => true)
-          .catch(() => false);
+    // Use native path for docker build (not Docker mount path format)
+    const dockerfilePath = this.getDockerfilePath();
 
-        if (pkgExists) {
-          // Package already installed - skip reinstall
-          // The npm-global volume is persistent, so packages survive container restarts
-          console.log(`[CodeServer] ${pkg} already installed, skipping`);
-          continue;
-        }
-
-        console.log(`[CodeServer] Installing ${pkg}...`);
-        const result = await this.dockerExec(['exec', containerName, npmCmd, 'install', '-g', pkg]);
-        console.log(`[CodeServer] ${pkg} installed:`, result);
-      } catch (err) {
-        console.error(`[CodeServer] Failed to install ${pkg}:`, err);
-      }
+    try {
+      // Build the image from our Dockerfile with extended timeout
+      const { stdout } = await execFileAsync('docker', ['build', '-t', imageName, dockerfilePath], {
+        timeout: 600_000, // 10 minute timeout for image build (includes npm installs)
+      });
+      console.log('[CodeServer] Image build output:', stdout);
+      console.log('[CodeServer] Image cola-code-server:latest built successfully');
+    } catch (err) {
+      console.error('[CodeServer] Failed to build image:', err);
+      throw new Error(
+        'Failed to build cola-code-server Docker image. Please check Docker is running and try again.\n\n' +
+          `Dockerfile location: ${dockerfilePath}`
+      );
     }
   }
 
   // ── Lifecycle ────────────────────────────────────────────────────
 
+  /** Fixed container name for persistence across sessions */
+  private static readonly CONTAINER_NAME = 'cola-code-server';
+
+  /**
+   * Check if the persistent container exists (running or stopped).
+   * Returns: 'running' | 'stopped' | 'none'
+   */
+  async getContainerState(): Promise<'running' | 'stopped' | 'none'> {
+    try {
+      const result = await this.dockerExec([
+        'inspect',
+        '--format',
+        '{{.State.Running}}',
+        CodeServerService.CONTAINER_NAME,
+      ]);
+      return result.trim() === 'true' ? 'running' : 'stopped';
+    } catch {
+      return 'none';
+    }
+  }
+
+  /**
+   * Get the host port mapped to the container's 8443 port.
+   */
+  async getContainerPort(): Promise<number | null> {
+    try {
+      const result = await this.dockerExec([
+        'inspect',
+        '--format',
+        '{{(index (index .NetworkSettings.Ports "8443/tcp") 0).HostPort}}',
+        CodeServerService.CONTAINER_NAME,
+      ]);
+      const port = parseInt(result.trim(), 10);
+      return isNaN(port) ? null : port;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get the workspace path currently mounted in the container.
+   * Returns null if container doesn't exist or path can't be determined.
+   */
+  async getContainerWorkspacePath(): Promise<string | null> {
+    try {
+      // Get the mount source for /config/workspace
+      const result = await this.dockerExec([
+        'inspect',
+        '--format',
+        '{{range .Mounts}}{{if eq .Destination "/config/workspace"}}{{.Source}}{{end}}{{end}}',
+        CodeServerService.CONTAINER_NAME,
+      ]);
+      const mountPath = result.trim();
+      return mountPath || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Remove the container to allow recreation with new mounts.
+   */
+  async removeContainer(): Promise<void> {
+    try {
+      await this.dockerExec(['rm', '-f', CodeServerService.CONTAINER_NAME]);
+      console.log('[CodeServer] Removed container for recreation');
+    } catch {
+      // Container may not exist
+    }
+  }
+
   /**
    * Start a code-server Docker container for the given project path.
    *
-   * 1. Check Docker is available
-   * 2. Find a free port
-   * 3. Sync VS Code settings from host
-   * 4. Create container gitconfig
-   * 5. Ensure persistent storage dirs exist
-   * 6. Launch container with volume mounts
-   * 7. Wait for health check
-   * 8. Return port and URL
+   * Uses a persistent container that survives app restarts:
+   * - If container exists and is stopped → start it
+   * - If container exists and is running → reuse it
+   * - If container doesn't exist → create it
+   *
+   * This preserves npm packages, extensions, Claude auth, and other state.
    */
   async start(projectPath: string): Promise<CodeServerStartResult> {
     // Guard against concurrent starts (React strict mode double-mount)
     if (this.starting) {
-      // Wait for the in-progress start to finish
       while (this.starting) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
@@ -696,115 +616,78 @@ NPXSCRIPT
       }
     }
 
-    if (this.running) {
-      await this.stop();
-    }
-
     this.starting = true;
 
     try {
       // Step 1: Verify Docker
       await this.checkDockerAvailable();
 
-      // Step 2: Find free port
-      const port = await this.findFreePort();
-      const containerName = `cola-code-server-${port}`;
+      // Step 2: Ensure our custom image exists (build if needed)
+      await this.ensureImageExists();
 
-      // Step 3: Sync settings
+      // Step 3: Sync settings and create config files
       this.syncVSCodeSettings();
-
-      // Step 4: Create gitconfig and bashrc
       this.createContainerGitConfig();
       this.createContainerBashrc(projectPath);
 
-      // Step 5: Ensure dirs exist
+      // Step 4: Ensure config dir exists
       const userDataDir = this.getUserDataDir();
-      const extensionsDir = this.getExtensionsDir();
       fs.mkdirSync(userDataDir, { recursive: true });
-      fs.mkdirSync(extensionsDir, { recursive: true });
 
-      // Step 6: Build Docker run args
-      const gitMounts = this.getGitMounts();
-      const npmGlobalVolume = this.getNpmGlobalVolumeName();
-      const pythonVolume = this.getPythonVolumeName();
-      const args = [
-        'run',
-        '--rm',
-        '-d',
-        '--name',
-        containerName,
-        '-p',
-        `127.0.0.1:${port}:8080`,
-        // Performance: allocate pseudo-TTY for better terminal responsiveness
-        '-t',
-        // Performance: increase shared memory for better IPC (default 64MB is too small)
-        '--shm-size=256m',
-        // Project directory (read-write)
-        '-v',
-        `${this.toDockerPath(projectPath)}:/home/coder/project`,
-        // User data persistence (settings, auth tokens, etc.)
-        '-v',
-        `${this.toDockerPath(userDataDir)}:/home/coder/.local/share/code-server`,
-        // Extensions persistence (separate mount to avoid overlap)
-        '-v',
-        `${this.toDockerPath(extensionsDir)}:/home/coder/extensions`,
-        // npm global packages - named Docker volume for better performance
-        // (avoids slow Windows filesystem bridge through WSL2)
-        '-v',
-        `${npmGlobalVolume}:/home/coder/.npm-global`,
-        // Python installation - named Docker volume for persistence
-        '-v',
-        `${pythonVolume}:/home/coder/.python`,
-        // Git mounts (conditionally included)
-        ...gitMounts,
-        // Claude Code config mount (isolated from host to prevent JSON corruption)
-        ...this.getClaudeMounts(),
-        // Claude Code config directory (isolated from host's ~/.claude.json)
-        '-e',
-        'CLAUDE_CONFIG_DIR=/home/coder/.claude-config',
-        // Git config env var
-        '-e',
-        'GIT_CONFIG_GLOBAL=/home/coder/.local/share/code-server/gitconfig',
-        // Shell profile
-        '-e',
-        'BASH_ENV=/home/coder/.local/share/code-server/bashrc',
-        // npm global config
-        '-e',
-        'NPM_CONFIG_PREFIX=/home/coder/.npm-global',
-        // Performance: reduce terminal latency
-        '-e',
-        'SHELL=/bin/bash',
-        // Image
-        'codercom/code-server:latest',
-        // code-server args
-        '--auth',
-        'none',
-        '--bind-addr',
-        '0.0.0.0:8080',
-        '--disable-telemetry',
-        '--disable-update-check',
-        '--extensions-dir',
-        '/home/coder/extensions',
-        '/home/coder/project',
-      ];
+      // Step 5: Check container state and workspace path
+      let containerState = await this.getContainerState();
+      let port: number;
 
-      await this.dockerExec(args);
+      // If container exists, check if it's mounting the correct project
+      if (containerState !== 'none') {
+        const currentWorkspace = await this.getContainerWorkspacePath();
+        const requestedWorkspace = this.toDockerPath(projectPath);
 
-      // Step 7: Wait for health check
+        // Normalize paths for comparison (Docker returns forward slashes)
+        const normalizedCurrent = currentWorkspace?.toLowerCase().replace(/\\/g, '/');
+        const normalizedRequested = requestedWorkspace.toLowerCase().replace(/\\/g, '/');
+
+        if (normalizedCurrent !== normalizedRequested) {
+          console.log(
+            `[CodeServer] Project changed: ${normalizedCurrent} → ${normalizedRequested}`
+          );
+          console.log('[CodeServer] Recreating container with new workspace...');
+          await this.removeContainer();
+          containerState = 'none';
+        }
+      }
+
+      if (containerState === 'running') {
+        // Container already running with correct project - get its port
+        console.log('[CodeServer] Container already running, reusing...');
+        const existingPort = await this.getContainerPort();
+        if (!existingPort) {
+          throw new Error('Container is running but could not determine port');
+        }
+        port = existingPort;
+      } else if (containerState === 'stopped') {
+        // Container exists but stopped with correct project - start it
+        console.log('[CodeServer] Starting existing container...');
+        await this.dockerExec(['start', CodeServerService.CONTAINER_NAME]);
+        const existingPort = await this.getContainerPort();
+        if (!existingPort) {
+          throw new Error('Container started but could not determine port');
+        }
+        port = existingPort;
+      } else {
+        // Container doesn't exist or was removed - create it
+        console.log('[CodeServer] Creating new container...');
+        port = await this.findFreePort();
+        await this.createContainer(projectPath, port, userDataDir);
+      }
+
+      // Step 6: Wait for health check
       await this.waitForReady(port);
 
       // Store state
-      this.containerName = containerName;
+      this.containerName = CodeServerService.CONTAINER_NAME;
       this.port = port;
       this.running = true;
-
-      // Step 8: Bootstrap Python and npm packages in background (don't block startup)
-      Promise.all([
-        this.bootstrapPython(containerName),
-        this.installGlobalPackages(containerName),
-      ]).catch(() => {
-        // Silent fail - packages are best-effort
-      });
 
       const url = `http://127.0.0.1:${port}`;
       return { port, url };
@@ -814,25 +697,76 @@ NPXSCRIPT
   }
 
   /**
-   * Stop the running code-server container.
-   * Attempts graceful stop, falls back to force remove.
+   * Create a new persistent container with the given configuration.
+   */
+  private async createContainer(
+    projectPath: string,
+    port: number,
+    userDataDir: string
+  ): Promise<void> {
+    const gitMounts = this.getGitMounts();
+    const args = [
+      'run',
+      '-d',
+      '--name',
+      CodeServerService.CONTAINER_NAME,
+      // LinuxServer.io code-server uses port 8443 internally
+      '-p',
+      `127.0.0.1:${port}:8443`,
+      // Performance: allocate pseudo-TTY for better terminal responsiveness
+      '-t',
+      // Performance: increase shared memory for better IPC (default 64MB is too small)
+      '--shm-size=256m',
+      // Project directory (read-write) - mounted as DEFAULT_WORKSPACE
+      '-v',
+      `${this.toDockerPath(projectPath)}:/config/workspace`,
+      // LinuxServer.io config persistence (includes code-server data, extensions, etc.)
+      '-v',
+      `${this.toDockerPath(userDataDir)}:/config`,
+      // Git mounts (conditionally included)
+      ...gitMounts,
+      // Claude Code config mount (isolated from host to prevent JSON corruption)
+      ...this.getClaudeMounts(),
+      // LinuxServer.io required environment variables
+      '-e',
+      `PUID=${process.getuid?.() ?? 1000}`,
+      '-e',
+      `PGID=${process.getgid?.() ?? 1000}`,
+      '-e',
+      'TZ=UTC',
+      // Disable password authentication
+      '-e',
+      'PASSWORD=',
+      // Set default workspace to mounted project
+      '-e',
+      'DEFAULT_WORKSPACE=/config/workspace',
+      // Claude Code config directory (isolated from host's ~/.claude.json)
+      '-e',
+      'CLAUDE_CONFIG_DIR=/home/abc/.claude-config',
+      // Git config env var (LinuxServer uses 'abc' user, not 'coder')
+      '-e',
+      'GIT_CONFIG_GLOBAL=/config/gitconfig',
+      // Custom image with Node.js, npm, Python, Claude Code pre-installed
+      'cola-code-server:latest',
+    ];
+
+    await this.dockerExec(args);
+  }
+
+  /**
+   * Stop the code-server container.
+   * The container is stopped but NOT removed, preserving all state
+   * (installed packages, extensions, Claude auth, etc.) for next session.
    */
   async stop(): Promise<void> {
-    if (!this.containerName) {
-      this.running = false;
-      return;
-    }
-
-    const name = this.containerName;
-
     try {
-      await this.dockerExec(['stop', '-t', '5', name]);
-    } catch {
-      try {
-        await this.dockerExec(['rm', '-f', name]);
-      } catch {
-        // Force remove also failed — container may already be gone
+      const state = await this.getContainerState();
+      if (state === 'running') {
+        console.log('[CodeServer] Stopping container (preserving state)...');
+        await this.dockerExec(['stop', '-t', '5', CodeServerService.CONTAINER_NAME]);
       }
+    } catch {
+      // Container may not exist or already stopped - that's fine
     }
 
     this.containerName = null;

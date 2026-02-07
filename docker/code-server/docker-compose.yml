@@ -1,0 +1,41 @@
+# Cola Records - Code-Server Development Compose
+#
+# For local development and testing of the custom code-server image.
+#
+# Build image:  docker-compose build
+# Test image:   docker-compose run --rm cola-code-server which npm
+# Start server: docker-compose up -d
+# Stop server:  docker-compose down
+#
+# Access at: http://localhost:8443
+
+name: cola-code-server
+
+services:
+  cola-code-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cola-code-server:latest
+    container_name: cola-code-server
+    environment:
+      # LinuxServer.io required environment variables
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      # Disable password for local development
+      - PASSWORD=
+      # Default workspace (overridden at runtime by the app)
+      - DEFAULT_WORKSPACE=/config/workspace
+    volumes:
+      # Persistent configuration
+      - code-server-config:/config
+      # Test workspace (mount your project here for testing)
+      - ./test-workspace:/config/workspace
+    ports:
+      - "8443:8443"
+    restart: unless-stopped
+
+volumes:
+  code-server-config:
+    name: cola-code-server-config

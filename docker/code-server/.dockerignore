@@ -1,0 +1,28 @@
+# Cola Records - Code-Server Docker Ignore
+#
+# Excludes files from Docker build context to speed up builds.
+
+# Test workspace (local development only)
+test-workspace/
+
+# Documentation
+*.md
+!README.md
+
+# Version control
+.git
+.gitignore
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
