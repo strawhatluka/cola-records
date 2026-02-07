@@ -73,7 +73,7 @@ describe('BashProfileTab', () => {
       expect(screen.getByText('Alias name cannot contain spaces')).toBeDefined();
     });
 
-    it('adds a new alias', async () => {
+    it('adds a new alias to local state (not saved until Save button)', async () => {
       const user = userEvent.setup();
       render(
         <BashProfileTab settings={createMockSettings({ aliases: [] })} onUpdate={mockOnUpdate} />
@@ -83,9 +83,11 @@ describe('BashProfileTab', () => {
       await user.type(screen.getByPlaceholderText('command (e.g. git push)'), 'git push');
       await user.click(screen.getByText('Add'));
 
-      expect(mockOnUpdate).toHaveBeenCalledWith({
-        aliases: [{ name: 'gp', command: 'git push' }],
-      });
+      // Should NOT call onUpdate yet - changes are local only
+      expect(mockOnUpdate).not.toHaveBeenCalled();
+      // The alias should appear in the UI
+      expect(screen.getByText('gp')).toBeDefined();
+      expect(screen.getByText('git push')).toBeDefined();
     });
 
     it('shows default aliases info text', () => {
@@ -110,7 +112,7 @@ describe('BashProfileTab', () => {
       expect(mockOnUpdate).not.toHaveBeenCalled();
     });
 
-    it('deletes an alias when trash icon is clicked', async () => {
+    it('deletes an alias from local state (not saved until Save button)', async () => {
       const user = userEvent.setup();
       const settings = createMockSettings({
         aliases: [
@@ -123,11 +125,12 @@ describe('BashProfileTab', () => {
       const deleteButtons = screen.getAllByTestId('icon-trash2');
       await user.click(deleteButtons[0].closest('button')!);
 
-      await waitFor(() => {
-        expect(mockOnUpdate).toHaveBeenCalledWith({
-          aliases: [{ name: 'll', command: 'ls -la' }],
-        });
-      });
+      // Should NOT call onUpdate yet - changes are local only
+      expect(mockOnUpdate).not.toHaveBeenCalled();
+      // The alias should be removed from UI
+      expect(screen.queryByText('gp')).toBeNull();
+      // Other alias should still be visible
+      expect(screen.getByText('ll')).toBeDefined();
     });
   });
 
@@ -197,7 +200,7 @@ describe('BashProfileTab', () => {
       expect(toggles[1].getAttribute('data-state')).toBe('checked');
     });
 
-    it('updates showUsername when toggle is clicked', async () => {
+    it('updates showUsername in local state (not saved until Save button)', async () => {
       const user = userEvent.setup();
       const settings = createMockSettings({
         bashProfile: {
@@ -213,18 +216,13 @@ describe('BashProfileTab', () => {
       const toggles = screen.getAllByRole('switch');
       await user.click(toggles[0]); // Click showUsername toggle
 
-      expect(mockOnUpdate).toHaveBeenCalledWith({
-        bashProfile: {
-          showUsername: false,
-          showGitBranch: true,
-          usernameColor: 'green',
-          pathColor: 'blue',
-          gitBranchColor: 'yellow',
-        },
-      });
+      // Should NOT call onUpdate yet - changes are local only
+      expect(mockOnUpdate).not.toHaveBeenCalled();
+      // Toggle should now be unchecked
+      expect(toggles[0].getAttribute('data-state')).toBe('unchecked');
     });
 
-    it('updates showGitBranch when toggle is clicked', async () => {
+    it('updates showGitBranch in local state (not saved until Save button)', async () => {
       const user = userEvent.setup();
       const settings = createMockSettings({
         bashProfile: {
@@ -240,15 +238,10 @@ describe('BashProfileTab', () => {
       const toggles = screen.getAllByRole('switch');
       await user.click(toggles[1]); // Click showGitBranch toggle
 
-      expect(mockOnUpdate).toHaveBeenCalledWith({
-        bashProfile: {
-          showUsername: true,
-          showGitBranch: false,
-          usernameColor: 'green',
-          pathColor: 'blue',
-          gitBranchColor: 'yellow',
-        },
-      });
+      // Should NOT call onUpdate yet - changes are local only
+      expect(mockOnUpdate).not.toHaveBeenCalled();
+      // Toggle should now be unchecked
+      expect(toggles[1].getAttribute('data-state')).toBe('unchecked');
     });
 
     it('shows note about changes taking effect on next session', () => {
@@ -289,7 +282,7 @@ describe('BashProfileTab', () => {
       expect(screen.queryByText('Custom Username')).toBeNull();
     });
 
-    it('updates customUsername when input changes', async () => {
+    it('updates customUsername in local state (not saved until Save button)', async () => {
       const user = userEvent.setup();
       const settings = createMockSettings({
         bashProfile: {
@@ -303,13 +296,14 @@ describe('BashProfileTab', () => {
       render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
 
       const input = screen.getByPlaceholderText('Leave empty to use system username');
-      await user.type(input, 'x');
+      await user.type(input, 'devuser');
 
-      // Check that onUpdate was called with customUsername in the bashProfile
-      expect(mockOnUpdate).toHaveBeenCalled();
-      const call = mockOnUpdate.mock.calls[0][0];
-      expect(call.bashProfile).toBeDefined();
-      expect(call.bashProfile.customUsername).toBe('x');
+      // Should NOT call onUpdate yet - changes are local only
+      expect(mockOnUpdate).not.toHaveBeenCalled();
+      // Input should show the typed value
+      expect(input).toHaveValue('devuser');
+      // Preview should update to show the custom username
+      expect(screen.getByText('devuser')).toBeDefined();
     });
 
     it('shows custom username in preview when set', () => {
@@ -344,6 +338,125 @@ describe('BashProfileTab', () => {
 
       // The preview should show 'user' (default)
       expect(screen.getByText('user')).toBeDefined();
+    });
+  });
+
+  // =====================
+  // Save Settings Tests
+  // =====================
+
+  describe('Save Settings Button', () => {
+    it('renders Save Settings button', () => {
+      render(<BashProfileTab settings={createMockSettings()} onUpdate={mockOnUpdate} />);
+      expect(screen.getByText('Save Settings')).toBeDefined();
+    });
+
+    it('calls onUpdate with aliases and bashProfile when Save is clicked', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [createMockAlias({ name: 'existing', command: 'cmd' })],
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Add a new alias
+      await user.type(screen.getByPlaceholderText('name (e.g. gp)'), 'gp');
+      await user.type(screen.getByPlaceholderText('command (e.g. git push)'), 'git push');
+      await user.click(screen.getByText('Add'));
+
+      // onUpdate should not have been called yet
+      expect(mockOnUpdate).not.toHaveBeenCalled();
+
+      // Click Save Settings
+      await user.click(screen.getByText('Save Settings'));
+
+      // Now onUpdate should have been called with all state
+      expect(mockOnUpdate).toHaveBeenCalledTimes(1);
+      expect(mockOnUpdate).toHaveBeenCalledWith({
+        aliases: [
+          { name: 'existing', command: 'cmd' },
+          { name: 'gp', command: 'git push' },
+        ],
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+    });
+
+    it('saves multiple changes at once when Save is clicked', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [],
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Toggle showUsername off
+      const toggles = screen.getAllByRole('switch');
+      await user.click(toggles[0]);
+
+      // Add an alias
+      await user.type(screen.getByPlaceholderText('name (e.g. gp)'), 'myalias');
+      await user.type(screen.getByPlaceholderText('command (e.g. git push)'), 'my command');
+      await user.click(screen.getByText('Add'));
+
+      // Click Save Settings
+      await user.click(screen.getByText('Save Settings'));
+
+      // Both changes should be saved together
+      expect(mockOnUpdate).toHaveBeenCalledTimes(1);
+      expect(mockOnUpdate).toHaveBeenCalledWith({
+        aliases: [{ name: 'myalias', command: 'my command' }],
+        bashProfile: {
+          showUsername: false,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+    });
+
+    it('saves custom username when Save is clicked', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [],
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Type custom username
+      const input = screen.getByPlaceholderText('Leave empty to use system username');
+      await user.type(input, 'myuser');
+
+      // Click Save Settings
+      await user.click(screen.getByText('Save Settings'));
+
+      expect(mockOnUpdate).toHaveBeenCalledTimes(1);
+      const call = mockOnUpdate.mock.calls[0][0];
+      expect(call.bashProfile.customUsername).toBe('myuser');
     });
   });
 });

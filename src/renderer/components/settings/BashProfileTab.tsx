@@ -7,7 +7,12 @@ import { Separator } from '../ui/Separator';
 import { Switch } from '../ui/Switch';
 import { Label } from '../ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
-import type { AppSettings, BashProfileSettings, TerminalColor } from '../../../main/ipc/channels';
+import type {
+  AppSettings,
+  BashProfileSettings,
+  TerminalColor,
+  Alias,
+} from '../../../main/ipc/channels';
 
 interface BashProfileTabProps {
   settings: AppSettings;
@@ -33,9 +38,13 @@ const DEFAULT_BASH_PROFILE: BashProfileSettings = {
 };
 
 export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
-  const aliases = settings.aliases || [];
-  const bashProfile = settings.bashProfile || DEFAULT_BASH_PROFILE;
+  // Local state for all settings (saved on button click, not on every change)
+  const [localAliases, setLocalAliases] = React.useState<Alias[]>(settings.aliases || []);
+  const [localBashProfile, setLocalBashProfile] = React.useState<BashProfileSettings>(
+    settings.bashProfile || DEFAULT_BASH_PROFILE
+  );
 
+  // Form state for adding/editing aliases
   const [newName, setNewName] = React.useState('');
   const [newCommand, setNewCommand] = React.useState('');
   const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
@@ -43,17 +52,23 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
   const [editCommand, setEditCommand] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
 
+  // Sync local state when settings change externally
+  React.useEffect(() => {
+    setLocalAliases(settings.aliases || []);
+    setLocalBashProfile(settings.bashProfile || DEFAULT_BASH_PROFILE);
+  }, [settings.aliases, settings.bashProfile]);
+
   const validateName = (name: string, excludeIndex?: number): string | null => {
     if (!name.trim()) return 'Alias name is required';
     if (/\s/.test(name)) return 'Alias name cannot contain spaces';
     if (!/^[a-zA-Z0-9_-]+$/.test(name))
       return 'Alias name can only contain letters, numbers, hyphens, and underscores';
-    const duplicate = aliases.findIndex((a, i) => a.name === name && i !== excludeIndex);
+    const duplicate = localAliases.findIndex((a, i) => a.name === name && i !== excludeIndex);
     if (duplicate !== -1) return `Alias "${name}" already exists`;
     return null;
   };
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
     const nameError = validateName(newName);
     if (nameError) {
       setError(nameError);
@@ -65,15 +80,13 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
     }
 
     setError(null);
-    const updated = [...aliases, { name: newName.trim(), command: newCommand.trim() }];
-    await onUpdate({ aliases: updated });
+    setLocalAliases([...localAliases, { name: newName.trim(), command: newCommand.trim() }]);
     setNewName('');
     setNewCommand('');
   };
 
-  const handleDelete = async (index: number) => {
-    const updated = aliases.filter((_, i) => i !== index);
-    await onUpdate({ aliases: updated });
+  const handleDelete = (index: number) => {
+    setLocalAliases(localAliases.filter((_, i) => i !== index));
     if (editingIndex === index) {
       setEditingIndex(null);
     }
@@ -81,12 +94,12 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
 
   const handleEditStart = (index: number) => {
     setEditingIndex(index);
-    setEditName(aliases[index].name);
-    setEditCommand(aliases[index].command);
+    setEditName(localAliases[index].name);
+    setEditCommand(localAliases[index].command);
     setError(null);
   };
 
-  const handleEditSave = async () => {
+  const handleEditSave = () => {
     if (editingIndex === null) return;
 
     const nameError = validateName(editName, editingIndex);
@@ -100,10 +113,11 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
     }
 
     setError(null);
-    const updated = aliases.map((a, i) =>
-      i === editingIndex ? { name: editName.trim(), command: editCommand.trim() } : a
+    setLocalAliases(
+      localAliases.map((a, i) =>
+        i === editingIndex ? { name: editName.trim(), command: editCommand.trim() } : a
+      )
     );
-    await onUpdate({ aliases: updated });
     setEditingIndex(null);
   };
 
@@ -125,19 +139,31 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
     }
   };
 
-  const updateBashProfile = async (updates: Partial<BashProfileSettings>) => {
-    await onUpdate({
-      bashProfile: { ...bashProfile, ...updates },
-    });
+  const updateLocalBashProfile = (updates: Partial<BashProfileSettings>) => {
+    setLocalBashProfile({ ...localBashProfile, ...updates });
+  };
+
+  const handleSave = async () => {
+    try {
+      await onUpdate({
+        aliases: localAliases,
+        bashProfile: localBashProfile,
+      });
+      alert('Settings saved successfully!');
+    } catch (err) {
+      alert(`Failed to save settings: ${err}`);
+    }
   };
 
   // Generate preview prompt
   const getPromptPreview = () => {
     const parts: React.ReactNode[] = [];
 
-    if (bashProfile.showUsername) {
-      const colorClass = COLOR_OPTIONS.find((c) => c.value === bashProfile.usernameColor)?.preview;
-      const displayName = bashProfile.customUsername?.trim() || 'user';
+    if (localBashProfile.showUsername) {
+      const colorClass = COLOR_OPTIONS.find(
+        (c) => c.value === localBashProfile.usernameColor
+      )?.preview;
+      const displayName = localBashProfile.customUsername?.trim() || 'user';
       parts.push(
         <span key="username" className={colorClass}>
           {displayName}
@@ -146,16 +172,18 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
       parts.push(<span key="space1"> </span>);
     }
 
-    const pathColorClass = COLOR_OPTIONS.find((c) => c.value === bashProfile.pathColor)?.preview;
+    const pathColorClass = COLOR_OPTIONS.find(
+      (c) => c.value === localBashProfile.pathColor
+    )?.preview;
     parts.push(
       <span key="path" className={pathColorClass}>
         project/src
       </span>
     );
 
-    if (bashProfile.showGitBranch) {
+    if (localBashProfile.showGitBranch) {
       const gitColorClass = COLOR_OPTIONS.find(
-        (c) => c.value === bashProfile.gitBranchColor
+        (c) => c.value === localBashProfile.gitBranchColor
       )?.preview;
       parts.push(
         <span key="git" className={gitColorClass}>
@@ -203,18 +231,18 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
               </div>
               <Switch
                 id="show-username"
-                checked={bashProfile.showUsername}
-                onCheckedChange={(checked) => updateBashProfile({ showUsername: checked })}
+                checked={localBashProfile.showUsername}
+                onCheckedChange={(checked) => updateLocalBashProfile({ showUsername: checked })}
               />
             </div>
 
-            {bashProfile.showUsername && (
+            {localBashProfile.showUsername && (
               <div className="space-y-2 pl-4 border-l-2 border-muted">
                 <Label htmlFor="custom-username">Custom Username</Label>
                 <Input
                   id="custom-username"
-                  value={bashProfile.customUsername || ''}
-                  onChange={(e) => updateBashProfile({ customUsername: e.target.value })}
+                  value={localBashProfile.customUsername || ''}
+                  onChange={(e) => updateLocalBashProfile({ customUsername: e.target.value })}
                   placeholder="Leave empty to use system username"
                   className="max-w-xs"
                 />
@@ -233,8 +261,8 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
               </div>
               <Switch
                 id="show-git-branch"
-                checked={bashProfile.showGitBranch}
-                onCheckedChange={(checked) => updateBashProfile({ showGitBranch: checked })}
+                checked={localBashProfile.showGitBranch}
+                onCheckedChange={(checked) => updateLocalBashProfile({ showGitBranch: checked })}
               />
             </div>
           </div>
@@ -246,11 +274,11 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
             <div className="space-y-2">
               <Label>Username Color</Label>
               <Select
-                value={bashProfile.usernameColor}
+                value={localBashProfile.usernameColor}
                 onValueChange={(value: TerminalColor) =>
-                  updateBashProfile({ usernameColor: value })
+                  updateLocalBashProfile({ usernameColor: value })
                 }
-                disabled={!bashProfile.showUsername}
+                disabled={!localBashProfile.showUsername}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -271,8 +299,10 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
             <div className="space-y-2">
               <Label>Path Color</Label>
               <Select
-                value={bashProfile.pathColor}
-                onValueChange={(value: TerminalColor) => updateBashProfile({ pathColor: value })}
+                value={localBashProfile.pathColor}
+                onValueChange={(value: TerminalColor) =>
+                  updateLocalBashProfile({ pathColor: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -293,11 +323,11 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
             <div className="space-y-2">
               <Label>Git Branch Color</Label>
               <Select
-                value={bashProfile.gitBranchColor}
+                value={localBashProfile.gitBranchColor}
                 onValueChange={(value: TerminalColor) =>
-                  updateBashProfile({ gitBranchColor: value })
+                  updateLocalBashProfile({ gitBranchColor: value })
                 }
-                disabled={!bashProfile.showGitBranch}
+                disabled={!localBashProfile.showGitBranch}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -333,9 +363,9 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Existing aliases list */}
-          {aliases.length > 0 ? (
+          {localAliases.length > 0 ? (
             <div className="space-y-2">
-              {aliases.map((alias, index) => (
+              {localAliases.map((alias, index) => (
                 <div key={index}>
                   {editingIndex === index ? (
                     <div className="flex gap-2 items-center" onKeyDown={handleKeyDown}>
@@ -433,6 +463,11 @@ export function BashProfileTab({ settings, onUpdate }: BashProfileTabProps) {
           </p>
         </CardContent>
       </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end gap-2">
+        <Button onClick={handleSave}>Save Settings</Button>
+      </div>
     </div>
   );
 }
