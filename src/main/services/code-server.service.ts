@@ -331,9 +331,11 @@ class CodeServerService {
   /**
    * Create a .bashrc file for the container terminal.
    * Uses configurable prompt settings from the database.
+   * The file is written to userDataDir/.bashrc which becomes /config/.bashrc
+   * in the container (the home directory for the 'abc' user).
    */
   createContainerBashrc(projectPath: string): void {
-    const bashrcPath = path.join(this.getUserDataDir(), 'bashrc');
+    const bashrcPath = path.join(this.getUserDataDir(), '.bashrc');
     const projectName = path.basename(projectPath);
     const bashProfile = this.getBashProfileSettings();
     // Use custom username if set, otherwise fall back to OS username
@@ -458,17 +460,14 @@ class CodeServerService {
   }
 
   /**
-   * Build Docker -v arguments for the bashrc file.
-   * Mounts our generated bashrc to /etc/bash.bashrc which VS Code terminal uses.
+   * Check if bashrc file exists.
+   * The bashrc is written to userDataDir/.bashrc which becomes /config/.bashrc
+   * in the container via the main /config volume mount. No separate mount needed.
    */
   getBashrcMount(): string[] {
-    const bashrcPath = path.join(this.getUserDataDir(), 'bashrc');
-
-    // Only mount if the bashrc file exists
-    if (fs.existsSync(bashrcPath)) {
-      return ['-v', `${this.toDockerPath(bashrcPath)}:/etc/bash.bashrc:ro`];
-    }
-
+    // The bashrc file is now inside userDataDir, so it's automatically
+    // available at /config/.bashrc through the main /config volume mount.
+    // This method is kept for API compatibility but returns empty.
     return [];
   }
 
@@ -808,7 +807,7 @@ class CodeServerService {
       `${this.toDockerPath(userDataDir)}:/config`,
       // Git mounts (conditionally included)
       ...gitMounts,
-      // Bashrc mount (our configurable shell profile to /etc/bash.bashrc)
+      // Bashrc mount (our configurable shell profile to /config/.bashrc for abc user)
       ...this.getBashrcMount(),
       // Claude Code config mount (isolated from host to prevent JSON corruption)
       ...this.getClaudeMounts(),

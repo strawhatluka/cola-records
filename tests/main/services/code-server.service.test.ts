@@ -370,7 +370,7 @@ describe('CodeServerService', () => {
       }
     });
 
-    it('sets terminal profile to bash (bashrc mounted to /etc/bash.bashrc)', () => {
+    it('sets terminal profile to bash (bashrc at /config/.bashrc via userDataDir)', () => {
       mockMkdirSync.mockImplementation(() => undefined as any);
       mockWriteFileSync.mockImplementation(() => {});
       mockExistsSync.mockReturnValue(false);
@@ -677,15 +677,9 @@ describe('CodeServerService', () => {
   });
 
   describe('getBashrcMount', () => {
-    it('returns mount args when bashrc file exists', () => {
-      mockExistsSync.mockReturnValue(true);
-      const mounts = codeServerService.getBashrcMount();
-      expect(mounts).toContain('-v');
-      expect(mounts.some((m) => m.includes('/etc/bash.bashrc:ro'))).toBe(true);
-    });
-
-    it('returns empty when bashrc file does not exist', () => {
-      mockExistsSync.mockReturnValue(false);
+    it('returns empty array (bashrc is in userDataDir, no separate mount needed)', () => {
+      // The bashrc file is now written to userDataDir/.bashrc which becomes
+      // /config/.bashrc via the main /config volume mount. No separate mount needed.
       const mounts = codeServerService.getBashrcMount();
       expect(mounts).toEqual([]);
     });
