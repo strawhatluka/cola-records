@@ -343,7 +343,7 @@ export function CreatePullRequestModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 overflow-hidden">
           {/* Branch Selectors */}
           <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-end">
             <div>
@@ -387,7 +387,7 @@ export function CreatePullRequestModal({
 
           {/* Comparison Preview */}
           {base && compare && base !== compare && (
-            <div className="border rounded-md overflow-hidden">
+            <div className="border rounded-md overflow-hidden min-w-0">
               {comparisonLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
@@ -542,14 +542,14 @@ export function CreatePullRequestModal({
 
                                 {/* Diff content */}
                                 {isExpanded && !fileDiff.binary && (
-                                  <div className="overflow-x-auto border-t border-border/50">
+                                  <div className="overflow-x-auto border-t border-border/50 max-w-full">
                                     {fileDiff.lines.length > 500 && (
                                       <div className="px-4 py-2 text-xs text-muted-foreground bg-muted/20 border-b border-border/50">
                                         Large file diff truncated. Showing first 500 of{' '}
                                         {fileDiff.lines.length} lines.
                                       </div>
                                     )}
-                                    <table className="w-full text-[11px] font-mono leading-[1.6]">
+                                    <table className="w-full text-[11px] font-mono leading-[1.6] table-fixed">
                                       <tbody>
                                         {fileDiff.lines.slice(0, 500).map((line, idx) => {
                                           if (line.type === 'hunk-header') {
@@ -594,7 +594,7 @@ export function CreatePullRequestModal({
                                                 {line.type !== 'remove' ? line.newLine : ''}
                                               </td>
                                               <td
-                                                className={`px-2 py-0 whitespace-pre ${textClass}`}
+                                                className={`px-2 py-0 whitespace-pre overflow-hidden text-ellipsis ${textClass}`}
                                               >
                                                 <span className="select-none">{prefix}</span>
                                                 {line.content}
