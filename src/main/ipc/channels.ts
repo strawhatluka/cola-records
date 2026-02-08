@@ -378,6 +378,17 @@ export interface BashProfileSettings {
   customUsername?: string;
 }
 
+// SSH Remote Types
+export interface SSHRemote {
+  id: string;
+  name: string;
+  hostname: string;
+  user: string;
+  port: number;
+  keyPath: string;
+  identitiesOnly: boolean;
+}
+
 export interface AppSettings {
   githubToken?: string;
   spotifyClientId?: string;
@@ -863,6 +874,10 @@ export interface IpcChannels {
 
   // PR Check Status Channels
   'github:get-pr-check-status': (owner: string, repo: string, sha: string) => PRCheckStatus;
+
+  // SSH Remotes Channels
+  'settings:get-ssh-remotes': () => SSHRemote[];
+  'settings:save-ssh-remotes': (remotes: SSHRemote[]) => void;
 }
 
 /**

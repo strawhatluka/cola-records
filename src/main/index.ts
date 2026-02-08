@@ -982,6 +982,18 @@ const setupIpcHandlers = () => {
     }
   );
 
+  // SSH Remotes handlers
+  handleIpc('settings:get-ssh-remotes', async () => {
+    const json = database.getSetting('sshRemotes');
+    return json ? JSON.parse(json) : [];
+  });
+
+  handleIpc('settings:save-ssh-remotes', async (_event, remotes) => {
+    database.setSetting('sshRemotes', JSON.stringify(remotes));
+    // Generate SSH config file for container
+    codeServerService.syncSSHConfig();
+  });
+
   // Code Server handlers
   handleIpc('code-server:start', async (_event, projectPath) => {
     return await codeServerService.start(projectPath);

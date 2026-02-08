@@ -6,6 +6,8 @@ const mockExistsSync = vi.fn(() => false);
 const mockReadFileSync = vi.fn(() => '');
 const mockWriteFileSync = vi.fn();
 const mockMkdirSync = vi.fn();
+const mockUnlinkSync = vi.fn();
+const mockCopyFileSync = vi.fn();
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
@@ -15,6 +17,8 @@ vi.mock('fs', async (importOriginal) => {
     readFileSync: (...args: any[]) => mockReadFileSync(...args),
     writeFileSync: (...args: any[]) => mockWriteFileSync(...args),
     mkdirSync: (...args: any[]) => mockMkdirSync(...args),
+    unlinkSync: (...args: any[]) => mockUnlinkSync(...args),
+    copyFileSync: (...args: any[]) => mockCopyFileSync(...args),
   };
 });
 
@@ -749,6 +753,275 @@ describe('CodeServerService', () => {
       // The CONTAINER_NAME is a private static property, but we can verify
       // it's used by checking the stop behavior uses the correct name
       expect(codeServerService).toBeDefined();
+    });
+  });
+
+  describe('syncSSHConfig', () => {
+    it('creates SSH config file with remote entries', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockExistsSync.mockReturnValue(false);
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'sshRemotes') {
+          return JSON.stringify([
+            {
+              id: '1',
+              name: 'sunny-pi',
+              hostname: '192.168.1.19',
+              user: 'pi',
+              port: 22,
+              keyPath: 'C:\\Users\\test\\.ssh\\sunny-stack-pi',
+              identitiesOnly: true,
+            },
+          ]);
+        }
+        return null;
+      });
+
+      codeServerService.syncSSHConfig();
+
+      expect(mockMkdirSync).toHaveBeenCalled();
+      expect(mockWriteFileSync).toHaveBeenCalled();
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        expect(content).toContain('Host sunny-pi');
+        expect(content).toContain('HostName 192.168.1.19');
+        expect(content).toContain('User pi');
+        expect(content).toContain('Port 22');
+        expect(content).toContain('IdentityFile /config/.ssh/keys/sunny-stack-pi');
+        expect(content).toContain('IdentitiesOnly yes');
+        expect(content).toContain('ServerAliveInterval 60');
+      }
+    });
+
+    it('creates SSH config with multiple remotes', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockExistsSync.mockReturnValue(false);
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'sshRemotes') {
+          return JSON.stringify([
+            {
+              id: '1',
+              name: 'sunny-pi',
+              hostname: '192.168.1.19',
+              user: 'pi',
+              port: 22,
+              keyPath: '/home/user/.ssh/sunny',
+              identitiesOnly: true,
+            },
+            {
+              id: '2',
+              name: 'rinoa-pi5',
+              hostname: '192.168.1.50',
+              user: 'pi',
+              port: 22,
+              keyPath: '/home/user/.ssh/rinoa',
+              identitiesOnly: false,
+            },
+          ]);
+        }
+        return null;
+      });
+
+      codeServerService.syncSSHConfig();
+
+      const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
+      if (content) {
+        expect(content).toContain('Host sunny-pi');
+        expect(content).toContain('Host rinoa-pi5');
+        // First remote has IdentitiesOnly
+        expect(content).toMatch(/Host sunny-pi[\s\S]*?IdentitiesOnly yes/);
+        // Second remote should NOT have IdentitiesOnly line after its Host block
+        const rinaoBlock = content.match(/Host rinoa-pi5[\s\S]*?(?=Host |$)/);
+        if (rinaoBlock) {
+          expect(rinaoBlock[0]).not.toContain('IdentitiesOnly');
+        }
+      }
+    });
+
+    it('handles empty remotes array gracefully', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockExistsSync.mockReturnValue(false);
+      mockGetSetting.mockReturnValue('[]');
+
+      codeServerService.syncSSHConfig();
+
+      // Should not write config file when no remotes
+      expect(mockWriteFileSync).not.toHaveBeenCalled();
+    });
+
+    it('handles null/undefined remotes gracefully', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockExistsSync.mockReturnValue(false);
+      mockGetSetting.mockReturnValue(null);
+
+      codeServerService.syncSSHConfig();
+
+      // Should not throw and should not write config
+      expect(mockWriteFileSync).not.toHaveBeenCalled();
+    });
+
+    it('handles invalid JSON in sshRemotes setting', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockExistsSync.mockReturnValue(false);
+      mockGetSetting.mockReturnValue('not valid json');
+
+      // Should not throw
+      expect(() => codeServerService.syncSSHConfig()).not.toThrow();
+    });
+  });
+
+  describe('getSSHMounts', () => {
+    it('returns empty array when no SSH config exists', () => {
+      mockExistsSync.mockReturnValue(false);
+      mockGetSetting.mockReturnValue(null);
+
+      const mounts = codeServerService.getSSHMounts();
+      expect(mounts).toEqual([]);
+    });
+
+    it('mounts entire .ssh directory when config exists', () => {
+      mockGetSetting.mockReturnValue(null);
+      // SSH config file exists
+      mockExistsSync.mockImplementation((pathArg: unknown) => {
+        const p = pathArg as string;
+        return p.includes('.ssh') && p.endsWith('config');
+      });
+
+      const mounts = codeServerService.getSSHMounts();
+
+      // Should mount the entire .ssh directory
+      expect(mounts).toContain('-v');
+      expect(mounts.some((m) => m.includes('.ssh:/config/.ssh'))).toBe(true);
+      // Should NOT be read-only (SSH needs to create known_hosts)
+      expect(mounts.some((m) => m.includes(':ro'))).toBe(false);
+    });
+
+    it('returns empty array when config file does not exist', () => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'sshRemotes') {
+          return JSON.stringify([
+            {
+              id: '1',
+              name: 'test-host',
+              hostname: '192.168.1.1',
+              user: 'user',
+              port: 22,
+              keyPath: '/home/user/.ssh/test-key',
+              identitiesOnly: true,
+            },
+          ]);
+        }
+        return null;
+      });
+      // Config file does not exist
+      mockExistsSync.mockReturnValue(false);
+
+      const mounts = codeServerService.getSSHMounts();
+
+      expect(mounts).toEqual([]);
+    });
+  });
+
+  describe('syncSSHConfig — key copying', () => {
+    it('copies private key to .ssh/keys directory', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockCopyFileSync.mockImplementation(() => {});
+      // Key exists on host
+      mockExistsSync.mockReturnValue(true);
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'sshRemotes') {
+          return JSON.stringify([
+            {
+              id: '1',
+              name: 'test-host',
+              hostname: '192.168.1.1',
+              user: 'user',
+              port: 22,
+              keyPath: '/home/user/.ssh/my-key',
+              identitiesOnly: true,
+            },
+          ]);
+        }
+        return null;
+      });
+
+      codeServerService.syncSSHConfig();
+
+      // Should copy the key file
+      expect(mockCopyFileSync).toHaveBeenCalled();
+      const copyCall = mockCopyFileSync.mock.calls[0];
+      expect(copyCall[0]).toBe('/home/user/.ssh/my-key');
+      expect(copyCall[1]).toContain('my-key');
+    });
+
+    it('skips copying keys that do not exist on host', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockCopyFileSync.mockImplementation(() => {});
+      // Key does not exist on host
+      mockExistsSync.mockReturnValue(false);
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'sshRemotes') {
+          return JSON.stringify([
+            {
+              id: '1',
+              name: 'test-host',
+              hostname: '192.168.1.1',
+              user: 'user',
+              port: 22,
+              keyPath: '/nonexistent/key',
+              identitiesOnly: true,
+            },
+          ]);
+        }
+        return null;
+      });
+
+      codeServerService.syncSSHConfig();
+
+      // Should not copy non-existent key
+      expect(mockCopyFileSync).not.toHaveBeenCalled();
+    });
+
+    it('copies multiple keys from different remotes', () => {
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockCopyFileSync.mockImplementation(() => {});
+      mockExistsSync.mockReturnValue(true);
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'sshRemotes') {
+          return JSON.stringify([
+            {
+              id: '1',
+              name: 'host1',
+              hostname: '192.168.1.1',
+              user: 'user',
+              port: 22,
+              keyPath: '/home/user/.ssh/key1',
+              identitiesOnly: true,
+            },
+            {
+              id: '2',
+              name: 'host2',
+              hostname: '192.168.1.2',
+              user: 'user',
+              port: 22,
+              keyPath: '/home/user/.ssh/key2',
+              identitiesOnly: true,
+            },
+          ]);
+        }
+        return null;
+      });
+
+      codeServerService.syncSSHConfig();
+
+      expect(mockCopyFileSync).toHaveBeenCalledTimes(2);
+      expect(mockCopyFileSync.mock.calls[0][0]).toBe('/home/user/.ssh/key1');
+      expect(mockCopyFileSync.mock.calls[1][0]).toBe('/home/user/.ssh/key2');
     });
   });
 });

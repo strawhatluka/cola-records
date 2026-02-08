@@ -14,7 +14,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as net from 'net';
 import { database } from '../database/database.service';
-import type { Alias, BashProfileSettings, TerminalColor } from '../ipc/channels';
+import type { Alias, BashProfileSettings, SSHRemote, TerminalColor } from '../ipc/channels';
 const execFileAsync = promisify(execFile);
 
 interface CodeServerStatus {
@@ -494,6 +494,121 @@ class CodeServerService {
     return ['-v', `${this.toDockerPath(claudeConfigDir)}:/home/abc/.claude-config`];
   }
 
+  // ── SSH Config Sync ──────────────────────────────────────────────
+
+  /**
+   * Get SSH remotes from database.
+   */
+  private getSSHRemotes(): SSHRemote[] {
+    try {
+      const json = database.getSetting('sshRemotes');
+      return json ? JSON.parse(json) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Generate SSH config file from saved remotes.
+   * Creates: {userDataDir}/.ssh/config
+   * Also copies private keys into {userDataDir}/.ssh/keys/ with correct permissions.
+   *
+   * This approach copies keys rather than mounting them because:
+   * 1. Mounted files in Docker don't respect chmod (permissions come from host)
+   * 2. SSH requires strict 600 permissions on private keys
+   * 3. The whole .ssh directory is mounted, so permissions are set correctly inside container
+   */
+  syncSSHConfig(): void {
+    const remotes = this.getSSHRemotes();
+    const sshDir = path.join(this.getUserDataDir(), '.ssh');
+    const keysDir = path.join(sshDir, 'keys');
+    const configPath = path.join(sshDir, 'config');
+
+    // Ensure .ssh and .ssh/keys directories exist
+    fs.mkdirSync(keysDir, { recursive: true });
+
+    if (remotes.length === 0) {
+      // Remove config if no remotes
+      if (fs.existsSync(configPath)) {
+        fs.unlinkSync(configPath);
+      }
+      return;
+    }
+
+    const lines: string[] = ['# Cola Records SSH Config', ''];
+
+    for (const remote of remotes) {
+      const keyBasename = path.basename(remote.keyPath);
+      const containerKeyPath = `/config/.ssh/keys/${keyBasename}`;
+
+      // Copy the private key to our keys directory (if it exists on host)
+      if (fs.existsSync(remote.keyPath)) {
+        const destKeyPath = path.join(keysDir, keyBasename);
+        try {
+          fs.copyFileSync(remote.keyPath, destKeyPath);
+          // Note: On Windows, chmod doesn't work, but that's fine because
+          // the container runs Linux and will see proper permissions from the mounted volume
+        } catch (err) {
+          console.error(`[CodeServer] Failed to copy SSH key ${remote.keyPath}:`, err);
+        }
+      }
+
+      lines.push(`Host ${remote.name}`);
+      lines.push(`    HostName ${remote.hostname}`);
+      lines.push(`    User ${remote.user}`);
+      lines.push(`    Port ${remote.port}`);
+      lines.push(`    IdentityFile ${containerKeyPath}`);
+      if (remote.identitiesOnly) {
+        lines.push('    IdentitiesOnly yes');
+      }
+      lines.push('    ServerAliveInterval 60');
+      lines.push('    ServerAliveCountMax 3');
+      lines.push('');
+    }
+
+    fs.writeFileSync(configPath, lines.join('\n'), 'utf-8');
+  }
+
+  /**
+   * Build Docker -v arguments for SSH directory.
+   * Mounts the entire .ssh directory (which contains config and copied keys).
+   *
+   * The .ssh directory is mounted read-write (not read-only) because:
+   * 1. SSH may need to create known_hosts file on first connection
+   * 2. The abc user needs to be able to manage SSH state
+   */
+  getSSHMounts(): string[] {
+    const sshDir = path.join(this.getUserDataDir(), '.ssh');
+    const configPath = path.join(sshDir, 'config');
+
+    // Only mount if SSH config exists (meaning user has configured remotes)
+    if (fs.existsSync(configPath)) {
+      return ['-v', `${this.toDockerPath(sshDir)}:/config/.ssh`];
+    }
+
+    return [];
+  }
+
+  /**
+   * Fix SSH directory permissions inside the container.
+   * Windows mounts files as root, but the abc user needs to own them.
+   * SSH requires strict permissions (700 for .ssh, 600 for keys).
+   */
+  private async fixSSHPermissions(): Promise<void> {
+    try {
+      // Check if .ssh directory exists in container
+      await this.dockerExec([
+        'exec',
+        CodeServerService.CONTAINER_NAME,
+        'sh',
+        '-c',
+        'if [ -d /config/.ssh ]; then chown -R abc:abc /config/.ssh && chmod 700 /config/.ssh && chmod 600 /config/.ssh/config 2>/dev/null; chmod 700 /config/.ssh/keys 2>/dev/null; chmod 600 /config/.ssh/keys/* 2>/dev/null; fi',
+      ]);
+    } catch {
+      // SSH permission fix is best-effort (may not have .ssh directory)
+    }
+  }
+
   // ── Docker Operations ────────────────────────────────────────────
 
   /**
@@ -711,6 +826,7 @@ class CodeServerService {
       this.syncVSCodeSettings();
       this.createContainerGitConfig();
       this.createContainerBashrc(projectPath);
+      this.syncSSHConfig();
 
       // Step 4: Ensure config dir exists
       const userDataDir = this.getUserDataDir();
@@ -766,6 +882,9 @@ class CodeServerService {
       // Step 6: Wait for health check
       await this.waitForReady(port);
 
+      // Step 7: Fix SSH permissions (Windows mounts files as root)
+      await this.fixSSHPermissions();
+
       // Store state
       this.containerName = CodeServerService.CONTAINER_NAME;
       this.port = port;
@@ -811,6 +930,8 @@ class CodeServerService {
       ...this.getBashrcMount(),
       // Claude Code config mount (isolated from host to prevent JSON corruption)
       ...this.getClaudeMounts(),
+      // SSH config and keys mount (for terminal SSH access)
+      ...this.getSSHMounts(),
       // LinuxServer.io required environment variables
       '-e',
       `PUID=${process.getuid?.() ?? 1000}`,

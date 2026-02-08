@@ -3,13 +3,15 @@ import { useSettingsStore } from '../stores/useSettingsStore';
 import { GeneralTab } from '../components/settings/GeneralTab';
 import { APITab } from '../components/settings/APITab';
 import { BashProfileTab } from '../components/settings/BashProfileTab';
+import { SSHRemotesTab } from '../components/settings/SSHRemotesTab';
 
-type SettingsTab = 'general' | 'api' | 'bash-profile';
+type SettingsTab = 'general' | 'api' | 'bash-profile' | 'ssh-remotes';
 
 const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'general', label: 'General' },
   { id: 'api', label: 'API' },
   { id: 'bash-profile', label: 'Bash Profile' },
+  { id: 'ssh-remotes', label: 'SSH Remotes' },
 ];
 
 export function SettingsScreen() {
@@ -50,6 +52,7 @@ export function SettingsScreen() {
       {activeTab === 'bash-profile' && (
         <BashProfileTab settings={settings} onUpdate={updateSettings} />
       )}
+      {activeTab === 'ssh-remotes' && <SSHRemotesTab />}
     </div>
   );
 }
