@@ -7,8 +7,10 @@ import type { MakerRpmConfig } from '@electron-forge/maker-rpm';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
-    icon: './assets/icons/icon',
+    asar: {
+      unpack: '**/node_modules/{better-sqlite3,node-pty}/**/*',
+    },
+    icon: './assets/icons/icons/win/icon',
     name: 'Cola Records',
     executableName: 'cola-records',
     appCopyright: 'Copyright 2026 Luka Fagundes',
@@ -28,9 +30,9 @@ const config: ForgeConfig = {
       config: {
         authors: 'Luka Fagundes',
         description: 'Cola Records - GitHub contribution tracker with integrated IDE',
-        setupIcon: './assets/icons/icon.ico',
+        setupIcon: './assets/icons/icons/win/icon.ico',
         iconUrl:
-          'https://raw.githubusercontent.com/lukadfagundes/cola-records/main/assets/icons/icon.ico',
+          'https://raw.githubusercontent.com/lukadfagundes/cola-records/main/assets/icons/icons/win/icon.ico',
         setupExe: 'ColaRecordsSetup.exe',
         noMsi: true,
       } as MakerSquirrelConfig,
@@ -44,7 +46,7 @@ const config: ForgeConfig = {
       name: '@electron-forge/maker-dmg',
       config: {
         format: 'ULFO',
-        icon: './assets/icons/icon.icns',
+        icon: './assets/icons/icons/mac/icon.icns',
         name: 'Cola Records',
       } as MakerDMGConfig,
       platforms: ['darwin'],
@@ -97,6 +99,52 @@ const config: ForgeConfig = {
       ],
     }),
   ],
+  hooks: {
+    packageAfterCopy: async (_config, buildPath) => {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const { execSync } = await import('child_process');
+
+      // Copy production dependencies using npm
+      const packageJsonSrc = path.join(process.cwd(), 'package.json');
+      const packageJsonDest = path.join(buildPath, 'package.json');
+
+      // Copy package.json to build path
+      await fs.copyFile(packageJsonSrc, packageJsonDest);
+
+      // Install production dependencies only
+      console.log('Installing production dependencies...');
+      execSync('npm install --omit=dev --ignore-scripts', {
+        cwd: buildPath,
+        stdio: 'inherit',
+      });
+
+      // Get Electron version from package.json
+      const packageJson = JSON.parse(await fs.readFile(packageJsonSrc, 'utf-8'));
+      const electronVersion = packageJson.devDependencies.electron.replace('^', '');
+
+      // Rebuild native modules for electron using @electron/rebuild
+      console.log(`Rebuilding native modules for Electron ${electronVersion}...`);
+      execSync(`npx @electron/rebuild --version ${electronVersion}`, {
+        cwd: buildPath,
+        stdio: 'inherit',
+      });
+
+      console.log('Dependencies installed successfully');
+
+      // Copy renderer files to .vite/renderer/main_window/
+      const rendererSrc = path.join(process.cwd(), 'dist', 'renderer');
+      const rendererDest = path.join(buildPath, '.vite', 'renderer', 'main_window');
+
+      try {
+        await fs.mkdir(path.dirname(rendererDest), { recursive: true });
+        await fs.cp(rendererSrc, rendererDest, { recursive: true });
+        console.log('Copied renderer files to .vite/renderer/main_window/');
+      } catch (err) {
+        console.error('Failed to copy renderer files:', err);
+      }
+    },
+  },
   publishers: [
     {
       name: '@electron-forge/publisher-github',

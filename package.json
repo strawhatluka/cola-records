@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "productName": "Cola Records",
   "description": "Cola Records - GitHub contribution tracker with integrated IDE",
-  "main": "dist/main/index.js",
+  "main": ".vite/build/index.js",
   "scripts": {
     "start": "electron-forge start",
     "start:clean": "npm run clean && electron-forge start",
@@ -67,6 +67,7 @@
     "autoprefixer": "^10.4.23",
     "canvas": "^3.2.1",
     "electron": "^40.0.0",
+    "electron-icon-builder": "^2.0.1",
     "eslint": "^8.50.0",
     "eslint-plugin-react": "^7.33.0",
     "globals": "^17.3.0",
