@@ -75,8 +75,8 @@ describe('Package.json Configuration', () => {
   });
 
   describe('main entry point', () => {
-    it('has main field pointing to dist build', () => {
-      expect(packageJson.main).toBe('dist/main/index.js');
+    it('has main field pointing to Vite build output', () => {
+      expect(packageJson.main).toBe('.vite/build/index.js');
     });
   });
 

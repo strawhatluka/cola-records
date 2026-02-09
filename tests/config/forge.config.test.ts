@@ -26,12 +26,15 @@ describe('Forge Configuration', () => {
     });
 
     describe('packagerConfig', () => {
-      it('has asar enabled', () => {
-        expect(configContent).toContain('asar: true');
+      it('has asar configured with native module unpacking', () => {
+        expect(configContent).toContain('asar: {');
+        expect(configContent).toContain('unpack:');
+        expect(configContent).toContain('better-sqlite3');
+        expect(configContent).toContain('node-pty');
       });
 
       it('has icon path configured', () => {
-        expect(configContent).toContain("icon: './assets/icons/icon'");
+        expect(configContent).toContain("icon: './assets/icons/icons/win/icon'");
       });
 
       it('has app name set', () => {
@@ -90,7 +93,7 @@ describe('Forge Configuration', () => {
       });
 
       it('has setup icon configured', () => {
-        expect(configContent).toContain("setupIcon: './assets/icons/icon.ico'");
+        expect(configContent).toContain("setupIcon: './assets/icons/icons/win/icon.ico'");
       });
 
       it('has noMsi enabled', () => {
@@ -104,7 +107,7 @@ describe('Forge Configuration', () => {
       });
 
       it('has icon configured', () => {
-        expect(configContent).toContain("icon: './assets/icons/icon.icns'");
+        expect(configContent).toContain("icon: './assets/icons/icons/mac/icon.icns'");
       });
     });
 
