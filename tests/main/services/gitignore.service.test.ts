@@ -1,18 +1,20 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Top-level mock functions for fs
-const mockExistsSync = vi.fn(() => false);
-const mockReadFileSync = vi.fn(() => '');
-const mockReadFile = vi.fn();
-const mockAccess = vi.fn();
+// Use vi.hoisted to ensure mocks are available at vi.mock time
+const { mockExistsSync, mockReadFileSync, mockReadFile, mockAccess } = vi.hoisted(() => ({
+  mockExistsSync: vi.fn(() => false),
+  mockReadFileSync: vi.fn(() => ''),
+  mockReadFile: vi.fn(),
+  mockAccess: vi.fn(),
+}));
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
   return {
     ...actual,
-    existsSync: (...args: any[]) => mockExistsSync(...args),
-    readFileSync: (...args: any[]) => mockReadFileSync(...args),
+    existsSync: mockExistsSync as unknown as typeof import('fs').existsSync,
+    readFileSync: mockReadFileSync as unknown as typeof import('fs').readFileSync,
     promises: {
       ...actual.promises,
       readFile: (...args: any[]) => mockReadFile(...args),
@@ -51,7 +53,7 @@ describe('GitIgnoreService', () => {
       mockExistsSync.mockReturnValue(false);
       mockIgnoreInstance.ignores.mockReturnValue(true);
 
-      const result = await service.isIgnored('/repo', '/repo/.git');
+      await service.isIgnored('/repo', '/repo/.git');
       expect(mockIgnoreInstance.add).toHaveBeenCalledWith('.git');
     });
 

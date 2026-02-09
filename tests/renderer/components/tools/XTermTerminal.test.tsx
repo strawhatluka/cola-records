@@ -53,7 +53,9 @@ vi.mock('@xterm/addon-web-links', () => ({
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}));
 
 // Mock window.electronAPI
-const mockElectronAPIOn = vi.fn(() => vi.fn());
+const mockElectronAPIOn = vi.fn((_channel: string, _handler: (...args: unknown[]) => void) =>
+  vi.fn()
+);
 Object.defineProperty(window, 'electronAPI', {
   value: {
     invoke: vi.fn(),

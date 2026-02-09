@@ -45,7 +45,7 @@ describe('MessageItem React.memo Optimization', () => {
   });
 
   it('does not re-render when parent re-renders with same props', () => {
-    const tracker = createRenderTracker();
+    createRenderTracker();
     const message = createMockDiscordMessage({ content: 'Test message' });
     const callbacks = createStableCallbacks();
 

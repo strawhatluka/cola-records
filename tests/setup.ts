@@ -13,6 +13,7 @@
  * @see https://www.luisball.com/blog/using-radixui-with-react-testing-library
  * @see https://github.com/radix-ui/primitives/issues/1220
  */
+import { vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 // Guard: only set up window mocks when running in jsdom (window exists)

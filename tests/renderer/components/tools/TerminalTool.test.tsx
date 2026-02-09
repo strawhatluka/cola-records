@@ -9,8 +9,8 @@ const mockOn = vi.fn(() => vi.fn());
 // Mock window.electronAPI
 Object.defineProperty(window, 'electronAPI', {
   value: {
-    invoke: (...args: unknown[]) => mockInvoke(...args),
-    on: (...args: unknown[]) => mockOn(...args),
+    invoke: mockInvoke,
+    on: mockOn,
     send: vi.fn(),
   },
   writable: true,

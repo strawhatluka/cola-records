@@ -27,7 +27,7 @@ describe('EmojiPicker Custom Emoji Format', () => {
     useDiscordStore.setState({
       connected: true,
       selectedGuildId: 'guild_1',
-      guilds: [{ id: 'guild_1', name: 'Test Guild', icon: null }],
+      guilds: [{ id: 'guild_1', name: 'Test Guild', icon: null, ownerId: '1', channels: [] }],
       guildEmojis: {
         guild_1: [
           createMockDiscordEmoji({

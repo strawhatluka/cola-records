@@ -708,7 +708,7 @@ export class GitHubRestService {
   ): Promise<void> {
     try {
       const client = this.getClient();
-      await client.reactions.deleteForPullRequestReviewComment({
+      await client.reactions.deleteForPullRequestComment({
         owner,
         repo,
         comment_id: commentId,

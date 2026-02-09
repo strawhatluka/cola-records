@@ -57,13 +57,13 @@ interface Issue {
 
 interface PRComment {
   author: string;
-  updatedAt?: string;
-  createdAt: string;
+  updatedAt?: string | Date;
+  createdAt: string | Date;
 }
 
 interface PRReview {
   author: string;
-  submittedAt: string;
+  submittedAt: string | Date;
 }
 
 export function extractOwnerRepo(repoUrl: string): { owner: string; repo: string } | null {

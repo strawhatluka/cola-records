@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Track appendSwitch calls in order
 const appendSwitchCalls: string[] = [];
 const readyCallbacks: (() => void)[] = [];
-let quitCalled = false;
+const mockQuit = vi.fn();
 
 // Mock electron module
 vi.mock('electron', () => ({
@@ -19,9 +19,7 @@ vi.mock('electron', () => ({
         readyCallbacks.push(cb);
       }
     },
-    quit: () => {
-      quitCalled = true;
-    },
+    quit: mockQuit,
     getPath: () => '/mock/path',
     isPackaged: false,
   },
@@ -93,7 +91,7 @@ describe('Electron GPU Configuration', () => {
     // Clear call tracking
     appendSwitchCalls.length = 0;
     readyCallbacks.length = 0;
-    quitCalled = false;
+    mockQuit.mockClear();
 
     // Reset module cache to re-run module initialization
     vi.resetModules();

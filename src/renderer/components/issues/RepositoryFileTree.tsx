@@ -7,7 +7,7 @@ import type { RepositoryTreeEntry } from '../../../main/ipc/channels';
 interface FileTreeNode {
   name: string;
   type: 'tree' | 'blob';
-  mode: string;
+  mode?: number;
   children?: FileTreeNode[];
   byteSize?: number;
 }
@@ -44,9 +44,9 @@ export function RepositoryFileTree({ repository, branch = 'main' }: RepositoryFi
   const parseTreeData = (entries: RepositoryTreeEntry[]): FileTreeNode[] => {
     if (!entries || !Array.isArray(entries)) return [];
 
-    const nodes = entries.map((entry) => ({
+    const nodes: FileTreeNode[] = entries.map((entry) => ({
       name: entry.name,
-      type: entry.type,
+      type: entry.type as 'tree' | 'blob',
       mode: entry.mode,
       children: entry.object?.entries ? parseTreeData(entry.object.entries) : undefined,
       byteSize: entry.object?.byteSize,

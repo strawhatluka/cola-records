@@ -2,14 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => vi.fn());
+// Use vi.hoisted to ensure mocks are available at vi.mock time
+const { mockInvoke, mockOn } = vi.hoisted(() => ({
+  mockInvoke: vi.fn(),
+  mockOn: vi.fn(() => vi.fn()),
+}));
+
 vi.mock('../../../src/renderer/ipc/client', () => ({
   ipc: {
-    invoke: (...args: unknown[]) => mockInvoke(...args),
+    invoke: mockInvoke,
     send: vi.fn(),
-    on: (...args: unknown[]) => mockOn(...args),
+    on: mockOn,
     platform: 'win32',
     isDevelopment: true,
   },
@@ -18,8 +21,8 @@ vi.mock('../../../src/renderer/ipc/client', () => ({
 // Mock window.electronAPI for TerminalTool
 Object.defineProperty(window, 'electronAPI', {
   value: {
-    invoke: (...args: unknown[]) => mockInvoke(...args),
-    on: (...args: unknown[]) => mockOn(...args),
+    invoke: mockInvoke,
+    on: mockOn,
     send: vi.fn(),
   },
   writable: true,

@@ -4,6 +4,7 @@
  * Utilities for mocking global fetch in service tests.
  * Provides chainable response builders and common response patterns.
  */
+import { vi } from 'vitest';
 
 interface MockResponseInit {
   status?: number;

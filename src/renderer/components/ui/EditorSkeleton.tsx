@@ -1,4 +1,4 @@
-import { Skeleton } from './skeleton';
+import { Skeleton } from './Skeleton';
 
 /**
  * EditorSkeleton - Loading skeleton for Monaco editor

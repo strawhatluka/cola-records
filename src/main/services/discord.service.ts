@@ -191,7 +191,7 @@ export class DiscordService {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const blob = new Blob([file.data], { type: file.contentType });
+      const blob = new Blob([new Uint8Array(file.data)], { type: file.contentType });
       formData.append(`files[${i}]`, blob, file.name);
     }
 

@@ -511,7 +511,7 @@ describe('useSpotifyStore', () => {
         playback: createMockSpotifyPlaybackState({
           progressMs: 5000,
           isPlaying: true,
-          durationMs: 210000,
+          track: createMockSpotifyTrack({ durationMs: 210000 }),
         }),
         lastFetchedAt: now - 2000,
       });

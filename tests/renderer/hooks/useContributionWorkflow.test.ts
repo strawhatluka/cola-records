@@ -37,7 +37,7 @@ describe('useContributionWorkflow', () => {
     useContributionsStore.setState({ contributions: [] });
 
     // Default mock implementations for a successful workflow
-    mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
+    mockInvoke.mockImplementation(async (channel: string) => {
       switch (channel) {
         case 'github:fork-repository':
           return { name: 'repo', url: 'https://github.com/user/repo.git' };

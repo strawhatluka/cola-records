@@ -348,7 +348,7 @@ export class GitService {
 
       await this.withAuthenticatedRemote(repoPath, remote, async (git) => {
         // Fetch latest remote refs
-        await git.fetch(remote, undefined, ['--prune']);
+        await git.fetch({ remote, '--prune': null });
         // Get remote branches
         const result = await git.branch(['-r']);
         // Filter to just branches from the specified remote and strip prefix

@@ -86,7 +86,7 @@ describe('Discord Components Image Lazy Loading', () => {
     it('thumbnail image has loading="lazy"', () => {
       const embed = createMockDiscordEmbed({
         title: 'Test Embed',
-        thumbnail: { url: 'https://example.com/thumb.png', width: 100, height: 100, proxyUrl: '' },
+        thumbnail: { url: 'https://example.com/thumb.png', width: 100, height: 100 },
       });
 
       const { container } = render(<EmbedRenderer embed={embed} />);
@@ -102,7 +102,7 @@ describe('Discord Components Image Lazy Loading', () => {
     it('main image has loading="lazy"', () => {
       const embed = createMockDiscordEmbed({
         title: 'Test Embed',
-        image: { url: 'https://example.com/image.png', width: 400, height: 300, proxyUrl: '' },
+        image: { url: 'https://example.com/image.png', width: 400, height: 300 },
       });
 
       const { container } = render(<EmbedRenderer embed={embed} />);
@@ -148,11 +148,6 @@ describe('Discord Components Image Lazy Loading', () => {
   });
 
   describe('ReactionBar', () => {
-    const defaultProps = () => ({
-      onReactionToggle: vi.fn(),
-      onOpenEmojiPicker: vi.fn(),
-    });
-
     it('custom emoji reaction images have loading="lazy"', () => {
       const reaction = createMockDiscordReaction({
         emoji: { id: '123456', name: 'custom_emoji' },
@@ -160,7 +155,7 @@ describe('Discord Components Image Lazy Loading', () => {
         me: false,
       });
 
-      render(<ReactionBar reactions={[reaction]} {...defaultProps()} />);
+      render(<ReactionBar reactions={[reaction]} onToggle={vi.fn()} />);
 
       // ReactionBar uses alt={reaction.emoji.name} without colons
       const emoji = screen.getByAltText('custom_emoji');

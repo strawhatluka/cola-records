@@ -52,7 +52,7 @@ export function GifPicker({ onSelect, onClose, embedded = false }: GifPickerProp
   const [loading, setLoading] = useState(false);
   const [showCategories, setShowCategories] = useState(true);
   const { searchGifs, getTrendingGifs } = useDiscordStore();
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Load trending on mount
   useEffect(() => {

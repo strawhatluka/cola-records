@@ -139,7 +139,7 @@ describe('UpdaterService', () => {
       // Find and trigger update-available to set state to 'available'
       const onUpdateAvailable = mockOn.mock.calls.find((call) => call[0] === 'update-available');
       expect(onUpdateAvailable).toBeDefined();
-      onUpdateAvailable[1]({ version: '1.1.0', releaseDate: '2026-02-10' });
+      onUpdateAvailable![1]({ version: '1.1.0', releaseDate: '2026-02-10' });
 
       mockDownloadUpdate.mockResolvedValue(undefined);
 
@@ -155,7 +155,7 @@ describe('UpdaterService', () => {
       // Find and trigger update-available to set state to 'available'
       const onUpdateAvailable = mockOn.mock.calls.find((call) => call[0] === 'update-available');
       expect(onUpdateAvailable).toBeDefined();
-      onUpdateAvailable[1]({ version: '1.1.0', releaseDate: '2026-02-10' });
+      onUpdateAvailable![1]({ version: '1.1.0', releaseDate: '2026-02-10' });
 
       mockDownloadUpdate.mockRejectedValue(new Error('Download failed'));
 
@@ -176,7 +176,7 @@ describe('UpdaterService', () => {
       // Find and trigger update-downloaded to set state
       const onUpdateDownloaded = mockOn.mock.calls.find((call) => call[0] === 'update-downloaded');
       expect(onUpdateDownloaded).toBeDefined();
-      onUpdateDownloaded[1]({ version: '1.1.0', releaseDate: '2026-02-10' });
+      onUpdateDownloaded![1]({ version: '1.1.0', releaseDate: '2026-02-10' });
 
       updaterService.quitAndInstall();
 

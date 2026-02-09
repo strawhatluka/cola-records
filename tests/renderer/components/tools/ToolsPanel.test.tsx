@@ -7,9 +7,9 @@ const mockInvoke = vi.fn();
 const mockOn = vi.fn(() => vi.fn());
 vi.mock('../../../../src/renderer/ipc/client', () => ({
   ipc: {
-    invoke: (...args: unknown[]) => mockInvoke(...args),
+    invoke: mockInvoke,
     send: vi.fn(),
-    on: (...args: unknown[]) => mockOn(...args),
+    on: mockOn,
     platform: 'win32',
     isDevelopment: true,
   },
@@ -18,8 +18,8 @@ vi.mock('../../../../src/renderer/ipc/client', () => ({
 // Mock window.electronAPI for XTermTerminal
 Object.defineProperty(window, 'electronAPI', {
   value: {
-    invoke: (...args: unknown[]) => mockInvoke(...args),
-    on: (...args: unknown[]) => mockOn(...args),
+    invoke: mockInvoke,
+    on: mockOn,
     send: vi.fn(),
   },
   writable: true,

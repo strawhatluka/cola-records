@@ -98,7 +98,14 @@ describe('DevelopmentIssueDetailModal', () => {
 
   it('renders null when issue is null', () => {
     const { container } = render(
-      <DevelopmentIssueDetailModal issue={null} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={null}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     expect(container.innerHTML).toBe('');
   });
@@ -106,7 +113,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('shows loading spinner on open', () => {
     mockInvoke.mockReturnValue(new Promise(() => {}));
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     expect(screen.getByText('Test Issue')).toBeDefined();
   });
@@ -114,7 +128,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('shows error with retry button when IPCs fail', async () => {
     setupMockIPC({ error: true });
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('Retry')).toBeDefined();
@@ -126,7 +147,14 @@ describe('DevelopmentIssueDetailModal', () => {
     setupMockIPC({ error: true });
     const user = userEvent.setup();
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('Retry')).toBeDefined();
@@ -144,7 +172,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('renders issue title from detail after loading', async () => {
     setupMockIPC();
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('Detailed Issue Title')).toBeDefined();
@@ -154,7 +189,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('falls back to issue.title while loading', () => {
     mockInvoke.mockReturnValue(new Promise(() => {}));
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     expect(screen.getByText('Test Issue')).toBeDefined();
   });
@@ -162,7 +204,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('renders issue body as markdown', async () => {
     setupMockIPC();
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       const markdown = screen.getByTestId('markdown');
@@ -175,7 +224,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('shows empty state when no comments and no body', async () => {
     setupMockIPC({ detail: { ...baseIssueDetail, body: '' } });
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('No activity on this issue yet.')).toBeDefined();
@@ -185,7 +241,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('renders labels as badges', async () => {
     setupMockIPC();
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('bug')).toBeDefined();
@@ -196,7 +259,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('renders comments', async () => {
     setupMockIPC({ comments: [baseComment] });
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('This is a comment')).toBeDefined();
@@ -209,7 +279,14 @@ describe('DevelopmentIssueDetailModal', () => {
       comments: [baseComment, { ...baseComment, id: 101, body: 'Second comment' }],
     });
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('Comments (2)')).toBeDefined();
@@ -219,7 +296,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('shows avatar image when authorAvatarUrl is present', async () => {
     setupMockIPC({ comments: [baseComment] });
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('commenter')).toBeDefined();
@@ -234,7 +318,14 @@ describe('DevelopmentIssueDetailModal', () => {
       comments: [{ ...baseComment, authorAvatarUrl: '' }],
     });
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('commenter')).toBeDefined();
@@ -245,7 +336,14 @@ describe('DevelopmentIssueDetailModal', () => {
   it('shows Open status badge', async () => {
     setupMockIPC();
     render(
-      <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+      <DevelopmentIssueDetailModal
+        issue={baseIssue}
+        owner="org"
+        repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
+        onClose={vi.fn()}
+      />
     );
     await waitFor(() => {
       expect(screen.getByText('Open')).toBeDefined();
@@ -259,6 +357,8 @@ describe('DevelopmentIssueDetailModal', () => {
         issue={{ ...baseIssue, state: 'closed' }}
         owner="org"
         repo="repo"
+        localPath="/mock/path"
+        githubUsername="testuser"
         onClose={vi.fn()}
       />
     );
@@ -275,6 +375,8 @@ describe('DevelopmentIssueDetailModal', () => {
         owner="org"
         repo="repo"
         isBranched={true}
+        localPath="/mock/path"
+        githubUsername="testuser"
         onClose={vi.fn()}
       />
     );
@@ -291,6 +393,8 @@ describe('DevelopmentIssueDetailModal', () => {
         owner="org"
         repo="repo"
         isBranched={false}
+        localPath="/mock/path"
+        githubUsername="testuser"
         onClose={vi.fn()}
       />
     );
@@ -304,7 +408,14 @@ describe('DevelopmentIssueDetailModal', () => {
     it('submit button is disabled when textarea is empty', async () => {
       setupMockIPC();
       render(
-        <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
       );
       await waitFor(() => {
         expect(screen.getByText('Comment')).toBeDefined();
@@ -317,7 +428,14 @@ describe('DevelopmentIssueDetailModal', () => {
       setupMockIPC();
       const user = userEvent.setup();
       render(
-        <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
       );
       await waitFor(() => {
         expect(screen.getByPlaceholderText(/Write a comment/)).toBeDefined();
@@ -331,7 +449,14 @@ describe('DevelopmentIssueDetailModal', () => {
       setupMockIPC({ comments: [] });
       const user = userEvent.setup();
       render(
-        <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
       );
       await waitFor(() => {
         expect(screen.getByPlaceholderText(/Write a comment/)).toBeDefined();
@@ -354,7 +479,14 @@ describe('DevelopmentIssueDetailModal', () => {
       setupMockIPC();
       const user = userEvent.setup();
       render(
-        <DevelopmentIssueDetailModal issue={baseIssue} owner="org" repo="repo" onClose={vi.fn()} />
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
       );
       await waitFor(() => {
         expect(screen.getByText('View on GitHub')).toBeDefined();

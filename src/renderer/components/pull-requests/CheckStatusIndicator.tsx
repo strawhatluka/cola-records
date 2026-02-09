@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { CheckCircle, XCircle, Loader2, Circle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import type { PRCheckStatus } from '../../../main/ipc/channels';
 
 interface CheckStatusIndicatorProps {

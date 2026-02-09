@@ -668,6 +668,7 @@ export interface IpcChannels {
     repo: string,
     issueNumber: number
   ) => {
+    id: string;
     number: number;
     title: string;
     body: string;

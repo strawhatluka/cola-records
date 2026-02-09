@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { useState } from 'react';
+import { render, screen } from '@testing-library/react';
 
 const mockInvoke = vi.fn();
 vi.mock('../../../../src/renderer/ipc/client', () => ({
@@ -31,15 +30,8 @@ beforeEach(() => {
     guildStickers: {},
     dmChannels: [],
     messages: [],
-    loadingMessages: false,
-    hasMoreMessages: true,
     forumThreads: [],
-    loadingForumThreads: false,
     forumHasMore: true,
-    replyingTo: null,
-    editingMessage: null,
-    pollingInterval: null,
-    activeView: 'dms',
   });
 });
 

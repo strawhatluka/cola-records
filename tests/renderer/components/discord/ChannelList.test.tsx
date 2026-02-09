@@ -104,7 +104,7 @@ describe('ChannelList', () => {
       guildChannels: { g1: channels },
     });
 
-    const { container } = render(<ChannelList />);
+    render(<ChannelList />);
 
     // The Hash icon from lucide-react renders as an SVG inside the button
     const channelButton = screen.getByText('text-channel').closest('button');

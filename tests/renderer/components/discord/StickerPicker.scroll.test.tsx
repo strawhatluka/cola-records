@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -76,7 +76,7 @@ describe('StickerPicker Scroll Throttling', () => {
 
   it('scroll handler uses requestAnimationFrame', async () => {
     const onSelect = vi.fn();
-    const { container } = render(<StickerPicker onSelect={onSelect} />);
+    const { container } = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     // Wait for async data loading
     await vi
@@ -105,7 +105,7 @@ describe('StickerPicker Scroll Throttling', () => {
 
   it('rapid scroll events are throttled', async () => {
     const onSelect = vi.fn();
-    const { container } = render(<StickerPicker onSelect={onSelect} />);
+    const { container } = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     await vi
       .waitFor(
@@ -134,7 +134,7 @@ describe('StickerPicker Scroll Throttling', () => {
 
   it('cleanup cancels pending rAF on unmount', async () => {
     const onSelect = vi.fn();
-    const { container, unmount } = render(<StickerPicker onSelect={onSelect} />);
+    const { container, unmount } = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     await vi
       .waitFor(
@@ -161,11 +161,9 @@ describe('StickerPicker Scroll Throttling', () => {
 
   it('active section updates correctly after throttle', async () => {
     const onSelect = vi.fn();
-    render(<StickerPicker onSelect={onSelect} />);
+    render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     // Component should render
-    // The search input should be present
-    const searchInput = screen.queryByPlaceholderText(/search/i);
     // StickerPicker may or may not have a search input depending on implementation
     // At minimum, the component should render without errors
     expect(true).toBe(true);
@@ -173,7 +171,7 @@ describe('StickerPicker Scroll Throttling', () => {
 
   it('scroll handler executes within RAF callback', async () => {
     const onSelect = vi.fn();
-    const { container } = render(<StickerPicker onSelect={onSelect} />);
+    const { container } = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     await vi
       .waitFor(

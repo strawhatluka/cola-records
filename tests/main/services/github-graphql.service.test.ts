@@ -1,12 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock dependencies
-const mockGraphql = vi.fn();
-const mockGraphqlDefaults = vi.fn(() => mockGraphql);
+// Use vi.hoisted to ensure mocks are available at vi.mock time
+const { mockGraphql, mockGraphqlDefaults } = vi.hoisted(() => {
+  const mockGraphql = vi.fn();
+  return {
+    mockGraphql,
+    mockGraphqlDefaults: vi.fn(() => mockGraphql),
+  };
+});
 
 vi.mock('@octokit/graphql', () => ({
   graphql: {
-    defaults: (...args: unknown[]) => mockGraphqlDefaults(...args),
+    defaults: mockGraphqlDefaults,
   },
 }));
 

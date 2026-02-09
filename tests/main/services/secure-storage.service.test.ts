@@ -1,18 +1,20 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Top-level mock functions for fs
-const mockExistsSync = vi.fn(() => false);
-const mockReadFileSync = vi.fn(() => '{}');
-const mockWriteFileSync = vi.fn();
-const mockMkdirSync = vi.fn();
+// Use vi.hoisted to ensure mocks are available at vi.mock time
+const { mockExistsSync, mockReadFileSync, mockWriteFileSync, mockMkdirSync } = vi.hoisted(() => ({
+  mockExistsSync: vi.fn(() => false),
+  mockReadFileSync: vi.fn(() => '{}'),
+  mockWriteFileSync: vi.fn(),
+  mockMkdirSync: vi.fn(),
+}));
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
   return {
     ...actual,
-    existsSync: (...args: any[]) => mockExistsSync(...args),
-    readFileSync: (...args: any[]) => mockReadFileSync(...args),
+    existsSync: mockExistsSync as unknown as typeof import('fs').existsSync,
+    readFileSync: mockReadFileSync as unknown as typeof import('fs').readFileSync,
     writeFileSync: (...args: any[]) => mockWriteFileSync(...args),
     mkdirSync: (...args: any[]) => mockMkdirSync(...args),
   };

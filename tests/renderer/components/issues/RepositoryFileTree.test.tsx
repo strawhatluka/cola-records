@@ -137,7 +137,6 @@ describe('RepositoryFileTree', () => {
   });
 
   it('displays file sizes', async () => {
-    const user = userEvent.setup();
     render(<RepositoryFileTree repository="org/repo" />);
 
     await waitFor(() => {

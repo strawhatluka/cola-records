@@ -1,4 +1,4 @@
-import { Skeleton } from './skeleton';
+import { Skeleton } from './Skeleton';
 
 /**
  * FileTreeSkeleton - Loading skeleton for file tree

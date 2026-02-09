@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { useRef, useState, useCallback } from 'react';
+// React hooks used in test patterns
 
 const mockInvoke = vi.fn();
 vi.mock('../../../../src/renderer/ipc/client', () => ({
@@ -31,35 +31,12 @@ beforeEach(() => {
     guildStickers: {},
     dmChannels: [],
     messages: [],
-    loadingMessages: false,
-    hasMoreMessages: false,
     forumThreads: [],
-    loadingForumThreads: false,
     forumHasMore: true,
-    replyingTo: null,
-    editingMessage: null,
-    pollingInterval: null,
-    activeView: 'server',
   });
 });
 
 describe('MessageList useCallback Stability', () => {
-  // Test helper to track callback identity
-  const createCallbackTracker = () => {
-    const callbacks: Map<string, Set<(...args: any[]) => any>> = new Map();
-
-    return {
-      track: (name: string, fn: (...args: any[]) => any) => {
-        if (!callbacks.has(name)) {
-          callbacks.set(name, new Set());
-        }
-        callbacks.get(name)!.add(fn);
-      },
-      getUniqueCount: (name: string) => callbacks.get(name)?.size ?? 0,
-      reset: () => callbacks.clear(),
-    };
-  };
-
   it('renders messages from store', () => {
     const messages = [
       createMockDiscordMessage({ id: 'msg_1', content: 'First message' }),

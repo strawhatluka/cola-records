@@ -4,7 +4,6 @@ import {
   noContentResponse,
   rateLimitResponse,
   serverErrorResponse,
-  createMockResponse,
 } from '../../mocks/fetch-helpers';
 
 vi.mock('../../../src/main/services/secure-storage.service', () => ({

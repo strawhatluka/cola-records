@@ -1,16 +1,18 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock fs module at the top level (ESM exports are non-configurable)
-const mockExistsSync = vi.fn(() => false);
-const mockReadFileSync = vi.fn(() => '');
+// Use vi.hoisted to ensure mocks are available at vi.mock time
+const { mockExistsSync, mockReadFileSync } = vi.hoisted(() => ({
+  mockExistsSync: vi.fn((_path?: unknown) => false),
+  mockReadFileSync: vi.fn((_path?: unknown, _options?: unknown) => ''),
+}));
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
   return {
     ...actual,
-    existsSync: (...args: any[]) => mockExistsSync(...args),
-    readFileSync: (...args: any[]) => mockReadFileSync(...args),
+    existsSync: mockExistsSync as unknown as typeof import('fs').existsSync,
+    readFileSync: mockReadFileSync as unknown as typeof import('fs').readFileSync,
   };
 });
 

@@ -63,7 +63,7 @@ describe('EmojiPicker Scroll Throttling', () => {
 
   it('scroll handler uses requestAnimationFrame (not called synchronously)', () => {
     const onSelect = vi.fn();
-    const { container } = render(<EmojiPicker onSelect={onSelect} />);
+    const { container } = render(<EmojiPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     // Find the scrollable container
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
@@ -81,7 +81,7 @@ describe('EmojiPicker Scroll Throttling', () => {
 
   it('rapid scroll events are throttled to frame rate', () => {
     const onSelect = vi.fn();
-    const { container } = render(<EmojiPicker onSelect={onSelect} />);
+    const { container } = render(<EmojiPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
@@ -103,7 +103,7 @@ describe('EmojiPicker Scroll Throttling', () => {
 
   it('active section still updates correctly after throttled scroll', () => {
     const onSelect = vi.fn();
-    render(<EmojiPicker onSelect={onSelect} />);
+    render(<EmojiPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     // The component should render with sections
     // Check that tab buttons exist (representing sections)
@@ -113,7 +113,7 @@ describe('EmojiPicker Scroll Throttling', () => {
 
   it('cleanup cancels pending requestAnimationFrame on unmount', () => {
     const onSelect = vi.fn();
-    const { container, unmount } = render(<EmojiPicker onSelect={onSelect} />);
+    const { container, unmount } = render(<EmojiPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
@@ -133,7 +133,7 @@ describe('EmojiPicker Scroll Throttling', () => {
 
   it('scroll handler does not cause state update storm', () => {
     const onSelect = vi.fn();
-    const { container } = render(<EmojiPicker onSelect={onSelect} />);
+    const { container } = render(<EmojiPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
@@ -156,7 +156,7 @@ describe('EmojiPicker Scroll Throttling', () => {
 
   it('scroll event handling is debounced within animation frame', () => {
     const onSelect = vi.fn();
-    const { container } = render(<EmojiPicker onSelect={onSelect} />);
+    const { container } = render(<EmojiPicker onSelect={onSelect} onClose={vi.fn()} />);
 
     const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
 
