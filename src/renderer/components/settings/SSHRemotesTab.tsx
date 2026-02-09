@@ -303,6 +303,10 @@ export function SSHRemotesTab({ className }: SSHRemotesTabProps) {
                   onChange={(e) => setFormData({ ...formData, hostname: e.target.value })}
                   placeholder="e.g., 192.168.1.19"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Run <code className="bg-muted px-1 rounded">hostname -I</code> (Linux) or{' '}
+                  <code className="bg-muted px-1 rounded">ipconfig</code> (Windows) on the remote
+                </p>
               </div>
 
               <div className="space-y-2">
