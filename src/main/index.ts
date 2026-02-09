@@ -6,6 +6,7 @@ import { database } from './database';
 import { fileSystemService, gitService, gitIgnoreService, gitHubService } from './services';
 import { gitHubGraphQLService } from './services/github-graphql.service';
 import { codeServerService } from './services/code-server.service';
+import { terminalService } from './services/terminal.service';
 import { spotifyService } from './services/spotify.service';
 import { discordService } from './services/discord.service';
 import { scannerPool } from './workers/scanner-pool';
@@ -1006,6 +1007,23 @@ const setupIpcHandlers = () => {
   handleIpc('code-server:status', async () => {
     return codeServerService.getStatus();
   });
+
+  // Terminal handlers
+  handleIpc('terminal:spawn', async (_event, shellType, workingDirectory) => {
+    return terminalService.spawn(shellType, workingDirectory);
+  });
+
+  handleIpc('terminal:write', async (_event, terminalId, data) => {
+    terminalService.write(terminalId, data);
+  });
+
+  handleIpc('terminal:resize', async (_event, terminalId, cols, rows) => {
+    terminalService.resize(terminalId, cols, rows);
+  });
+
+  handleIpc('terminal:kill', async (_event, terminalId) => {
+    terminalService.kill(terminalId);
+  });
 };
 
 const initializeServices = async () => {
@@ -1082,6 +1100,7 @@ async function cleanup(): Promise<void> {
   } catch {
     // Cleanup stop failure is non-critical
   }
+  terminalService.cleanup();
   spotifyService.cleanup();
   discordService.cleanup();
   scannerPool.terminate();

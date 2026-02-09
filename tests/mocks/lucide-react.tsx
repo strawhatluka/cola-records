@@ -95,3 +95,8 @@ export const Volume2 = createIcon('Volume2');
 export const VolumeX = createIcon('VolumeX');
 export const Heart = createIcon('Heart');
 export const ListPlus = createIcon('ListPlus');
+
+// Terminal/Tools icons
+export const Terminal = createIcon('Terminal');
+export const Wrench = createIcon('Wrench');
+export const Menu = createIcon('Menu');

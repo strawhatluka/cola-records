@@ -31,9 +31,10 @@ describe('ContributionCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: branches fetch returns current branch
+    // Default: branches fetch returns branches and current branch
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'git:get-branches') return ['main', 'fix-issue-42'];
+      if (channel === 'git:get-current-branch') return 'main';
       return undefined;
     });
     vi.spyOn(window, 'confirm').mockReturnValue(true);

@@ -389,6 +389,14 @@ export interface SSHRemote {
   identitiesOnly: boolean;
 }
 
+// Terminal Types
+export type ShellType = 'git-bash' | 'powershell' | 'cmd';
+
+export interface TerminalSession {
+  id: string;
+  shellType: ShellType;
+}
+
 export interface AppSettings {
   githubToken?: string;
   spotifyClientId?: string;
@@ -878,6 +886,12 @@ export interface IpcChannels {
   // SSH Remotes Channels
   'settings:get-ssh-remotes': () => SSHRemote[];
   'settings:save-ssh-remotes': (remotes: SSHRemote[]) => void;
+
+  // Terminal Channels
+  'terminal:spawn': (shellType: ShellType, workingDirectory: string) => TerminalSession;
+  'terminal:write': (terminalId: string, data: string) => void;
+  'terminal:resize': (terminalId: string, cols: number, rows: number) => void;
+  'terminal:kill': (terminalId: string) => void;
 }
 
 /**
@@ -887,4 +901,6 @@ export interface IpcChannels {
  */
 export interface IpcEvents {
   'git:status-changed': (repoPath: string) => void;
+  'terminal:data': (terminalId: string, data: string) => void;
+  'terminal:exit': (terminalId: string, exitCode: number) => void;
 }

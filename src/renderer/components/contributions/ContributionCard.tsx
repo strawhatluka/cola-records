@@ -60,6 +60,7 @@ interface ContributionCardProps {
 export function ContributionCard({ contribution, onDelete, onOpenProject }: ContributionCardProps) {
   const [syncing, setSyncing] = React.useState(false);
   const [branches, setBranches] = React.useState<string[]>([contribution.branchName]);
+  const [currentBranch, setCurrentBranch] = React.useState<string | null>(null);
   const [loadingBranches, setLoadingBranches] = React.useState(false);
   const repoName = contribution.repositoryUrl
     .split('/')
@@ -75,16 +76,21 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
     return url;
   };
 
-  // Fetch all branches for this repository
+  // Fetch all branches and current branch for this repository
   React.useEffect(() => {
     const fetchBranches = async () => {
       setLoadingBranches(true);
       try {
-        const allBranches = await ipc.invoke('git:get-branches', contribution.localPath);
+        const [allBranches, activeBranch] = await Promise.all([
+          ipc.invoke('git:get-branches', contribution.localPath),
+          ipc.invoke('git:get-current-branch', contribution.localPath),
+        ]);
         setBranches(allBranches);
+        setCurrentBranch(activeBranch);
       } catch {
-        // Silently fall back to showing just the current branch if directory doesn't exist
+        // Silently fall back to showing just the stored branch if directory doesn't exist
         setBranches([contribution.branchName]);
+        setCurrentBranch(null);
       } finally {
         setLoadingBranches(false);
       }
@@ -173,9 +179,7 @@ export function ContributionCard({ contribution, onDelete, onOpenProject }: Cont
                     <code
                       key={branch}
                       className={`bg-muted px-2 py-1 rounded text-xs ${
-                        branch === contribution.branchName
-                          ? 'bg-primary text-primary-foreground'
-                          : ''
+                        branch === currentBranch ? 'bg-primary text-primary-foreground' : ''
                       }`}
                     >
                       {branch}

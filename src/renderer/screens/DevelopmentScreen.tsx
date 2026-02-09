@@ -5,7 +5,7 @@
  * State machine: idle → starting → running → error
  */
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { ipc } from '../ipc/client';
 import type { Contribution } from '../../main/ipc/channels';
 import { PullRequestDetailModal } from '../components/pull-requests/PullRequestDetailModal';
@@ -13,6 +13,7 @@ import { CreatePullRequestModal } from '../components/pull-requests/CreatePullRe
 import { DevelopmentIssueDetailModal } from '../components/issues/DevelopmentIssueDetailModal';
 import { CreateIssueModal } from '../components/issues/CreateIssueModal';
 import { BranchDetailModal } from '../components/branches/BranchDetailModal';
+import { ToolsPanel } from '../components/tools/ToolsPanel';
 
 type ScreenState = 'idle' | 'starting' | 'running' | 'error';
 
@@ -21,7 +22,7 @@ interface DevelopmentScreenProps {
   onNavigateBack: () => void;
 }
 
-type ToolDropdown = 'branches' | 'issues' | 'remotes' | 'pull-requests' | 'tools' | null;
+type ToolDropdown = 'branches' | 'issues' | 'remotes' | 'pull-requests' | null;
 
 interface GitRemote {
   name: string;
@@ -92,6 +93,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [githubUsername, setGithubUsername] = useState<string>('');
   const [awaitingResponse, setAwaitingResponse] = useState(false);
+  const [toolsPanelOpen, setToolsPanelOpen] = useState(false);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
@@ -427,7 +429,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
           <span className="text-xs text-muted-foreground">{contribution.localPath}</span>
         </div>
         <div className="flex gap-2" ref={dropdownRef}>
-          {(['branches', 'issues', 'remotes', 'pull-requests', 'tools'] as const).map((name) => (
+          {(['branches', 'issues', 'remotes', 'pull-requests'] as const).map((name) => (
             <div key={name} className="relative">
               <button
                 onClick={() => toggleDropdown(name)}
@@ -714,14 +716,16 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                   )}
                 </div>
               )}
-              {activeDropdown === name && name === 'tools' && (
-                <div className="absolute right-0 top-full mt-1 w-64 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
-                  <p className="text-sm font-medium mb-1">Tools</p>
-                  <p className="text-xs text-muted-foreground">Under construction</p>
-                </div>
-              )}
             </div>
           ))}
+          <button
+            onClick={() => setToolsPanelOpen(!toolsPanelOpen)}
+            className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+              toolsPanelOpen ? 'border-primary bg-accent' : 'border-border hover:bg-accent'
+            }`}
+          >
+            Tool Box
+          </button>
           <button
             onClick={stopAndGoBack}
             className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-accent transition-colors"
@@ -731,18 +735,32 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         </div>
       </div>
 
-      {/* VS Code webview */}
-      {/* eslint-disable react/no-unknown-property -- Electron webview attributes */}
-      {url && (
-        <webview
-          ref={webviewRef}
-          src={url}
-          style={{ flex: 1, width: '100%', height: '100%' }}
-          // @ts-expect-error - webview attributes not in React types
-          allowpopups="true"
-        />
-      )}
-      {/* eslint-enable react/no-unknown-property */}
+      {/* Main content area with optional tools panel */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* VS Code webview */}
+        {/* eslint-disable react/no-unknown-property -- Electron webview attributes */}
+        {url && (
+          <webview
+            ref={webviewRef}
+            src={url}
+            style={{ flex: 1, width: '100%', height: '100%' }}
+            className={toolsPanelOpen ? 'w-[70%]' : 'w-full'}
+            // @ts-expect-error - webview attributes not in React types
+            allowpopups="true"
+          />
+        )}
+        {/* eslint-enable react/no-unknown-property */}
+
+        {/* Tools Panel (30% width when open) */}
+        {toolsPanelOpen && (
+          <div className="w-[30%] min-w-[300px] max-w-[500px]">
+            <ToolsPanel
+              workingDirectory={contribution.localPath}
+              onClose={() => setToolsPanelOpen(false)}
+            />
+          </div>
+        )}
+      </div>
 
       {/* PR Detail Modal */}
       {selectedPR &&
