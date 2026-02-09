@@ -301,7 +301,7 @@ export function SSHRemotesTab({ className }: SSHRemotesTabProps) {
                   id="ssh-hostname"
                   value={formData.hostname}
                   onChange={(e) => setFormData({ ...formData, hostname: e.target.value })}
-                  placeholder="e.g., 192.168.1.19"
+                  placeholder="e.g., 192.168.1.10"
                 />
                 <p className="text-xs text-muted-foreground">
                   Run <code className="bg-muted px-1 rounded">hostname -I</code> (Linux) or{' '}

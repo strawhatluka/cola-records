@@ -779,7 +779,7 @@ describe('CodeServerService', () => {
             {
               id: '1',
               name: 'sunny-pi',
-              hostname: '192.168.1.19',
+              hostname: '192.168.1.10',
               user: 'pi',
               port: 22,
               keyPath: 'C:\\Users\\test\\.ssh\\sunny-stack-pi',
@@ -797,7 +797,7 @@ describe('CodeServerService', () => {
       const content = mockWriteFileSync.mock.calls[0]?.[1] as string;
       if (content) {
         expect(content).toContain('Host sunny-pi');
-        expect(content).toContain('HostName 192.168.1.19');
+        expect(content).toContain('HostName 192.168.1.10');
         expect(content).toContain('User pi');
         expect(content).toContain('Port 22');
         expect(content).toContain('IdentityFile /config/.ssh/keys/sunny-stack-pi');
@@ -816,7 +816,7 @@ describe('CodeServerService', () => {
             {
               id: '1',
               name: 'sunny-pi',
-              hostname: '192.168.1.19',
+              hostname: '192.168.1.10',
               user: 'pi',
               port: 22,
               keyPath: '/home/user/.ssh/sunny',
