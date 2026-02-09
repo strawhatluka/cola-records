@@ -72,16 +72,6 @@ class CodeServerService {
     return path.join(this.getUserDataDir(), 'extensions');
   }
 
-  /**
-   * Directory for isolated Claude Code configuration.
-   * Uses a separate directory within code-server user data to prevent
-   * conflicts with the host's Claude Code config (~/.claude.json).
-   * Both instances writing to the same file causes JSON corruption.
-   */
-  getClaudeConfigDir(): string {
-    return path.join(this.getUserDataDir(), 'claude-config');
-  }
-
   // ── Path Utilities ───────────────────────────────────────────────
 
   /**
@@ -472,26 +462,23 @@ class CodeServerService {
   }
 
   /**
-   * Build Docker -v arguments for Claude Code config.
-   * Uses an isolated directory within code-server user data to prevent
-   * conflicts with the host's Claude Code config.
+   * Get Docker volume mounts for Claude Code config.
    *
-   * IMPORTANT: We do NOT mount the host's ~/.claude.json or ~/.claude/ because
-   * both the host and container Claude Code instances would write to the same
-   * files concurrently, causing JSON corruption.
+   * Returns empty array because Claude Code credentials persist automatically:
+   * 1. LinuxServer.io abc user has home at /config
+   * 2. We mount userDataDir to /config (persistent volume)
+   * 3. CLAUDE_CONFIG_DIR=/config/.claude puts credentials inside the persistent volume
    *
-   * Instead, we mount a separate persistent directory and set CLAUDE_CONFIG_DIR
-   * env var to point to it. The container's Claude Code will need to be
-   * authenticated separately (one-time setup).
+   * No separate mount is needed - credentials are stored in /config/.claude/.credentials.json
+   * which persists because /config is already our persistent userDataDir mount.
+   *
+   * IMPORTANT: We use /config/.claude (not ~/.claude on host) to prevent conflicts with
+   * the host's Claude Code config. Both instances writing to the same file would cause
+   * JSON corruption.
    */
   getClaudeMounts(): string[] {
-    const claudeConfigDir = this.getClaudeConfigDir();
-
-    // Ensure the isolated Claude config directory exists
-    fs.mkdirSync(claudeConfigDir, { recursive: true });
-
-    // Mount the isolated config directory (LinuxServer.io uses /config as home)
-    return ['-v', `${this.toDockerPath(claudeConfigDir)}:/home/abc/.claude-config`];
+    // No mount needed - credentials persist in /config/.claude via the main /config mount
+    return [];
   }
 
   // ── SSH Config Sync ──────────────────────────────────────────────
@@ -945,9 +932,11 @@ class CodeServerService {
       // Set default workspace to mounted project
       '-e',
       'DEFAULT_WORKSPACE=/config/workspace',
-      // Claude Code config directory (isolated from host's ~/.claude.json)
+      // Claude Code config directory - stored in /config/.claude which persists
+      // because /config is our persistent userDataDir mount. Isolated from host's
+      // ~/.claude to prevent JSON corruption from concurrent writes.
       '-e',
-      'CLAUDE_CONFIG_DIR=/home/abc/.claude-config',
+      'CLAUDE_CONFIG_DIR=/config/.claude',
       // Git config env var (LinuxServer uses 'abc' user, not 'coder')
       '-e',
       'GIT_CONFIG_GLOBAL=/config/gitconfig',

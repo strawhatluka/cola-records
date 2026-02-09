@@ -244,22 +244,23 @@ describe('CodeServerService', () => {
   });
 
   describe('getClaudeMounts', () => {
-    it('always mounts isolated claude-config directory', () => {
-      // The isolated config is always mounted regardless of host files
+    it('returns empty array (Claude config persists via /config mount)', () => {
+      // Claude Code credentials persist automatically because:
+      // 1. LinuxServer.io abc user has home at /config
+      // 2. We mount userDataDir to /config (persistent volume)
+      // 3. CLAUDE_CONFIG_DIR=/config/.claude puts credentials inside the persistent volume
+      // No separate mount is needed.
       const mounts = codeServerService.getClaudeMounts();
-      expect(mounts).toContain('-v');
-      expect(mounts.some((m) => m.includes('.claude-config'))).toBe(true);
+      expect(mounts).toEqual([]);
     });
 
     it('does not mount host claude.json or .claude directory', () => {
       // Even if host files exist, we don't mount them to prevent conflicts
       mockExistsSync.mockReturnValue(true);
       const mounts = codeServerService.getClaudeMounts();
-      // Should only have the isolated config mount, not host files
+      // Should be empty - no Claude mounts needed
+      expect(mounts).toEqual([]);
       expect(mounts.some((m) => m.includes('.claude.json'))).toBe(false);
-      expect(
-        mounts.filter((m) => m.includes('.claude') && !m.includes('.claude-config'))
-      ).toHaveLength(0);
     });
   });
 
@@ -668,13 +669,15 @@ describe('CodeServerService', () => {
   });
 
   describe('getClaudeMounts — isolated config', () => {
-    it('mounts isolated config directory to prevent host/container conflicts', () => {
-      // Regardless of host file state, we always mount the isolated config
+    it('returns empty array (credentials persist in /config/.claude via main mount)', () => {
+      // Claude Code credentials now persist via the main /config mount:
+      // - userDataDir is mounted to /config (persistent volume)
+      // - CLAUDE_CONFIG_DIR=/config/.claude puts credentials inside
+      // - No separate mount is needed
       mockExistsSync.mockReturnValue(false);
 
       const mounts = codeServerService.getClaudeMounts();
-      // Should mount the isolated config directory (LinuxServer.io uses 'abc' user)
-      expect(mounts.some((m) => m.includes('claude-config:/home/abc/.claude-config'))).toBe(true);
+      expect(mounts).toEqual([]);
       // Should NOT mount host's .claude.json or .claude directory
       expect(mounts.some((m) => m.includes('.claude.json'))).toBe(false);
     });
