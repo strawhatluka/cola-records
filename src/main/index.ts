@@ -12,6 +12,12 @@ import { discordService } from './services/discord.service';
 import { scannerPool } from './workers/scanner-pool';
 import { updaterService } from './services/updater.service';
 
+// Use separate user data directory in development to avoid cache conflicts with production
+if (!app.isPackaged) {
+  const devUserData = app.getPath('userData') + '-dev';
+  app.setPath('userData', devUserData);
+}
+
 // GPU acceleration flags (must be set before app.ready)
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');

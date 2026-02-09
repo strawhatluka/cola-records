@@ -21,6 +21,7 @@ vi.mock('electron', () => ({
     },
     quit: mockQuit,
     getPath: () => '/mock/path',
+    setPath: vi.fn(),
     isPackaged: false,
   },
   BrowserWindow: vi.fn().mockImplementation(() => ({

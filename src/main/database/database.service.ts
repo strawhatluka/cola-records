@@ -31,18 +31,18 @@ interface ContributionRow {
  */
 export class DatabaseService {
   private db: Database.Database | null = null;
-  private dbPath: string;
-
-  constructor() {
-    const userDataPath = app.getPath('userData');
-    this.dbPath = path.join(userDataPath, 'cola-records.db');
-  }
+  private dbPath: string | null = null;
 
   /**
    * Initialize the database connection
+   * Note: Path is resolved here (not in constructor) to ensure app.setPath() has been called first
    */
   async initialize(): Promise<void> {
     try {
+      // Resolve path lazily to ensure setPath has been called
+      const userDataPath = app.getPath('userData');
+      this.dbPath = path.join(userDataPath, 'cola-records.db');
+
       this.db = new Database(this.dbPath);
 
       // Enable foreign keys
