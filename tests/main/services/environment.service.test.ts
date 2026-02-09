@@ -19,6 +19,7 @@ vi.mock('electron', () => ({
   app: {
     isPackaged: false,
     getPath: vi.fn(() => '/mock/exe/path'),
+    getVersion: vi.fn(() => '1.0.0'),
   },
 }));
 
@@ -185,6 +186,70 @@ describe('EnvironmentService', () => {
       const service = new EnvironmentService();
       service.reload();
       expect(service.getAll()).toBeDefined();
+    });
+  });
+
+  describe('version', () => {
+    it('returns app version from electron', () => {
+      const service = new EnvironmentService();
+      // The mock returns undefined by default, but verifies it's called
+      expect(service.version).toBeDefined();
+    });
+  });
+
+  describe('platform', () => {
+    it('returns process.platform', () => {
+      const service = new EnvironmentService();
+      expect(service.platform).toBe(process.platform);
+    });
+
+    it('returns valid platform string', () => {
+      const service = new EnvironmentService();
+      const validPlatforms = ['aix', 'darwin', 'freebsd', 'linux', 'openbsd', 'sunos', 'win32'];
+      expect(validPlatforms).toContain(service.platform);
+    });
+  });
+
+  describe('getConfig', () => {
+    it('returns configuration object in development mode', () => {
+      const service = new EnvironmentService();
+      const config = service.getConfig();
+
+      expect(config).toHaveProperty('updatesEnabled');
+      expect(config).toHaveProperty('devToolsEnabled');
+      expect(config).toHaveProperty('loggingLevel');
+    });
+
+    it('has updatesEnabled false in development', () => {
+      const service = new EnvironmentService();
+      const config = service.getConfig();
+
+      // In development (app.isPackaged = false), updates are disabled
+      expect(config.updatesEnabled).toBe(false);
+    });
+
+    it('has devToolsEnabled true in development', () => {
+      const service = new EnvironmentService();
+      const config = service.getConfig();
+
+      // In development, devTools are enabled
+      expect(config.devToolsEnabled).toBe(true);
+    });
+
+    it('has loggingLevel debug in development', () => {
+      const service = new EnvironmentService();
+      const config = service.getConfig();
+
+      // In development, logging is debug
+      expect(config.loggingLevel).toBe('debug');
+    });
+
+    it('returns valid logging levels', () => {
+      const service = new EnvironmentService();
+      const config = service.getConfig();
+      const validLevels = ['error', 'warn', 'info', 'debug'];
+
+      expect(validLevels).toContain(config.loggingLevel);
     });
   });
 });

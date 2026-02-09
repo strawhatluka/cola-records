@@ -84,6 +84,35 @@ export class EnvironmentService {
   }
 
   /**
+   * Get the application version
+   */
+  get version(): string {
+    return app.getVersion();
+  }
+
+  /**
+   * Get the current platform
+   */
+  get platform(): NodeJS.Platform {
+    return process.platform;
+  }
+
+  /**
+   * Get environment-aware configuration
+   */
+  getConfig(): {
+    updatesEnabled: boolean;
+    devToolsEnabled: boolean;
+    loggingLevel: 'error' | 'warn' | 'info' | 'debug';
+  } {
+    return {
+      updatesEnabled: this.production,
+      devToolsEnabled: this.development,
+      loggingLevel: this.production ? 'error' : 'debug',
+    };
+  }
+
+  /**
    * Get all environment variables as an object
    */
   getAll(): Record<string, string> {

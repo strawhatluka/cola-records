@@ -10,12 +10,19 @@ export const mockApp = {
   getPath: vi.fn((name: string) => {
     if (name === 'userData') return '/mock/user-data';
     if (name === 'home') return '/mock/home';
+    if (name === 'exe') return '/mock/exe/path';
     return `/mock/${name}`;
   }),
+  getVersion: vi.fn(() => '1.0.0'),
   quit: vi.fn(),
   on: vi.fn(),
   once: vi.fn(),
   isReady: vi.fn(() => true),
+  whenReady: vi.fn(() => Promise.resolve()),
+  isPackaged: false,
+  commandLine: {
+    appendSwitch: vi.fn(),
+  },
 };
 
 export const mockBrowserWindow = {
@@ -67,6 +74,22 @@ export function createElectronMock() {
       send: vi.fn(),
       on: vi.fn(),
       removeListener: vi.fn(),
+    },
+  };
+}
+
+/**
+ * Create mock for electron-updater autoUpdater
+ */
+export function createAutoUpdaterMock() {
+  return {
+    autoUpdater: {
+      checkForUpdates: vi.fn(),
+      downloadUpdate: vi.fn(),
+      quitAndInstall: vi.fn(),
+      on: vi.fn(),
+      autoDownload: false,
+      autoInstallOnAppQuit: true,
     },
   };
 }

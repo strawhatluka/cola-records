@@ -1,7 +1,8 @@
 {
   "name": "cola-records",
   "version": "1.0.0",
-  "description": "Cola Records - Electron application for discovering GitHub good first issues and managing contributions with integrated IDE",
+  "productName": "Cola Records",
+  "description": "Cola Records - GitHub contribution tracker with integrated IDE",
   "main": "dist/main/index.js",
   "scripts": {
     "start": "electron-forge start",
@@ -9,6 +10,11 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
+    "build:win": "electron-forge make --platform win32",
+    "build:mac": "electron-forge make --platform darwin",
+    "build:linux": "electron-forge make --platform linux",
+    "release": "electron-forge publish",
+    "release:draft": "electron-forge publish --dry-run",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .vite out",
@@ -17,24 +23,32 @@
     "test:coverage": "vitest run --coverage",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "postinstall": "electron-rebuild"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lukadfagundes/cola-records.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": {
+    "name": "Luka Fagundes",
+    "email": "luka@sunny-stack.com"
+  },
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/lukadfagundes/cola-records/issues"
   },
   "homepage": "https://github.com/lukadfagundes/cola-records#readme",
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-deb": "^7.11.1",
+    "@electron-forge/maker-dmg": "^7.11.1",
+    "@electron-forge/maker-rpm": "^7.11.1",
     "@electron-forge/maker-squirrel": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-vite": "^7.11.1",
+    "@electron-forge/publisher-github": "^7.11.1",
     "@eslint/js": "^9.39.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
@@ -92,6 +106,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.7.3",
     "ignore": "^7.0.5",
     "lucide-react": "^0.563.0",
     "monaco-editor": "^0.55.1",

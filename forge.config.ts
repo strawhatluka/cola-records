@@ -1,27 +1,82 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { VitePlugin } from '@electron-forge/plugin-vite';
+import type { MakerSquirrelConfig } from '@electron-forge/maker-squirrel';
+import type { MakerDMGConfig } from '@electron-forge/maker-dmg';
+import type { MakerDebConfig } from '@electron-forge/maker-deb';
+import type { MakerRpmConfig } from '@electron-forge/maker-rpm';
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: './assets/icons/icon',
+    name: 'Cola Records',
+    executableName: 'cola-records',
+    appCopyright: 'Copyright 2026 Luka Fagundes',
+    appCategoryType: 'public.app-category.developer-tools',
+    appBundleId: 'com.sunnystack.colarecords',
+    win32metadata: {
+      CompanyName: 'Sunny Stack',
+      FileDescription: 'Cola Records - GitHub Contribution Tracker',
+      ProductName: 'Cola Records',
+      InternalName: 'cola-records',
+    },
   },
   rebuildConfig: {},
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        authors: 'Luka Fagundes',
+        description: 'Cola Records - GitHub contribution tracker with integrated IDE',
+        setupIcon: './assets/icons/icon.ico',
+        iconUrl:
+          'https://raw.githubusercontent.com/lukadfagundes/cola-records/main/assets/icons/icon.ico',
+        setupExe: 'ColaRecordsSetup.exe',
+        noMsi: true,
+      } as MakerSquirrelConfig,
     },
     {
       name: '@electron-forge/maker-zip',
+      config: {},
       platforms: ['darwin'],
+    },
+    {
+      name: '@electron-forge/maker-dmg',
+      config: {
+        format: 'ULFO',
+        icon: './assets/icons/icon.icns',
+        name: 'Cola Records',
+      } as MakerDMGConfig,
+      platforms: ['darwin'],
+    },
+    {
+      name: '@electron-forge/maker-deb',
+      config: {
+        options: {
+          maintainer: 'Luka Fagundes',
+          homepage: 'https://github.com/lukadfagundes/cola-records',
+          icon: './assets/icons/icon.png',
+          categories: ['Development'],
+        },
+      } as MakerDebConfig,
+      platforms: ['linux'],
+    },
+    {
+      name: '@electron-forge/maker-rpm',
+      config: {
+        options: {
+          homepage: 'https://github.com/lukadfagundes/cola-records',
+          icon: './assets/icons/icon.png',
+          categories: ['Development'],
+        },
+      } as MakerRpmConfig,
+      platforms: ['linux'],
     },
   ],
   plugins: [
     new VitePlugin({
-      // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
       build: [
         {
-          // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
           entry: 'src/main/index.ts',
           config: 'vite.main.config.ts',
         },
@@ -41,6 +96,19 @@ const config: ForgeConfig = {
         },
       ],
     }),
+  ],
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: {
+          owner: 'lukadfagundes',
+          name: 'cola-records',
+        },
+        prerelease: false,
+        draft: true,
+      },
+    },
   ],
 };
 

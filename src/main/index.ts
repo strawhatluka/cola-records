@@ -10,6 +10,7 @@ import { terminalService } from './services/terminal.service';
 import { spotifyService } from './services/spotify.service';
 import { discordService } from './services/discord.service';
 import { scannerPool } from './workers/scanner-pool';
+import { updaterService } from './services/updater.service';
 
 // GPU acceleration flags (must be set before app.ready)
 app.commandLine.appendSwitch('enable-gpu-rasterization');
@@ -1024,6 +1025,38 @@ const setupIpcHandlers = () => {
   handleIpc('terminal:kill', async (_event, terminalId) => {
     terminalService.kill(terminalId);
   });
+
+  // Updater handlers
+  handleIpc('updater:check', async () => {
+    const info = await updaterService.checkForUpdates();
+    if (!info) return null;
+    return {
+      version: info.version,
+      releaseDate: info.releaseDate,
+      releaseNotes:
+        typeof info.releaseNotes === 'string'
+          ? info.releaseNotes
+          : Array.isArray(info.releaseNotes)
+            ? info.releaseNotes.map((n) => `${n.version}: ${n.note}`).join('\n')
+            : undefined,
+    };
+  });
+
+  handleIpc('updater:download', async () => {
+    await updaterService.downloadUpdate();
+  });
+
+  handleIpc('updater:install', async () => {
+    updaterService.quitAndInstall();
+  });
+
+  handleIpc('updater:get-status', async () => {
+    return updaterService.getStatus();
+  });
+
+  handleIpc('updater:get-version', async () => {
+    return updaterService.getVersion();
+  });
 };
 
 const initializeServices = async () => {
@@ -1062,6 +1095,9 @@ const createWindow = () => {
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
+
+  // Initialize auto-updater (only runs in production)
+  updaterService.initialize(mainWindow);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
