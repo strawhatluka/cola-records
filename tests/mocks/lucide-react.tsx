@@ -100,3 +100,4 @@ export const ListPlus = createIcon('ListPlus');
 export const Terminal = createIcon('Terminal');
 export const Wrench = createIcon('Wrench');
 export const Menu = createIcon('Menu');
+export const GripVertical = createIcon('GripVertical');

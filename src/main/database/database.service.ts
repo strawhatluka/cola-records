@@ -391,18 +391,34 @@ export class DatabaseService {
       project_path: string;
       name: string;
       command: string;
+      commands: string | null;
       created_at: number;
       updated_at: number;
     }[];
 
-    return rows.map((row) => ({
-      id: row.id,
-      projectPath: row.project_path,
-      name: row.name,
-      command: row.command,
-      createdAt: new Date(row.created_at).toISOString(),
-      updatedAt: new Date(row.updated_at).toISOString(),
-    }));
+    return rows.map((row) => {
+      // Parse commands array, falling back to single command for backwards compatibility
+      let commands: string[];
+      if (row.commands) {
+        try {
+          commands = JSON.parse(row.commands);
+        } catch {
+          commands = [row.command];
+        }
+      } else {
+        commands = [row.command];
+      }
+
+      return {
+        id: row.id,
+        projectPath: row.project_path,
+        name: row.name,
+        command: commands[0] || row.command, // Keep first command for backwards compatibility
+        commands,
+        createdAt: new Date(row.created_at).toISOString(),
+        updatedAt: new Date(row.updated_at).toISOString(),
+      };
+    });
   }
 
   /**
@@ -411,6 +427,11 @@ export class DatabaseService {
   saveDevScript(script: DevScript): void {
     const db = this.getDb();
     const now = Date.now();
+
+    // Serialize commands array to JSON
+    const commandsJson = JSON.stringify(script.commands);
+    // Keep first command in command column for backwards compatibility
+    const firstCommand = script.commands[0] || script.command;
 
     // Check if script with this ID exists
     const existing = db.prepare('SELECT id FROM dev_scripts WHERE id = ?').get(script.id) as
@@ -421,17 +442,17 @@ export class DatabaseService {
       // Update existing script
       const stmt = db.prepare(`
         UPDATE dev_scripts
-        SET name = ?, command = ?, updated_at = ?
+        SET name = ?, command = ?, commands = ?, updated_at = ?
         WHERE id = ?
       `);
-      stmt.run(script.name, script.command, now, script.id);
+      stmt.run(script.name, firstCommand, commandsJson, now, script.id);
     } else {
       // Insert new script
       const stmt = db.prepare(`
-        INSERT INTO dev_scripts (id, project_path, name, command, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO dev_scripts (id, project_path, name, command, commands, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
-      stmt.run(script.id, script.projectPath, script.name, script.command, now, now);
+      stmt.run(script.id, script.projectPath, script.name, firstCommand, commandsJson, now, now);
     }
   }
 

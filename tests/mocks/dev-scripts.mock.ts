@@ -10,11 +10,14 @@ import type { DevScript } from '../../src/main/ipc/channels';
 // ── DevScript Factory ──────────────────────────────────────────────
 
 export function createMockDevScript(overrides?: Partial<DevScript>): DevScript {
+  const command = overrides?.command ?? 'npm run build';
+  const commands = overrides?.commands ?? [command];
   return {
     id: `script_${Date.now()}_test`,
     projectPath: '/mock/projects/test-project',
     name: 'Build',
-    command: 'npm run build',
+    command,
+    commands,
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -28,21 +31,32 @@ export const mockDevScripts = {
     id: 'script_build',
     name: 'Build',
     command: 'npm run build',
+    commands: ['npm run build'],
   }),
   test: createMockDevScript({
     id: 'script_test',
     name: 'Test',
     command: 'npm test',
+    commands: ['npm test'],
   }),
   dev: createMockDevScript({
     id: 'script_dev',
     name: 'Dev',
     command: 'npm run dev',
+    commands: ['npm run dev'],
   }),
   lint: createMockDevScript({
     id: 'script_lint',
     name: 'Lint',
     command: 'npm run lint',
+    commands: ['npm run lint'],
+  }),
+  // Multi-command script for testing sequential execution
+  setup: createMockDevScript({
+    id: 'script_setup',
+    name: 'Setup',
+    command: 'npm install',
+    commands: ['npm install', 'npm run build', 'npm run dev'],
   }),
 };
 
@@ -139,6 +153,7 @@ export function devScriptRowToDevScript(row: MockDevScriptRow): DevScript {
     projectPath: row.project_path,
     name: row.name,
     command: row.command,
+    commands: [row.command],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -153,6 +168,7 @@ export function isValidDevScript(script: unknown): script is DevScript {
     typeof s.id === 'string' &&
     typeof s.projectPath === 'string' &&
     typeof s.name === 'string' &&
-    typeof s.command === 'string'
+    typeof s.command === 'string' &&
+    Array.isArray(s.commands)
   );
 }

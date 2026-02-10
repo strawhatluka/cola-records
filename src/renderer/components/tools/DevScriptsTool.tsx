@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Trash2, Play, Code } from 'lucide-react';
+import { Plus, Pencil, Trash2, Play, Code, X, GripVertical } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useDevScriptsStore } from '../../stores/useDevScriptsStore';
 import type { DevScript } from '../../../main/ipc/channels';
@@ -23,7 +23,7 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingScript, setEditingScript] = useState<DevScript | null>(null);
   const [name, setName] = useState('');
-  const [command, setCommand] = useState('');
+  const [commands, setCommands] = useState<string[]>(['']);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Delete confirmation state
@@ -38,7 +38,7 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
 
   const resetForm = useCallback(() => {
     setName('');
-    setCommand('');
+    setCommands(['']);
     setEditingScript(null);
     setFormError(null);
     setIsFormOpen(false);
@@ -52,7 +52,7 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
   const handleOpenEditForm = useCallback((script: DevScript) => {
     setEditingScript(script);
     setName(script.name);
-    setCommand(script.command);
+    setCommands(script.commands.length > 0 ? script.commands : [script.command]);
     setFormError(null);
     setIsFormOpen(true);
   }, []);
@@ -63,8 +63,11 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
       setFormError('Name is required');
       return;
     }
-    if (!command.trim()) {
-      setFormError('Command is required');
+
+    // Filter out empty commands
+    const validCommands = commands.map((c) => c.trim()).filter((c) => c.length > 0);
+    if (validCommands.length === 0) {
+      setFormError('At least one command is required');
       return;
     }
 
@@ -82,7 +85,8 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
         id: editingScript?.id || `script_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         projectPath: workingDirectory,
         name: name.trim(),
-        command: command.trim(),
+        command: validCommands[0], // First command for backwards compatibility
+        commands: validCommands,
       };
 
       await saveScript(scriptData);
@@ -90,7 +94,26 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
     } catch (error) {
       setFormError(String(error));
     }
-  }, [name, command, scripts, editingScript, workingDirectory, saveScript, resetForm]);
+  }, [name, commands, scripts, editingScript, workingDirectory, saveScript, resetForm]);
+
+  const handleAddCommand = useCallback(() => {
+    setCommands((prev) => [...prev, '']);
+  }, []);
+
+  const handleRemoveCommand = useCallback((index: number) => {
+    setCommands((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
+
+  const handleCommandChange = useCallback((index: number, value: string) => {
+    setCommands((prev) => {
+      const newCommands = [...prev];
+      newCommands[index] = value;
+      return newCommands;
+    });
+  }, []);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -157,14 +180,53 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Command</label>
-                <input
-                  type="text"
-                  value={command}
-                  onChange={(e) => setCommand(e.target.value)}
-                  placeholder="e.g., npm run build"
-                  className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-muted-foreground">
+                    Commands {commands.length > 1 && `(${commands.length})`}
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAddCommand}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Command
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {commands.map((cmd, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <div className="flex items-center text-muted-foreground text-xs w-5">
+                        <GripVertical className="h-3 w-3" />
+                      </div>
+                      <input
+                        type="text"
+                        value={cmd}
+                        onChange={(e) => handleCommandChange(index, e.target.value)}
+                        placeholder={index === 0 ? 'e.g., npm install' : 'e.g., npm run build'}
+                        className="flex-1 px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                      />
+                      {commands.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveCommand(index)}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {commands.length > 1 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Commands will run sequentially in order.
+                  </p>
+                )}
               </div>
 
               {formError && <p className="text-xs text-destructive">{formError}</p>}
@@ -205,9 +267,14 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{script.name}</span>
+                    {script.commands.length > 1 && (
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {script.commands.length} commands
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground font-mono truncate mt-1">
-                    {script.command}
+                    {script.commands.length > 1 ? script.commands.join(' && ') : script.command}
                   </p>
                 </div>
 

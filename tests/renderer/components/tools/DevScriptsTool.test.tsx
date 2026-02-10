@@ -95,7 +95,7 @@ describe('DevScriptsTool', () => {
       await waitFor(() => {
         expect(screen.getByText('New Script')).toBeDefined();
         expect(screen.getByPlaceholderText('e.g., Build, Test, Dev')).toBeDefined();
-        expect(screen.getByPlaceholderText('e.g., npm run build')).toBeDefined();
+        expect(screen.getByPlaceholderText('e.g., npm install')).toBeDefined();
       });
     });
 
@@ -134,7 +134,7 @@ describe('DevScriptsTool', () => {
 
       await waitFor(() => {
         expect(screen.getByPlaceholderText('e.g., Build, Test, Dev')).toBeDefined();
-        expect(screen.getByPlaceholderText('e.g., npm run build')).toBeDefined();
+        expect(screen.getByPlaceholderText('e.g., npm install')).toBeDefined();
       });
     });
 
@@ -185,7 +185,7 @@ describe('DevScriptsTool', () => {
       }
 
       await waitFor(() => {
-        expect(screen.getByText('Command is required')).toBeDefined();
+        expect(screen.getByText('At least one command is required')).toBeDefined();
       });
     });
 
@@ -200,7 +200,7 @@ describe('DevScriptsTool', () => {
 
       // Fill form
       const nameInput = await screen.findByPlaceholderText('e.g., Build, Test, Dev');
-      const commandInput = screen.getByPlaceholderText('e.g., npm run build');
+      const commandInput = screen.getByPlaceholderText('e.g., npm install');
 
       await user.type(nameInput, 'Build');
       await user.type(commandInput, 'npm run build');
@@ -223,6 +223,7 @@ describe('DevScriptsTool', () => {
           expect.objectContaining({
             name: 'Build',
             command: 'npm run build',
+            commands: ['npm run build'],
             projectPath: '/test/project/path',
           })
         );
@@ -240,7 +241,7 @@ describe('DevScriptsTool', () => {
 
       // Fill form
       const nameInput = await screen.findByPlaceholderText('e.g., Build, Test, Dev');
-      const commandInput = screen.getByPlaceholderText('e.g., npm run build');
+      const commandInput = screen.getByPlaceholderText('e.g., npm install');
 
       await user.type(nameInput, 'Build');
       await user.type(commandInput, 'npm run build');
@@ -267,7 +268,12 @@ describe('DevScriptsTool', () => {
   describe('edit script', () => {
     it('should populate form with script data', async () => {
       mockStoreState.scripts = [
-        createMockDevScript({ id: 'script_1', name: 'Build', command: 'npm run build' }),
+        createMockDevScript({
+          id: 'script_1',
+          name: 'Build',
+          command: 'npm run build',
+          commands: ['npm run build'],
+        }),
       ];
 
       const { container } = render(<DevScriptsTool {...defaultProps} />);
@@ -281,7 +287,7 @@ describe('DevScriptsTool', () => {
         expect(screen.getByText('Edit Script')).toBeDefined();
         const nameInput = screen.getByPlaceholderText('e.g., Build, Test, Dev');
         expect((nameInput as HTMLInputElement).value).toBe('Build');
-        const commandInput = screen.getByPlaceholderText('e.g., npm run build');
+        const commandInput = screen.getByPlaceholderText('e.g., npm install');
         expect((commandInput as HTMLInputElement).value).toBe('npm run build');
       });
     });
@@ -289,7 +295,12 @@ describe('DevScriptsTool', () => {
     it('should update script on save', async () => {
       const user = userEvent.setup();
       mockStoreState.scripts = [
-        createMockDevScript({ id: 'script_1', name: 'Build', command: 'npm run build' }),
+        createMockDevScript({
+          id: 'script_1',
+          name: 'Build',
+          command: 'npm run build',
+          commands: ['npm run build'],
+        }),
       ];
       mockSaveScript.mockResolvedValueOnce(undefined);
 
@@ -300,7 +311,7 @@ describe('DevScriptsTool', () => {
       fireEvent.click(editButton!);
 
       // Modify command
-      const commandInput = await screen.findByPlaceholderText('e.g., npm run build');
+      const commandInput = await screen.findByPlaceholderText('e.g., npm install');
       await user.clear(commandInput);
       await user.type(commandInput, 'npm run build:prod');
 
@@ -313,6 +324,7 @@ describe('DevScriptsTool', () => {
             id: 'script_1',
             name: 'Build',
             command: 'npm run build:prod',
+            commands: ['npm run build:prod'],
           })
         );
       });
@@ -320,7 +332,12 @@ describe('DevScriptsTool', () => {
 
     it('should cancel edit and restore form', async () => {
       mockStoreState.scripts = [
-        createMockDevScript({ id: 'script_1', name: 'Build', command: 'npm run build' }),
+        createMockDevScript({
+          id: 'script_1',
+          name: 'Build',
+          command: 'npm run build',
+          commands: ['npm run build'],
+        }),
       ];
 
       const { container } = render(<DevScriptsTool {...defaultProps} />);
@@ -346,7 +363,12 @@ describe('DevScriptsTool', () => {
   describe('delete script', () => {
     it('should show confirmation dialog', async () => {
       mockStoreState.scripts = [
-        createMockDevScript({ id: 'script_1', name: 'Build', command: 'npm run build' }),
+        createMockDevScript({
+          id: 'script_1',
+          name: 'Build',
+          command: 'npm run build',
+          commands: ['npm run build'],
+        }),
       ];
 
       const { container } = render(<DevScriptsTool {...defaultProps} />);
@@ -363,7 +385,12 @@ describe('DevScriptsTool', () => {
 
     it('should delete on confirm', async () => {
       mockStoreState.scripts = [
-        createMockDevScript({ id: 'script_1', name: 'Build', command: 'npm run build' }),
+        createMockDevScript({
+          id: 'script_1',
+          name: 'Build',
+          command: 'npm run build',
+          commands: ['npm run build'],
+        }),
       ];
       mockDeleteScript.mockResolvedValueOnce(undefined);
 
@@ -387,7 +414,12 @@ describe('DevScriptsTool', () => {
 
     it('should cancel without deleting', async () => {
       mockStoreState.scripts = [
-        createMockDevScript({ id: 'script_1', name: 'Build', command: 'npm run build' }),
+        createMockDevScript({
+          id: 'script_1',
+          name: 'Build',
+          command: 'npm run build',
+          commands: ['npm run build'],
+        }),
       ];
 
       const { container } = render(<DevScriptsTool {...defaultProps} />);
@@ -416,6 +448,7 @@ describe('DevScriptsTool', () => {
         id: 'script_1',
         name: 'Build',
         command: 'npm run build',
+        commands: ['npm run build'],
       });
       mockStoreState.scripts = [mockScript];
 
@@ -441,7 +474,12 @@ describe('DevScriptsTool', () => {
     it('should show error for duplicate script name', async () => {
       const user = userEvent.setup();
       mockStoreState.scripts = [
-        createMockDevScript({ id: 'script_1', name: 'Build', command: 'npm run build' }),
+        createMockDevScript({
+          id: 'script_1',
+          name: 'Build',
+          command: 'npm run build',
+          commands: ['npm run build'],
+        }),
       ];
 
       render(<DevScriptsTool {...defaultProps} />);
@@ -451,7 +489,7 @@ describe('DevScriptsTool', () => {
 
       // Enter duplicate name
       const nameInput = await screen.findByPlaceholderText('e.g., Build, Test, Dev');
-      const commandInput = screen.getByPlaceholderText('e.g., npm run build');
+      const commandInput = screen.getByPlaceholderText('e.g., npm install');
 
       await user.type(nameInput, 'Build'); // Duplicate name
       await user.type(commandInput, 'npm run build:dev');

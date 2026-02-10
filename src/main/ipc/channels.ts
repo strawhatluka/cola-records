@@ -402,7 +402,10 @@ export interface DevScript {
   id: string;
   projectPath: string;
   name: string;
+  /** @deprecated Use commands array instead */
   command: string;
+  /** Array of commands to execute sequentially */
+  commands: string[];
   createdAt?: string;
   updatedAt?: string;
 }

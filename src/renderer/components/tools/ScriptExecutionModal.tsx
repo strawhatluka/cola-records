@@ -86,10 +86,14 @@ export function ScriptExecutionModal({
         currentSession = await ipc.invoke('terminal:spawn', 'git-bash', workingDirectory);
         setSession(currentSession);
 
-        // Execute the script command after a brief delay to let terminal initialize
+        // Build command string - join multiple commands with && for sequential execution
+        const commands = script.commands.length > 0 ? script.commands : [script.command];
+        const commandString = commands.join(' && ');
+
+        // Execute the script command(s) after a brief delay to let terminal initialize
         setTimeout(() => {
           if (currentSession) {
-            ipc.invoke('terminal:write', currentSession.id, `${script.command}\n`);
+            ipc.invoke('terminal:write', currentSession.id, `${commandString}\n`);
           }
         }, 100);
       } catch (error) {
@@ -190,7 +194,15 @@ export function ScriptExecutionModal({
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-medium">{script.name}</h2>
-            <span className="text-xs text-muted-foreground font-mono">{script.command}</span>
+            {script.commands.length > 1 ? (
+              <span className="text-xs text-muted-foreground">
+                {script.commands.length} commands
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground font-mono">
+                {script.commands[0] || script.command}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

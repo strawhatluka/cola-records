@@ -4,7 +4,7 @@
  * SQLite database schema for Cola Records
  */
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 /**
  * SQL statements to create all tables
@@ -84,5 +84,9 @@ export const MIGRATIONS: Record<number, string> = {
       UNIQUE(project_path, name)
     );
     CREATE INDEX IF NOT EXISTS idx_dev_scripts_project_path ON dev_scripts(project_path);
+  `,
+  // Version 5: Add commands column (JSON array) to support multiple commands per script
+  5: `
+    ALTER TABLE dev_scripts ADD COLUMN commands TEXT;
   `,
 };
