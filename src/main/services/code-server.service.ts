@@ -586,7 +586,7 @@ class CodeServerService {
       // Check if .ssh directory exists in container
       await this.dockerExec([
         'exec',
-        CodeServerService.CONTAINER_NAME,
+        CodeServerService.getContainerName(),
         'sh',
         '-c',
         'if [ -d /config/.ssh ]; then chown -R abc:abc /config/.ssh && chmod 700 /config/.ssh && chmod 600 /config/.ssh/config 2>/dev/null; chmod 700 /config/.ssh/keys 2>/dev/null; chmod 600 /config/.ssh/keys/* 2>/dev/null; fi',
@@ -708,8 +708,18 @@ class CodeServerService {
 
   // ── Lifecycle ────────────────────────────────────────────────────
 
-  /** Fixed container name for persistence across sessions */
-  private static readonly CONTAINER_NAME = 'cola-code-server';
+  /** Base container name for persistence across sessions */
+  private static readonly CONTAINER_NAME_BASE = 'cola-code-server';
+
+  /**
+   * Get container name based on environment.
+   * Development mode uses a separate container to avoid conflicts with production.
+   */
+  private static getContainerName(): string {
+    return app.isPackaged
+      ? CodeServerService.CONTAINER_NAME_BASE
+      : `${CodeServerService.CONTAINER_NAME_BASE}-dev`;
+  }
 
   /**
    * Check if the persistent container exists (running or stopped).
@@ -721,7 +731,7 @@ class CodeServerService {
         'inspect',
         '--format',
         '{{.State.Running}}',
-        CodeServerService.CONTAINER_NAME,
+        CodeServerService.getContainerName(),
       ]);
       return result.trim() === 'true' ? 'running' : 'stopped';
     } catch {
@@ -738,7 +748,7 @@ class CodeServerService {
         'inspect',
         '--format',
         '{{(index (index .NetworkSettings.Ports "8443/tcp") 0).HostPort}}',
-        CodeServerService.CONTAINER_NAME,
+        CodeServerService.getContainerName(),
       ]);
       const port = parseInt(result.trim(), 10);
       return isNaN(port) ? null : port;
@@ -758,7 +768,7 @@ class CodeServerService {
         'inspect',
         '--format',
         '{{range .Mounts}}{{if eq .Destination "/config/workspace"}}{{.Source}}{{end}}{{end}}',
-        CodeServerService.CONTAINER_NAME,
+        CodeServerService.getContainerName(),
       ]);
       const mountPath = result.trim();
       return mountPath || null;
@@ -772,7 +782,7 @@ class CodeServerService {
    */
   async removeContainer(): Promise<void> {
     try {
-      await this.dockerExec(['rm', '-f', CodeServerService.CONTAINER_NAME]);
+      await this.dockerExec(['rm', '-f', CodeServerService.getContainerName()]);
       console.log('[CodeServer] Removed container for recreation');
     } catch {
       // Container may not exist
@@ -853,7 +863,7 @@ class CodeServerService {
       } else if (containerState === 'stopped') {
         // Container exists but stopped with correct project - start it
         console.log('[CodeServer] Starting existing container...');
-        await this.dockerExec(['start', CodeServerService.CONTAINER_NAME]);
+        await this.dockerExec(['start', CodeServerService.getContainerName()]);
         const existingPort = await this.getContainerPort();
         if (!existingPort) {
           throw new Error('Container started but could not determine port');
@@ -873,7 +883,7 @@ class CodeServerService {
       await this.fixSSHPermissions();
 
       // Store state
-      this.containerName = CodeServerService.CONTAINER_NAME;
+      this.containerName = CodeServerService.getContainerName();
       this.port = port;
       this.running = true;
 
@@ -897,7 +907,7 @@ class CodeServerService {
       'run',
       '-d',
       '--name',
-      CodeServerService.CONTAINER_NAME,
+      CodeServerService.getContainerName(),
       // LinuxServer.io code-server uses port 8443 internally
       '-p',
       `127.0.0.1:${port}:8443`,
@@ -957,7 +967,7 @@ class CodeServerService {
       const state = await this.getContainerState();
       if (state === 'running') {
         console.log('[CodeServer] Stopping container (preserving state)...');
-        await this.dockerExec(['stop', '-t', '5', CodeServerService.CONTAINER_NAME]);
+        await this.dockerExec(['stop', '-t', '5', CodeServerService.getContainerName()]);
       }
     } catch {
       // Container may not exist or already stopped - that's fine
