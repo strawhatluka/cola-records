@@ -27,32 +27,36 @@ const tools: ToolItem[] = [
   { id: 'maintenance', label: 'Maintenance', icon: Wrench },
 ];
 
+/** Session to adopt into Terminal tool (from ScriptExecutionModal) */
+interface AdoptSession {
+  sessionId: string;
+  output: string;
+  name: string;
+}
+
 interface ToolsPanelProps {
   workingDirectory: string;
   onClose: () => void;
-  /** Session ID to adopt into Terminal tool (from ScriptExecutionModal) */
-  adoptSessionId?: string | null;
-  /** Initial output to display when adopting a session */
-  adoptSessionOutput?: string;
-  /** Name of the script being adopted (for tab title) */
-  adoptSessionName?: string;
-  /** Callback when session is adopted */
-  onSessionAdopted?: () => void;
+  /** Sessions to adopt into Terminal tool (from ScriptExecutionModal multi-terminal support) */
+  adoptSessions?: AdoptSession[];
+  /** Callback when sessions are adopted */
+  onSessionsAdopted?: () => void;
 }
 
 export function ToolsPanel({
   workingDirectory,
   onClose,
-  adoptSessionId,
-  adoptSessionOutput,
-  adoptSessionName,
-  onSessionAdopted,
+  adoptSessions,
+  onSessionsAdopted,
 }: ToolsPanelProps) {
-  const [activeTool, setActiveTool] = useState<ToolType>(adoptSessionId ? 'terminal' : 'terminal');
+  const hasSessionsToAdopt = adoptSessions && adoptSessions.length > 0;
+  const [activeTool, setActiveTool] = useState<ToolType>(
+    hasSessionsToAdopt ? 'terminal' : 'terminal'
+  );
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Switch to terminal when adoptSessionId is provided
-  if (adoptSessionId && activeTool !== 'terminal') {
+  // Switch to terminal when sessions to adopt are provided
+  if (hasSessionsToAdopt && activeTool !== 'terminal') {
     setActiveTool('terminal');
   }
 
@@ -62,10 +66,8 @@ export function ToolsPanel({
         return (
           <TerminalTool
             workingDirectory={workingDirectory}
-            adoptSessionId={adoptSessionId}
-            adoptSessionOutput={adoptSessionOutput}
-            adoptSessionName={adoptSessionName}
-            onSessionAdopted={onSessionAdopted}
+            adoptSessions={adoptSessions}
+            onSessionsAdopted={onSessionsAdopted}
           />
         );
       case 'dev-scripts':

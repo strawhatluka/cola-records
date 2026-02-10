@@ -32,24 +32,25 @@ const shellLabels: Record<ShellType, string> = {
   cmd: 'CMD',
 };
 
+/** Session to adopt from ScriptExecutionModal */
+interface AdoptSession {
+  sessionId: string;
+  output: string;
+  name: string;
+}
+
 interface TerminalToolProps {
   workingDirectory: string;
-  /** Session to adopt from ScriptExecutionModal */
-  adoptSessionId?: string | null;
-  /** Initial output to display when adopting a session */
-  adoptSessionOutput?: string;
-  /** Name of the script being adopted (for tab title) */
-  adoptSessionName?: string;
-  /** Callback when session is adopted */
-  onSessionAdopted?: () => void;
+  /** Sessions to adopt from ScriptExecutionModal (multi-terminal support) */
+  adoptSessions?: AdoptSession[];
+  /** Callback when sessions are adopted */
+  onSessionsAdopted?: () => void;
 }
 
 export function TerminalTool({
   workingDirectory,
-  adoptSessionId,
-  adoptSessionOutput,
-  adoptSessionName,
-  onSessionAdopted,
+  adoptSessions,
+  onSessionsAdopted,
 }: TerminalToolProps) {
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -117,39 +118,43 @@ export function TerminalTool({
   }, []);
 
   // Create initial terminal on mount (guarded against React Strict Mode double-mount)
+  const hasSessionsToAdopt = adoptSessions && adoptSessions.length > 0;
   useEffect(() => {
-    if (tabs.length === 0 && !hasInitialized.current && !adoptSessionId) {
+    if (tabs.length === 0 && !hasInitialized.current && !hasSessionsToAdopt) {
       hasInitialized.current = true;
       createTerminal('git-bash');
     }
     // Only run once on mount - createTerminal and tabs are intentionally excluded
   }, []);
 
-  // Adopt session from ScriptExecutionModal
+  // Adopt sessions from ScriptExecutionModal (multi-terminal support)
   useEffect(() => {
-    if (!adoptSessionId) return;
+    if (!hasSessionsToAdopt) return;
 
-    // Check if we already have this session
-    const existing = tabs.find((t) => t.id === adoptSessionId);
-    if (existing) {
-      setActiveTabId(adoptSessionId);
-      onSessionAdopted?.();
+    // Filter out sessions we already have
+    const newSessions = adoptSessions.filter((s) => !tabs.find((t) => t.id === s.sessionId));
+
+    if (newSessions.length === 0) {
+      // All sessions already exist, just activate the first one
+      setActiveTabId(adoptSessions[0].sessionId);
+      onSessionsAdopted?.();
       return;
     }
 
-    // Create a new tab for the adopted session
-    const newTab: TerminalTab = {
-      id: adoptSessionId,
-      session: { id: adoptSessionId, shellType: 'git-bash' },
-      title: adoptSessionName || 'Script',
-      initialOutput: adoptSessionOutput,
-    };
+    // Create new tabs for all adopted sessions
+    const newTabs: TerminalTab[] = newSessions.map((session) => ({
+      id: session.sessionId,
+      session: { id: session.sessionId, shellType: 'git-bash' as const },
+      title: session.name || 'Script',
+      initialOutput: session.output,
+    }));
 
-    setTabs((prev) => [...prev, newTab]);
-    setActiveTabId(adoptSessionId);
+    setTabs((prev) => [...prev, ...newTabs]);
+    // Set active tab to the first new session
+    setActiveTabId(newSessions[0].sessionId);
     hasInitialized.current = true;
-    onSessionAdopted?.();
-  }, [adoptSessionId, adoptSessionOutput, adoptSessionName, onSessionAdopted, tabs]);
+    onSessionsAdopted?.();
+  }, [adoptSessions, onSessionsAdopted, tabs, hasSessionsToAdopt]);
 
   // Cleanup terminals on unmount
   useEffect(() => {

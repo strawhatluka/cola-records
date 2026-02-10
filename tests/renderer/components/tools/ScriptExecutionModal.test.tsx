@@ -436,12 +436,14 @@ describe('ScriptExecutionModal', () => {
       fireEvent.click(screen.getByText('Move to Terminal'));
 
       await waitFor(() => {
-        // Should be called with sessionId, initialOutput (empty string), and script name
-        expect(mockOnMoveToTerminal).toHaveBeenCalledWith(
-          'session_123',
-          expect.any(String),
-          'Build'
-        );
+        // Should be called with array of sessions (multi-terminal support)
+        expect(mockOnMoveToTerminal).toHaveBeenCalledWith([
+          {
+            sessionId: 'session_123',
+            output: expect.any(String),
+            name: 'Build',
+          },
+        ]);
       });
     });
 
@@ -522,10 +524,16 @@ describe('ScriptExecutionModal', () => {
         expect(screen.getByTestId('xterm-terminal')).toBeDefined();
       });
 
+      // Clear previous calls to track only cleanup calls
+      mockInvoke.mockClear();
+
       unmount();
 
+      // Wait and verify kill was called with the session id
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('terminal:kill', 'session_cleanup');
+        const killCalls = mockInvoke.mock.calls.filter((call) => call[0] === 'terminal:kill');
+        expect(killCalls.length).toBeGreaterThan(0);
+        expect(killCalls.some((call) => call[1] === 'session_cleanup')).toBe(true);
       });
     });
 

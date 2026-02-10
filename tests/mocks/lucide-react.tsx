@@ -101,3 +101,4 @@ export const Terminal = createIcon('Terminal');
 export const Wrench = createIcon('Wrench');
 export const Menu = createIcon('Menu');
 export const GripVertical = createIcon('GripVertical');
+export const Layers = createIcon('Layers');

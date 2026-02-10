@@ -398,14 +398,27 @@ export interface TerminalSession {
 }
 
 // Dev Scripts Types
+
+/**
+ * Configuration for a single terminal in a multi-terminal script
+ */
+export interface DevScriptTerminal {
+  /** Terminal tab name (e.g., "Frontend", "Backend") */
+  name: string;
+  /** Commands to execute in this terminal */
+  commands: string[];
+}
+
 export interface DevScript {
   id: string;
   projectPath: string;
   name: string;
-  /** @deprecated Use commands array instead */
+  /** @deprecated Use commands array or terminals array instead */
   command: string;
-  /** Array of commands to execute sequentially */
+  /** Array of commands to execute sequentially (single terminal mode) */
   commands: string[];
+  /** Array of terminal configurations for multi-terminal mode */
+  terminals?: DevScriptTerminal[];
   createdAt?: string;
   updatedAt?: string;
 }

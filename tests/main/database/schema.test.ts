@@ -8,8 +8,8 @@ describe('Database Schema', () => {
       expect(Number.isInteger(SCHEMA_VERSION)).toBe(true);
     });
 
-    it('is currently version 5', () => {
-      expect(SCHEMA_VERSION).toBe(5);
+    it('is currently version 6', () => {
+      expect(SCHEMA_VERSION).toBe(6);
     });
   });
 
@@ -100,6 +100,18 @@ describe('Database Schema', () => {
 
     it('does not have migration for version 1 (base schema)', () => {
       expect(MIGRATIONS[1]).toBeUndefined();
+    });
+
+    it('version 5 adds commands column to dev_scripts', () => {
+      const migration = MIGRATIONS[5];
+      expect(migration).toContain('commands');
+      expect(migration).toContain('ALTER TABLE dev_scripts');
+    });
+
+    it('version 6 adds terminals column to dev_scripts for multi-terminal support', () => {
+      const migration = MIGRATIONS[6];
+      expect(migration).toContain('terminals');
+      expect(migration).toContain('ALTER TABLE dev_scripts');
     });
   });
 });

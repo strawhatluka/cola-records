@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import { app } from 'electron';
 import { CREATE_TABLES, SCHEMA_VERSION, MIGRATIONS } from './schema';
-import type { Contribution, DevScript } from '../ipc/channels';
+import type { Contribution, DevScript, DevScriptTerminal } from '../ipc/channels';
 
 /** Database row type for contributions table */
 interface ContributionRow {
@@ -392,6 +392,7 @@ export class DatabaseService {
       name: string;
       command: string;
       commands: string | null;
+      terminals: string | null;
       created_at: number;
       updated_at: number;
     }[];
@@ -409,12 +410,23 @@ export class DatabaseService {
         commands = [row.command];
       }
 
+      // Parse terminals array if present
+      let terminals: DevScriptTerminal[] | undefined;
+      if (row.terminals) {
+        try {
+          terminals = JSON.parse(row.terminals);
+        } catch {
+          terminals = undefined;
+        }
+      }
+
       return {
         id: row.id,
         projectPath: row.project_path,
         name: row.name,
         command: commands[0] || row.command, // Keep first command for backwards compatibility
         commands,
+        terminals,
         createdAt: new Date(row.created_at).toISOString(),
         updatedAt: new Date(row.updated_at).toISOString(),
       };
@@ -430,6 +442,9 @@ export class DatabaseService {
 
     // Serialize commands array to JSON
     const commandsJson = JSON.stringify(script.commands);
+    // Serialize terminals array to JSON (null if undefined or empty)
+    const terminalsJson =
+      script.terminals && script.terminals.length > 0 ? JSON.stringify(script.terminals) : null;
     // Keep first command in command column for backwards compatibility
     const firstCommand = script.commands[0] || script.command;
 
@@ -442,17 +457,26 @@ export class DatabaseService {
       // Update existing script
       const stmt = db.prepare(`
         UPDATE dev_scripts
-        SET name = ?, command = ?, commands = ?, updated_at = ?
+        SET name = ?, command = ?, commands = ?, terminals = ?, updated_at = ?
         WHERE id = ?
       `);
-      stmt.run(script.name, firstCommand, commandsJson, now, script.id);
+      stmt.run(script.name, firstCommand, commandsJson, terminalsJson, now, script.id);
     } else {
       // Insert new script
       const stmt = db.prepare(`
-        INSERT INTO dev_scripts (id, project_path, name, command, commands, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO dev_scripts (id, project_path, name, command, commands, terminals, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      stmt.run(script.id, script.projectPath, script.name, firstCommand, commandsJson, now, now);
+      stmt.run(
+        script.id,
+        script.projectPath,
+        script.name,
+        firstCommand,
+        commandsJson,
+        terminalsJson,
+        now,
+        now
+      );
     }
   }
 

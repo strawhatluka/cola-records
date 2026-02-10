@@ -137,7 +137,10 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
     });
 
     const fitAddon = new FitAddon();
-    const webLinksAddon = new WebLinksAddon();
+    // Configure WebLinksAddon to open links in the default browser via Electron's shell
+    const webLinksAddon = new WebLinksAddon((_event, uri) => {
+      window.electronAPI.invoke('shell:open-external', uri);
+    });
 
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(webLinksAddon);

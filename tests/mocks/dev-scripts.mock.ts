@@ -5,7 +5,7 @@
  * Follows existing factory pattern from factories.ts.
  */
 import { vi } from 'vitest';
-import type { DevScript } from '../../src/main/ipc/channels';
+import type { DevScript, DevScriptTerminal } from '../../src/main/ipc/channels';
 
 // ── DevScript Factory ──────────────────────────────────────────────
 
@@ -58,10 +58,49 @@ export const mockDevScripts = {
     command: 'npm install',
     commands: ['npm install', 'npm run build', 'npm run dev'],
   }),
+  // Multi-terminal script for testing parallel terminal execution
+  fullStack: createMockDevScript({
+    id: 'script_fullstack',
+    name: 'Full Stack',
+    command: 'npm run dev',
+    commands: ['npm run dev'],
+    terminals: [
+      { name: 'Frontend', commands: ['npm run dev:frontend'] },
+      { name: 'Backend', commands: ['npm run dev:backend'] },
+    ],
+  }),
+  // Multi-terminal with multiple commands per terminal
+  complexSetup: createMockDevScript({
+    id: 'script_complex_setup',
+    name: 'Complex Setup',
+    command: 'npm install',
+    commands: ['npm install'],
+    terminals: [
+      { name: 'Setup', commands: ['npm install', 'npm run migrate', 'npm run seed'] },
+      { name: 'Frontend', commands: ['cd frontend', 'npm install', 'npm run dev'] },
+      { name: 'Backend', commands: ['cd backend', 'npm install', 'npm run dev'] },
+    ],
+  }),
 };
 
 export function createMockDevScriptsList(): DevScript[] {
   return [mockDevScripts.build, mockDevScripts.test, mockDevScripts.dev];
+}
+
+export function createMockMultiTerminalScriptsList(): DevScript[] {
+  return [mockDevScripts.fullStack, mockDevScripts.complexSetup];
+}
+
+// ── DevScriptTerminal Factory ──────────────────────────────────────────────
+
+export function createMockDevScriptTerminal(
+  overrides?: Partial<DevScriptTerminal>
+): DevScriptTerminal {
+  return {
+    name: 'Terminal',
+    commands: ['npm run start'],
+    ...overrides,
+  };
 }
 
 // ── Store Mock ──────────────────────────────────────────────

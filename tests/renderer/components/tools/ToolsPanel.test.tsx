@@ -89,7 +89,8 @@ describe('ToolsPanel', () => {
     render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
 
     const closeButton = screen.getByTestId('icon-x').closest('button');
-    await user.click(closeButton!);
+    expect(closeButton).not.toBeNull();
+    await user.click(closeButton as HTMLButtonElement);
 
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
@@ -99,7 +100,8 @@ describe('ToolsPanel', () => {
     render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
 
     const menuButton = screen.getByTestId('icon-menu').closest('button');
-    await user.click(menuButton!);
+    expect(menuButton).not.toBeNull();
+    await user.click(menuButton as HTMLButtonElement);
 
     // Menu should show all three tool options
     expect(screen.getAllByText('Terminal').length).toBeGreaterThanOrEqual(1);
@@ -113,7 +115,8 @@ describe('ToolsPanel', () => {
 
     // Open menu
     const menuButton = screen.getByTestId('icon-menu').closest('button');
-    await user.click(menuButton!);
+    expect(menuButton).not.toBeNull();
+    await user.click(menuButton as HTMLButtonElement);
 
     // Select Dev Scripts
     const devScriptsOption = screen.getByText('Dev Scripts');
@@ -129,7 +132,8 @@ describe('ToolsPanel', () => {
 
     // Open menu
     const menuButton = screen.getByTestId('icon-menu').closest('button');
-    await user.click(menuButton!);
+    expect(menuButton).not.toBeNull();
+    await user.click(menuButton as HTMLButtonElement);
 
     // Select Maintenance
     const maintenanceOption = screen.getByText('Maintenance');
@@ -147,14 +151,16 @@ describe('ToolsPanel', () => {
 
     // Open menu
     const menuButton = screen.getByTestId('icon-menu').closest('button');
-    await user.click(menuButton!);
+    expect(menuButton).not.toBeNull();
+    await user.click(menuButton as HTMLButtonElement);
 
     // Menu should be visible
     expect(screen.getByText('Dev Scripts')).toBeDefined();
 
     // Click backdrop (the fixed inset-0 div)
     const backdrop = document.querySelector('.fixed.inset-0');
-    await user.click(backdrop!);
+    expect(backdrop).not.toBeNull();
+    await user.click(backdrop as HTMLElement);
 
     // Menu items inside the dropdown should no longer be visible
     // (The header still shows current tool label)
@@ -169,7 +175,8 @@ describe('ToolsPanel', () => {
 
     // Open menu
     const menuButton = screen.getByTestId('icon-menu').closest('button');
-    await user.click(menuButton!);
+    expect(menuButton).not.toBeNull();
+    await user.click(menuButton as HTMLButtonElement);
 
     // Terminal should have bg-accent class (active)
     const terminalButtons = screen.getAllByText('Terminal');
@@ -186,6 +193,49 @@ describe('ToolsPanel', () => {
     // The terminal spawn is triggered on mount, so we need to wait for it
     await vi.waitFor(() => {
       expect(screen.getByTestId('xterm-terminal')).toBeDefined();
+    });
+  });
+
+  describe('multi-session adoption', () => {
+    it('switches to terminal when adoptSessions is provided', () => {
+      const sessions = [
+        { sessionId: 'session_1', output: 'output 1', name: 'Frontend' },
+        { sessionId: 'session_2', output: 'output 2', name: 'Backend' },
+      ];
+
+      render(
+        <ToolsPanel
+          workingDirectory={workingDirectory}
+          onClose={mockOnClose}
+          adoptSessions={sessions}
+          onSessionsAdopted={vi.fn()}
+        />
+      );
+
+      // Should be on terminal tool
+      expect(screen.getByText('Terminal')).toBeDefined();
+    });
+
+    it('passes adoptSessions to TerminalTool', async () => {
+      const mockOnSessionsAdopted = vi.fn();
+      const sessions = [{ sessionId: 'adopted_1', output: 'test output', name: 'Script' }];
+
+      render(
+        <ToolsPanel
+          workingDirectory={workingDirectory}
+          onClose={mockOnClose}
+          adoptSessions={sessions}
+          onSessionsAdopted={mockOnSessionsAdopted}
+        />
+      );
+
+      // Wait for adopted session to appear as a tab
+      await vi.waitFor(() => {
+        expect(screen.getByText(/Script/)).toBeDefined();
+      });
+
+      // onSessionsAdopted should be called
+      expect(mockOnSessionsAdopted).toHaveBeenCalled();
     });
   });
 });

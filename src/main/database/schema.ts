@@ -4,7 +4,7 @@
  * SQLite database schema for Cola Records
  */
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 /**
  * SQL statements to create all tables
@@ -88,5 +88,9 @@ export const MIGRATIONS: Record<number, string> = {
   // Version 5: Add commands column (JSON array) to support multiple commands per script
   5: `
     ALTER TABLE dev_scripts ADD COLUMN commands TEXT;
+  `,
+  // Version 6: Add terminals column (JSON array) for multi-terminal scripts
+  6: `
+    ALTER TABLE dev_scripts ADD COLUMN terminals TEXT;
   `,
 };

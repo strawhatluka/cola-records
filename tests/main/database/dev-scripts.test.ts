@@ -463,4 +463,157 @@ describe('DevScripts Database Operations', () => {
       expect(result.map((s: any) => s.id)).not.toContain('script_2');
     });
   });
+
+  // ── Multi-Terminal Support Tests (v6 migration) ──────────────────────────────────────────
+
+  describe('Multi-Terminal Support', () => {
+    it('should save and retrieve scripts with terminals array', () => {
+      const projectPath = '/test/project';
+      const terminals = [
+        { name: 'Frontend', commands: ['npm run dev'] },
+        { name: 'Backend', commands: ['npm run server'] },
+      ];
+
+      dbService.saveDevScript({
+        id: 'script_multi',
+        projectPath,
+        name: 'Full Stack',
+        command: 'npm run dev',
+        commands: ['npm run dev'],
+        terminals,
+      });
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      expect(result[0].terminals).toEqual(terminals);
+    });
+
+    it('should return undefined terminals for legacy scripts', () => {
+      const projectPath = '/test/project';
+
+      // Insert a script without terminals using raw SQL (simulating legacy script)
+      db.prepare(
+        'INSERT INTO dev_scripts (id, project_path, name, command, commands, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).run(
+        'script_legacy',
+        projectPath,
+        'Legacy Script',
+        'npm run build',
+        JSON.stringify(['npm run build']),
+        Date.now(),
+        Date.now()
+      );
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      expect(result[0].terminals).toBeUndefined();
+    });
+
+    it('should handle scripts with empty terminals array', () => {
+      const projectPath = '/test/project';
+
+      dbService.saveDevScript({
+        id: 'script_empty_terminals',
+        projectPath,
+        name: 'Single Mode',
+        command: 'npm test',
+        commands: ['npm test'],
+        terminals: [],
+      });
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      // Empty array should be stored as null and returned as undefined
+      expect(result[0].terminals).toBeUndefined();
+    });
+
+    it('should preserve terminals array on script update', async () => {
+      const projectPath = '/test/project';
+      const scriptId = 'script_update_terminals';
+      const terminals = [
+        { name: 'Dev', commands: ['npm run dev'] },
+        { name: 'Watch', commands: ['npm run watch'] },
+      ];
+
+      // Insert script with terminals
+      dbService.saveDevScript({
+        id: scriptId,
+        projectPath,
+        name: 'Dev Setup',
+        command: 'npm run dev',
+        commands: ['npm run dev'],
+        terminals,
+      });
+
+      // Small delay
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Update the script with new terminals
+      const newTerminals = [
+        { name: 'Frontend', commands: ['npm run dev:frontend'] },
+        { name: 'Backend', commands: ['npm run dev:backend'] },
+        { name: 'Worker', commands: ['npm run worker'] },
+      ];
+
+      dbService.saveDevScript({
+        id: scriptId,
+        projectPath,
+        name: 'Dev Setup Updated',
+        command: 'npm run dev:frontend',
+        commands: ['npm run dev:frontend'],
+        terminals: newTerminals,
+      });
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      expect(result[0].terminals).toEqual(newTerminals);
+      expect(result[0].terminals).toHaveLength(3);
+    });
+
+    it('should handle malformed terminals JSON gracefully', () => {
+      const projectPath = '/test/project';
+
+      // Insert a script with malformed terminals JSON directly
+      db.prepare(
+        'INSERT INTO dev_scripts (id, project_path, name, command, commands, terminals, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(
+        'script_malformed',
+        projectPath,
+        'Malformed',
+        'npm test',
+        JSON.stringify(['npm test']),
+        'not valid json{',
+        Date.now(),
+        Date.now()
+      );
+
+      // Should not throw, should return undefined terminals
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      expect(result[0].terminals).toBeUndefined();
+    });
+
+    it('should correctly serialize terminals with multiple commands per terminal', () => {
+      const projectPath = '/test/project';
+      const terminals = [
+        { name: 'Setup', commands: ['npm install', 'npm run migrate', 'npm run seed'] },
+        { name: 'Dev', commands: ['npm run dev'] },
+      ];
+
+      dbService.saveDevScript({
+        id: 'script_complex',
+        projectPath,
+        name: 'Complex Setup',
+        command: 'npm install',
+        commands: ['npm install'],
+        terminals,
+      });
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result[0].terminals).toEqual(terminals);
+      expect(result[0].terminals).toBeDefined();
+      expect(result[0].terminals?.[0].commands).toHaveLength(3);
+      expect(result[0].terminals?.[1].commands).toHaveLength(1);
+    });
+  });
 });

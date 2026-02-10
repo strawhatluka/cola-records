@@ -98,9 +98,10 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [awaitingResponse, setAwaitingResponse] = useState(false);
   const [toolsPanelOpen, setToolsPanelOpen] = useState(false);
   const [executingScript, setExecutingScript] = useState<DevScript | null>(null);
-  const [adoptSessionId, setAdoptSessionId] = useState<string | null>(null);
-  const [adoptSessionOutput, setAdoptSessionOutput] = useState<string>('');
-  const [adoptSessionName, setAdoptSessionName] = useState<string>('');
+  // Sessions to adopt into ToolBox (from ScriptExecutionModal multi-terminal support)
+  const [adoptSessions, setAdoptSessions] = useState<
+    Array<{ sessionId: string; output: string; name: string }>
+  >([]);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
@@ -801,13 +802,9 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             <ToolsPanel
               workingDirectory={contribution.localPath}
               onClose={() => setToolsPanelOpen(false)}
-              adoptSessionId={adoptSessionId}
-              adoptSessionOutput={adoptSessionOutput}
-              adoptSessionName={adoptSessionName}
-              onSessionAdopted={() => {
-                setAdoptSessionId(null);
-                setAdoptSessionOutput('');
-                setAdoptSessionName('');
+              adoptSessions={adoptSessions}
+              onSessionsAdopted={() => {
+                setAdoptSessions([]);
               }}
             />
           </div>
@@ -914,10 +911,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
         script={executingScript}
         workingDirectory={contribution.localPath}
         onClose={() => setExecutingScript(null)}
-        onMoveToTerminal={(sessionId, initialOutput, scriptName) => {
-          setAdoptSessionId(sessionId);
-          setAdoptSessionOutput(initialOutput);
-          setAdoptSessionName(scriptName);
+        onMoveToTerminal={(sessions) => {
+          setAdoptSessions(sessions);
           setToolsPanelOpen(true);
         }}
       />
