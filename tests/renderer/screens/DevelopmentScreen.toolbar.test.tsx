@@ -154,6 +154,8 @@ function setupRunningState() {
         ];
       case 'git:get-branches':
         return ['main', 'feature-branch'];
+      case 'git:get-current-branch':
+        return 'feature-branch';
       case 'github:get-authenticated-user':
         return { login: 'testuser', name: 'Test User', email: 'test@example.com' };
       case 'github:list-pull-requests':

@@ -93,6 +93,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [showCreateIssue, setShowCreateIssue] = useState(false);
   const [showCreatePR, setShowCreatePR] = useState(false);
   const [branches, setBranches] = useState<string[]>([]);
+  const [currentBranch, setCurrentBranch] = useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [githubUsername, setGithubUsername] = useState<string>('');
   const [awaitingResponse, setAwaitingResponse] = useState(false);
@@ -204,6 +205,30 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       .catch(() => {
         // Branch fetch is best-effort
       });
+  }, [contribution.localPath]);
+
+  // Fetch current branch on mount and set up polling for updates
+  useEffect(() => {
+    if (!contribution.localPath) return;
+
+    const fetchCurrentBranch = () => {
+      ipc
+        .invoke('git:get-current-branch', contribution.localPath)
+        .then((result) => {
+          if (isMounted.current) setCurrentBranch(result);
+        })
+        .catch(() => {
+          // Branch fetch is best-effort
+        });
+    };
+
+    // Fetch immediately
+    fetchCurrentBranch();
+
+    // Poll every 5 seconds to detect branch changes from external tools (e.g., VS Code)
+    const interval = setInterval(fetchCurrentBranch, 5000);
+
+    return () => clearInterval(interval);
   }, [contribution.localPath]);
 
   // Check if any of the user's open PRs have a response awaiting action (for orange indicator)
@@ -518,7 +543,9 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
               >
                 {name === 'pull-requests'
                   ? 'Pull Requests'
-                  : name.charAt(0).toUpperCase() + name.slice(1)}
+                  : name === 'branches' && currentBranch
+                    ? currentBranch
+                    : name.charAt(0).toUpperCase() + name.slice(1)}
               </button>
               {activeDropdown === name && name === 'remotes' && (
                 <div className="absolute right-0 top-full mt-1 w-80 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
@@ -732,7 +759,7 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
                   ) : (
                     <div className="space-y-1">
                       {branches.map((branch) => {
-                        const isCurrent = branch === contribution.branchName;
+                        const isCurrent = branch === currentBranch;
                         return (
                           <div
                             key={branch}

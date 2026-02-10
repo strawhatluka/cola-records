@@ -125,6 +125,8 @@ function setupRunningState() {
         ];
       case 'git:get-branches':
         return ['main', 'feature-branch'];
+      case 'git:get-current-branch':
+        return 'feature-branch';
       case 'github:get-authenticated-user':
         return { login: 'testuser', name: 'Test User', email: 'test@example.com' };
       case 'github:list-pull-requests':
@@ -314,7 +316,8 @@ describe('DevelopmentScreen Tools Integration', () => {
       await renderInRunningState();
 
       // All buttons should be visible
-      expect(screen.getByText('Branches')).toBeDefined();
+      // Note: Branches button shows the current branch name ('feature-branch') instead of 'Branches'
+      expect(screen.getByText('feature-branch')).toBeDefined();
       expect(screen.getByText('Issues')).toBeDefined();
       expect(screen.getByText('Remotes')).toBeDefined();
       expect(screen.getByText('Pull Requests')).toBeDefined();
