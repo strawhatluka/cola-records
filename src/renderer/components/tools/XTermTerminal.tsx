@@ -21,9 +21,11 @@ interface XTermTerminalProps {
   terminalId: string;
   onData: (data: string) => void;
   onResize: (cols: number, rows: number) => void;
+  /** Initial output to display (for adopted sessions) */
+  initialOutput?: string;
 }
 
-export function XTermTerminal({ terminalId, onData, onResize }: XTermTerminalProps) {
+export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: XTermTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -142,6 +144,11 @@ export function XTermTerminal({ terminalId, onData, onResize }: XTermTerminalPro
 
     terminal.open(containerRef.current);
 
+    // Write initial output if provided (for adopted sessions from ScriptExecutionModal)
+    if (initialOutput) {
+      terminal.write(initialOutput);
+    }
+
     // Handle clipboard operations (Ctrl+V paste, Ctrl+C copy with selection)
     // Must use attachCustomKeyEventHandler to intercept before xterm processes
     terminal.attachCustomKeyEventHandler((e: KeyboardEvent) => {
@@ -207,6 +214,7 @@ export function XTermTerminal({ terminalId, onData, onResize }: XTermTerminalPro
       terminalRef.current = null;
       fitAddonRef.current = null;
     };
+    // initialOutput intentionally excluded - only used on initial mount
   }, [onData, fitTerminal]);
 
   // Focus terminal on click

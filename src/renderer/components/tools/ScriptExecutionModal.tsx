@@ -12,12 +12,47 @@ import { XTermTerminal } from './XTermTerminal';
 import type { DevScript, TerminalSession } from '../../../main/ipc/channels';
 import { ipc } from '../../ipc/client';
 
+/**
+ * Strips ANSI escape sequences from terminal output for clean clipboard copy.
+ * Handles: colors, cursor movement, clearing, OSC sequences, and other control sequences.
+ */
+export function stripAnsiCodes(text: string): string {
+  let result = text;
+
+  // Remove ANSI CSI sequences including private modes (colors, cursor, ?25h, ?2004h, etc.)
+  // eslint-disable-next-line no-control-regex
+  result = result.replace(/\x1B\[[0-9;?]*[A-Za-z]/g, '');
+
+  // Remove OSC sequences (title setting, etc.) - \x1B]...(\x07|\x1B\\)
+  // eslint-disable-next-line no-control-regex
+  result = result.replace(/\x1B\][^\x07]*(?:\x07|\x1B\\)/g, '');
+
+  // Remove remaining OSC-style sequences that may be malformed (]0;...newline)
+  result = result.replace(/\]0;[^\n]*(?=\n|$)/g, '');
+
+  // Remove leftover bracket sequences without escape (e.g., [?25h at start of line)
+  result = result.replace(/\[\?[0-9;]*[A-Za-z]/g, '');
+
+  // Remove other escape sequences
+  // eslint-disable-next-line no-control-regex
+  result = result.replace(/\x1B[@-Z\\-_]/g, '');
+
+  // Remove standalone control characters (BEL, etc.)
+  // eslint-disable-next-line no-control-regex
+  result = result.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // Clean up multiple consecutive blank lines
+  result = result.replace(/\n{3,}/g, '\n\n');
+
+  return result.trim();
+}
+
 interface ScriptExecutionModalProps {
   isOpen: boolean;
   script: DevScript | null;
   workingDirectory: string;
   onClose: () => void;
-  onMoveToTerminal?: (sessionId: string) => void;
+  onMoveToTerminal?: (sessionId: string, initialOutput: string, scriptName: string) => void;
 }
 
 export function ScriptExecutionModal({
@@ -30,6 +65,7 @@ export function ScriptExecutionModal({
   const [session, setSession] = useState<TerminalSession | null>(null);
   const [copied, setCopied] = useState(false);
   const terminalOutputRef = useRef<string>('');
+  const sessionTransferredRef = useRef(false);
 
   // Spawn terminal and execute script when modal opens
   useEffect(() => {
@@ -38,6 +74,9 @@ export function ScriptExecutionModal({
       terminalOutputRef.current = '';
       return;
     }
+
+    // Reset transfer flag for new session
+    sessionTransferredRef.current = false;
 
     let currentSession: TerminalSession | null = null;
 
@@ -62,7 +101,7 @@ export function ScriptExecutionModal({
 
     return () => {
       // Cleanup terminal on unmount if not moved to terminal
-      if (currentSession) {
+      if (currentSession && !sessionTransferredRef.current) {
         ipc.invoke('terminal:kill', currentSession.id).catch(() => {
           // Ignore errors during cleanup
         });
@@ -99,7 +138,8 @@ export function ScriptExecutionModal({
 
   const handleCopyOutput = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(terminalOutputRef.current);
+      const cleanOutput = stripAnsiCodes(terminalOutputRef.current);
+      await navigator.clipboard.writeText(cleanOutput);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -108,13 +148,14 @@ export function ScriptExecutionModal({
   }, []);
 
   const handleMoveToTerminal = useCallback(() => {
-    if (session && onMoveToTerminal) {
-      onMoveToTerminal(session.id);
-      // Don't kill session - it's being transferred
+    if (session && onMoveToTerminal && script) {
+      // Mark session as transferred so cleanup doesn't kill it
+      sessionTransferredRef.current = true;
+      onMoveToTerminal(session.id, terminalOutputRef.current, script.name);
       setSession(null);
       onClose();
     }
-  }, [session, onMoveToTerminal, onClose]);
+  }, [session, onMoveToTerminal, onClose, script]);
 
   const handleTerminalData = useCallback(
     (data: string) => {

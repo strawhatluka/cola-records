@@ -22,6 +22,8 @@ interface TerminalTab {
   id: string;
   session: TerminalSession;
   title: string;
+  /** Initial output to display when terminal mounts */
+  initialOutput?: string;
 }
 
 const shellLabels: Record<ShellType, string> = {
@@ -34,6 +36,10 @@ interface TerminalToolProps {
   workingDirectory: string;
   /** Session to adopt from ScriptExecutionModal */
   adoptSessionId?: string | null;
+  /** Initial output to display when adopting a session */
+  adoptSessionOutput?: string;
+  /** Name of the script being adopted (for tab title) */
+  adoptSessionName?: string;
   /** Callback when session is adopted */
   onSessionAdopted?: () => void;
 }
@@ -41,6 +47,8 @@ interface TerminalToolProps {
 export function TerminalTool({
   workingDirectory,
   adoptSessionId,
+  adoptSessionOutput,
+  adoptSessionName,
   onSessionAdopted,
 }: TerminalToolProps) {
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
@@ -133,14 +141,15 @@ export function TerminalTool({
     const newTab: TerminalTab = {
       id: adoptSessionId,
       session: { id: adoptSessionId, shellType: 'git-bash' },
-      title: 'Script',
+      title: adoptSessionName || 'Script',
+      initialOutput: adoptSessionOutput,
     };
 
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(adoptSessionId);
     hasInitialized.current = true;
     onSessionAdopted?.();
-  }, [adoptSessionId, onSessionAdopted, tabs]);
+  }, [adoptSessionId, adoptSessionOutput, adoptSessionName, onSessionAdopted, tabs]);
 
   // Cleanup terminals on unmount
   useEffect(() => {
@@ -235,6 +244,7 @@ export function TerminalTool({
             terminalId={activeTab.id}
             onData={(data) => handleTerminalData(activeTab.id, data)}
             onResize={(cols, rows) => handleTerminalResize(activeTab.id, cols, rows)}
+            initialOutput={activeTab.initialOutput}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">

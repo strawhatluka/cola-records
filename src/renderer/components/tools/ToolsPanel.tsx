@@ -32,6 +32,10 @@ interface ToolsPanelProps {
   onClose: () => void;
   /** Session ID to adopt into Terminal tool (from ScriptExecutionModal) */
   adoptSessionId?: string | null;
+  /** Initial output to display when adopting a session */
+  adoptSessionOutput?: string;
+  /** Name of the script being adopted (for tab title) */
+  adoptSessionName?: string;
   /** Callback when session is adopted */
   onSessionAdopted?: () => void;
 }
@@ -40,6 +44,8 @@ export function ToolsPanel({
   workingDirectory,
   onClose,
   adoptSessionId,
+  adoptSessionOutput,
+  adoptSessionName,
   onSessionAdopted,
 }: ToolsPanelProps) {
   const [activeTool, setActiveTool] = useState<ToolType>(adoptSessionId ? 'terminal' : 'terminal');
@@ -57,6 +63,8 @@ export function ToolsPanel({
           <TerminalTool
             workingDirectory={workingDirectory}
             adoptSessionId={adoptSessionId}
+            adoptSessionOutput={adoptSessionOutput}
+            adoptSessionName={adoptSessionName}
             onSessionAdopted={onSessionAdopted}
           />
         );

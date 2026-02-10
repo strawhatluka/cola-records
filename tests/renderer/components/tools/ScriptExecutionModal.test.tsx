@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { createMockDevScript, createMockTerminalSession } from '../../../mocks/dev-scripts.mock';
 
 // Mock lucide-react
@@ -41,7 +41,10 @@ vi.mock('../../../../src/renderer/components/tools/XTermTerminal', () => ({
   )),
 }));
 
-import { ScriptExecutionModal } from '../../../../src/renderer/components/tools/ScriptExecutionModal';
+import {
+  ScriptExecutionModal,
+  stripAnsiCodes,
+} from '../../../../src/renderer/components/tools/ScriptExecutionModal';
 
 describe('ScriptExecutionModal', () => {
   const mockScript = createMockDevScript({
@@ -415,7 +418,7 @@ describe('ScriptExecutionModal', () => {
       expect(screen.queryByText('Move to Terminal')).toBeNull();
     });
 
-    it('should transfer session to ToolBox', async () => {
+    it('should transfer session to ToolBox with output and script name', async () => {
       const mockSession = createMockTerminalSession({ id: 'session_123' });
       mockInvoke.mockImplementation((channel: string) => {
         if (channel === 'terminal:spawn') {
@@ -433,7 +436,12 @@ describe('ScriptExecutionModal', () => {
       fireEvent.click(screen.getByText('Move to Terminal'));
 
       await waitFor(() => {
-        expect(mockOnMoveToTerminal).toHaveBeenCalledWith('session_123');
+        // Should be called with sessionId, initialOutput (empty string), and script name
+        expect(mockOnMoveToTerminal).toHaveBeenCalledWith(
+          'session_123',
+          expect.any(String),
+          'Build'
+        );
       });
     });
 
@@ -457,6 +465,44 @@ describe('ScriptExecutionModal', () => {
       await waitFor(() => {
         expect(mockOnClose).toHaveBeenCalled();
       });
+    });
+
+    it('should NOT kill terminal when transferred to Terminal tool', async () => {
+      const mockSession = createMockTerminalSession({ id: 'session_transfer' });
+      mockInvoke.mockImplementation((channel: string) => {
+        if (channel === 'terminal:spawn') {
+          return Promise.resolve(mockSession);
+        }
+        return Promise.resolve(undefined);
+      });
+
+      const { unmount } = render(<ScriptExecutionModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Move to Terminal')).toBeDefined();
+      });
+
+      // Transfer the session
+      fireEvent.click(screen.getByText('Move to Terminal'));
+
+      await waitFor(() => {
+        expect(mockOnMoveToTerminal).toHaveBeenCalled();
+      });
+
+      // Clear mock to track only subsequent calls
+      mockInvoke.mockClear();
+
+      // Unmount the component
+      unmount();
+
+      // Wait a tick to ensure cleanup runs
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Verify terminal:kill was NOT called for the transferred session
+      const killCalls = mockInvoke.mock.calls.filter(
+        (call) => call[0] === 'terminal:kill' && call[1] === 'session_transfer'
+      );
+      expect(killCalls.length).toBe(0);
     });
   });
 
@@ -504,5 +550,84 @@ describe('ScriptExecutionModal', () => {
       // Modal should not be visible
       expect(screen.queryByTestId('xterm-terminal')).toBeNull();
     });
+  });
+});
+
+describe('stripAnsiCodes', () => {
+  it('should strip basic color codes', () => {
+    const input = '\x1B[32mgreen text\x1B[0m';
+    expect(stripAnsiCodes(input)).toBe('green text');
+  });
+
+  it('should strip cursor movement codes', () => {
+    const input = '\x1B[2J\x1B[Hsome text';
+    expect(stripAnsiCodes(input)).toBe('some text');
+  });
+
+  it('should strip private mode sequences like cursor visibility', () => {
+    const input = '\x1B[?25hvisible\x1B[?25l';
+    expect(stripAnsiCodes(input)).toBe('visible');
+  });
+
+  it('should strip bracketed paste mode sequences', () => {
+    const input = '\x1B[?2004hcontent\x1B[?2004l';
+    expect(stripAnsiCodes(input)).toBe('content');
+  });
+
+  it('should strip OSC title sequences', () => {
+    const input = '\x1B]0;Window Title\x07actual content';
+    expect(stripAnsiCodes(input)).toBe('actual content');
+  });
+
+  it('should strip malformed OSC sequences without escape', () => {
+    const input = ']0;Window Title\nactual content';
+    expect(stripAnsiCodes(input)).toBe('actual content');
+  });
+
+  it('should strip leftover bracket sequences without escape', () => {
+    const input = '[?25h\nGit Bash loaded';
+    expect(stripAnsiCodes(input)).toBe('Git Bash loaded');
+  });
+
+  it('should handle complex real-world terminal output', () => {
+    const input =
+      '\x1B[?25h\nGit Bash shortcuts loaded!\n\x1B[?2004h\x1B[?2004l\n\x1B[38;2;95;0;135muser\x1B[m ~/project\n$ npm run build';
+    const result = stripAnsiCodes(input);
+    expect(result).toContain('Git Bash shortcuts loaded!');
+    expect(result).toContain('user ~/project');
+    expect(result).toContain('$ npm run build');
+    expect(result).not.toContain('\x1B');
+    expect(result).not.toContain('[?25h');
+    expect(result).not.toContain('[?2004');
+  });
+
+  it('should collapse multiple blank lines', () => {
+    const input = 'line1\n\n\n\n\nline2';
+    expect(stripAnsiCodes(input)).toBe('line1\n\nline2');
+  });
+
+  it('should trim whitespace from result', () => {
+    const input = '  \n\ncontent\n\n  ';
+    expect(stripAnsiCodes(input)).toBe('content');
+  });
+
+  it('should handle nodemon output with color codes', () => {
+    const input = '\x1B[33m[nodemon] 3.1.10\x1B[m\n\x1B[33m[nodemon] starting\x1B[m';
+    const result = stripAnsiCodes(input);
+    expect(result).toBe('[nodemon] 3.1.10\n[nodemon] starting');
+  });
+
+  it('should preserve normal text without escape sequences', () => {
+    const input = 'Hello, World!\nThis is normal text.';
+    expect(stripAnsiCodes(input)).toBe('Hello, World!\nThis is normal text.');
+  });
+
+  it('should remove control characters except newline and tab', () => {
+    const input = 'text\x07with\x08bell\x7Fand\tbackspace';
+    const result = stripAnsiCodes(input);
+    expect(result).not.toContain('\x07');
+    expect(result).not.toContain('\x08');
+    expect(result).not.toContain('\x7F');
+    expect(result).toContain('\t'); // Tab should be preserved
   });
 });
