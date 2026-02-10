@@ -10,6 +10,9 @@ vi.mock('@xterm/xterm', () => {
   const mockLoadAddon = vi.fn();
   const mockOpen = vi.fn();
   const mockOnData = vi.fn();
+  const mockGetSelection = vi.fn();
+  const mockClearSelection = vi.fn();
+  const mockAttachCustomKeyEventHandler = vi.fn();
 
   return {
     Terminal: class MockTerminal {
@@ -19,6 +22,9 @@ vi.mock('@xterm/xterm', () => {
       loadAddon = mockLoadAddon;
       open = mockOpen;
       onData = mockOnData;
+      getSelection = mockGetSelection;
+      clearSelection = mockClearSelection;
+      attachCustomKeyEventHandler = mockAttachCustomKeyEventHandler;
       cols = 80;
       rows = 24;
 
@@ -28,7 +34,17 @@ vi.mock('@xterm/xterm', () => {
       }
 
       static getMocks() {
-        return { mockWrite, mockFocus, mockDispose, mockLoadAddon, mockOpen, mockOnData };
+        return {
+          mockWrite,
+          mockFocus,
+          mockDispose,
+          mockLoadAddon,
+          mockOpen,
+          mockOnData,
+          mockGetSelection,
+          mockClearSelection,
+          mockAttachCustomKeyEventHandler,
+        };
       }
     },
   };
@@ -227,5 +243,289 @@ describe('XTermTerminal', () => {
 
     const container = document.querySelector('.w-full.h-full') as HTMLElement;
     expect(container?.style.backgroundColor).toBe('rgb(30, 30, 30)');
+  });
+
+  // ── Clipboard Operations Tests ────────────────────────────────────
+
+  describe('Clipboard Operations', () => {
+    const mockClipboard = {
+      readText: vi.fn(),
+      writeText: vi.fn(),
+    };
+
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: mockClipboard,
+        writable: true,
+        configurable: true,
+      });
+      mockClipboard.readText.mockReset();
+      mockClipboard.writeText.mockReset();
+    });
+
+    describe('Paste (Ctrl+V)', () => {
+      it('should paste clipboard content on Ctrl+V', async () => {
+        mockClipboard.readText.mockResolvedValue('pasted text');
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        // Get the custom key event handler that was registered
+        const { mockAttachCustomKeyEventHandler } = (Terminal as any).getMocks();
+        expect(mockAttachCustomKeyEventHandler).toHaveBeenCalled();
+
+        // Get the handler function
+        const handler = mockAttachCustomKeyEventHandler.mock.calls[0][0];
+
+        // Simulate Ctrl+V keydown event
+        const event = new KeyboardEvent('keydown', {
+          key: 'v',
+          ctrlKey: true,
+          bubbles: true,
+        });
+
+        // Call the handler - it should return false to prevent xterm from processing
+        const result = handler(event);
+        expect(result).toBe(false);
+
+        // Wait for async clipboard read
+        await vi.waitFor(() => {
+          expect(mockClipboard.readText).toHaveBeenCalled();
+        });
+
+        await vi.waitFor(() => {
+          expect(mockOnData).toHaveBeenCalledWith('pasted text');
+        });
+      });
+
+      it('should handle empty clipboard gracefully', async () => {
+        mockClipboard.readText.mockResolvedValue('');
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        // Get the custom key event handler
+        const { mockAttachCustomKeyEventHandler } = (Terminal as any).getMocks();
+        const handler = mockAttachCustomKeyEventHandler.mock.calls[0][0];
+
+        // Simulate Ctrl+V keydown event
+        const event = new KeyboardEvent('keydown', {
+          key: 'v',
+          ctrlKey: true,
+          bubbles: true,
+        });
+
+        handler(event);
+
+        await vi.waitFor(() => {
+          expect(mockClipboard.readText).toHaveBeenCalled();
+        });
+
+        // Should not call onData with empty string
+        expect(mockOnData).not.toHaveBeenCalledWith('');
+      });
+
+      it('should return false on Ctrl+V to prevent xterm processing', () => {
+        mockClipboard.readText.mockResolvedValue('text');
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        // Get the custom key event handler
+        const { mockAttachCustomKeyEventHandler } = (Terminal as any).getMocks();
+        const handler = mockAttachCustomKeyEventHandler.mock.calls[0][0];
+
+        // Simulate Ctrl+V keydown event
+        const event = new KeyboardEvent('keydown', {
+          key: 'v',
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        });
+
+        // Handler should return false to prevent xterm from processing
+        const result = handler(event);
+        expect(result).toBe(false);
+      });
+    });
+
+    describe('Paste (Right-Click)', () => {
+      it('should paste clipboard content on right-click', async () => {
+        mockClipboard.readText.mockResolvedValue('right-click pasted');
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        const container = document.querySelector('.w-full.h-full') as HTMLElement;
+        const event = new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+        });
+
+        container.dispatchEvent(event);
+
+        await vi.waitFor(() => {
+          expect(mockClipboard.readText).toHaveBeenCalled();
+        });
+
+        await vi.waitFor(() => {
+          expect(mockOnData).toHaveBeenCalledWith('right-click pasted');
+        });
+      });
+
+      it('should prevent context menu from showing', () => {
+        mockClipboard.readText.mockResolvedValue('');
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        const container = document.querySelector('.w-full.h-full') as HTMLElement;
+        const event = new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+        });
+        const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+
+        container.dispatchEvent(event);
+
+        expect(preventDefaultSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('Copy (Ctrl+C)', () => {
+      it('should copy selected text to clipboard on Ctrl+C', async () => {
+        const { mockGetSelection, mockClearSelection, mockAttachCustomKeyEventHandler } = (
+          Terminal as any
+        ).getMocks();
+        mockGetSelection.mockReturnValue('selected text');
+        mockClipboard.writeText.mockResolvedValue(undefined);
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        // Get the custom key event handler
+        const handler = mockAttachCustomKeyEventHandler.mock.calls[0][0];
+
+        // Simulate Ctrl+C keydown event
+        const event = new KeyboardEvent('keydown', {
+          key: 'c',
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        });
+
+        // Handler should return false when there's a selection (copy mode)
+        const result = handler(event);
+        expect(result).toBe(false);
+
+        await vi.waitFor(() => {
+          expect(mockClipboard.writeText).toHaveBeenCalledWith('selected text');
+        });
+
+        await vi.waitFor(() => {
+          expect(mockClearSelection).toHaveBeenCalled();
+        });
+      });
+
+      it('should clear selection after copy', async () => {
+        const { mockGetSelection, mockClearSelection, mockAttachCustomKeyEventHandler } = (
+          Terminal as any
+        ).getMocks();
+        mockGetSelection.mockReturnValue('text to copy');
+        mockClipboard.writeText.mockResolvedValue(undefined);
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        // Get the custom key event handler
+        const handler = mockAttachCustomKeyEventHandler.mock.calls[0][0];
+
+        // Simulate Ctrl+C keydown event
+        const event = new KeyboardEvent('keydown', {
+          key: 'c',
+          ctrlKey: true,
+          bubbles: true,
+        });
+
+        handler(event);
+
+        await vi.waitFor(() => {
+          expect(mockClearSelection).toHaveBeenCalled();
+        });
+      });
+
+      it('should return true when no text selected (allow interrupt signal)', () => {
+        const { mockGetSelection, mockAttachCustomKeyEventHandler } = (Terminal as any).getMocks();
+        mockGetSelection.mockReturnValue(''); // No selection
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        // Get the custom key event handler
+        const handler = mockAttachCustomKeyEventHandler.mock.calls[0][0];
+
+        // Simulate Ctrl+C keydown event
+        const event = new KeyboardEvent('keydown', {
+          key: 'c',
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        });
+
+        // Handler should return true - let xterm handle as ^C interrupt
+        const result = handler(event);
+        expect(result).toBe(true);
+      });
+
+      it('should NOT copy when selection is null', async () => {
+        const { mockGetSelection, mockAttachCustomKeyEventHandler } = (Terminal as any).getMocks();
+        mockGetSelection.mockReturnValue(null);
+
+        render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        // Get the custom key event handler
+        const handler = mockAttachCustomKeyEventHandler.mock.calls[0][0];
+
+        // Simulate Ctrl+C keydown event
+        const event = new KeyboardEvent('keydown', {
+          key: 'c',
+          ctrlKey: true,
+          bubbles: true,
+        });
+
+        // Handler should return true (let xterm handle as interrupt)
+        const result = handler(event);
+        expect(result).toBe(true);
+
+        // Clipboard writeText should NOT be called
+        expect(mockClipboard.writeText).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Event Lifecycle', () => {
+      it('should remove contextmenu event listener on unmount', () => {
+        const { unmount } = render(
+          <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />
+        );
+
+        const container = document.querySelector('.w-full.h-full') as HTMLElement;
+        const removeEventListenerSpy = vi.spyOn(container, 'removeEventListener');
+
+        unmount();
+
+        // Only contextmenu is on the container - keydown is handled via attachCustomKeyEventHandler
+        expect(removeEventListenerSpy).toHaveBeenCalledWith('contextmenu', expect.any(Function));
+      });
+    });
   });
 });

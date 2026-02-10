@@ -2,7 +2,13 @@
  * XTermTerminal
  *
  * React wrapper for xterm.js terminal emulator.
- * Handles terminal initialization, data I/O, and resize events.
+ * Handles terminal initialization, data I/O, resize events, and clipboard operations.
+ *
+ * Clipboard Features:
+ * - Ctrl+V: Paste from clipboard
+ * - Right-click: Paste from clipboard
+ * - Ctrl+C with selection: Copy selected text to clipboard
+ * - Ctrl+C without selection: Send interrupt signal (^C)
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -21,6 +27,38 @@ export function XTermTerminal({ terminalId, onData, onResize }: XTermTerminalPro
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+
+  // Store onData in a ref to avoid stale closures in event handlers
+  const onDataRef = useRef(onData);
+  onDataRef.current = onData;
+
+  /**
+   * Handle right-click to paste from clipboard.
+   * Prevents default context menu.
+   */
+  const handleContextMenu = useCallback(async (e: MouseEvent) => {
+    e.preventDefault();
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        onDataRef.current(text);
+      }
+    } catch (err) {
+      console.error('[Terminal] Clipboard read failed:', err);
+    }
+  }, []);
+
+  // Attach context menu listener for right-click paste
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('contextmenu', handleContextMenu);
+
+    return () => {
+      container.removeEventListener('contextmenu', handleContextMenu);
+    };
+  }, [handleContextMenu]);
 
   // Handle incoming data from main process
   useEffect(() => {
@@ -103,6 +141,46 @@ export function XTermTerminal({ terminalId, onData, onResize }: XTermTerminalPro
     terminal.loadAddon(webLinksAddon);
 
     terminal.open(containerRef.current);
+
+    // Handle clipboard operations (Ctrl+V paste, Ctrl+C copy with selection)
+    // Must use attachCustomKeyEventHandler to intercept before xterm processes
+    terminal.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+      // Ctrl+V: Paste from clipboard
+      if (e.ctrlKey && e.key === 'v' && e.type === 'keydown') {
+        navigator.clipboard
+          .readText()
+          .then((text) => {
+            if (text) {
+              onDataRef.current(text);
+            }
+          })
+          .catch((err) => {
+            console.error('[Terminal] Clipboard read failed:', err);
+          });
+        return false; // Prevent xterm from processing this key
+      }
+
+      // Ctrl+C: Copy selection OR send interrupt
+      if (e.ctrlKey && e.key === 'c' && e.type === 'keydown') {
+        const selection = terminal.getSelection();
+        if (selection && selection.length > 0) {
+          navigator.clipboard
+            .writeText(selection)
+            .then(() => {
+              terminal.clearSelection();
+            })
+            .catch((err) => {
+              console.error('[Terminal] Clipboard write failed:', err);
+            });
+          return false; // Prevent xterm from processing (don't send ^C)
+        }
+        // No selection - let xterm handle as interrupt signal (^C)
+        return true;
+      }
+
+      // Let xterm handle all other keys
+      return true;
+    });
 
     // Handle user input
     terminal.onData((data) => {
