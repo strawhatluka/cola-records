@@ -139,9 +139,19 @@ export function IssueDetailModal({ issue, onClose, onContribute }: IssueDetailMo
                     {children}
                   </li>
                 ),
-                // Links
+                // Links - open external links in default browser
                 a: ({ children, href, ...props }) => (
-                  <a href={href} className="text-primary hover:underline" {...props}>
+                  <a
+                    href={href}
+                    className="text-primary hover:underline cursor-pointer"
+                    onClick={(e) => {
+                      if (href) {
+                        e.preventDefault();
+                        ipc.invoke('shell:open-external', href);
+                      }
+                    }}
+                    {...props}
+                  >
                     {children}
                   </a>
                 ),

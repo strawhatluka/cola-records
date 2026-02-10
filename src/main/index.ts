@@ -1115,6 +1115,24 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   }
 
+  // Open external links in the user's default browser
+  // Intercept navigation attempts to external URLs
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // Allow navigation to the app's own URLs (dev server or file://)
+    const appUrl = MAIN_WINDOW_VITE_DEV_SERVER_URL || 'file://';
+    if (!url.startsWith(appUrl) && !url.startsWith('file://')) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+
+  // Handle window.open() and target="_blank" links
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    // Open all new window requests in the default browser
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
   // Initialize auto-updater (only runs in production)
   updaterService.initialize(mainWindow);
 
