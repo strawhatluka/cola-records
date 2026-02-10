@@ -2,9 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-// Mock IPC
-const mockInvoke = vi.fn();
-const mockOn = vi.fn(() => vi.fn());
+// Use vi.hoisted to ensure mocks are available at vi.mock time
+const { mockInvoke, mockOn } = vi.hoisted(() => ({
+  mockInvoke: vi.fn(),
+  mockOn: vi.fn(() => vi.fn()),
+}));
+
 vi.mock('../../../../src/renderer/ipc/client', () => ({
   ipc: {
     invoke: mockInvoke,
@@ -35,6 +38,17 @@ vi.mock('../../../../src/renderer/components/tools/XTermTerminal', () => ({
       Mock XTerm Terminal
     </div>
   ),
+}));
+
+// Mock useDevScriptsStore
+vi.mock('../../../../src/renderer/stores/useDevScriptsStore', () => ({
+  useDevScriptsStore: () => ({
+    scripts: [],
+    loading: false,
+    loadScripts: vi.fn(),
+    saveScript: vi.fn(),
+    deleteScript: vi.fn(),
+  }),
 }));
 
 import { ToolsPanel } from '../../../../src/renderer/components/tools/ToolsPanel';
@@ -105,8 +119,8 @@ describe('ToolsPanel', () => {
     const devScriptsOption = screen.getByText('Dev Scripts');
     await user.click(devScriptsOption);
 
-    // Should now show Dev Scripts content
-    expect(screen.getByText('Coming soon')).toBeDefined();
+    // Should now show Dev Scripts content (empty state)
+    expect(screen.getByText('No scripts yet')).toBeDefined();
   });
 
   it('switches to Maintenance tool when selected from menu', async () => {

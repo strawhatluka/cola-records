@@ -4,7 +4,7 @@
  * SQLite database schema for Cola Records
  */
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /**
  * SQL statements to create all tables
@@ -71,5 +71,18 @@ export const MIGRATIONS: Record<number, string> = {
   // Version 3: Add type column to distinguish projects from contributions
   3: `
     ALTER TABLE contributions ADD COLUMN type TEXT DEFAULT 'contribution';
+  `,
+  // Version 4: Add dev_scripts table for custom script buttons
+  4: `
+    CREATE TABLE IF NOT EXISTS dev_scripts (
+      id TEXT PRIMARY KEY,
+      project_path TEXT NOT NULL,
+      name TEXT NOT NULL,
+      command TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      UNIQUE(project_path, name)
+    );
+    CREATE INDEX IF NOT EXISTS idx_dev_scripts_project_path ON dev_scripts(project_path);
   `,
 };

@@ -1,0 +1,474 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act } from '@testing-library/react';
+import { createMockDevScript, createMockDevScriptsList } from '../../mocks/dev-scripts.mock';
+
+// Mock the IPC client module
+const mockInvoke = vi.fn();
+vi.mock('../../../src/renderer/ipc/client', () => ({
+  ipc: {
+    invoke: (...args: unknown[]) => mockInvoke(...args),
+    send: vi.fn(),
+    on: vi.fn(() => vi.fn()),
+    platform: 'win32',
+    isDevelopment: true,
+  },
+}));
+
+import { useDevScriptsStore } from '../../../src/renderer/stores/useDevScriptsStore';
+
+describe('useDevScriptsStore', () => {
+  beforeEach(() => {
+    // Reset store to initial state
+    useDevScriptsStore.setState({
+      scripts: [],
+      loading: false,
+      error: null,
+      executingScriptId: null,
+      activeTerminalSession: null,
+    });
+    mockInvoke.mockReset();
+  });
+
+  // ── TT-05: Initial State Tests ──────────────────────────────────────────
+
+  describe('initial state', () => {
+    it('should have empty scripts array', () => {
+      const state = useDevScriptsStore.getState();
+      expect(state.scripts).toEqual([]);
+    });
+
+    it('should have loading false', () => {
+      const state = useDevScriptsStore.getState();
+      expect(state.loading).toBe(false);
+    });
+
+    it('should have no active execution', () => {
+      const state = useDevScriptsStore.getState();
+      expect(state.executingScriptId).toBeNull();
+      expect(state.activeTerminalSession).toBeNull();
+    });
+
+    it('should have no error', () => {
+      const state = useDevScriptsStore.getState();
+      expect(state.error).toBeNull();
+    });
+  });
+
+  // ── TT-06: Store Action Tests ──────────────────────────────────────────
+
+  describe('loadScripts', () => {
+    it('should set loading true while fetching', async () => {
+      // Create a promise we can control
+      let resolvePromise: (value: unknown) => void;
+      const controlledPromise = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+      mockInvoke.mockReturnValue(controlledPromise);
+
+      // Start loading
+      const loadPromise = act(async () => {
+        useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      // Check loading is true during fetch
+      expect(useDevScriptsStore.getState().loading).toBe(true);
+
+      // Resolve the promise
+      resolvePromise!([]);
+      await loadPromise;
+    });
+
+    it('should populate scripts from IPC response', async () => {
+      const mockScripts = createMockDevScriptsList();
+      mockInvoke.mockResolvedValueOnce(mockScripts);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:get-all', '/test/project');
+      expect(useDevScriptsStore.getState().scripts).toHaveLength(3);
+    });
+
+    it('should set error on failure', async () => {
+      mockInvoke.mockRejectedValueOnce(new Error('Load failed'));
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      expect(useDevScriptsStore.getState().error).toContain('Load failed');
+    });
+
+    it('should set loading false after completion', async () => {
+      mockInvoke.mockResolvedValueOnce([]);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      expect(useDevScriptsStore.getState().loading).toBe(false);
+    });
+
+    it('should set loading false after failure', async () => {
+      mockInvoke.mockRejectedValueOnce(new Error('Load failed'));
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      expect(useDevScriptsStore.getState().loading).toBe(false);
+    });
+
+    it('should clear error before loading', async () => {
+      // Set initial error state
+      useDevScriptsStore.setState({ error: 'Previous error' });
+
+      mockInvoke.mockResolvedValueOnce([]);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      expect(useDevScriptsStore.getState().error).toBeNull();
+    });
+  });
+
+  describe('saveScript', () => {
+    it('should add new script to state', async () => {
+      const newScript = createMockDevScript({
+        id: 'new_script',
+        projectPath: '/test/project',
+        name: 'Build',
+        command: 'npm run build',
+      });
+
+      mockInvoke.mockResolvedValueOnce(undefined); // save
+      mockInvoke.mockResolvedValueOnce([newScript]); // reload
+
+      await act(async () => {
+        await useDevScriptsStore.getState().saveScript(newScript);
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:save', newScript);
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:get-all', '/test/project');
+      expect(useDevScriptsStore.getState().scripts).toHaveLength(1);
+      expect(useDevScriptsStore.getState().scripts[0].id).toBe('new_script');
+    });
+
+    it('should update existing script in state', async () => {
+      const existingScript = createMockDevScript({
+        id: 'existing_script',
+        projectPath: '/test/project',
+        name: 'Build',
+        command: 'npm run build',
+      });
+
+      // Set initial state with script
+      useDevScriptsStore.setState({ scripts: [existingScript] });
+
+      const updatedScript = {
+        ...existingScript,
+        name: 'Build Production',
+        command: 'npm run build:prod',
+      };
+
+      mockInvoke.mockResolvedValueOnce(undefined); // save
+      mockInvoke.mockResolvedValueOnce([updatedScript]); // reload
+
+      await act(async () => {
+        await useDevScriptsStore.getState().saveScript(updatedScript);
+      });
+
+      expect(useDevScriptsStore.getState().scripts[0].name).toBe('Build Production');
+      expect(useDevScriptsStore.getState().scripts[0].command).toBe('npm run build:prod');
+    });
+
+    it('should call IPC save handler', async () => {
+      const script = createMockDevScript({
+        id: 'test_script',
+        projectPath: '/test/project',
+      });
+
+      mockInvoke.mockResolvedValueOnce(undefined); // save
+      mockInvoke.mockResolvedValueOnce([script]); // reload
+
+      await act(async () => {
+        await useDevScriptsStore.getState().saveScript(script);
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:save', script);
+    });
+
+    it('should set error and re-throw on failure', async () => {
+      const script = createMockDevScript({
+        id: 'fail_script',
+        projectPath: '/test/project',
+      });
+
+      mockInvoke.mockRejectedValueOnce(new Error('Save failed'));
+
+      await expect(
+        act(async () => {
+          await useDevScriptsStore.getState().saveScript(script);
+        })
+      ).rejects.toThrow('Save failed');
+
+      expect(useDevScriptsStore.getState().error).toContain('Save failed');
+      expect(useDevScriptsStore.getState().loading).toBe(false);
+    });
+  });
+
+  describe('deleteScript', () => {
+    it('should remove script from state', async () => {
+      const script = createMockDevScript({
+        id: 'delete_me',
+        projectPath: '/test/project',
+        name: 'Test',
+      });
+
+      useDevScriptsStore.setState({ scripts: [script] });
+
+      mockInvoke.mockResolvedValueOnce(undefined); // delete
+      mockInvoke.mockResolvedValueOnce([]); // reload (empty after delete)
+
+      await act(async () => {
+        await useDevScriptsStore.getState().deleteScript('delete_me');
+      });
+
+      expect(useDevScriptsStore.getState().scripts).toHaveLength(0);
+    });
+
+    it('should call IPC delete handler', async () => {
+      const script = createMockDevScript({
+        id: 'script_to_delete',
+        projectPath: '/test/project',
+      });
+
+      useDevScriptsStore.setState({ scripts: [script] });
+
+      mockInvoke.mockResolvedValueOnce(undefined); // delete
+      mockInvoke.mockResolvedValueOnce([]); // reload
+
+      await act(async () => {
+        await useDevScriptsStore.getState().deleteScript('script_to_delete');
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:delete', 'script_to_delete');
+    });
+
+    it('should do nothing if script not found', async () => {
+      useDevScriptsStore.setState({ scripts: [] });
+
+      await act(async () => {
+        await useDevScriptsStore.getState().deleteScript('nonexistent');
+      });
+
+      // Should not call any IPC methods
+      expect(mockInvoke).not.toHaveBeenCalled();
+    });
+
+    it('should set error and re-throw on failure', async () => {
+      const script = createMockDevScript({
+        id: 'fail_delete',
+        projectPath: '/test/project',
+      });
+
+      useDevScriptsStore.setState({ scripts: [script] });
+
+      mockInvoke.mockRejectedValueOnce(new Error('Delete failed'));
+
+      await expect(
+        act(async () => {
+          await useDevScriptsStore.getState().deleteScript('fail_delete');
+        })
+      ).rejects.toThrow('Delete failed');
+
+      expect(useDevScriptsStore.getState().error).toContain('Delete failed');
+    });
+
+    it('should reload scripts after successful delete', async () => {
+      const script1 = createMockDevScript({
+        id: 'script_1',
+        projectPath: '/test/project',
+        name: 'Build',
+      });
+      const script2 = createMockDevScript({
+        id: 'script_2',
+        projectPath: '/test/project',
+        name: 'Test',
+      });
+
+      useDevScriptsStore.setState({ scripts: [script1, script2] });
+
+      mockInvoke.mockResolvedValueOnce(undefined); // delete
+      mockInvoke.mockResolvedValueOnce([script2]); // reload with remaining script
+
+      await act(async () => {
+        await useDevScriptsStore.getState().deleteScript('script_1');
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:get-all', '/test/project');
+      expect(useDevScriptsStore.getState().scripts).toHaveLength(1);
+      expect(useDevScriptsStore.getState().scripts[0].id).toBe('script_2');
+    });
+  });
+
+  // ── TT-07: Execution State Tests ──────────────────────────────────────────
+
+  describe('execution state', () => {
+    it('should track executing script id', () => {
+      act(() => {
+        useDevScriptsStore.getState().setExecutingScript('script_123');
+      });
+
+      expect(useDevScriptsStore.getState().executingScriptId).toBe('script_123');
+    });
+
+    it('should track active terminal session', () => {
+      act(() => {
+        useDevScriptsStore.getState().setActiveTerminalSession('session_456');
+      });
+
+      expect(useDevScriptsStore.getState().activeTerminalSession).toBe('session_456');
+    });
+
+    it('should clear execution state on completion', () => {
+      // Set executing state
+      useDevScriptsStore.setState({
+        executingScriptId: 'script_123',
+        activeTerminalSession: 'session_456',
+      });
+
+      // Clear execution
+      act(() => {
+        useDevScriptsStore.getState().setExecutingScript(null);
+        useDevScriptsStore.getState().setActiveTerminalSession(null);
+      });
+
+      expect(useDevScriptsStore.getState().executingScriptId).toBeNull();
+      expect(useDevScriptsStore.getState().activeTerminalSession).toBeNull();
+    });
+
+    it('should allow setting executing script without terminal session', () => {
+      act(() => {
+        useDevScriptsStore.getState().setExecutingScript('script_123');
+      });
+
+      expect(useDevScriptsStore.getState().executingScriptId).toBe('script_123');
+      expect(useDevScriptsStore.getState().activeTerminalSession).toBeNull();
+    });
+
+    it('should allow setting terminal session without executing script', () => {
+      act(() => {
+        useDevScriptsStore.getState().setActiveTerminalSession('session_456');
+      });
+
+      expect(useDevScriptsStore.getState().executingScriptId).toBeNull();
+      expect(useDevScriptsStore.getState().activeTerminalSession).toBe('session_456');
+    });
+
+    it('should update executing script independently', () => {
+      // Set initial state
+      useDevScriptsStore.setState({
+        executingScriptId: 'script_1',
+        activeTerminalSession: 'session_1',
+      });
+
+      // Update only executing script
+      act(() => {
+        useDevScriptsStore.getState().setExecutingScript('script_2');
+      });
+
+      expect(useDevScriptsStore.getState().executingScriptId).toBe('script_2');
+      expect(useDevScriptsStore.getState().activeTerminalSession).toBe('session_1');
+    });
+
+    it('should update terminal session independently', () => {
+      // Set initial state
+      useDevScriptsStore.setState({
+        executingScriptId: 'script_1',
+        activeTerminalSession: 'session_1',
+      });
+
+      // Update only terminal session
+      act(() => {
+        useDevScriptsStore.getState().setActiveTerminalSession('session_2');
+      });
+
+      expect(useDevScriptsStore.getState().executingScriptId).toBe('script_1');
+      expect(useDevScriptsStore.getState().activeTerminalSession).toBe('session_2');
+    });
+  });
+
+  // ── Additional Edge Cases ──────────────────────────────────────────
+
+  describe('edge cases', () => {
+    it('should handle loading same scripts multiple times', async () => {
+      const scripts = createMockDevScriptsList();
+      mockInvoke.mockResolvedValue(scripts);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      expect(mockInvoke).toHaveBeenCalledTimes(2);
+      expect(useDevScriptsStore.getState().scripts).toHaveLength(3);
+    });
+
+    it('should handle loading different project paths', async () => {
+      const scripts1 = [createMockDevScript({ projectPath: '/project/one' })];
+      const scripts2 = [createMockDevScript({ projectPath: '/project/two' })];
+
+      mockInvoke.mockResolvedValueOnce(scripts1);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/project/one');
+      });
+
+      expect(useDevScriptsStore.getState().scripts).toEqual(scripts1);
+
+      mockInvoke.mockResolvedValueOnce(scripts2);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/project/two');
+      });
+
+      // Should replace with new scripts
+      expect(useDevScriptsStore.getState().scripts).toEqual(scripts2);
+    });
+
+    it('should handle empty scripts array', async () => {
+      mockInvoke.mockResolvedValueOnce([]);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/empty/project');
+      });
+
+      expect(useDevScriptsStore.getState().scripts).toEqual([]);
+      expect(useDevScriptsStore.getState().loading).toBe(false);
+      expect(useDevScriptsStore.getState().error).toBeNull();
+    });
+
+    it('should preserve execution state during load', async () => {
+      useDevScriptsStore.setState({
+        executingScriptId: 'running_script',
+        activeTerminalSession: 'active_session',
+      });
+
+      mockInvoke.mockResolvedValueOnce([]);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      // Execution state should remain unchanged
+      expect(useDevScriptsStore.getState().executingScriptId).toBe('running_script');
+      expect(useDevScriptsStore.getState().activeTerminalSession).toBe('active_session');
+    });
+  });
+});

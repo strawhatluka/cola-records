@@ -8,8 +8,8 @@ describe('Database Schema', () => {
       expect(Number.isInteger(SCHEMA_VERSION)).toBe(true);
     });
 
-    it('is currently version 3', () => {
-      expect(SCHEMA_VERSION).toBe(3);
+    it('is currently version 4', () => {
+      expect(SCHEMA_VERSION).toBe(4);
     });
   });
 
@@ -89,6 +89,13 @@ describe('Database Schema', () => {
       const migration = MIGRATIONS[3];
       expect(migration).toContain('type');
       expect(migration).toContain('contribution');
+    });
+
+    it('version 4 adds dev_scripts table', () => {
+      const migration = MIGRATIONS[4];
+      expect(migration).toContain('dev_scripts');
+      expect(migration).toContain('project_path');
+      expect(migration).toContain('command');
     });
 
     it('does not have migration for version 1 (base schema)', () => {

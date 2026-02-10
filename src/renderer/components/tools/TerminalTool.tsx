@@ -32,9 +32,17 @@ const shellLabels: Record<ShellType, string> = {
 
 interface TerminalToolProps {
   workingDirectory: string;
+  /** Session to adopt from ScriptExecutionModal */
+  adoptSessionId?: string | null;
+  /** Callback when session is adopted */
+  onSessionAdopted?: () => void;
 }
 
-export function TerminalTool({ workingDirectory }: TerminalToolProps) {
+export function TerminalTool({
+  workingDirectory,
+  adoptSessionId,
+  onSessionAdopted,
+}: TerminalToolProps) {
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [selectedShell, setSelectedShell] = useState<ShellType>('git-bash');
@@ -102,12 +110,37 @@ export function TerminalTool({ workingDirectory }: TerminalToolProps) {
 
   // Create initial terminal on mount (guarded against React Strict Mode double-mount)
   useEffect(() => {
-    if (tabs.length === 0 && !hasInitialized.current) {
+    if (tabs.length === 0 && !hasInitialized.current && !adoptSessionId) {
       hasInitialized.current = true;
       createTerminal('git-bash');
     }
     // Only run once on mount - createTerminal and tabs are intentionally excluded
   }, []);
+
+  // Adopt session from ScriptExecutionModal
+  useEffect(() => {
+    if (!adoptSessionId) return;
+
+    // Check if we already have this session
+    const existing = tabs.find((t) => t.id === adoptSessionId);
+    if (existing) {
+      setActiveTabId(adoptSessionId);
+      onSessionAdopted?.();
+      return;
+    }
+
+    // Create a new tab for the adopted session
+    const newTab: TerminalTab = {
+      id: adoptSessionId,
+      session: { id: adoptSessionId, shellType: 'git-bash' },
+      title: 'Script',
+    };
+
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(adoptSessionId);
+    hasInitialized.current = true;
+    onSessionAdopted?.();
+  }, [adoptSessionId, onSessionAdopted, tabs]);
 
   // Cleanup terminals on unmount
   useEffect(() => {

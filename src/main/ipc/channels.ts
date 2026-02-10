@@ -397,6 +397,16 @@ export interface TerminalSession {
   shellType: ShellType;
 }
 
+// Dev Scripts Types
+export interface DevScript {
+  id: string;
+  projectPath: string;
+  name: string;
+  command: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface AppSettings {
   githubToken?: string;
   spotifyClientId?: string;
@@ -893,6 +903,11 @@ export interface IpcChannels {
   'terminal:write': (terminalId: string, data: string) => void;
   'terminal:resize': (terminalId: string, cols: number, rows: number) => void;
   'terminal:kill': (terminalId: string) => void;
+
+  // Dev Scripts Channels
+  'dev-scripts:get-all': (projectPath: string) => DevScript[];
+  'dev-scripts:save': (script: DevScript) => void;
+  'dev-scripts:delete': (id: string) => void;
 
   // Updater Channels
   'updater:check': () => {

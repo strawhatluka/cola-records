@@ -91,6 +91,27 @@ vi.mock('../../../src/renderer/components/pull-requests/CreatePullRequestModal',
     ) : null,
 }));
 
+// Mock useDevScriptsStore
+vi.mock('../../../src/renderer/stores/useDevScriptsStore', () => ({
+  useDevScriptsStore: () => ({
+    scripts: [],
+    loading: false,
+    loadScripts: vi.fn(),
+    saveScript: vi.fn(),
+    deleteScript: vi.fn(),
+  }),
+}));
+
+// Mock ScriptButton
+vi.mock('../../../src/renderer/components/tools/ScriptButton', () => ({
+  ScriptButton: () => null,
+}));
+
+// Mock ScriptExecutionModal
+vi.mock('../../../src/renderer/components/tools/ScriptExecutionModal', () => ({
+  ScriptExecutionModal: () => null,
+}));
+
 import { DevelopmentScreen } from '../../../src/renderer/screens/DevelopmentScreen';
 import type { Contribution } from '../../../src/main/ipc/channels';
 

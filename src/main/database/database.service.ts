@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import { app } from 'electron';
 import { CREATE_TABLES, SCHEMA_VERSION, MIGRATIONS } from './schema';
-import type { Contribution } from '../ipc/channels';
+import type { Contribution, DevScript } from '../ipc/channels';
 
 /** Database row type for contributions table */
 interface ContributionRow {
@@ -374,6 +374,74 @@ export class DatabaseService {
       isFork: row.is_fork === 1,
       remotesValid: row.remotes_valid === 1,
     };
+  }
+
+  // ============================================
+  // Dev Scripts CRUD Operations
+  // ============================================
+
+  /**
+   * Get all dev scripts for a project
+   */
+  getDevScripts(projectPath: string): DevScript[] {
+    const db = this.getDb();
+    const stmt = db.prepare('SELECT * FROM dev_scripts WHERE project_path = ? ORDER BY name ASC');
+    const rows = stmt.all(projectPath) as {
+      id: string;
+      project_path: string;
+      name: string;
+      command: string;
+      created_at: number;
+      updated_at: number;
+    }[];
+
+    return rows.map((row) => ({
+      id: row.id,
+      projectPath: row.project_path,
+      name: row.name,
+      command: row.command,
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
+    }));
+  }
+
+  /**
+   * Save a dev script (insert or update)
+   */
+  saveDevScript(script: DevScript): void {
+    const db = this.getDb();
+    const now = Date.now();
+
+    // Check if script with this ID exists
+    const existing = db.prepare('SELECT id FROM dev_scripts WHERE id = ?').get(script.id) as
+      | { id: string }
+      | undefined;
+
+    if (existing) {
+      // Update existing script
+      const stmt = db.prepare(`
+        UPDATE dev_scripts
+        SET name = ?, command = ?, updated_at = ?
+        WHERE id = ?
+      `);
+      stmt.run(script.name, script.command, now, script.id);
+    } else {
+      // Insert new script
+      const stmt = db.prepare(`
+        INSERT INTO dev_scripts (id, project_path, name, command, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(script.id, script.projectPath, script.name, script.command, now, now);
+    }
+  }
+
+  /**
+   * Delete a dev script by ID
+   */
+  deleteDevScript(id: string): void {
+    const db = this.getDb();
+    const stmt = db.prepare('DELETE FROM dev_scripts WHERE id = ?');
+    stmt.run(id);
   }
 }
 

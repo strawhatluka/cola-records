@@ -30,18 +30,38 @@ const tools: ToolItem[] = [
 interface ToolsPanelProps {
   workingDirectory: string;
   onClose: () => void;
+  /** Session ID to adopt into Terminal tool (from ScriptExecutionModal) */
+  adoptSessionId?: string | null;
+  /** Callback when session is adopted */
+  onSessionAdopted?: () => void;
 }
 
-export function ToolsPanel({ workingDirectory, onClose }: ToolsPanelProps) {
-  const [activeTool, setActiveTool] = useState<ToolType>('terminal');
+export function ToolsPanel({
+  workingDirectory,
+  onClose,
+  adoptSessionId,
+  onSessionAdopted,
+}: ToolsPanelProps) {
+  const [activeTool, setActiveTool] = useState<ToolType>(adoptSessionId ? 'terminal' : 'terminal');
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Switch to terminal when adoptSessionId is provided
+  if (adoptSessionId && activeTool !== 'terminal') {
+    setActiveTool('terminal');
+  }
 
   const renderTool = () => {
     switch (activeTool) {
       case 'terminal':
-        return <TerminalTool workingDirectory={workingDirectory} />;
+        return (
+          <TerminalTool
+            workingDirectory={workingDirectory}
+            adoptSessionId={adoptSessionId}
+            onSessionAdopted={onSessionAdopted}
+          />
+        );
       case 'dev-scripts':
-        return <DevScriptsTool />;
+        return <DevScriptsTool workingDirectory={workingDirectory} />;
       case 'maintenance':
         return <MaintenanceTool />;
       default:

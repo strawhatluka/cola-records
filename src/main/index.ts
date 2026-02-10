@@ -1032,6 +1032,19 @@ const setupIpcHandlers = () => {
     terminalService.kill(terminalId);
   });
 
+  // Dev Scripts handlers
+  handleIpc('dev-scripts:get-all', async (_event, projectPath) => {
+    return database.getDevScripts(projectPath);
+  });
+
+  handleIpc('dev-scripts:save', async (_event, script) => {
+    database.saveDevScript(script);
+  });
+
+  handleIpc('dev-scripts:delete', async (_event, id) => {
+    database.deleteDevScript(id);
+  });
+
   // Updater handlers
   handleIpc('updater:check', async () => {
     const info = await updaterService.checkForUpdates();

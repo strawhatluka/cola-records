@@ -7,13 +7,16 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ipc } from '../ipc/client';
-import type { Contribution } from '../../main/ipc/channels';
+import type { Contribution, DevScript } from '../../main/ipc/channels';
 import { PullRequestDetailModal } from '../components/pull-requests/PullRequestDetailModal';
 import { CreatePullRequestModal } from '../components/pull-requests/CreatePullRequestModal';
 import { DevelopmentIssueDetailModal } from '../components/issues/DevelopmentIssueDetailModal';
 import { CreateIssueModal } from '../components/issues/CreateIssueModal';
 import { BranchDetailModal } from '../components/branches/BranchDetailModal';
 import { ToolsPanel } from '../components/tools/ToolsPanel';
+import { ScriptButton } from '../components/tools/ScriptButton';
+import { ScriptExecutionModal } from '../components/tools/ScriptExecutionModal';
+import { useDevScriptsStore } from '../stores/useDevScriptsStore';
 
 type ScreenState = 'idle' | 'starting' | 'running' | 'error';
 
@@ -94,10 +97,15 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
   const [githubUsername, setGithubUsername] = useState<string>('');
   const [awaitingResponse, setAwaitingResponse] = useState(false);
   const [toolsPanelOpen, setToolsPanelOpen] = useState(false);
+  const [executingScript, setExecutingScript] = useState<DevScript | null>(null);
+  const [adoptSessionId, setAdoptSessionId] = useState<string | null>(null);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Dev scripts store
+  const { scripts: devScripts, loadScripts: loadDevScripts } = useDevScriptsStore();
 
   // Fetch remotes on mount (needed for PR creation fork detection)
   useEffect(() => {
@@ -114,6 +122,27 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
       .finally(() => {
         if (isMounted.current) setRemotesLoading(false);
       });
+  }, [contribution.localPath]);
+
+  // Load dev scripts on mount
+  useEffect(() => {
+    if (!contribution.localPath) return;
+    loadDevScripts(contribution.localPath);
+  }, [contribution.localPath, loadDevScripts]);
+
+  // Listen for execute-dev-script custom events from DevScriptsTool
+  useEffect(() => {
+    const handleExecuteScript = (e: Event) => {
+      const customEvent = e as CustomEvent<{ script: DevScript; workingDirectory: string }>;
+      if (customEvent.detail.workingDirectory === contribution.localPath) {
+        setExecutingScript(customEvent.detail.script);
+      }
+    };
+
+    window.addEventListener('execute-dev-script', handleExecuteScript);
+    return () => {
+      window.removeEventListener('execute-dev-script', handleExecuteScript);
+    };
   }, [contribution.localPath]);
 
   // Fetch authenticated user on mount
@@ -427,6 +456,19 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
               : 'Unknown Issue'}
           </span>
           <span className="text-xs text-muted-foreground">{contribution.localPath}</span>
+
+          {/* Dev Script buttons */}
+          {devScripts.length > 0 && (
+            <div className="flex gap-1 ml-2 border-l border-border pl-3">
+              {devScripts.map((script) => (
+                <ScriptButton
+                  key={script.id}
+                  script={script}
+                  onClick={() => setExecutingScript(script)}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex gap-2" ref={dropdownRef}>
           {(['branches', 'issues', 'remotes', 'pull-requests'] as const).map((name) => (
@@ -757,6 +799,8 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
             <ToolsPanel
               workingDirectory={contribution.localPath}
               onClose={() => setToolsPanelOpen(false)}
+              adoptSessionId={adoptSessionId}
+              onSessionAdopted={() => setAdoptSessionId(null)}
             />
           </div>
         )}
@@ -855,6 +899,18 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
           }}
         />
       )}
+
+      {/* Script Execution Modal */}
+      <ScriptExecutionModal
+        isOpen={executingScript !== null}
+        script={executingScript}
+        workingDirectory={contribution.localPath}
+        onClose={() => setExecutingScript(null)}
+        onMoveToTerminal={(sessionId) => {
+          setAdoptSessionId(sessionId);
+          setToolsPanelOpen(true);
+        }}
+      />
     </div>
   );
 }
