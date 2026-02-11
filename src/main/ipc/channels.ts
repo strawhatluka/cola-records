@@ -908,8 +908,10 @@ export interface IpcChannels {
   'code-server:status': () => { running: boolean; port: number | null; url: string | null };
 
   // Code Server Workspace Management Channels (Multi-Project Support)
-  'code-server:add-workspace': (projectPath: string) => void;
-  'code-server:remove-workspace': (projectPath: string) => void;
+  // Returns URL with ?folder= parameter pointing to the project
+  'code-server:add-workspace': (projectPath: string) => string;
+  // Returns { shouldStop: true } when last workspace is removed
+  'code-server:remove-workspace': (projectPath: string) => { shouldStop: boolean };
   'code-server:get-mounted-projects': () => string[];
 
   // PR Check Status Channels

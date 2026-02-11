@@ -28,6 +28,16 @@ interface CodeServerStartResult {
   url: string;
 }
 
+/**
+ * Cached workspace paths from settings.
+ * Used for host-to-container path mapping.
+ */
+interface WorkspaceBasePaths {
+  contributions: string | null;
+  myProjects: string | null;
+  professional: string | null;
+}
+
 class CodeServerService {
   private containerName: string | null = null;
   private port: number | null = null;
@@ -36,6 +46,9 @@ class CodeServerService {
 
   // Multi-project support: track all mounted workspace folders
   private mountedProjects: Set<string> = new Set();
+
+  // Cached workspace base paths for path mapping (set when container created)
+  private workspaceBasePaths: WorkspaceBasePaths | null = null;
 
   // ── Port Management ──────────────────────────────────────────────
 
@@ -484,6 +497,173 @@ class CodeServerService {
     return [];
   }
 
+  // ── Multi-Project Workspace Mounts ─────────────────────────────────
+
+  /**
+   * Workspace mount configuration for the three user-configured project directories.
+   * Maps host paths from settings to container paths.
+   */
+  private static readonly WORKSPACE_MOUNTS = {
+    contributions: '/config/workspaces/contributions',
+    'my-projects': '/config/workspaces/my-projects',
+    professional: '/config/workspaces/professional',
+  } as const;
+
+  /**
+   * Load workspace base paths from database settings.
+   * Called when creating a container to cache paths for path mapping.
+   */
+  private loadWorkspaceBasePaths(): WorkspaceBasePaths {
+    const paths: WorkspaceBasePaths = {
+      contributions: database.getSetting('defaultClonePath') || null,
+      myProjects: database.getSetting('defaultProjectsPath') || null,
+      professional: database.getSetting('defaultProfessionalProjectsPath') || null,
+    };
+    this.workspaceBasePaths = paths;
+    return paths;
+  }
+
+  /**
+   * Get the cached workspace base paths.
+   * Returns null if container hasn't been started yet.
+   */
+  getWorkspaceBasePaths(): WorkspaceBasePaths | null {
+    return this.workspaceBasePaths;
+  }
+
+  /**
+   * Determine which workspace category a host path belongs to.
+   * @param hostPath - Full host path to a project (e.g., C:\Dev\Contributions\repo-a)
+   * @returns The category ('contributions', 'my-projects', 'professional') or null if not found
+   */
+  getWorkspaceCategory(hostPath: string): 'contributions' | 'my-projects' | 'professional' | null {
+    if (!this.workspaceBasePaths) {
+      // Try to load paths if not cached
+      this.loadWorkspaceBasePaths();
+    }
+
+    const paths = this.workspaceBasePaths;
+    if (!paths) return null;
+
+    // Normalize path for comparison (forward slashes, lowercase on Windows)
+    const normalize = (p: string): string => {
+      const normalized = p.replace(/\\/g, '/');
+      return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+    };
+
+    const normalizedHostPath = normalize(hostPath);
+
+    // Check each category - path must start with the base path
+    if (paths.contributions) {
+      const base = normalize(paths.contributions);
+      if (normalizedHostPath.startsWith(base + '/') || normalizedHostPath === base) {
+        return 'contributions';
+      }
+    }
+
+    if (paths.myProjects) {
+      const base = normalize(paths.myProjects);
+      if (normalizedHostPath.startsWith(base + '/') || normalizedHostPath === base) {
+        return 'my-projects';
+      }
+    }
+
+    if (paths.professional) {
+      const base = normalize(paths.professional);
+      if (normalizedHostPath.startsWith(base + '/') || normalizedHostPath === base) {
+        return 'professional';
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Map a host path to its container path.
+   * @param hostPath - Full host path to a project (e.g., C:\Dev\Contributions\repo-a)
+   * @returns Container path (e.g., /config/workspaces/contributions/repo-a) or null if not mapped
+   */
+  hostToContainerPath(hostPath: string): string | null {
+    const category = this.getWorkspaceCategory(hostPath);
+    if (!category || !this.workspaceBasePaths) return null;
+
+    // Get the base path for this category
+    const basePath =
+      category === 'contributions'
+        ? this.workspaceBasePaths.contributions
+        : category === 'my-projects'
+          ? this.workspaceBasePaths.myProjects
+          : this.workspaceBasePaths.professional;
+
+    if (!basePath) return null;
+
+    // Get the relative path from the base
+    const normalize = (p: string): string => p.replace(/\\/g, '/');
+    const normalizedHostPath = normalize(hostPath);
+    const normalizedBasePath = normalize(basePath);
+
+    // Extract relative path (everything after base path)
+    let relativePath = '';
+    if (normalizedHostPath.length > normalizedBasePath.length) {
+      relativePath = normalizedHostPath.slice(normalizedBasePath.length);
+      // Ensure it starts with /
+      if (!relativePath.startsWith('/')) {
+        relativePath = '/' + relativePath;
+      }
+    }
+
+    // Build container path
+    const containerBase = CodeServerService.WORKSPACE_MOUNTS[category];
+    return containerBase + relativePath;
+  }
+
+  /**
+   * Get Docker volume mount arguments for all configured workspace directories.
+   * Mounts the three user-configured project parent directories:
+   * - defaultClonePath → /config/workspaces/contributions
+   * - defaultProjectsPath → /config/workspaces/my-projects
+   * - defaultProfessionalProjectsPath → /config/workspaces/professional
+   *
+   * Only includes mounts for directories that are configured and exist.
+   * This enables seamless project switching without container recreation.
+   *
+   * @returns Array of Docker -v arguments for volume mounts
+   */
+  getWorkspaceMounts(): string[] {
+    const mounts: string[] = [];
+
+    // Get the three workspace paths from settings
+    const contributionsPath = database.getSetting('defaultClonePath');
+    const myProjectsPath = database.getSetting('defaultProjectsPath');
+    const professionalPath = database.getSetting('defaultProfessionalProjectsPath');
+
+    // Mount contributions directory (defaultClonePath)
+    if (contributionsPath && fs.existsSync(contributionsPath)) {
+      mounts.push(
+        '-v',
+        `${this.toDockerPath(contributionsPath)}:${CodeServerService.WORKSPACE_MOUNTS.contributions}`
+      );
+    }
+
+    // Mount my-projects directory (defaultProjectsPath)
+    if (myProjectsPath && fs.existsSync(myProjectsPath)) {
+      mounts.push(
+        '-v',
+        `${this.toDockerPath(myProjectsPath)}:${CodeServerService.WORKSPACE_MOUNTS['my-projects']}`
+      );
+    }
+
+    // Mount professional directory (defaultProfessionalProjectsPath)
+    if (professionalPath && fs.existsSync(professionalPath)) {
+      mounts.push(
+        '-v',
+        `${this.toDockerPath(professionalPath)}:${CodeServerService.WORKSPACE_MOUNTS.professional}`
+      );
+    }
+
+    return mounts;
+  }
+
   // ── SSH Config Sync ──────────────────────────────────────────────
 
   /**
@@ -743,6 +923,25 @@ class CodeServerService {
   }
 
   /**
+   * Check if the existing container has the new multi-mount configuration.
+   * Returns true if the container has /config/workspaces mounts.
+   */
+  async hasMultiMountConfiguration(): Promise<boolean> {
+    try {
+      const result = await this.dockerExec([
+        'inspect',
+        '--format',
+        '{{range .Mounts}}{{.Destination}} {{end}}',
+        CodeServerService.getContainerName(),
+      ]);
+      // Check if any mount points to /config/workspaces
+      return result.includes('/config/workspaces');
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Get the host port mapped to the container's 8443 port.
    */
   async getContainerPort(): Promise<number | null> {
@@ -797,8 +996,11 @@ class CodeServerService {
    *
    * Uses a persistent container that survives app restarts:
    * - If container exists and is stopped → start it
-   * - If container exists and is running → reuse it
-   * - If container doesn't exist → create it
+   * - If container exists and is running → reuse it (no workspace comparison)
+   * - If container doesn't exist → create it with all workspace mounts
+   *
+   * The container mounts all three workspace directories at creation.
+   * Project switching is handled via URL `?folder=` parameter, not container recreation.
    *
    * This preserves npm packages, extensions, Claude auth, and other state.
    */
@@ -809,7 +1011,10 @@ class CodeServerService {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
       if (this.running && this.port) {
-        return { port: this.port, url: `http://127.0.0.1:${this.port}` };
+        // Return URL with folder parameter for the requested project
+        const containerPath = this.hostToContainerPath(projectPath);
+        const folderParam = containerPath ? `?folder=${encodeURIComponent(containerPath)}` : '';
+        return { port: this.port, url: `http://127.0.0.1:${this.port}/${folderParam}` };
       }
     }
 
@@ -832,40 +1037,37 @@ class CodeServerService {
       const userDataDir = this.getUserDataDir();
       fs.mkdirSync(userDataDir, { recursive: true });
 
-      // Step 5: Check container state and workspace path
+      // Step 5: Check container state and mount configuration
       let containerState = await this.getContainerState();
       let port: number;
 
-      // If container exists, check if it's mounting the correct project
+      // If container exists, check if it has the new multi-mount configuration
       if (containerState !== 'none') {
-        const currentWorkspace = await this.getContainerWorkspacePath();
-        const requestedWorkspace = this.toDockerPath(projectPath);
-
-        // Normalize paths for comparison (Docker returns forward slashes)
-        const normalizedCurrent = currentWorkspace?.toLowerCase().replace(/\\/g, '/');
-        const normalizedRequested = requestedWorkspace.toLowerCase().replace(/\\/g, '/');
-
-        if (normalizedCurrent !== normalizedRequested) {
+        const hasMultiMount = await this.hasMultiMountConfiguration();
+        if (!hasMultiMount) {
           console.log(
-            `[CodeServer] Project changed: ${normalizedCurrent} → ${normalizedRequested}`
+            '[CodeServer] Existing container uses old mount config, recreating with multi-mount...'
           );
-          console.log('[CodeServer] Recreating container with new workspace...');
           await this.removeContainer();
           containerState = 'none';
         }
       }
 
       if (containerState === 'running') {
-        // Container already running with correct project - get its port
-        console.log('[CodeServer] Container already running, reusing...');
+        // Container already running with multi-mount - reuse it
+        console.log('[CodeServer] Container already running with multi-mount, reusing...');
+        // Reload workspace paths in case settings changed
+        this.loadWorkspaceBasePaths();
         const existingPort = await this.getContainerPort();
         if (!existingPort) {
           throw new Error('Container is running but could not determine port');
         }
         port = existingPort;
       } else if (containerState === 'stopped') {
-        // Container exists but stopped with correct project - start it
-        console.log('[CodeServer] Starting existing container...');
+        // Container exists but stopped - start it
+        console.log('[CodeServer] Starting existing container with multi-mount...');
+        // Reload workspace paths in case settings changed
+        this.loadWorkspaceBasePaths();
         await this.dockerExec(['start', CodeServerService.getContainerName()]);
         const existingPort = await this.getContainerPort();
         if (!existingPort) {
@@ -873,8 +1075,8 @@ class CodeServerService {
         }
         port = existingPort;
       } else {
-        // Container doesn't exist or was removed - create it
-        console.log('[CodeServer] Creating new container...');
+        // Container doesn't exist - create with all workspace mounts
+        console.log('[CodeServer] Creating new container with workspace mounts...');
         port = await this.findFreePort();
         await this.createContainer(projectPath, port, userDataDir);
       }
@@ -893,7 +1095,11 @@ class CodeServerService {
       // Track this project as mounted (multi-project support)
       this.mountedProjects.add(projectPath);
 
-      const url = `http://127.0.0.1:${port}`;
+      // Build URL with folder parameter for the specific project
+      const containerPath = this.hostToContainerPath(projectPath);
+      const folderParam = containerPath ? `?folder=${encodeURIComponent(containerPath)}` : '';
+      const url = `http://127.0.0.1:${port}/${folderParam}`;
+
       return { port, url };
     } finally {
       this.starting = false;
@@ -902,13 +1108,24 @@ class CodeServerService {
 
   /**
    * Create a new persistent container with the given configuration.
+   * Mounts all three workspace directories (contributions, my-projects, professional)
+   * at container creation time for seamless project switching.
    */
   private async createContainer(
-    projectPath: string,
+    _projectPath: string,
     port: number,
     userDataDir: string
   ): Promise<void> {
+    // Load and cache workspace base paths for path mapping
+    this.loadWorkspaceBasePaths();
+
     const gitMounts = this.getGitMounts();
+    const workspaceMounts = this.getWorkspaceMounts();
+
+    // Get initial folder path for VS Code (first project opened)
+    const initialContainerPath = this.hostToContainerPath(_projectPath);
+    const defaultWorkspace = initialContainerPath || '/config/workspaces';
+
     const args = [
       'run',
       '-d',
@@ -921,12 +1138,11 @@ class CodeServerService {
       '-t',
       // Performance: increase shared memory for better IPC (default 64MB is too small)
       '--shm-size=256m',
-      // Project directory (read-write) - mounted as DEFAULT_WORKSPACE
-      '-v',
-      `${this.toDockerPath(projectPath)}:/config/workspace`,
       // LinuxServer.io config persistence (includes code-server data, extensions, etc.)
       '-v',
       `${this.toDockerPath(userDataDir)}:/config`,
+      // Multi-project workspace mounts (contributions, my-projects, professional)
+      ...workspaceMounts,
       // Git mounts (conditionally included)
       ...gitMounts,
       // Bashrc mount (our configurable shell profile to /config/.bashrc for abc user)
@@ -945,9 +1161,9 @@ class CodeServerService {
       // Disable password authentication
       '-e',
       'PASSWORD=',
-      // Set default workspace to mounted project
+      // Set default workspace to the initial project folder
       '-e',
-      'DEFAULT_WORKSPACE=/config/workspace',
+      `DEFAULT_WORKSPACE=${defaultWorkspace}`,
       // Claude Code config directory - stored in /config/.claude which persists
       // because /config is our persistent userDataDir mount. Isolated from host's
       // ~/.claude to prevent JSON corruption from concurrent writes.
@@ -1005,39 +1221,46 @@ class CodeServerService {
 
   /**
    * Add a workspace folder to the running container.
-   * This enables multi-project support by mounting additional project paths.
+   * Returns the URL with ?folder= parameter for the project.
+   *
+   * With multi-mount architecture, projects are already accessible via the
+   * three workspace mounts. This method just tracks and returns the URL.
    *
    * Note: The container must already be running. Call start() first if needed.
-   * The project is tracked in mountedProjects for reference counting.
+   *
+   * @returns URL with folder parameter pointing to the project
    */
-  async addWorkspace(projectPath: string): Promise<void> {
-    if (!this.running) {
+  async addWorkspace(projectPath: string): Promise<string> {
+    if (!this.running || !this.port) {
       throw new Error('Container is not running. Call start() first.');
     }
 
-    // Already mounted - no action needed
-    if (this.mountedProjects.has(projectPath)) {
-      console.log(`[CodeServer] Workspace already mounted: ${projectPath}`);
-      return;
+    // Track the project (may already be tracked, that's fine)
+    if (!this.mountedProjects.has(projectPath)) {
+      this.mountedProjects.add(projectPath);
+      console.log(
+        `[CodeServer] Added workspace: ${projectPath} (${this.mountedProjects.size} projects)`
+      );
+    } else {
+      console.log(`[CodeServer] Workspace already tracked: ${projectPath}`);
     }
 
-    // Track the new project
-    this.mountedProjects.add(projectPath);
-    console.log(
-      `[CodeServer] Added workspace: ${projectPath} (${this.mountedProjects.size} projects)`
-    );
+    // Return URL with folder parameter
+    const containerPath = this.hostToContainerPath(projectPath);
+    const folderParam = containerPath ? `?folder=${encodeURIComponent(containerPath)}` : '';
+    return `http://127.0.0.1:${this.port}/${folderParam}`;
   }
 
   /**
    * Remove a workspace folder from tracking.
-   * When the last workspace is removed, the container should be stopped.
+   * When the last workspace is removed, returns shouldStop=true so caller can stop container.
    *
-   * @returns true if this was the last workspace (caller should stop container)
+   * @returns Object with shouldStop boolean indicating if container should be stopped
    */
-  async removeWorkspace(projectPath: string): Promise<boolean> {
+  async removeWorkspace(projectPath: string): Promise<{ shouldStop: boolean }> {
     if (!this.mountedProjects.has(projectPath)) {
       console.log(`[CodeServer] Workspace not found: ${projectPath}`);
-      return this.mountedProjects.size === 0;
+      return { shouldStop: this.mountedProjects.size === 0 };
     }
 
     this.mountedProjects.delete(projectPath);
@@ -1045,8 +1268,8 @@ class CodeServerService {
       `[CodeServer] Removed workspace: ${projectPath} (${this.mountedProjects.size} remaining)`
     );
 
-    // Return true if no more projects are mounted
-    return this.mountedProjects.size === 0;
+    // Return shouldStop if no more projects are mounted
+    return { shouldStop: this.mountedProjects.size === 0 };
   }
 
   /**

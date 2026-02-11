@@ -1017,14 +1017,16 @@ const setupIpcHandlers = () => {
 
   // Code Server Workspace Management handlers (Multi-Project Support)
   handleIpc('code-server:add-workspace', async (_event, projectPath) => {
-    await codeServerService.addWorkspace(projectPath);
+    // Returns URL with ?folder= parameter pointing to the project
+    return await codeServerService.addWorkspace(projectPath);
   });
 
   handleIpc('code-server:remove-workspace', async (_event, projectPath) => {
-    const shouldStop = await codeServerService.removeWorkspace(projectPath);
-    if (shouldStop) {
+    const result = await codeServerService.removeWorkspace(projectPath);
+    if (result.shouldStop) {
       await codeServerService.stop();
     }
+    return result;
   });
 
   handleIpc('code-server:get-mounted-projects', async () => {

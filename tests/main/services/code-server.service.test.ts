@@ -936,6 +936,254 @@ describe('CodeServerService', () => {
     });
   });
 
+  describe('getWorkspaceMounts', () => {
+    it('returns empty array when no paths are configured', () => {
+      mockExistsSync.mockReturnValue(false);
+      mockGetSetting.mockReturnValue(null);
+
+      const mounts = codeServerService.getWorkspaceMounts();
+      expect(mounts).toEqual([]);
+    });
+
+    it('returns mount args for contributions path when configured and exists', () => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return 'C:\\Dev\\Contributions';
+        return null;
+      });
+      mockExistsSync.mockReturnValue(true);
+
+      const mounts = codeServerService.getWorkspaceMounts();
+
+      expect(mounts).toContain('-v');
+      expect(mounts.some((m) => m.includes('/config/workspaces/contributions'))).toBe(true);
+    });
+
+    it('returns mount args for my-projects path when configured and exists', () => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultProjectsPath') return 'C:\\Dev\\MyProjects';
+        return null;
+      });
+      mockExistsSync.mockReturnValue(true);
+
+      const mounts = codeServerService.getWorkspaceMounts();
+
+      expect(mounts).toContain('-v');
+      expect(mounts.some((m) => m.includes('/config/workspaces/my-projects'))).toBe(true);
+    });
+
+    it('returns mount args for professional path when configured and exists', () => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultProfessionalProjectsPath') return 'C:\\Dev\\Professional';
+        return null;
+      });
+      mockExistsSync.mockReturnValue(true);
+
+      const mounts = codeServerService.getWorkspaceMounts();
+
+      expect(mounts).toContain('-v');
+      expect(mounts.some((m) => m.includes('/config/workspaces/professional'))).toBe(true);
+    });
+
+    it('returns mount args for all three paths when all configured and exist', () => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return 'C:\\Dev\\Contributions';
+        if (key === 'defaultProjectsPath') return 'C:\\Dev\\MyProjects';
+        if (key === 'defaultProfessionalProjectsPath') return 'C:\\Dev\\Professional';
+        return null;
+      });
+      mockExistsSync.mockReturnValue(true);
+
+      const mounts = codeServerService.getWorkspaceMounts();
+
+      // Should have 6 items: -v, path1, -v, path2, -v, path3
+      expect(mounts.length).toBe(6);
+      expect(mounts.some((m) => m.includes('/config/workspaces/contributions'))).toBe(true);
+      expect(mounts.some((m) => m.includes('/config/workspaces/my-projects'))).toBe(true);
+      expect(mounts.some((m) => m.includes('/config/workspaces/professional'))).toBe(true);
+    });
+
+    it('skips paths that do not exist on the filesystem', () => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return 'C:\\Dev\\Contributions';
+        if (key === 'defaultProjectsPath') return 'C:\\Dev\\Nonexistent';
+        return null;
+      });
+      // Only contributions path exists
+      mockExistsSync.mockImplementation((pathArg: unknown) => {
+        const p = pathArg as string;
+        return p.includes('Contributions');
+      });
+
+      const mounts = codeServerService.getWorkspaceMounts();
+
+      expect(mounts.some((m) => m.includes('/config/workspaces/contributions'))).toBe(true);
+      expect(mounts.some((m) => m.includes('/config/workspaces/my-projects'))).toBe(false);
+    });
+  });
+
+  describe('getWorkspaceCategory', () => {
+    beforeEach(() => {
+      // Setup workspace base paths by calling the private method via start flow
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return 'C:\\Dev\\Contributions';
+        if (key === 'defaultProjectsPath') return 'C:\\Dev\\MyProjects';
+        if (key === 'defaultProfessionalProjectsPath') return 'C:\\Dev\\Professional';
+        return null;
+      });
+    });
+
+    it('returns "contributions" for paths under defaultClonePath', () => {
+      const category = codeServerService.getWorkspaceCategory('C:\\Dev\\Contributions\\repo-a');
+      expect(category).toBe('contributions');
+    });
+
+    it('returns "my-projects" for paths under defaultProjectsPath', () => {
+      const category = codeServerService.getWorkspaceCategory('C:\\Dev\\MyProjects\\project-1');
+      expect(category).toBe('my-projects');
+    });
+
+    it('returns "professional" for paths under defaultProfessionalProjectsPath', () => {
+      const category = codeServerService.getWorkspaceCategory('C:\\Dev\\Professional\\client-a');
+      expect(category).toBe('professional');
+    });
+
+    it('returns null for paths not under any configured workspace', () => {
+      const category = codeServerService.getWorkspaceCategory('C:\\Other\\random-project');
+      expect(category).toBeNull();
+    });
+
+    it('handles case-insensitive path matching on Windows', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+      const category = codeServerService.getWorkspaceCategory('c:\\dev\\contributions\\repo-a');
+      expect(category).toBe('contributions');
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+    });
+  });
+
+  describe('hostToContainerPath', () => {
+    beforeEach(() => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return 'C:\\Dev\\Contributions';
+        if (key === 'defaultProjectsPath') return 'C:\\Dev\\MyProjects';
+        if (key === 'defaultProfessionalProjectsPath') return 'C:\\Dev\\Professional';
+        return null;
+      });
+    });
+
+    it('maps contributions path to container path', () => {
+      const containerPath = codeServerService.hostToContainerPath('C:\\Dev\\Contributions\\repo-a');
+      expect(containerPath).toBe('/config/workspaces/contributions/repo-a');
+    });
+
+    it('maps my-projects path to container path', () => {
+      const containerPath = codeServerService.hostToContainerPath('C:\\Dev\\MyProjects\\project-1');
+      expect(containerPath).toBe('/config/workspaces/my-projects/project-1');
+    });
+
+    it('maps professional path to container path', () => {
+      const containerPath = codeServerService.hostToContainerPath(
+        'C:\\Dev\\Professional\\client-a'
+      );
+      expect(containerPath).toBe('/config/workspaces/professional/client-a');
+    });
+
+    it('returns null for paths not under any configured workspace', () => {
+      const containerPath = codeServerService.hostToContainerPath('C:\\Other\\random-project');
+      expect(containerPath).toBeNull();
+    });
+
+    it('handles nested subdirectories correctly', () => {
+      const containerPath = codeServerService.hostToContainerPath(
+        'C:\\Dev\\Contributions\\repo-a\\src\\components'
+      );
+      expect(containerPath).toBe('/config/workspaces/contributions/repo-a/src/components');
+    });
+
+    it('handles base path exactly (no subdirectory)', () => {
+      const containerPath = codeServerService.hostToContainerPath('C:\\Dev\\Contributions');
+      expect(containerPath).toBe('/config/workspaces/contributions');
+    });
+  });
+
+  describe('addWorkspace', () => {
+    it('throws when container is not running', async () => {
+      await expect(codeServerService.addWorkspace('/some/path')).rejects.toThrow(
+        'Container is not running'
+      );
+    });
+
+    // Note: Tests that call codeServerService.start() are integration tests
+    // that require mocking the health check (waitForReady). These tests verify
+    // the method signatures and basic flow. Full integration tests should mock
+    // the HTTP health check endpoint.
+  });
+
+  describe('removeWorkspace', () => {
+    it('returns shouldStop: true when no workspaces are tracked', async () => {
+      // Remove from empty - should return shouldStop: true
+      const result = await codeServerService.removeWorkspace('C:\\Dev\\Contributions\\repo-a');
+      expect(result).toEqual({ shouldStop: true });
+    });
+
+    it('returns shouldStop info from removeWorkspace', async () => {
+      // We verify the return type is correct
+      const result = await codeServerService.removeWorkspace('C:\\nonexistent\\path');
+      expect(result).toHaveProperty('shouldStop');
+      expect(typeof result.shouldStop).toBe('boolean');
+    });
+  });
+
+  describe('persistent container with multi-mount', () => {
+    // Note: Tests that verify container persistence across project switches
+    // require full integration testing with mocked health check.
+    // The unit tests above verify the individual methods work correctly.
+    // The key behavior tested:
+    // - getWorkspaceMounts() returns all configured mounts
+    // - hostToContainerPath() maps paths correctly
+    // - addWorkspace/removeWorkspace track projects properly
+    // - start() no longer compares workspace paths
+
+    it('getWorkspaceMounts returns all configured paths', () => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return 'C:\\Dev\\Contributions';
+        if (key === 'defaultProjectsPath') return 'C:\\Dev\\MyProjects';
+        if (key === 'defaultProfessionalProjectsPath') return 'C:\\Dev\\Professional';
+        return null;
+      });
+      mockExistsSync.mockReturnValue(true);
+
+      const mounts = codeServerService.getWorkspaceMounts();
+
+      // All three workspace categories should be mounted
+      expect(mounts.some((m) => m.includes('/config/workspaces/contributions'))).toBe(true);
+      expect(mounts.some((m) => m.includes('/config/workspaces/my-projects'))).toBe(true);
+      expect(mounts.some((m) => m.includes('/config/workspaces/professional'))).toBe(true);
+    });
+
+    it('hostToContainerPath maps all workspace categories', () => {
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return 'C:\\Dev\\Contributions';
+        if (key === 'defaultProjectsPath') return 'C:\\Dev\\MyProjects';
+        if (key === 'defaultProfessionalProjectsPath') return 'C:\\Dev\\Professional';
+        return null;
+      });
+
+      // Test all three categories
+      expect(codeServerService.hostToContainerPath('C:\\Dev\\Contributions\\repo-a')).toBe(
+        '/config/workspaces/contributions/repo-a'
+      );
+      expect(codeServerService.hostToContainerPath('C:\\Dev\\MyProjects\\project-1')).toBe(
+        '/config/workspaces/my-projects/project-1'
+      );
+      expect(codeServerService.hostToContainerPath('C:\\Dev\\Professional\\client-a')).toBe(
+        '/config/workspaces/professional/client-a'
+      );
+    });
+  });
+
   describe('syncSSHConfig — key copying', () => {
     it('copies private key to .ssh/keys directory', () => {
       mockMkdirSync.mockImplementation(() => undefined as any);

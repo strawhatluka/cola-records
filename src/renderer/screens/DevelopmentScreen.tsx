@@ -23,6 +23,12 @@ type ScreenState = 'idle' | 'starting' | 'running' | 'error';
 interface DevelopmentScreenProps {
   contribution: Contribution;
   onNavigateBack: () => void;
+  /** URL from the project store - if provided, skip starting container */
+  codeServerUrl?: string | null;
+  /** Project state from store - used to show appropriate loading/error states */
+  projectState?: 'idle' | 'starting' | 'running' | 'error';
+  /** Error message from store */
+  projectError?: string | null;
 }
 
 type ToolDropdown = 'branches' | 'issues' | 'remotes' | 'pull-requests' | null;
@@ -75,10 +81,22 @@ export function extractOwnerRepo(repoUrl: string): { owner: string; repo: string
   return { owner: match[1], repo: match[2] };
 }
 
-export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentScreenProps) {
-  const [state, setState] = useState<ScreenState>('idle');
-  const [url, setUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function DevelopmentScreen({
+  contribution,
+  onNavigateBack,
+  codeServerUrl,
+  projectState,
+  projectError,
+}: DevelopmentScreenProps) {
+  // Use props from store when provided, fall back to local state for retry scenarios
+  const [localState, setLocalState] = useState<ScreenState>('idle');
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // Determine effective state - prefer props from store
+  const state = projectState || localState;
+  const url = codeServerUrl || localUrl;
+  const error = projectError || localError;
   const [activeDropdown, setActiveDropdown] = useState<ToolDropdown>(null);
   const [remotes, setRemotes] = useState<GitRemote[]>([]);
   const [remotesLoading, setRemotesLoading] = useState(false);
@@ -347,20 +365,21 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
     setActiveDropdown((prev) => (prev === name ? null : name));
   };
 
+  // Retry starting code server (used when URL not provided or on error retry)
   const startCodeServer = useCallback(async () => {
-    setState('starting');
-    setError(null);
+    setLocalState('starting');
+    setLocalError(null);
 
     try {
       const result = await ipc.invoke('code-server:start', contribution.localPath);
       if (isMounted.current) {
-        setUrl(result.url);
-        setState('running');
+        setLocalUrl(result.url);
+        setLocalState('running');
       }
     } catch (err) {
       if (isMounted.current) {
-        setError(err instanceof Error ? err.message : String(err));
-        setState('error');
+        setLocalError(err instanceof Error ? err.message : String(err));
+        setLocalState('error');
       }
     }
   }, [contribution.localPath]);
@@ -374,23 +393,23 @@ export function DevelopmentScreen({ contribution, onNavigateBack }: DevelopmentS
     onNavigateBack();
   }, [onNavigateBack]);
 
-  // Auto-start on mount (guarded against React strict mode double-mount)
+  // Auto-start on mount (only if URL not already provided from App.tsx)
   useEffect(() => {
     isMounted.current = true;
 
-    if (!hasStarted.current) {
+    // If URL is provided from props (via App.tsx handleOpenIDE), skip auto-start
+    // Only start if no URL and we haven't started yet (handles retry scenarios)
+    if (!codeServerUrl && !hasStarted.current) {
       hasStarted.current = true;
       startCodeServer();
     }
 
     return () => {
       isMounted.current = false;
-      // Cleanup: stop container on unmount
-      ipc.invoke('code-server:stop').catch(() => {
-        // Cleanup stop failure is non-critical
-      });
+      // Note: Container lifecycle is managed by App.tsx (handleNavigateBack/handleCloseProject)
+      // Do NOT stop container here - with multi-project support, other projects may still be open
     };
-  }, [startCodeServer]);
+  }, [startCodeServer, codeServerUrl]);
 
   // ── Idle State ───────────────────────────────────────────────────
   if (state === 'idle') {

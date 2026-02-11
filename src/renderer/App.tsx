@@ -75,11 +75,20 @@ const App: React.FC = () => {
       // Switch to IDE screen
       setCurrentScreen('ide');
 
-      // Start the code server for this project
+      // Check if container is already running
       try {
         updateProjectState(project.id, 'starting');
-        const result = await ipc.invoke('code-server:start', contribution.localPath);
-        updateProjectState(project.id, 'running', result.url);
+        const status = await ipc.invoke('code-server:status');
+
+        if (status.running) {
+          // Container already running - just add workspace and get URL with folder param
+          const url = await ipc.invoke('code-server:add-workspace', contribution.localPath);
+          updateProjectState(project.id, 'running', url);
+        } else {
+          // Container not running - start it (creates container with all workspace mounts)
+          const result = await ipc.invoke('code-server:start', contribution.localPath);
+          updateProjectState(project.id, 'running', result.url);
+        }
       } catch (error) {
         updateProjectState(project.id, 'error', null, (error as Error).message);
       }
@@ -149,6 +158,9 @@ const App: React.FC = () => {
           <DevelopmentScreen
             contribution={activeProject.contribution}
             onNavigateBack={handleNavigateBack}
+            codeServerUrl={activeProject.codeServerUrl}
+            projectState={activeProject.state}
+            projectError={activeProject.error}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
