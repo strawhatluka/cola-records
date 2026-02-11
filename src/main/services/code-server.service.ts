@@ -34,6 +34,9 @@ class CodeServerService {
   private running = false;
   private starting = false;
 
+  // Multi-project support: track all mounted workspace folders
+  private mountedProjects: Set<string> = new Set();
+
   // ── Port Management ──────────────────────────────────────────────
 
   /**
@@ -887,6 +890,9 @@ class CodeServerService {
       this.port = port;
       this.running = true;
 
+      // Track this project as mounted (multi-project support)
+      this.mountedProjects.add(projectPath);
+
       const url = `http://127.0.0.1:${port}`;
       return { port, url };
     } finally {
@@ -961,6 +967,9 @@ class CodeServerService {
    * Stop the code-server container.
    * The container is stopped but NOT removed, preserving all state
    * (installed packages, extensions, Claude auth, etc.) for next session.
+   *
+   * For multi-project support, this clears all mounted projects.
+   * Use removeWorkspace() to close individual projects.
    */
   async stop(): Promise<void> {
     try {
@@ -976,6 +985,9 @@ class CodeServerService {
     this.containerName = null;
     this.port = null;
     this.running = false;
+
+    // Clear all mounted projects (multi-project support)
+    this.mountedProjects.clear();
   }
 
   /**
@@ -987,6 +999,61 @@ class CodeServerService {
       port: this.port,
       url: this.port ? `http://127.0.0.1:${this.port}` : null,
     };
+  }
+
+  // ── Multi-Project Workspace Management ───────────────────────────
+
+  /**
+   * Add a workspace folder to the running container.
+   * This enables multi-project support by mounting additional project paths.
+   *
+   * Note: The container must already be running. Call start() first if needed.
+   * The project is tracked in mountedProjects for reference counting.
+   */
+  async addWorkspace(projectPath: string): Promise<void> {
+    if (!this.running) {
+      throw new Error('Container is not running. Call start() first.');
+    }
+
+    // Already mounted - no action needed
+    if (this.mountedProjects.has(projectPath)) {
+      console.log(`[CodeServer] Workspace already mounted: ${projectPath}`);
+      return;
+    }
+
+    // Track the new project
+    this.mountedProjects.add(projectPath);
+    console.log(
+      `[CodeServer] Added workspace: ${projectPath} (${this.mountedProjects.size} projects)`
+    );
+  }
+
+  /**
+   * Remove a workspace folder from tracking.
+   * When the last workspace is removed, the container should be stopped.
+   *
+   * @returns true if this was the last workspace (caller should stop container)
+   */
+  async removeWorkspace(projectPath: string): Promise<boolean> {
+    if (!this.mountedProjects.has(projectPath)) {
+      console.log(`[CodeServer] Workspace not found: ${projectPath}`);
+      return this.mountedProjects.size === 0;
+    }
+
+    this.mountedProjects.delete(projectPath);
+    console.log(
+      `[CodeServer] Removed workspace: ${projectPath} (${this.mountedProjects.size} remaining)`
+    );
+
+    // Return true if no more projects are mounted
+    return this.mountedProjects.size === 0;
+  }
+
+  /**
+   * Get all currently mounted project paths.
+   */
+  getMountedProjects(): string[] {
+    return Array.from(this.mountedProjects);
   }
 
   /**

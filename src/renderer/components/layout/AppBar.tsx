@@ -1,13 +1,25 @@
 import { ThemeToggle } from '../ThemeToggle';
 import { SpotifyPlayer } from '../spotify/SpotifyPlayer';
 import { DiscordClient } from '../discord/DiscordClient';
+import { ProjectTabBar } from '../projects/ProjectTabBar';
 import { ipc } from '../../ipc/client';
+import type { OpenProject } from '../../stores/useOpenProjectsStore';
 
 interface AppBarProps {
   title: string;
+  projects?: OpenProject[];
+  activeProjectId?: string | null;
+  onSelectProject?: (id: string) => void;
+  onCloseProject?: (id: string) => void;
 }
 
-export function AppBar({ title }: AppBarProps) {
+export function AppBar({
+  title,
+  projects = [],
+  activeProjectId = null,
+  onSelectProject,
+  onCloseProject,
+}: AppBarProps) {
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-6">
       <div className="flex items-center gap-4">
@@ -25,6 +37,19 @@ export function AppBar({ title }: AppBarProps) {
           </svg>
         </button>
       </div>
+
+      {/* Project tabs in the middle - visible from any screen */}
+      {projects.length > 0 && onSelectProject && onCloseProject && (
+        <div className="flex-1 flex justify-center px-4">
+          <ProjectTabBar
+            projects={projects}
+            activeProjectId={activeProjectId}
+            onSelectProject={onSelectProject}
+            onCloseProject={onCloseProject}
+          />
+        </div>
+      )}
+
       <div className="flex items-center gap-4">
         <ThemeToggle />
       </div>

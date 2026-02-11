@@ -1015,6 +1015,22 @@ const setupIpcHandlers = () => {
     return codeServerService.getStatus();
   });
 
+  // Code Server Workspace Management handlers (Multi-Project Support)
+  handleIpc('code-server:add-workspace', async (_event, projectPath) => {
+    await codeServerService.addWorkspace(projectPath);
+  });
+
+  handleIpc('code-server:remove-workspace', async (_event, projectPath) => {
+    const shouldStop = await codeServerService.removeWorkspace(projectPath);
+    if (shouldStop) {
+      await codeServerService.stop();
+    }
+  });
+
+  handleIpc('code-server:get-mounted-projects', async () => {
+    return codeServerService.getMountedProjects();
+  });
+
   // Terminal handlers
   handleIpc('terminal:spawn', async (_event, shellType, workingDirectory) => {
     return terminalService.spawn(shellType, workingDirectory);

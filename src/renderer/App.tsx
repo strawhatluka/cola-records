@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider } from './providers/ThemeProvider';
 import { Layout } from './components/layout/Layout';
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -15,13 +15,25 @@ import { Toaster } from './components/ui/Toaster';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { useContributionsStore } from './stores/useContributionsStore';
+import { useOpenProjectsStore } from './stores/useOpenProjectsStore';
+import { ipc } from './ipc/client';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
-  const [selectedContribution, setSelectedContribution] = useState<Contribution | null>(null);
   const [ideOrigin, setIdeOrigin] = useState<Screen>('contributions');
   const { theme, fetchSettings } = useSettingsStore();
   useContributionsStore(); // Store needed for global state management
+
+  // Multi-project state management
+  const {
+    projects,
+    activeProjectId,
+    openProject,
+    closeProject,
+    setActiveProject,
+    getActiveProject,
+    updateProjectState,
+  } = useOpenProjectsStore();
 
   // Fetch settings on mount
   useEffect(() => {
@@ -47,11 +59,76 @@ const App: React.FC = () => {
     },
   });
 
-  const handleOpenIDE = (contribution: Contribution, origin: Screen = 'contributions') => {
-    setSelectedContribution(contribution);
-    setIdeOrigin(origin);
-    setCurrentScreen('ide');
-  };
+  // Handle opening a project in the IDE (multi-project support)
+  const handleOpenIDE = useCallback(
+    async (contribution: Contribution, origin: Screen = 'contributions') => {
+      setIdeOrigin(origin);
+
+      // Try to open the project in the store
+      const project = openProject(contribution);
+      if (!project) {
+        // Max projects reached - could show a toast here
+        console.warn('Max projects reached');
+        return;
+      }
+
+      // Switch to IDE screen
+      setCurrentScreen('ide');
+
+      // Start the code server for this project
+      try {
+        updateProjectState(project.id, 'starting');
+        const result = await ipc.invoke('code-server:start', contribution.localPath);
+        updateProjectState(project.id, 'running', result.url);
+      } catch (error) {
+        updateProjectState(project.id, 'error', null, (error as Error).message);
+      }
+    },
+    [openProject, updateProjectState]
+  );
+
+  // Handle closing a project
+  const handleCloseProject = useCallback(
+    async (projectId: string) => {
+      const project = projects.find((p) => p.id === projectId);
+      if (!project) return;
+
+      // Remove workspace from container
+      await ipc.invoke('code-server:remove-workspace', project.contribution.localPath);
+
+      // Close from store
+      closeProject(projectId);
+
+      // If no more projects, navigate back to origin screen
+      if (projects.length === 1) {
+        setCurrentScreen(ideOrigin);
+      }
+    },
+    [projects, closeProject, ideOrigin]
+  );
+
+  // Handle selecting a project tab (also navigates to IDE screen)
+  const handleSelectProject = useCallback(
+    (projectId: string) => {
+      setActiveProject(projectId);
+      // Navigate to IDE screen when clicking a project tab from any screen
+      setCurrentScreen('ide');
+    },
+    [setActiveProject]
+  );
+
+  // Handle navigating back from IDE
+  const handleNavigateBack = useCallback(async () => {
+    // Close all projects and stop container
+    await ipc.invoke('code-server:stop');
+    // Clear all projects in store
+    const { closeAll } = useOpenProjectsStore.getState();
+    closeAll();
+    setCurrentScreen(ideOrigin);
+  }, [ideOrigin]);
+
+  // Get the active project for rendering
+  const activeProject = getActiveProject();
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -68,10 +145,10 @@ const App: React.FC = () => {
       case 'settings':
         return <SettingsScreen />;
       case 'ide':
-        return selectedContribution ? (
+        return activeProject ? (
           <DevelopmentScreen
-            contribution={selectedContribution}
-            onNavigateBack={() => setCurrentScreen(ideOrigin)}
+            contribution={activeProject.contribution}
+            onNavigateBack={handleNavigateBack}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -86,7 +163,14 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme={theme}>
-        <Layout currentScreen={currentScreen} onScreenChange={setCurrentScreen}>
+        <Layout
+          currentScreen={currentScreen}
+          onScreenChange={setCurrentScreen}
+          projects={projects}
+          activeProjectId={activeProjectId}
+          onSelectProject={handleSelectProject}
+          onCloseProject={handleCloseProject}
+        >
           {renderScreen()}
         </Layout>
         <Toaster />
