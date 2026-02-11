@@ -124,6 +124,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tools panel with terminal and editor access
 - Environment detection service
 
+#### CI/CD Pipeline
+
+- GitHub Actions CI workflow (.github/workflows/ci.yml)
+- Automated linting (ESLint) and formatting checks (Prettier)
+- TypeScript type checking on push/PR
+- Vitest test suite with coverage reporting
+- Multi-platform builds (Windows, macOS, Linux) via matrix strategy
+- npm dependency caching for faster builds
+- Build artifacts uploaded with 7-day retention
+- Concurrency control to cancel outdated runs
+
+#### Pre-commit Hooks
+
+- Pre-commit configuration with auto-formatting
+- Trailing whitespace and end-of-file fixes
+- YAML and JSON validation
+- Large file detection (500KB limit)
+- Merge conflict detection
+- Private key detection
+- ESLint with auto-fix
+- Prettier with auto-format
+
 #### Database Layer
 
 - SQLite database with better-sqlite3
