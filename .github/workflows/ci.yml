@@ -76,9 +76,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      # Tests require better-sqlite3 native module, so we need to run scripts
+      # Install without scripts first (electron-rebuild compiles for Electron, not Node)
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      # Rebuild better-sqlite3 for Node.js (not Electron) so tests can use it
+      - name: Rebuild better-sqlite3 for Node.js
+        run: npm rebuild better-sqlite3
 
       - name: Run tests with coverage
         run: npm run test:coverage
