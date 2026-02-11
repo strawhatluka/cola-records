@@ -1,0 +1,245 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Ensure only one release runs at a time
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+permissions:
+  contents: write
+
+jobs:
+  # ============================================
+  # Extract version from tag
+  # ============================================
+
+  version:
+    name: Extract Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      version_without_v: ${{ steps.get_version.outputs.version_without_v }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: |
+          echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "version_without_v=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+  # ============================================
+  # Extract release notes from CHANGELOG.md
+  # ============================================
+
+  release-notes:
+    name: Extract Release Notes
+    runs-on: ubuntu-latest
+    outputs:
+      notes: ${{ steps.extract.outputs.notes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract release notes from CHANGELOG
+        id: extract
+        run: |
+          # Extract content between [Unreleased] and the next ## heading
+          # If releasing a specific version, look for that version section
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # First try to find the specific version section
+          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            # Extract from version heading to next heading
+            NOTES=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' | tail -n +2)
+          else
+            # Fall back to [Unreleased] section
+            NOTES=$(sed -n '/## \[Unreleased\]/,/## \[/p' CHANGELOG.md | sed '$d' | tail -n +2)
+          fi
+
+          # If no notes found, use a default message
+          if [ -z "$NOTES" ]; then
+            NOTES="See CHANGELOG.md for details."
+          fi
+
+          # Escape for GitHub Actions output (handle multiline)
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "notes<<$EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+  # ============================================
+  # Build for each platform
+  # ============================================
+
+  build-windows:
+    name: Build (Windows)
+    needs: [version]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Windows environment
+        run: |
+          npm config set msvs_version 2022
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for Windows
+        run: npm run build:win
+        env:
+          # Disable code signing
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: |
+            out/make/**/*.exe
+            out/make/**/*.nupkg
+          retention-days: 1
+          if-no-files-found: error
+
+  build-macos:
+    name: Build (macOS)
+    needs: [version]
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup macOS environment
+        run: |
+          python3 -m pip install setuptools
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for macOS
+        run: npm run build:mac
+        env:
+          # Disable code signing
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: |
+            out/make/**/*.dmg
+            out/make/**/*.zip
+          retention-days: 1
+          if-no-files-found: error
+
+  build-linux:
+    name: Build (Linux)
+    needs: [version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxkbfile-dev libsecret-1-dev rpm fakeroot dpkg
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for Linux
+        run: npm run build:linux
+        env:
+          # Disable code signing
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: |
+            out/make/**/*.deb
+            out/make/**/*.rpm
+          retention-days: 1
+          if-no-files-found: error
+
+  # ============================================
+  # Create GitHub Release with all artifacts
+  # ============================================
+
+  release:
+    name: Create Release
+    needs: [version, release-notes, build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f -name "*" | head -50
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Cola Records ${{ needs.version.outputs.version }}
+          tag_name: ${{ needs.version.outputs.version }}
+          body: |
+            ## What's Changed
+
+            ${{ needs.release-notes.outputs.notes }}
+
+            ---
+
+            ## Downloads
+
+            | Platform | File |
+            |----------|------|
+            | Windows | `ColaRecordsSetup.exe` |
+            | macOS | `Cola Records.dmg` |
+            | Linux (Debian/Ubuntu) | `cola-records_*.deb` |
+            | Linux (Fedora/RHEL) | `cola-records-*.rpm` |
+
+            ---
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.zip
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.nupkg
+          draft: true
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

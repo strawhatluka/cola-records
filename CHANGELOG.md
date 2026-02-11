@@ -135,6 +135,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build artifacts uploaded with 7-day retention
 - Concurrency control to cancel outdated runs
 
+#### Release Workflow
+
+- GitHub Actions release workflow (.github/workflows/release.yml)
+- Triggered on version tags (v*.*.\*)
+- Multi-platform builds: Windows (Squirrel), macOS (DMG/ZIP), Linux (DEB/RPM)
+- Automatic release notes extraction from CHANGELOG.md
+- Draft GitHub Releases with all platform artifacts
+- Integration with electron-updater for auto-updates
+- No code signing (users may see OS warnings on first install)
+
 #### Pre-commit Hooks
 
 - Pre-commit configuration with auto-formatting

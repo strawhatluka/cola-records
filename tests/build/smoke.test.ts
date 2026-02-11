@@ -171,9 +171,9 @@ describe('Build Configuration Smoke Tests', () => {
       expect(content).toContain('Auto-Updates');
     });
 
-    it('CHANGELOG contains v1.0.0', () => {
+    it('CHANGELOG contains Unreleased section', () => {
       const content = fs.readFileSync(path.join(rootDir, 'CHANGELOG.md'), 'utf-8');
-      expect(content).toContain('[1.0.0]');
+      expect(content).toContain('[Unreleased]');
     });
   });
 

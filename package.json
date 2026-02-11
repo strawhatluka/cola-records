@@ -15,7 +15,7 @@
     "build:linux": "electron-forge make --platform linux",
     "release": "electron-forge publish",
     "release:draft": "electron-forge publish --dry-run",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .vite out",
     "test": "vitest run",

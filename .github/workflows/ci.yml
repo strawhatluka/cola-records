@@ -76,8 +76,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      # Tests require better-sqlite3 native module, so we need to run scripts
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci
 
       - name: Run tests with coverage
         run: npm run test:coverage
