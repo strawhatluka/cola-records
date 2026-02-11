@@ -6,8 +6,5 @@
   "tabWidth": 2,
   "useTabs": false,
   "arrowParens": "always",
-  "endOfLine": "auto",
-  "jsxSingleQuote": false,
-  "bracketSpacing": true,
-  "bracketSameLine": false
+  "endOfLine": "lf"
 }

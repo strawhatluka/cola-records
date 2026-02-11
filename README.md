@@ -102,6 +102,45 @@ npm run build:linux
 
 Build artifacts will be in the `out/` directory.
 
+## Documentation
+
+Comprehensive documentation is available in the [docs/](docs/) directory:
+
+### Guides
+
+- [Getting Started](docs/guides/getting-started.md) - Installation and setup
+- [API Development](docs/guides/api-development.md) - IPC channel reference
+- [Deployment](docs/guides/deployment.md) - Building for production
+- [Contributing](CONTRIBUTING.md) - Contribution guidelines
+
+### Architecture
+
+- [Application Flow](docs/architecture/mvc-flow.md) - Electron IPC architecture
+- [Database Schema](docs/architecture/database-er.md) - SQLite ER diagram
+- [Component Hierarchy](docs/architecture/component-hierarchy.md) - React components
+
+## Configuration
+
+### Environment Setup
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+### Required Configuration
+
+1. **GitHub Token** - Required for GitHub API access
+   - Go to [GitHub Settings > Developer Settings > Personal Access Tokens](https://github.com/settings/tokens)
+   - Create a token with `public_repo` and `read:user` scopes
+   - Add to Settings in the app or set `GITHUB_TOKEN` in `.env`
+
+### Optional Integrations
+
+- **Spotify** - Configure in Settings > API tab (OAuth flow)
+- **Discord** - Configure in Settings > API tab (token-based)
+
 ## Auto-Updates
 
 Cola Records includes automatic update functionality. When a new version is available:

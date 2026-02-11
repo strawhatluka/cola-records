@@ -61,11 +61,12 @@ coverage/
 out/
 .vite/
 
+# Temp Files
+BASH-ALIASES.md
+icons.md
+
 # Trinity Method SDK
 .claude/
 trinity/
 *CLAUDE.md
 TRINITY.md
-
-BASH-ALIASES.md
-icons.md

@@ -1,10 +1,26 @@
 import * as React from 'react';
-import { Home, Search, GitPullRequest, FolderGit2, Briefcase, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Home,
+  Search,
+  GitPullRequest,
+  FolderGit2,
+  Briefcase,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/Tooltip';
 
-export type Screen = 'dashboard' | 'issues' | 'projects' | 'professional' | 'contributions' | 'settings' | 'ide';
+export type Screen =
+  | 'dashboard'
+  | 'issues'
+  | 'projects'
+  | 'professional'
+  | 'contributions'
+  | 'settings'
+  | 'ide';
 
 interface SidebarProps {
   currentScreen: Screen;
@@ -41,11 +57,7 @@ export function Sidebar({ currentScreen, onScreenChange, collapsed, onToggle }: 
         <div className="flex h-16 items-center justify-between border-b px-4">
           {!collapsed && <h1 className="text-lg font-semibold">Cola Records</h1>}
           <Button variant="ghost" size="icon" onClick={onToggle}>
-            {collapsed ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <ChevronLeft className="h-5 w-5" />
-            )}
+            {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
           </Button>
         </div>
 
@@ -59,10 +71,7 @@ export function Sidebar({ currentScreen, onScreenChange, collapsed, onToggle }: 
               <Button
                 key={item.id}
                 variant={isActive ? 'secondary' : 'ghost'}
-                className={cn(
-                  'w-full justify-start',
-                  collapsed && 'justify-center px-2'
-                )}
+                className={cn('w-full justify-start', collapsed && 'justify-center px-2')}
                 onClick={() => onScreenChange(item.id)}
               >
                 <Icon className={cn('h-5 w-5', !collapsed && 'mr-3')} />

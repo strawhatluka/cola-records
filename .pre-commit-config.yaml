@@ -1,18 +1,13 @@
-# cola-records - Trinity Method Pre-commit Hooks
-# Trinity Method v2.1.0
-# Framework: Electron + React + TypeScript
-# Configured by: EIN (CI/CD Specialist)
+# cola-records - Pre-commit Hooks
 # Install: pip install pre-commit && pre-commit install
 
 repos:
-  # Standard pre-commit hooks
+  # Basic file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
-        exclude: '\.md$'
       - id: end-of-file-fixer
-        exclude: '\.md$'
       - id: check-yaml
       - id: check-json
       - id: check-added-large-files
@@ -20,45 +15,32 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
 
-  # Prettier formatting
+  # TypeScript type checking
   - repo: local
     hooks:
-      - id: prettier
-        name: Prettier
-        entry: npx prettier --write --ignore-unknown
+      - id: tsc
+        name: TypeScript Compiler
+        entry: npx tsc --noEmit
         language: system
-        types_or: [javascript, jsx, ts, tsx, json, markdown]
-        exclude: 'dist/|out/|\.vite/|node_modules/'
+        files: \.(ts|tsx)$
+        pass_filenames: false
 
-  # ESLint with auto-fix (uses local config)
+  # ESLint
   - repo: local
     hooks:
       - id: eslint
         name: ESLint
-        entry: npx eslint --fix --max-warnings=50
+        entry: npx eslint --fix
         language: system
-        types_or: [javascript, jsx, ts, tsx]
-        exclude: 'dist/|out/|\.vite/|node_modules/|\.config\.'
+        files: \.(js|jsx|ts|tsx)$
+        pass_filenames: true
 
-  # TypeScript type checking
+  # Prettier auto-format
   - repo: local
     hooks:
-      - id: typecheck
-        name: TypeScript Type Check
-        entry: npx tsc --noEmit
+      - id: prettier
+        name: Prettier
+        entry: npx prettier --write
         language: system
-        types: [ts, tsx]
-        pass_filenames: false
-        stages: [pre-commit]
-
-  # Vitest for changed files (optional - can be slow)
-  # Uncomment to enable test running on commit
-  # - repo: local
-  #   hooks:
-  #     - id: vitest-changed
-  #       name: Vitest (Related Tests)
-  #       entry: npx vitest run --passWithNoTests --reporter=basic
-  #       language: system
-  #       types_or: [ts, tsx]
-  #       pass_filenames: false
-  #       stages: [pre-commit]
+        files: \.(js|jsx|ts|tsx|json|md)$
+        pass_filenames: true
