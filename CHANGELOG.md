@@ -177,4 +177,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub token stored securely
 - OAuth tokens protected
 
-[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/main...HEAD
+## [0.0.3] - 2026-02-12
+
+### Added
+
+- CI/CD pipeline with GitHub Actions
+- Multi-platform builds (Windows, macOS, Linux)
+- Release workflow with automatic changelog extraction
+
+### Fixed
+
+- ESLint flat config compatibility (removed `--ext` flag)
+- Native module compilation for better-sqlite3 and node-pty in CI
+- macOS pip install with `--break-system-packages` flag
+- Windows build environment setup
+- Cross-platform path handling for SSH config
+
+[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/lukadfagundes/cola-records/releases/tag/v0.0.3
