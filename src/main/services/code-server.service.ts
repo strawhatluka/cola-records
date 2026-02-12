@@ -708,7 +708,8 @@ class CodeServerService {
     const lines: string[] = ['# Cola Records SSH Config', ''];
 
     for (const remote of remotes) {
-      const keyBasename = path.basename(remote.keyPath);
+      // Handle both Windows and Unix path separators for cross-platform compatibility
+      const keyBasename = remote.keyPath.split(/[/\\]/).pop() || path.basename(remote.keyPath);
       const containerKeyPath = `/config/.ssh/keys/${keyBasename}`;
 
       // Copy the private key to our keys directory (if it exists on host)
