@@ -92,9 +92,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      # Windows: MSVC 2022 is available by default on windows-latest
       - name: Setup Windows environment
         run: |
-          npm config set msvs_version 2022
+          echo "Windows build environment ready (MSVC 2022 available by default)"
 
       - name: Install dependencies
         run: npm ci
@@ -131,7 +132,7 @@ jobs:
 
       - name: Setup macOS environment
         run: |
-          python3 -m pip install setuptools
+          python3 -m pip install setuptools --break-system-packages
 
       - name: Install dependencies
         run: npm ci
