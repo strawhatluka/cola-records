@@ -1,6 +1,6 @@
 {
   "name": "cola-records",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "productName": "Cola Records",
   "description": "Cola Records - GitHub contribution tracker with integrated IDE",
   "main": ".vite/build/index.js",

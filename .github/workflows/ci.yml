@@ -80,9 +80,11 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      # Rebuild better-sqlite3 from source for Node.js (not the prebuilt Electron binary)
-      - name: Rebuild better-sqlite3 for Node.js
-        run: cd node_modules/better-sqlite3 && npm run build-release
+      # Rebuild native modules from source for Node.js (not the prebuilt Electron binaries)
+      - name: Rebuild native modules for Node.js
+        run: |
+          cd node_modules/better-sqlite3 && npm run build-release
+          cd ../node-pty && npm run build
 
       - name: Run tests with coverage
         run: npm run test:coverage

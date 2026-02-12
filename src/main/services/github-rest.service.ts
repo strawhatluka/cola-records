@@ -1203,7 +1203,7 @@ export class GitHubRestService {
         failed,
         pending,
       };
-    } catch (error) {
+    } catch {
       // If we can't get status, return unknown rather than throwing
       return {
         state: 'unknown',

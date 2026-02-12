@@ -25,7 +25,7 @@ export function MessageList({
     selectedChannelId,
     selectedChannelName,
     selectedChannelType,
-    selectedGuildId: _selectedGuildId,
+    // selectedGuildId not used in this component
     guilds,
     guildEmojis,
     goBack,

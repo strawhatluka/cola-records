@@ -927,7 +927,9 @@ export function PullRequestDetailModal({
                                   // Header line - no line numbers
                                 } else if (lineInfo && idx > 0) {
                                   // Calculate line numbers
-                                  const prevLines = thread.diffHunk!.split('\n').slice(1, idx);
+                                  const prevLines = (thread.diffHunk ?? '')
+                                    .split('\n')
+                                    .slice(1, idx);
                                   const oldOffset = prevLines.filter(
                                     (l) => !l.startsWith('+')
                                   ).length;
@@ -1052,7 +1054,7 @@ export function PullRequestDetailModal({
                                 size="sm"
                                 className="text-xs"
                                 onClick={() =>
-                                  handleToggleResolve(thread.graphqlId!, thread.isResolved)
+                                  handleToggleResolve(thread.graphqlId ?? '', thread.isResolved)
                                 }
                                 disabled={resolvingThread === thread.graphqlId}
                               >
