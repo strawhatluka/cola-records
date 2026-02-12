@@ -164,6 +164,12 @@ export function removeAllIpcHandlers(): void {
     'code-server:start',
     'code-server:stop',
     'code-server:status',
+    // Updater
+    'updater:check',
+    'updater:download',
+    'updater:install',
+    'updater:get-status',
+    'updater:get-version',
   ];
 
   channels.forEach((channel) => {

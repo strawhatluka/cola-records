@@ -12,6 +12,7 @@ import type { Screen } from './components/layout/Sidebar';
 import type { Contribution } from '../main/ipc/channels';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster } from './components/ui/Toaster';
+import { UpdateNotification } from './components/updates';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { useContributionsStore } from './stores/useContributionsStore';
@@ -186,6 +187,7 @@ const App: React.FC = () => {
           {renderScreen()}
         </Layout>
         <Toaster />
+        <UpdateNotification />
       </ThemeProvider>
     </ErrorBoundary>
   );

@@ -177,6 +177,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub token stored securely
 - OAuth tokens protected
 
+## [0.0.4] - 2026-02-12
+
+### Added
+
+- Update notification UI with user action options:
+  - **Install Now**: Download and install updates immediately
+  - **Remind Me Later**: Dismiss notification for current session
+  - **Skip This Version**: Permanently skip specific version (persisted to localStorage)
+- Update notification dialog states: available, downloading (with progress), downloaded, error
+- `useUpdaterStore` Zustand store for update state management
+- IPC event listeners for real-time update progress from main process
+- Comprehensive test coverage for update notification (70 new tests)
+
 ## [0.0.3] - 2026-02-12
 
 ### Added
@@ -193,5 +206,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows build environment setup
 - Cross-platform path handling for SSH config
 
-[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/lukadfagundes/cola-records/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/lukadfagundes/cola-records/releases/tag/v0.0.3
