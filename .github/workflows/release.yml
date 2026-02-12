@@ -106,6 +106,28 @@ jobs:
           # Disable code signing
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
+      - name: Generate latest.yml for auto-updater
+        shell: pwsh
+        run: |
+          $version = "${{ needs.version.outputs.version_without_v }}"
+          $exePath = Get-ChildItem -Path "out/make" -Filter "*.exe" -Recurse | Select-Object -First 1
+          $exeName = $exePath.Name
+          $exeSize = $exePath.Length
+          $sha512 = (Get-FileHash -Path $exePath.FullName -Algorithm SHA512).Hash.ToLower()
+
+          $yaml = @"
+          version: $version
+          files:
+            - url: $exeName
+              sha512: $sha512
+              size: $exeSize
+          path: $exeName
+          sha512: $sha512
+          releaseDate: $(Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+          "@
+
+          $yaml | Out-File -FilePath "out/make/latest.yml" -Encoding utf8
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -114,6 +136,7 @@ jobs:
             out/make/**/*.exe
             out/make/**/*.nupkg
             out/make/**/RELEASES
+            out/make/latest.yml
           retention-days: 1
           if-no-files-found: error
 
@@ -144,6 +167,25 @@ jobs:
           # Disable code signing
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
+      - name: Generate latest-mac.yml for auto-updater
+        run: |
+          VERSION="${{ needs.version.outputs.version_without_v }}"
+          ZIP_PATH=$(find out/make -name "*.zip" | head -1)
+          ZIP_NAME=$(basename "$ZIP_PATH")
+          ZIP_SIZE=$(stat -f%z "$ZIP_PATH" 2>/dev/null || stat -c%s "$ZIP_PATH")
+          SHA512=$(shasum -a 512 "$ZIP_PATH" | cut -d' ' -f1)
+
+          cat > out/make/latest-mac.yml << EOF
+          version: $VERSION
+          files:
+            - url: $ZIP_NAME
+              sha512: $SHA512
+              size: $ZIP_SIZE
+          path: $ZIP_NAME
+          sha512: $SHA512
+          releaseDate: $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+          EOF
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -151,6 +193,7 @@ jobs:
           path: |
             out/make/**/*.dmg
             out/make/**/*.zip
+            out/make/latest-mac.yml
           retention-days: 1
           if-no-files-found: error
 
@@ -241,6 +284,8 @@ jobs:
             artifacts/**/*.rpm
             artifacts/**/*.nupkg
             artifacts/**/RELEASES
+            artifacts/**/latest.yml
+            artifacts/**/latest-mac.yml
           draft: true
           prerelease: false
           generate_release_notes: false

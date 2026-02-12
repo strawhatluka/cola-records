@@ -177,6 +177,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub token stored securely
 - OAuth tokens protected
 
+## [0.0.5] - 2026-02-12
+
+### Fixed
+
+- Auto-updater now programmatically sets GitHub feed URL instead of relying on `app-update.yml` file
+- Release workflow now generates `latest.yml` and `latest-mac.yml` manifests required by electron-updater
+
 ## [0.0.4] - 2026-02-12
 
 ### Added
@@ -206,6 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows build environment setup
 - Cross-platform path handling for SSH config
 
-[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/lukadfagundes/cola-records/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/lukadfagundes/cola-records/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/lukadfagundes/cola-records/releases/tag/v0.0.3

@@ -50,6 +50,13 @@ class UpdaterService {
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
 
+    // Set GitHub as the update provider
+    autoUpdater.setFeedURL({
+      provider: 'github',
+      owner: 'lukadfagundes',
+      repo: 'cola-records',
+    });
+
     // Set up event listeners
     this.setupEventListeners();
 

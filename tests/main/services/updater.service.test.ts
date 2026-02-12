@@ -6,6 +6,7 @@ const {
   mockDownloadUpdate,
   mockQuitAndInstall,
   mockOn,
+  mockSetFeedURL,
   mockSend,
   mockIsDestroyed,
 } = vi.hoisted(() => ({
@@ -13,6 +14,7 @@ const {
   mockDownloadUpdate: vi.fn(),
   mockQuitAndInstall: vi.fn(),
   mockOn: vi.fn(),
+  mockSetFeedURL: vi.fn(),
   mockSend: vi.fn(),
   mockIsDestroyed: vi.fn(() => false),
 }));
@@ -24,6 +26,7 @@ vi.mock('electron-updater', () => ({
     downloadUpdate: mockDownloadUpdate,
     quitAndInstall: mockQuitAndInstall,
     on: mockOn,
+    setFeedURL: mockSetFeedURL,
     autoDownload: false,
     autoInstallOnAppQuit: true,
   },
@@ -79,6 +82,16 @@ describe('UpdaterService', () => {
       expect(mockOn).toHaveBeenCalledWith('download-progress', expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith('update-downloaded', expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith('error', expect.any(Function));
+    });
+
+    it('sets GitHub as the update feed URL', () => {
+      updaterService.initialize(mockWindow);
+
+      expect(mockSetFeedURL).toHaveBeenCalledWith({
+        provider: 'github',
+        owner: 'lukadfagundes',
+        repo: 'cola-records',
+      });
     });
 
     it('schedules initial update check', async () => {
