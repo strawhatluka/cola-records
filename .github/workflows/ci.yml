@@ -84,7 +84,7 @@ jobs:
       - name: Rebuild native modules for Node.js
         run: |
           cd node_modules/better-sqlite3 && npm run build-release
-          cd ../node-pty && node-gyp rebuild
+          cd ../node-pty && npx node-gyp rebuild
 
       - name: Run tests with coverage
         run: npm run test:coverage
