@@ -1,4 +1,7 @@
 import React, { useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { Download, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import {
   Dialog,
@@ -12,6 +15,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Progress } from '../ui/Progress';
 import { useUpdaterStore } from '../../stores/useUpdaterStore';
+import { ipc } from '../../ipc/client';
 
 /**
  * UpdateNotification component
@@ -127,11 +131,84 @@ export const UpdateNotification: React.FC = () => {
 
               {/* Release notes */}
               {updateInfo?.releaseNotes && (
-                <div className="rounded-md border p-3 max-h-40 overflow-y-auto">
+                <div className="rounded-md border p-3 max-h-60 overflow-y-auto styled-scroll">
                   <h4 className="text-sm font-medium mb-2">What&apos;s New</h4>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {updateInfo.releaseNotes}
-                  </p>
+                  <div className="text-sm text-muted-foreground prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeRaw]}
+                      components={{
+                        h1: ({ children, ...props }) => (
+                          <h1 className="text-lg font-semibold mb-2 mt-3" {...props}>
+                            {children}
+                          </h1>
+                        ),
+                        h2: ({ children, ...props }) => (
+                          <h2 className="text-base font-semibold mb-2 mt-3" {...props}>
+                            {children}
+                          </h2>
+                        ),
+                        h3: ({ children, ...props }) => (
+                          <h3 className="text-sm font-semibold mb-1 mt-2" {...props}>
+                            {children}
+                          </h3>
+                        ),
+                        p: ({ children, ...props }) => (
+                          <p className="mb-2 leading-relaxed" {...props}>
+                            {children}
+                          </p>
+                        ),
+                        ul: ({ children, ...props }) => (
+                          <ul className="list-disc pl-4 mb-2 space-y-1" {...props}>
+                            {children}
+                          </ul>
+                        ),
+                        ol: ({ children, ...props }) => (
+                          <ol className="list-decimal pl-4 mb-2 space-y-1" {...props}>
+                            {children}
+                          </ol>
+                        ),
+                        li: ({ children, ...props }) => (
+                          <li className="leading-relaxed" {...props}>
+                            {children}
+                          </li>
+                        ),
+                        a: ({ children, href, ...props }) => (
+                          <a
+                            href={href}
+                            className="text-primary hover:underline cursor-pointer"
+                            onClick={(e) => {
+                              if (href) {
+                                e.preventDefault();
+                                ipc.invoke('shell:open-external', href);
+                              }
+                            }}
+                            {...props}
+                          >
+                            {children}
+                          </a>
+                        ),
+                        code: ({ children, ...props }) => (
+                          <code
+                            className="bg-muted px-1 py-0.5 rounded text-xs font-mono"
+                            {...props}
+                          >
+                            {children}
+                          </code>
+                        ),
+                        pre: ({ children, ...props }) => (
+                          <pre
+                            className="bg-muted/50 border border-border rounded-md p-2 overflow-x-auto my-2 text-xs"
+                            {...props}
+                          >
+                            {children}
+                          </pre>
+                        ),
+                      }}
+                    >
+                      {updateInfo.releaseNotes}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
             </div>
@@ -256,7 +333,7 @@ export const UpdateNotification: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">{renderContent()}</DialogContent>
+      <DialogContent className="sm:max-w-lg">{renderContent()}</DialogContent>
     </Dialog>
   );
 };

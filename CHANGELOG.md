@@ -177,6 +177,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub token stored securely
 - OAuth tokens protected
 
+## [0.0.6] - 2026-02-12
+
+### Fixed
+
+- Update notification release notes now render as Markdown instead of raw HTML
+- Update notification dialog widened and uses styled scrollbars
+
 ## [0.0.5] - 2026-02-12
 
 ### Fixed
@@ -213,7 +220,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows build environment setup
 - Cross-platform path handling for SSH config
 
-[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/lukadfagundes/cola-records/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/lukadfagundes/cola-records/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/lukadfagundes/cola-records/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/lukadfagundes/cola-records/releases/tag/v0.0.3

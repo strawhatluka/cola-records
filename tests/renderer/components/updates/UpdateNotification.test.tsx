@@ -7,6 +7,22 @@ import { useUpdaterStore } from '../../../../src/renderer/stores/useUpdaterStore
 vi.mock('../../../../src/renderer/stores/useUpdaterStore');
 const mockUseUpdaterStore = vi.mocked(useUpdaterStore);
 
+// Mock react-markdown to render children as plain text
+vi.mock('react-markdown', () => ({
+  default: ({ children }: { children: string }) => <div data-testid="markdown">{children}</div>,
+}));
+
+// Mock remark-gfm and rehype-raw
+vi.mock('remark-gfm', () => ({ default: () => {} }));
+vi.mock('rehype-raw', () => ({ default: () => {} }));
+
+// Mock IPC client
+vi.mock('../../../../src/renderer/ipc/client', () => ({
+  ipc: {
+    invoke: vi.fn(),
+  },
+}));
+
 describe('UpdateNotification', () => {
   const defaultMockState = {
     status: 'idle' as const,
