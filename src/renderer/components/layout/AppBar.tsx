@@ -1,9 +1,9 @@
-import { ThemeToggle } from '../ThemeToggle';
 import { SpotifyPlayer } from '../spotify/SpotifyPlayer';
 import { DiscordClient } from '../discord/DiscordClient';
 import { ProjectTabBar } from '../projects/ProjectTabBar';
 import { ipc } from '../../ipc/client';
 import type { OpenProject } from '../../stores/useOpenProjectsStore';
+import { useUpdaterStore } from '../../stores/useUpdaterStore';
 
 interface AppBarProps {
   title: string;
@@ -20,6 +20,8 @@ export function AppBar({
   onSelectProject,
   onCloseProject,
 }: AppBarProps) {
+  const appVersion = useUpdaterStore((state) => state.appVersion);
+
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-6">
       <div className="flex items-center gap-4">
@@ -51,7 +53,7 @@ export function AppBar({
       )}
 
       <div className="flex items-center gap-4">
-        <ThemeToggle />
+        {appVersion && <span className="text-xs text-muted-foreground">v{appVersion}</span>}
       </div>
     </header>
   );

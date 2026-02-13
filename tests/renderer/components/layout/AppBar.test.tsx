@@ -16,13 +16,10 @@ vi.mock('../../../../src/renderer/ipc/client', () => ({
   },
 }));
 
-// Mock ThemeProvider (needed by ThemeToggle)
-vi.mock('../../../../src/renderer/providers/ThemeProvider', () => ({
-  useTheme: () => ({
-    theme: 'system',
-    setTheme: vi.fn(),
-    resolvedTheme: 'light',
-  }),
+// Mock useUpdaterStore
+vi.mock('../../../../src/renderer/stores/useUpdaterStore', () => ({
+  useUpdaterStore: (selector: (state: { appVersion: string }) => string) =>
+    selector({ appVersion: '1.0.0' }),
 }));
 
 // Mock Spotify and Discord components to isolate AppBar tests
@@ -46,9 +43,9 @@ describe('AppBar', () => {
     expect(screen.getByText('My App')).toBeDefined();
   });
 
-  it('renders ThemeToggle button', () => {
+  it('renders version indicator', () => {
     render(<AppBar title="Test" />);
-    expect(screen.getByText('Toggle theme')).toBeDefined();
+    expect(screen.getByText('v1.0.0')).toBeDefined();
   });
 
   it('renders as a header element', () => {
