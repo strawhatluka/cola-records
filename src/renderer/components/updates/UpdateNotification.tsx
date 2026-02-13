@@ -131,7 +131,7 @@ export const UpdateNotification: React.FC = () => {
 
               {/* Release notes */}
               {updateInfo?.releaseNotes && (
-                <div className="rounded-md border p-3 max-h-60 overflow-y-auto styled-scroll">
+                <div className="rounded-md border p-3 max-h-80 overflow-y-auto styled-scroll">
                   <h4 className="text-sm font-medium mb-2">What&apos;s New</h4>
                   <div className="text-sm text-muted-foreground prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown
@@ -333,7 +333,7 @@ export const UpdateNotification: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">{renderContent()}</DialogContent>
+      <DialogContent className="sm:max-w-2xl max-h-[85vh]">{renderContent()}</DialogContent>
     </Dialog>
   );
 };

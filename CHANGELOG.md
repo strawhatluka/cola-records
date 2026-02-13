@@ -171,6 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Update notification dialog enlarged (50% wider, 30% taller) for better readability
+
 ### Security
 
 - Secure storage service for credential management
