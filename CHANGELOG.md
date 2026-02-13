@@ -171,13 +171,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Update notification dialog enlarged (50% wider, 30% taller) for better readability
-
 ### Security
 
 - Secure storage service for credential management
 - GitHub token stored securely
 - OAuth tokens protected
+
+## [0.0.8] - 2026-02-12
+
+### Fixed
+
+- Release workflow now only includes changelog notes in release body (removed Downloads table)
+- Release workflow now requires matching version section in CHANGELOG.md before releasing
+- Update notification dialog enlarged (50% wider, 30% taller) for better readability
 
 ## [0.0.6] - 2026-02-12
 
@@ -222,7 +228,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows build environment setup
 - Cross-platform path handling for SSH config
 
-[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/lukadfagundes/cola-records/compare/v0.0.6...v0.0.8
 [0.0.6]: https://github.com/lukadfagundes/cola-records/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/lukadfagundes/cola-records/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/lukadfagundes/cola-records/compare/v0.0.3...v0.0.4
