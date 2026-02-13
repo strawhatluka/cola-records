@@ -155,10 +155,28 @@ const config: ForgeConfig = {
 owner: lukadfagundes
 repo: cola-records
 `;
-      const resourcesPath = path.join(options.outputPaths[0], 'resources');
-      const appUpdatePath = path.join(resourcesPath, 'app-update.yml');
-      await fs.writeFile(appUpdatePath, appUpdateYml, 'utf-8');
-      console.log(`Generated app-update.yml at ${appUpdatePath}`);
+
+      // Handle different platform structures
+      // macOS: Cola Records.app/Contents/Resources/
+      // Windows/Linux: resources/
+      for (const outputPath of options.outputPaths) {
+        let resourcesPath: string;
+
+        if (options.platform === 'darwin') {
+          // macOS app bundle structure
+          resourcesPath = path.join(outputPath, 'Cola Records.app', 'Contents', 'Resources');
+        } else {
+          // Windows and Linux structure
+          resourcesPath = path.join(outputPath, 'resources');
+        }
+
+        // Ensure resources directory exists
+        await fs.mkdir(resourcesPath, { recursive: true });
+
+        const appUpdatePath = path.join(resourcesPath, 'app-update.yml');
+        await fs.writeFile(appUpdatePath, appUpdateYml, 'utf-8');
+        console.log(`Generated app-update.yml at ${appUpdatePath}`);
+      }
     },
   },
   publishers: [
