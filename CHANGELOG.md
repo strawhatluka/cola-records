@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-02-12
+
+### Fixed
+
+- Moved `app-update.yml` generation to `postPackage` hook so file is placed in correct location (resources folder next to app.asar)
+
 ## [1.0.0] - 2026-02-12
 
 ### Changed

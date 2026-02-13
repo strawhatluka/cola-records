@@ -145,6 +145,21 @@ const config: ForgeConfig = {
         console.error('Failed to copy renderer files:', err);
       }
     },
+    postPackage: async (_config, options) => {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+
+      // Generate app-update.yml for electron-updater in the final packaged output
+      // This file must be in the resources folder next to app.asar
+      const appUpdateYml = `provider: github
+owner: lukadfagundes
+repo: cola-records
+`;
+      const resourcesPath = path.join(options.outputPaths[0], 'resources');
+      const appUpdatePath = path.join(resourcesPath, 'app-update.yml');
+      await fs.writeFile(appUpdatePath, appUpdateYml, 'utf-8');
+      console.log(`Generated app-update.yml at ${appUpdatePath}`);
+    },
   },
   publishers: [
     {
