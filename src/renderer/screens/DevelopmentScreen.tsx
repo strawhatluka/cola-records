@@ -212,8 +212,8 @@ export function DevelopmentScreen({
     fetchPullRequests();
   }, [activeDropdown, fetchPullRequests]);
 
-  // Fetch all branches on mount (for issue-button color logic)
-  useEffect(() => {
+  // Reusable function to fetch branches (for issue-button color logic)
+  const fetchBranches = useCallback(() => {
     if (!contribution.localPath) return;
     ipc
       .invoke('git:get-branches', contribution.localPath)
@@ -224,6 +224,11 @@ export function DevelopmentScreen({
         // Branch fetch is best-effort
       });
   }, [contribution.localPath]);
+
+  // Fetch all branches on mount
+  useEffect(() => {
+    fetchBranches();
+  }, [fetchBranches]);
 
   // Fetch current branch on mount and set up polling for updates
   useEffect(() => {
@@ -894,6 +899,7 @@ export function DevelopmentScreen({
               onClose={() => {
                 setSelectedIssue(null);
                 fetchIssues();
+                fetchBranches();
               }}
             />
           ) : null;
