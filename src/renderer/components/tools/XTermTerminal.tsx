@@ -157,11 +157,12 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
     terminal.attachCustomKeyEventHandler((e: KeyboardEvent) => {
       // Ctrl+V: Paste from clipboard
       if (e.ctrlKey && e.key === 'v' && e.type === 'keydown') {
+        e.preventDefault(); // Block browser native paste to prevent double-paste
         navigator.clipboard
           .readText()
           .then((text) => {
             if (text) {
-              onDataRef.current(text);
+              terminal.paste(text);
             }
           })
           .catch((err) => {

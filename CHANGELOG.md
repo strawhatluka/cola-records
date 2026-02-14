@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed terminal double-paste bug where Ctrl+V pasted clipboard content twice ([#1](https://github.com/lukadfagundes/cola-records/issues/1))
+  - Switched from `onData` to `terminal.paste()` so paste flows through xterm's data handler exactly once
+  - Added `e.preventDefault()` to block the browser's native paste event
+
 ## [1.0.1] - 2026-02-12
 
 ### Fixed
