@@ -64,6 +64,7 @@ out/
 # Temp Files
 BASH-ALIASES.md
 icons.md
+BRANCH_NAMING.md
 
 # Trinity Method SDK
 .claude/
