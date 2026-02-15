@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed "Stop & Back" button closing all open projects instead of only the active one ([#4](https://github.com/lukadfagundes/cola-records/issues/4))
+  - Changed `stopAndGoBack` to use `code-server:remove-workspace` instead of `code-server:stop` so only the current project's workspace is removed
+  - Changed `handleNavigateBack` to use `closeProject` instead of `closeAll` so other open projects are preserved
+
 ## [1.0.1] - 2026-02-12
 
 ### Fixed

@@ -386,12 +386,12 @@ export function DevelopmentScreen({
 
   const stopAndGoBack = useCallback(async () => {
     try {
-      await ipc.invoke('code-server:stop');
+      await ipc.invoke('code-server:remove-workspace', contribution.localPath);
     } catch {
       // Stop failure is non-critical — navigating away anyway
     }
     onNavigateBack();
-  }, [onNavigateBack]);
+  }, [contribution.localPath, onNavigateBack]);
 
   // Auto-start on mount (only if URL not already provided from App.tsx)
   useEffect(() => {

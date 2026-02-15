@@ -127,14 +127,17 @@ const App: React.FC = () => {
     [setActiveProject]
   );
 
-  // Handle navigating back from IDE
-  const handleNavigateBack = useCallback(async () => {
-    // Close all projects and stop container
-    await ipc.invoke('code-server:stop');
-    // Clear all projects in store
-    const { closeAll } = useOpenProjectsStore.getState();
-    closeAll();
-    setCurrentScreen(ideOrigin);
+  // Handle navigating back from IDE (closes only the active project)
+  const handleNavigateBack = useCallback(() => {
+    const { activeProjectId, closeProject } = useOpenProjectsStore.getState();
+    if (activeProjectId) {
+      closeProject(activeProjectId);
+    }
+    // Navigate back only if no projects remain
+    const { projects } = useOpenProjectsStore.getState();
+    if (projects.length === 0) {
+      setCurrentScreen(ideOrigin);
+    }
   }, [ideOrigin]);
 
   // Get the active project for rendering
