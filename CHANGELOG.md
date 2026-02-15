@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-02-15
+
 ### Fixed
 
 - Fixed terminal double-paste bug where Ctrl+V pasted clipboard content twice ([#1](https://github.com/lukadfagundes/cola-records/issues/1))
