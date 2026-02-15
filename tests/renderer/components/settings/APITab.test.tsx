@@ -44,10 +44,11 @@ describe('APITab', () => {
     expect(screen.getByPlaceholderText('ghp_xxxxxxxxxxxx')).toBeDefined();
   });
 
-  it('renders required scopes info', () => {
+  it('renders required permissions info', () => {
     render(<APITab settings={baseSettings} onUpdate={mockOnUpdate} />);
-    expect(screen.getByText('public_repo')).toBeDefined();
-    expect(screen.getByText('read:user')).toBeDefined();
+    expect(screen.getByText('Contents: Read/Write')).toBeDefined();
+    expect(screen.getByText('Pull Requests: Read/Write')).toBeDefined();
+    expect(screen.getByText('Issues: Read/Write')).toBeDefined();
   });
 
   it('has disabled Validate button when token is empty', () => {

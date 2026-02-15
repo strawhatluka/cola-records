@@ -265,8 +265,8 @@ export function DevelopmentIssueDetailModal({
         );
         if (isMounted.current) setComments(updatedComments);
       }
-    } catch {
-      // Close issue failed
+    } catch (err) {
+      alert(`Failed to close issue: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       if (isMounted.current) setClosing(false);
     }
@@ -281,8 +281,8 @@ export function DevelopmentIssueDetailModal({
         state_reason: 'reopened',
       });
       if (isMounted.current) setIssueState('open');
-    } catch {
-      // Reopen issue failed
+    } catch (err) {
+      alert(`Failed to reopen issue: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       if (isMounted.current) setClosing(false);
     }
