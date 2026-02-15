@@ -280,9 +280,57 @@ describe('CodeServerService', () => {
   });
 
   describe('checkDockerAvailable', () => {
-    it('resolves when docker info succeeds', async () => {
+    it('resolves immediately when docker info succeeds', async () => {
       // Default mock returns successful output
       await expect(codeServerService.checkDockerAvailable()).resolves.toBeUndefined();
+    });
+
+    it('auto-starts Docker Desktop and resolves when docker becomes available', async () => {
+      vi.useFakeTimers();
+      let callCount = 0;
+      setMockDockerResponse(() => {
+        callCount++;
+        // Fail first 3 calls (initial check + launchDockerDesktop + 1st poll), succeed on 4th
+        if (callCount <= 3) {
+          return Promise.reject(new Error('Docker not running'));
+        }
+        return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+      });
+
+      const promise = codeServerService.checkDockerAvailable();
+
+      // Advance through polling delays (2s each) — need enough ticks for the promise to settle
+      for (let i = 0; i < 3; i++) {
+        await vi.advanceTimersByTimeAsync(2000);
+      }
+
+      await expect(promise).resolves.toBeUndefined();
+      vi.useRealTimers();
+    });
+
+    it('throws after polling timeout when Docker never becomes available', async () => {
+      vi.useFakeTimers();
+      setMockDockerResponse(() => {
+        return Promise.reject(new Error('Docker not running'));
+      });
+
+      const promise = codeServerService.checkDockerAvailable();
+
+      // Eagerly attach rejection handler so the rejection is never "unhandled"
+      const resultPromise = promise.then(
+        () => null,
+        (e: Error) => e
+      );
+
+      // Advance through all 30 polling attempts (30 × 2s = 60s)
+      for (let i = 0; i < 30; i++) {
+        await vi.advanceTimersByTimeAsync(2000);
+      }
+
+      const error = await resultPromise;
+      expect(error).toBeInstanceOf(Error);
+      expect(error!.message).toContain('Docker Desktop is not running');
+      vi.useRealTimers();
     });
   });
 

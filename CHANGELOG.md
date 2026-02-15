@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed `stopAndGoBack` to use `code-server:remove-workspace` instead of `code-server:stop` so only the current project's workspace is removed
   - Changed `handleNavigateBack` to use `closeProject` instead of `closeAll` so other open projects are preserved
 
+### Added
+
+- Auto-start Docker Desktop when navigating to the Development screen ([#5](https://github.com/lukadfagundes/cola-records/issues/5))
+  - Added `launchDockerDesktop()` with platform-specific launch commands (macOS, Windows, Linux)
+  - Modified `checkDockerAvailable()` to automatically launch Docker Desktop and poll for up to 60 seconds
+
 ## [1.0.1] - 2026-02-12
 
 ### Fixed

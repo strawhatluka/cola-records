@@ -784,16 +784,68 @@ class CodeServerService {
 
   /**
    * Check if Docker is available and running.
-   * Throws with a clear message if not.
+   * If Docker is not running, attempts to auto-start Docker Desktop
+   * and polls until it becomes available (up to 60 seconds).
+   * Throws with a clear message if Docker cannot be started.
    */
   async checkDockerAvailable(): Promise<void> {
+    // Quick check — Docker may already be running
     try {
       await this.dockerExec(['info', '--format', '{{.ServerVersion}}']);
+      return;
     } catch {
-      throw new Error(
-        'Docker Desktop is not running. Please start Docker Desktop and try again.\n\n' +
-          'If Docker is not installed, download it from: https://www.docker.com/products/docker-desktop/'
-      );
+      // Docker not available yet
+    }
+
+    // Attempt to auto-start Docker Desktop
+    console.log('[CodeServer] Docker not running, attempting to start Docker Desktop...');
+    await this.launchDockerDesktop();
+
+    // Poll until Docker responds
+    const maxAttempts = 30; // 30 × 2s = 60 seconds
+    const delay = 2000;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      try {
+        await this.dockerExec(['info', '--format', '{{.ServerVersion}}']);
+        console.log(`[CodeServer] Docker became available after ${attempt * 2} seconds`);
+        return;
+      } catch {
+        // Still not ready
+      }
+    }
+
+    throw new Error(
+      'Docker Desktop is not running. Please start Docker Desktop and try again.\n\n' +
+        'If Docker is not installed, download it from: https://www.docker.com/products/docker-desktop/'
+    );
+  }
+
+  /**
+   * Attempt to launch Docker Desktop using platform-specific commands.
+   * This is best-effort — failures are silently ignored since the
+   * polling loop in checkDockerAvailable() will handle the result.
+   */
+  private async launchDockerDesktop(): Promise<void> {
+    try {
+      switch (process.platform) {
+        case 'darwin':
+          await execFileAsync('open', ['-a', 'Docker']);
+          break;
+        case 'win32': {
+          const programFiles = process.env.ProgramW6432 || 'C:\\Program Files';
+          await execFileAsync(
+            path.join(programFiles, 'Docker', 'Docker', 'Docker Desktop.exe'),
+            []
+          );
+          break;
+        }
+        default: // linux
+          await execFileAsync('systemctl', ['--user', 'start', 'docker-desktop']);
+          break;
+      }
+    } catch {
+      // Launch attempt is best-effort; polling will handle the result
     }
   }
 
