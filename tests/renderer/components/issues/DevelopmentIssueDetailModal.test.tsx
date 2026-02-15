@@ -404,6 +404,81 @@ describe('DevelopmentIssueDetailModal', () => {
     expect(screen.queryByText('branched')).toBeNull();
   });
 
+  describe('close/reopen error feedback', () => {
+    it('shows alert when closing issue fails', async () => {
+      setupMockIPC();
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+      const user = userEvent.setup();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Close')).toBeDefined();
+      });
+
+      // Make update-issue reject after initial load succeeds
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:update-issue') {
+          throw new Error('Insufficient permissions');
+        }
+        return undefined;
+      });
+
+      // Open close menu via the destructive Close button (not the dialog sr-only Close)
+      const closeBtn = screen
+        .getAllByText('Close')
+        .find((el) => el.closest('button[data-variant="destructive"]'))!;
+      await user.click(closeBtn);
+      await user.click(screen.getByText('Close as completed'));
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith('Failed to close issue: Insufficient permissions');
+      });
+      alertSpy.mockRestore();
+    });
+
+    it('shows alert when reopening issue fails', async () => {
+      setupMockIPC();
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+      const user = userEvent.setup();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={{ ...baseIssue, state: 'closed' }}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Reopen')).toBeDefined();
+      });
+
+      // Make update-issue reject
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:update-issue') {
+          throw new Error('Insufficient permissions');
+        }
+        return undefined;
+      });
+
+      await user.click(screen.getByText('Reopen'));
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith('Failed to reopen issue: Insufficient permissions');
+      });
+      alertSpy.mockRestore();
+    });
+  });
+
   describe('comment submission', () => {
     it('submit button is disabled when textarea is empty', async () => {
       setupMockIPC();
