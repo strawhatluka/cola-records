@@ -78,8 +78,10 @@ export function APITab({ settings, onUpdate }: APITabProps) {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Required scopes: <code className="bg-muted px-1">public_repo</code>,{' '}
-              <code className="bg-muted px-1">read:user</code>
+              Fine Grained Token Required Permissions:
+              <code className="bg-muted px-1">Contents: Read/Write</code>,{' '}
+              <code className="bg-muted px-1">Pull Requests: Read/Write</code>,{' '}
+              <code className="bg-muted px-1">Issues: Read/Write</code>
             </p>
             {tokenValid === false && (
               <p className="text-xs text-destructive mt-1">

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed terminal double-paste bug where Ctrl+V pasted clipboard content twice ([#1](https://github.com/lukadfagundes/cola-records/issues/1))
+  - Switched from `onData` to `terminal.paste()` so paste flows through xterm's data handler exactly once
+  - Added `e.preventDefault()` to block the browser's native paste event
+- Fixed issue close/reopen failing silently with no user feedback ([#10](https://github.com/lukadfagundes/cola-records/issues/10))
+  - Added error alerts to `handleCloseIssue` and `handleReopenIssue` so users see why the operation failed
+  - Added `Issues: Read/Write` to required GitHub token permissions in `.env.example`
+- Fixed Issues button color and "branched" badge not updating after Fix Issue creates a branch
+  - Extracted branch fetching into reusable `fetchBranches` callback and added it to the issue modal's `onClose` handler
+  - Fix required permissions in 'settings/api' screen
 - Fixed "Stop & Back" button closing all open projects instead of only the active one ([#4](https://github.com/lukadfagundes/cola-records/issues/4))
   - Changed `stopAndGoBack` to use `code-server:remove-workspace` instead of `code-server:stop` so only the current project's workspace is removed
   - Changed `handleNavigateBack` to use `closeProject` instead of `closeAll` so other open projects are preserved

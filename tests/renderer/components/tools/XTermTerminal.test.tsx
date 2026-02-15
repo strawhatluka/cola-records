@@ -13,6 +13,7 @@ vi.mock('@xterm/xterm', () => {
   const mockGetSelection = vi.fn();
   const mockClearSelection = vi.fn();
   const mockAttachCustomKeyEventHandler = vi.fn();
+  const mockPaste = vi.fn();
 
   return {
     Terminal: class MockTerminal {
@@ -25,6 +26,7 @@ vi.mock('@xterm/xterm', () => {
       getSelection = mockGetSelection;
       clearSelection = mockClearSelection;
       attachCustomKeyEventHandler = mockAttachCustomKeyEventHandler;
+      paste = mockPaste;
       cols = 80;
       rows = 24;
 
@@ -44,6 +46,7 @@ vi.mock('@xterm/xterm', () => {
           mockGetSelection,
           mockClearSelection,
           mockAttachCustomKeyEventHandler,
+          mockPaste,
         };
       }
     },
@@ -264,7 +267,7 @@ describe('XTermTerminal', () => {
     });
 
     describe('Paste (Ctrl+V)', () => {
-      it('should paste clipboard content on Ctrl+V', async () => {
+      it('should paste clipboard content on Ctrl+V via terminal.paste()', async () => {
         mockClipboard.readText.mockResolvedValue('pasted text');
 
         render(
@@ -272,7 +275,7 @@ describe('XTermTerminal', () => {
         );
 
         // Get the custom key event handler that was registered
-        const { mockAttachCustomKeyEventHandler } = (Terminal as any).getMocks();
+        const { mockAttachCustomKeyEventHandler, mockPaste } = (Terminal as any).getMocks();
         expect(mockAttachCustomKeyEventHandler).toHaveBeenCalled();
 
         // Get the handler function
@@ -283,6 +286,7 @@ describe('XTermTerminal', () => {
           key: 'v',
           ctrlKey: true,
           bubbles: true,
+          cancelable: true,
         });
 
         // Call the handler - it should return false to prevent xterm from processing
@@ -294,8 +298,10 @@ describe('XTermTerminal', () => {
           expect(mockClipboard.readText).toHaveBeenCalled();
         });
 
+        // Should use terminal.paste() instead of calling onData directly
+        // This ensures paste flows through xterm's onData exactly once
         await vi.waitFor(() => {
-          expect(mockOnData).toHaveBeenCalledWith('pasted text');
+          expect(mockPaste).toHaveBeenCalledWith('pasted text');
         });
       });
 
@@ -307,7 +313,7 @@ describe('XTermTerminal', () => {
         );
 
         // Get the custom key event handler
-        const { mockAttachCustomKeyEventHandler } = (Terminal as any).getMocks();
+        const { mockAttachCustomKeyEventHandler, mockPaste } = (Terminal as any).getMocks();
         const handler = mockAttachCustomKeyEventHandler.mock.calls[0][0];
 
         // Simulate Ctrl+V keydown event
@@ -315,6 +321,7 @@ describe('XTermTerminal', () => {
           key: 'v',
           ctrlKey: true,
           bubbles: true,
+          cancelable: true,
         });
 
         handler(event);
@@ -323,11 +330,11 @@ describe('XTermTerminal', () => {
           expect(mockClipboard.readText).toHaveBeenCalled();
         });
 
-        // Should not call onData with empty string
-        expect(mockOnData).not.toHaveBeenCalledWith('');
+        // Should not call terminal.paste() with empty string
+        expect(mockPaste).not.toHaveBeenCalled();
       });
 
-      it('should return false on Ctrl+V to prevent xterm processing', () => {
+      it('should return false and call preventDefault on Ctrl+V to block native paste', () => {
         mockClipboard.readText.mockResolvedValue('text');
 
         render(
@@ -345,10 +352,15 @@ describe('XTermTerminal', () => {
           bubbles: true,
           cancelable: true,
         });
+        const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
 
         // Handler should return false to prevent xterm from processing
         const result = handler(event);
         expect(result).toBe(false);
+
+        // preventDefault must be called to block browser native paste event
+        // This is critical to prevent the double-paste bug
+        expect(preventDefaultSpy).toHaveBeenCalled();
       });
     });
 
