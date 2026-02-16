@@ -73,6 +73,47 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // Documentation handler
+  handleIpc('docs:get-structure', async () => {
+    const fs = await import('fs');
+    const docsPath = app.isPackaged
+      ? path.join(path.dirname(app.getPath('exe')), 'docs')
+      : path.join(process.cwd(), 'docs');
+
+    if (!fs.existsSync(docsPath)) {
+      return [];
+    }
+
+    const entries = fs.readdirSync(docsPath, { withFileTypes: true });
+    const categories: import('./ipc/channels').DocsCategory[] = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const categoryPath = path.join(docsPath, entry.name);
+      const files = fs.readdirSync(categoryPath, { withFileTypes: true });
+      const mdFiles = files
+        .filter((f) => f.isFile() && f.name.endsWith('.md'))
+        .map((f) => ({
+          name: f.name,
+          path: path.join(categoryPath, f.name),
+          displayName: f.name
+            .replace(/\.md$/, '')
+            .replace(/[-_]/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase()),
+        }))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+      if (mdFiles.length > 0) {
+        categories.push({
+          name: entry.name.replace(/\b\w/g, (c) => c.toUpperCase()),
+          files: mdFiles,
+        });
+      }
+    }
+
+    return categories.sort((a, b) => a.name.localeCompare(b.name));
+  });
+
   // Git handlers
   handleIpc('git:status', async (_event, repoPath) => {
     return await gitService.getStatus(repoPath);

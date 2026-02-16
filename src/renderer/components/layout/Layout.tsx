@@ -20,6 +20,7 @@ const screenTitles: Record<Screen, string> = {
   professional: 'Professional Projects',
   contributions: 'My Contributions',
   settings: 'Settings',
+  documentation: 'Documentation',
   ide: 'Development',
 };
 

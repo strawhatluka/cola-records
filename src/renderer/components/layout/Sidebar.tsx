@@ -6,6 +6,7 @@ import {
   FolderGit2,
   Briefcase,
   Settings,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ export type Screen =
   | 'professional'
   | 'contributions'
   | 'settings'
+  | 'documentation'
   | 'ide';
 
 interface SidebarProps {
@@ -42,6 +44,7 @@ const navItems: NavItem[] = [
   { id: 'professional', label: 'Professional Projects', icon: Briefcase },
   { id: 'contributions', label: 'Contributions', icon: GitPullRequest },
   { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'documentation', label: 'Documentation', icon: BookOpen },
 ];
 
 export function Sidebar({ currentScreen, onScreenChange, collapsed, onToggle }: SidebarProps) {

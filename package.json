@@ -110,6 +110,7 @@
     "electron-updater": "^6.7.3",
     "ignore": "^7.0.5",
     "lucide-react": "^0.563.0",
+    "mermaid": "^11.12.2",
     "monaco-editor": "^0.55.1",
     "node-pty": "^1.1.0",
     "react": "^19.2.3",
