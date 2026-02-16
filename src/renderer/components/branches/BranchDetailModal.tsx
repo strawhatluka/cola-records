@@ -76,13 +76,13 @@ export function BranchDetailModal({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md overflow-hidden">
         <DialogHeader>
-          <div className="flex items-start gap-3">
-            <GitBranch className="h-6 w-6 text-primary mt-0.5" />
-            <div className="flex-1">
-              <DialogTitle className="text-xl">{branchName}</DialogTitle>
-              <DialogDescription className="mt-1">Branch details and statistics</DialogDescription>
+          <div className="flex items-start gap-2.5">
+            <GitBranch className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-base break-all">{branchName}</DialogTitle>
+              <DialogDescription>Branch details and statistics</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -101,38 +101,40 @@ export function BranchDetailModal({
         )}
 
         {branchInfo && !loading && (
-          <div className="space-y-6">
+          <div className="space-y-4 min-w-0">
             {/* Status Badges */}
-            <div className="flex flex-wrap gap-2">
-              {branchInfo.isCurrent && (
-                <Badge variant="default" className="bg-green-500 text-white">
-                  Current Branch
-                </Badge>
-              )}
-              {branchInfo.isProtected && (
-                <Badge variant="secondary">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  Protected
-                </Badge>
-              )}
-            </div>
+            {(branchInfo.isCurrent || branchInfo.isProtected) && (
+              <div className="flex flex-wrap gap-2">
+                {branchInfo.isCurrent && (
+                  <Badge variant="default" className="bg-green-500 text-white">
+                    Current Branch
+                  </Badge>
+                )}
+                {branchInfo.isProtected && (
+                  <Badge variant="secondary">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Protected
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {/* Branch Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-md bg-muted/50 border border-border">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                  <GitCommit className="h-4 w-4" />
+            <div className="grid grid-cols-2 gap-3 min-w-0">
+              <div className="p-3 rounded-md bg-muted/50 border border-border min-w-0">
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs mb-1">
+                  <GitCommit className="h-3.5 w-3.5 shrink-0" />
                   <span>Commits</span>
                 </div>
-                <div className="text-2xl font-semibold">{branchInfo.commitCount}</div>
+                <div className="text-xl font-semibold">{branchInfo.commitCount}</div>
               </div>
-              <div className="p-4 rounded-md bg-muted/50 border border-border">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                  <ArrowUp className="h-4 w-4 text-green-500" />
-                  <ArrowDown className="h-4 w-4 text-red-500" />
+              <div className="p-3 rounded-md bg-muted/50 border border-border min-w-0">
+                <div className="flex items-center gap-1.5 text-muted-foreground text-xs mb-1">
+                  <ArrowUp className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                  <ArrowDown className="h-3.5 w-3.5 text-red-500 shrink-0" />
                   <span>Ahead / Behind</span>
                 </div>
-                <div className="text-2xl font-semibold">
+                <div className="text-xl font-semibold">
                   <span className="text-green-500">+{branchInfo.ahead}</span>
                   {' / '}
                   <span className="text-red-500">-{branchInfo.behind}</span>
@@ -141,28 +143,26 @@ export function BranchDetailModal({
             </div>
 
             {/* Last Commit */}
-            <div className="p-4 rounded-md bg-muted/50 border border-border">
-              <div className="text-sm font-medium mb-3">Last Commit</div>
-              <div className="space-y-2">
-                <div className="flex items-start gap-2">
-                  <GitCommit className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-mono truncate">
+            <div className="p-3 rounded-md bg-muted/50 border border-border min-w-0 overflow-hidden">
+              <div className="text-xs font-medium text-muted-foreground mb-2">Last Commit</div>
+              <div className="flex items-start gap-2 min-w-0">
+                <GitCommit className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="text-xs font-mono text-muted-foreground shrink-0">
                       {branchInfo.lastCommit.hash.slice(0, 7)}
-                    </div>
-                    <div className="text-sm text-muted-foreground truncate">
-                      {branchInfo.lastCommit.message}
-                    </div>
+                    </span>
+                    <span className="text-sm truncate">{branchInfo.lastCommit.message}</span>
                   </div>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <User className="h-3 w-3" />
-                    <span>{branchInfo.lastCommit.author}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{new Date(branchInfo.lastCommit.date).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <User className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{branchInfo.lastCommit.author}</span>
+                    </span>
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Clock className="h-3 w-3" />
+                      {new Date(branchInfo.lastCommit.date).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -170,76 +170,71 @@ export function BranchDetailModal({
 
             {/* Delete Section */}
             {!showDeleteConfirm ? (
-              <div className="pt-4 border-t border-border">
+              <div className="pt-3 border-t border-border flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">
+                  {!canDelete && branchInfo.isCurrent && 'Cannot delete the current branch'}
+                  {!canDelete && branchInfo.isProtected && 'Cannot delete protected branches'}
+                </div>
                 <Button
-                  variant="destructive"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={!canDelete}
-                  className="w-full"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                   Delete Branch
                 </Button>
-                {!canDelete && branchInfo.isCurrent && (
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Cannot delete the currently checked out branch
-                  </p>
-                )}
-                {!canDelete && branchInfo.isProtected && (
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Cannot delete protected branches (main, master, dev, develop)
-                  </p>
-                )}
               </div>
             ) : (
-              <div className="pt-4 border-t border-border space-y-4">
-                <div className="p-4 rounded-md bg-destructive/10 border border-destructive/20">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="pt-3 border-t border-border space-y-3">
+                <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-destructive">
-                        Are you sure you want to delete &ldquo;{branchName}&rdquo;?
+                        Delete &ldquo;{branchName}&rdquo;?
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        This action cannot be undone. The branch will be permanently removed.
+                        This action cannot be undone.
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {deleteError && (
-                  <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                  <div className="p-2.5 rounded-md bg-destructive/10 text-destructive text-sm">
                     {deleteError}
                   </div>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => {
                       setShowDeleteConfirm(false);
                       setDeleteError(null);
                     }}
                     disabled={deleting}
-                    className="flex-1"
                   >
                     Cancel
                   </Button>
                   {deleteError?.includes('force delete') ? (
                     <Button
                       variant="destructive"
+                      size="sm"
                       onClick={() => handleDelete(true)}
                       disabled={deleting}
-                      className="flex-1"
                     >
                       {deleting ? 'Deleting...' : 'Force Delete'}
                     </Button>
                   ) : (
                     <Button
                       variant="destructive"
+                      size="sm"
                       onClick={() => handleDelete(false)}
                       disabled={deleting}
-                      className="flex-1"
                     >
                       {deleting ? 'Deleting...' : 'Confirm Delete'}
                     </Button>
