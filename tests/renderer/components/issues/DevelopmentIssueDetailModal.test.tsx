@@ -408,7 +408,7 @@ describe('DevelopmentIssueDetailModal', () => {
     it('shows alert when closing issue fails', async () => {
       setupMockIPC();
       const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       render(
         <DevelopmentIssueDetailModal
           issue={baseIssue}
@@ -447,7 +447,7 @@ describe('DevelopmentIssueDetailModal', () => {
     it('shows alert when reopening issue fails', async () => {
       setupMockIPC();
       const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       render(
         <DevelopmentIssueDetailModal
           issue={{ ...baseIssue, state: 'closed' }}
