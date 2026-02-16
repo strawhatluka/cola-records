@@ -49,6 +49,7 @@ describe('APITab', () => {
     expect(screen.getByText('Contents: Read/Write')).toBeDefined();
     expect(screen.getByText('Pull Requests: Read/Write')).toBeDefined();
     expect(screen.getByText('Issues: Read/Write')).toBeDefined();
+    expect(screen.getByText('Administration: Read/Write')).toBeDefined();
   });
 
   it('has disabled Validate button when token is empty', () => {

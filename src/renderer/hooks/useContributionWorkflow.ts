@@ -3,6 +3,7 @@ import { ipc } from '../ipc/client';
 import { useContributionsStore } from '../stores/useContributionsStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import type { GitHubIssue, Contribution } from '../../main/ipc/channels';
+import { generateBranchName } from '../utils/branch-naming';
 
 type WorkflowStatus =
   | 'idle'
@@ -59,7 +60,7 @@ export function useContributionWorkflow() {
 
       // Step 4: Create feature branch (85% progress)
       setState({ status: 'creating_branch', progress: 85, error: null, contribution: null });
-      const branchName = `fix-issue-${issue.number}`;
+      const branchName = generateBranchName(issue);
       await ipc.invoke('git:create-branch', localPath, branchName);
       await ipc.invoke('git:checkout', localPath, branchName);
 
