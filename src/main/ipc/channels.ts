@@ -24,6 +24,18 @@ export interface FileContent {
   encoding: string;
 }
 
+// Documentation Types
+export interface DocsFile {
+  name: string;
+  path: string;
+  displayName: string;
+}
+
+export interface DocsCategory {
+  name: string;
+  files: DocsFile[];
+}
+
 // Git Types
 export interface GitStatus {
   current: string | null;
@@ -931,6 +943,9 @@ export interface IpcChannels {
   'dev-scripts:get-all': (projectPath: string) => DevScript[];
   'dev-scripts:save': (script: DevScript) => void;
   'dev-scripts:delete': (id: string) => void;
+
+  // Documentation Channels
+  'docs:get-structure': () => DocsCategory[];
 
   // Updater Channels
   'updater:check': () => {

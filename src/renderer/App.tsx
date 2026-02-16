@@ -8,6 +8,7 @@ import { ProjectsScreen } from './screens/ProjectsScreen';
 import { ProfessionalProjectsScreen } from './screens/ProfessionalProjectsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { DevelopmentScreen } from './screens/DevelopmentScreen';
+import { DocumentationScreen } from './screens/DocumentationScreen';
 import type { Screen } from './components/layout/Sidebar';
 import type { Contribution } from '../main/ipc/channels';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -157,6 +158,8 @@ const App: React.FC = () => {
         return <ContributionsScreen onOpenIDE={(c) => handleOpenIDE(c, 'contributions')} />;
       case 'settings':
         return <SettingsScreen />;
+      case 'documentation':
+        return <DocumentationScreen />;
       case 'ide':
         return activeProject ? (
           <DevelopmentScreen

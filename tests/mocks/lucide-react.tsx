@@ -26,6 +26,7 @@ export const AtSign = createIcon('AtSign');
 export const Ban = createIcon('Ban');
 export const Bold = createIcon('Bold');
 export const BookMarked = createIcon('BookMarked');
+export const BookOpen = createIcon('BookOpen');
 export const Briefcase = createIcon('Briefcase');
 export const Calendar = createIcon('Calendar');
 export const Check = createIcon('Check');

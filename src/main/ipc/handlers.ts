@@ -160,6 +160,8 @@ export function removeAllIpcHandlers(): void {
     'discord:get-thread-messages',
     'discord:send-thread-message',
     'discord:create-forum-thread',
+    // Documentation
+    'docs:get-structure',
     // Code Server
     'code-server:start',
     'code-server:stop',
