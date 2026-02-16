@@ -14,6 +14,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Category-based browsing of `docs/` directory (subdirectories as categories)
   - Full GitHub Flavored Markdown rendering with Mermaid diagram support
   - New `docs:get-structure` IPC channel for documentation tree retrieval
+- Code Server settings tab for Docker container resource configuration ([#3](https://github.com/lukadfagundes/cola-records/issues/3))
+  - Resource allocation with presets (Light, Standard, Performance, Unlimited) and manual CPU/memory/shared memory controls
+  - Live container usage display polling `docker stats` every 5 seconds with CPU and memory progress bars
+  - Startup behavior settings: auto-start Docker Desktop toggle and configurable health check timeout
+  - VS Code settings: auto-sync host settings toggle, GPU acceleration select, terminal scrollback lines
+  - Extension management: add/remove VS Code extension IDs for auto-install on container start
+  - Environment configuration: timezone setting and custom environment variables with reserved name validation
+  - Advanced: configurable container name
+  - New `code-server:get-stats` IPC channel for real-time container resource monitoring
+  - New `CodeServerConfig` and `EnvVar` type definitions with full IPC round-trip persistence
+- Automatic container recreation when resource config changes ([#3](https://github.com/lukadfagundes/cola-records/issues/3))
+  - `hasResourceConfigChanged()` compares saved CPU/memory/SHM settings against running container via `docker inspect`
+  - `parseMemoryString()` converts Docker memory notation (e.g. `4g`, `512m`) to bytes for comparison
+  - `start()` now detects config drift on stopped or running containers and recreates with updated settings
+- `checkDockerAvailable()` respects `autoStartDocker` config setting — throws immediately when disabled instead of polling
+
+### Tests
+
+- 67 new tests for Code Server settings feature (1752 total, 108 test files, all passing)
+  - `CodeServerTab.test.tsx`: 37 tests covering rendering, presets, save/reset/validation, extensions, env vars, stats polling
+  - `code-server.service.test.ts`: 24 tests covering resource config in `createContainer`, env/startup config, `getContainerStats`, `hasResourceConfigChanged`, container recreation on config change
+  - `useSettingsStore.test.ts`: 4 tests covering `codeServerConfig` state lifecycle
+  - `SettingsScreen.test.tsx`: 2 tests covering Code Server tab navigation
+  - `factories.ts`: New `createMockCodeServerConfig()` and `createMockEnvVar()` test factories
 
 ## [1.0.3] - 2026-02-15
 

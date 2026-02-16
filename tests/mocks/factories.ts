@@ -12,6 +12,8 @@ import type {
   GitFileStatus,
   AppSettings,
   Alias,
+  CodeServerConfig,
+  EnvVar,
   SpotifyTrack,
   SpotifyPlaybackState,
   SpotifyPlaylist,
@@ -110,6 +112,36 @@ export function createMockAlias(overrides?: Partial<Alias>): Alias {
   return {
     name: 'gp',
     command: 'git push',
+    ...overrides,
+  };
+}
+
+// ── Code Server Factories ─────────────────────────────────────────
+
+export function createMockEnvVar(overrides?: Partial<EnvVar>): EnvVar {
+  return {
+    key: 'MY_VAR',
+    value: 'my_value',
+    ...overrides,
+  };
+}
+
+export function createMockCodeServerConfig(
+  overrides?: Partial<CodeServerConfig>
+): CodeServerConfig {
+  return {
+    cpuLimit: null,
+    memoryLimit: null,
+    shmSize: '256m',
+    autoStartDocker: true,
+    healthCheckTimeout: 90,
+    autoSyncHostSettings: true,
+    gpuAcceleration: 'on',
+    terminalScrollback: 1000,
+    autoInstallExtensions: [],
+    timezone: 'UTC',
+    customEnvVars: [],
+    containerName: 'cola-code-server',
     ...overrides,
   };
 }

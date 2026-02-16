@@ -440,6 +440,15 @@ const setupIpcHandlers = () => {
       bashProfile = undefined;
     }
 
+    let codeServerConfig: import('./ipc/channels').CodeServerConfig | undefined;
+    try {
+      if (settings.codeServerConfig) {
+        codeServerConfig = JSON.parse(settings.codeServerConfig);
+      }
+    } catch {
+      codeServerConfig = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -451,6 +460,7 @@ const setupIpcHandlers = () => {
       autoFetch: settings.autoFetch === 'true',
       aliases,
       bashProfile,
+      codeServerConfig,
     };
   });
 
@@ -493,6 +503,9 @@ const setupIpcHandlers = () => {
         updates.defaultProfessionalProjectsPath
       );
     }
+    if (updates.codeServerConfig !== undefined) {
+      database.setSetting('codeServerConfig', JSON.stringify(updates.codeServerConfig));
+    }
 
     // Return updated settings
     const settings = database.getAllSettings();
@@ -512,6 +525,15 @@ const setupIpcHandlers = () => {
       bashProfile = undefined;
     }
 
+    let codeServerConfig: import('./ipc/channels').CodeServerConfig | undefined;
+    try {
+      if (settings.codeServerConfig) {
+        codeServerConfig = JSON.parse(settings.codeServerConfig);
+      }
+    } catch {
+      codeServerConfig = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -523,6 +545,7 @@ const setupIpcHandlers = () => {
       autoFetch: settings.autoFetch === 'true',
       aliases,
       bashProfile,
+      codeServerConfig,
     };
   });
 
@@ -1072,6 +1095,10 @@ const setupIpcHandlers = () => {
 
   handleIpc('code-server:get-mounted-projects', async () => {
     return codeServerService.getMountedProjects();
+  });
+
+  handleIpc('code-server:get-stats', async () => {
+    return await codeServerService.getContainerStats();
   });
 
   // Terminal handlers

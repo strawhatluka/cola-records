@@ -24,6 +24,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   defaultProfessionalProjectsPath: '',
   autoFetch: true,
   aliases: [],
+  codeServerConfig: undefined,
   loading: false,
   error: null,
 
