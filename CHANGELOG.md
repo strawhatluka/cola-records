@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Branch naming now follows `<type>/<number>-<description>` convention ([#7](https://github.com/lukadfagundes/cola-records/issues/7))
+  - Added `generateBranchName()` utility that maps GitHub labels to type prefixes (bug→fix, enhancement→feat, documentation→docs, etc.)
+  - Updated both Development screen and Issues screen branch creation to use new naming
+
 ## [1.0.2] - 2026-02-15
 
 ### Fixed

@@ -104,7 +104,10 @@ describe('ContributionWorkflowModal', () => {
   });
 
   it('shows complete state with contribution info', () => {
-    const contribution = createMockContribution({ localPath: '/test/path', branchName: 'fix-42' });
+    const contribution = createMockContribution({
+      localPath: '/test/path',
+      branchName: 'docs/42-good-first-issue-fix',
+    });
     mockState = { status: 'complete', progress: 100, error: null, contribution };
     render(
       <ContributionWorkflowModal
@@ -117,7 +120,7 @@ describe('ContributionWorkflowModal', () => {
     );
     expect(screen.getByText('Setup complete! Repository is ready for development.')).toBeDefined();
     expect(screen.getByText('/test/path')).toBeDefined();
-    expect(screen.getByText('fix-42')).toBeDefined();
+    expect(screen.getByText('docs/42-good-first-issue-fix')).toBeDefined();
     expect(screen.getByText('Start Dev')).toBeDefined();
     expect(screen.getByText('Done')).toBeDefined();
   });

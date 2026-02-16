@@ -58,7 +58,7 @@ describe('useContributionWorkflow', () => {
             localPath: '/mock/contributions/repo',
             issueNumber: 42,
             issueTitle: 'Fix bug',
-            branchName: 'fix-issue-42',
+            branchName: 'fix/42-fix-bug',
             status: 'in_progress',
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -105,12 +105,12 @@ describe('useContributionWorkflow', () => {
     expect(mockInvoke).toHaveBeenCalledWith(
       'git:create-branch',
       '/mock/contributions/repo',
-      'fix-issue-42'
+      'fix/42-fix-bug'
     );
     expect(mockInvoke).toHaveBeenCalledWith(
       'git:checkout',
       '/mock/contributions/repo',
-      'fix-issue-42'
+      'fix/42-fix-bug'
     );
   });
 

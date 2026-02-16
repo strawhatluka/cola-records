@@ -23,6 +23,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { ipc } from '../../ipc/client';
 import type { Reaction, ReactionContent, SubIssue } from '../../../main/ipc/channels';
+import { generateBranchName } from '../../utils/branch-naming';
 
 interface IssueSummary {
   number: number;
@@ -310,7 +311,7 @@ export function DevelopmentIssueDetailModal({
     if (!issue || !localPath) return;
     setCreatingBranch(true);
     try {
-      const branchName = `fix-issue-${issue.number}`;
+      const branchName = generateBranchName(issue);
       // Determine the default branch (main or master)
       const branches = await ipc.invoke('git:get-branches', localPath);
       const defaultBranch = branches.find((b: string) => b === 'main')
