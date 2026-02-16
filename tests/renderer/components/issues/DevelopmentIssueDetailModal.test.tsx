@@ -419,8 +419,16 @@ describe('DevelopmentIssueDetailModal', () => {
           onClose={vi.fn()}
         />
       );
+      // Wait for the destructive Close button (not the dialog sr-only Close)
+      // The sr-only Close appears immediately, but the destructive one only renders
+      // after issue detail loads, so we must wait for it specifically.
+      let closeBtn!: HTMLElement;
       await waitFor(() => {
-        expect(screen.getByText('Close')).toBeDefined();
+        const match = screen
+          .getAllByText('Close')
+          .find((el) => el.closest('button[data-variant="destructive"]'));
+        expect(match).toBeDefined();
+        closeBtn = match!;
       });
 
       // Make update-issue reject after initial load succeeds
@@ -431,10 +439,7 @@ describe('DevelopmentIssueDetailModal', () => {
         return undefined;
       });
 
-      // Open close menu via the destructive Close button (not the dialog sr-only Close)
-      const closeBtn = screen
-        .getAllByText('Close')
-        .find((el) => el.closest('button[data-variant="destructive"]'))!;
+      // Open close menu
       await user.click(closeBtn);
       await user.click(screen.getByText('Close as completed'));
 
