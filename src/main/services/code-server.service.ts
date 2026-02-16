@@ -14,7 +14,13 @@ import * as path from 'path';
 import * as os from 'os';
 import * as net from 'net';
 import { database } from '../database/database.service';
-import type { Alias, BashProfileSettings, SSHRemote, TerminalColor } from '../ipc/channels';
+import type {
+  Alias,
+  BashProfileSettings,
+  CodeServerConfig,
+  SSHRemote,
+  TerminalColor,
+} from '../ipc/channels';
 const execFileAsync = promisify(execFile);
 
 interface CodeServerStatus {
@@ -37,6 +43,38 @@ interface WorkspaceBasePaths {
   myProjects: string | null;
   professional: string | null;
 }
+
+export interface CodeServerStats {
+  cpuPercent: number;
+  memUsage: string;
+  memLimit: string;
+  memPercent: number;
+}
+
+const DEFAULT_CODE_SERVER_CONFIG: CodeServerConfig = {
+  cpuLimit: null,
+  memoryLimit: null,
+  shmSize: '256m',
+  autoStartDocker: true,
+  healthCheckTimeout: 90,
+  autoSyncHostSettings: true,
+  gpuAcceleration: 'on',
+  terminalScrollback: 1000,
+  autoInstallExtensions: [],
+  timezone: 'UTC',
+  customEnvVars: [],
+  containerName: 'cola-code-server',
+};
+
+const RESERVED_ENV_VARS = [
+  'PUID',
+  'PGID',
+  'TZ',
+  'PASSWORD',
+  'DEFAULT_WORKSPACE',
+  'CLAUDE_CONFIG_DIR',
+  'GIT_CONFIG_GLOBAL',
+];
 
 class CodeServerService {
   private containerName: string | null = null;
@@ -788,13 +826,20 @@ class CodeServerService {
    * and polls until it becomes available (up to 60 seconds).
    * Throws with a clear message if Docker cannot be started.
    */
-  async checkDockerAvailable(): Promise<void> {
+  async checkDockerAvailable(autoStart = true): Promise<void> {
     // Quick check — Docker may already be running
     try {
       await this.dockerExec(['info', '--format', '{{.ServerVersion}}']);
       return;
     } catch {
       // Docker not available yet
+    }
+
+    if (!autoStart) {
+      throw new Error(
+        'Docker Desktop is not running. Auto-start is disabled in Code Server settings.\n\n' +
+          'Please start Docker Desktop manually and try again.'
+      );
     }
 
     // Attempt to auto-start Docker Desktop
@@ -864,8 +909,9 @@ class CodeServerService {
    * LinuxServer.io image takes longer to initialize due to s6-overlay.
    * Retries every second for up to 90 seconds.
    */
-  async waitForReady(port: number): Promise<void> {
-    const maxAttempts = 90;
+  async waitForReady(port: number, timeoutSeconds?: number): Promise<void> {
+    const config = this.getCodeServerConfig();
+    const maxAttempts = timeoutSeconds ?? config.healthCheckTimeout;
     const delay = 1000;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -885,6 +931,78 @@ class CodeServerService {
     }
 
     throw new Error(`code-server did not become ready within ${maxAttempts} seconds`);
+  }
+
+  // ── Container Stats ──────────────────────────────────────────────
+
+  /**
+   * Get real-time container resource usage via docker stats.
+   * Returns null if the container is not running or docker command fails.
+   */
+  async getContainerStats(): Promise<CodeServerStats | null> {
+    try {
+      const containerName = CodeServerService.getContainerName();
+      const output = await this.dockerExec([
+        'stats',
+        '--no-stream',
+        '--format',
+        '{{json .}}',
+        containerName,
+      ]);
+
+      if (!output) return null;
+
+      const stats = JSON.parse(output);
+      const cpuPercent = parseFloat(String(stats.CPUPerc).replace('%', ''));
+      const memPercent = parseFloat(String(stats.MemPerc).replace('%', ''));
+      const memParts = String(stats.MemUsage)
+        .split('/')
+        .map((s: string) => s.trim());
+
+      return {
+        cpuPercent: isNaN(cpuPercent) ? 0 : cpuPercent,
+        memUsage: memParts[0] || '0B',
+        memLimit: memParts[1] || '0B',
+        memPercent: isNaN(memPercent) ? 0 : memPercent,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // ── Config Helpers ──────────────────────────────────────────────
+
+  /**
+   * Read CodeServerConfig from database, falling back to defaults.
+   */
+  private getCodeServerConfig(): CodeServerConfig {
+    try {
+      const raw = database.getSetting('codeServerConfig');
+      if (raw) {
+        return { ...DEFAULT_CODE_SERVER_CONFIG, ...JSON.parse(raw) };
+      }
+    } catch {
+      // Malformed JSON — use defaults
+    }
+    return { ...DEFAULT_CODE_SERVER_CONFIG };
+  }
+
+  // ── Extension Management ─────────────────────────────────────────
+
+  /**
+   * Install VS Code extensions inside the running container.
+   * Runs asynchronously (non-blocking) after container health check.
+   */
+  private async installExtensions(extensionIds: string[]): Promise<void> {
+    const containerName = CodeServerService.getContainerName();
+    for (const extId of extensionIds) {
+      try {
+        console.log(`[CodeServer] Installing extension: ${extId}`);
+        await this.dockerExec(['exec', containerName, 'code-server', '--install-extension', extId]);
+      } catch (err) {
+        console.error(`[CodeServer] Failed to install extension ${extId}:`, err);
+      }
+    }
   }
 
   // ── Image Management ─────────────────────────────────────────────
@@ -944,17 +1062,28 @@ class CodeServerService {
 
   // ── Lifecycle ────────────────────────────────────────────────────
 
-  /** Base container name for persistence across sessions */
-  private static readonly CONTAINER_NAME_BASE = 'cola-code-server';
+  /** Default container name for persistence across sessions */
+  private static readonly CONTAINER_NAME_DEFAULT = 'cola-code-server';
 
   /**
-   * Get container name based on environment.
+   * Get container name based on config and environment.
+   * Reads containerName from codeServerConfig in database, falls back to default.
    * Development mode uses a separate container to avoid conflicts with production.
    */
   private static getContainerName(): string {
-    return app.isPackaged
-      ? CodeServerService.CONTAINER_NAME_BASE
-      : `${CodeServerService.CONTAINER_NAME_BASE}-dev`;
+    let baseName = CodeServerService.CONTAINER_NAME_DEFAULT;
+    try {
+      const raw = database.getSetting('codeServerConfig');
+      if (raw) {
+        const config = JSON.parse(raw);
+        if (config.containerName && typeof config.containerName === 'string') {
+          baseName = config.containerName;
+        }
+      }
+    } catch {
+      // Use default on parse error
+    }
+    return app.isPackaged ? baseName : `${baseName}-dev`;
   }
 
   /**
@@ -1033,6 +1162,85 @@ class CodeServerService {
   }
 
   /**
+   * Check if the saved codeServerConfig resource limits differ from
+   * what the existing container was created with.
+   * Compares CPU, memory, and SHM size.
+   * Returns true if the container should be recreated.
+   */
+  async hasResourceConfigChanged(config: CodeServerConfig): Promise<boolean> {
+    try {
+      const result = await this.dockerExec([
+        'inspect',
+        '--format',
+        '{{.HostConfig.NanoCpus}} {{.HostConfig.Memory}} {{.HostConfig.ShmSize}}',
+        CodeServerService.getContainerName(),
+      ]);
+      const parts = result.trim().split(/\s+/);
+      const containerNanoCpus = parseInt(parts[0], 10) || 0;
+      const containerMemory = parseInt(parts[1], 10) || 0;
+      const containerShmSize = parseInt(parts[2], 10) || 0;
+
+      // Convert saved config to Docker's internal units for comparison
+      // NanoCPUs: cpuLimit * 1e9 (null = 0 = unlimited)
+      const expectedNanoCpus = config.cpuLimit !== null ? config.cpuLimit * 1e9 : 0;
+
+      // Memory in bytes (null = 0 = unlimited)
+      const expectedMemory =
+        config.memoryLimit !== null ? this.parseMemoryString(config.memoryLimit) : 0;
+
+      // SHM size in bytes
+      const expectedShmSize = this.parseMemoryString(config.shmSize);
+
+      if (containerNanoCpus !== expectedNanoCpus) {
+        console.log(
+          `[CodeServer] CPU config changed: container=${containerNanoCpus} expected=${expectedNanoCpus}`
+        );
+        return true;
+      }
+      if (containerMemory !== expectedMemory) {
+        console.log(
+          `[CodeServer] Memory config changed: container=${containerMemory} expected=${expectedMemory}`
+        );
+        return true;
+      }
+      if (containerShmSize !== expectedShmSize) {
+        console.log(
+          `[CodeServer] SHM config changed: container=${containerShmSize} expected=${expectedShmSize}`
+        );
+        return true;
+      }
+
+      return false;
+    } catch {
+      // If we can't inspect, assume no change (don't force recreation on error)
+      return false;
+    }
+  }
+
+  /**
+   * Parse a Docker memory string (e.g. '256m', '4g', '1024k') to bytes.
+   */
+  private parseMemoryString(mem: string): number {
+    const match = mem.match(/^(\d+(?:\.\d+)?)\s*([bkmg]?)$/i);
+    if (!match) return 0;
+    const value = parseFloat(match[1]);
+    const unit = match[2].toLowerCase();
+    switch (unit) {
+      case 'k':
+        return Math.round(value * 1024);
+      case 'm':
+        return Math.round(value * 1024 * 1024);
+      case 'g':
+        return Math.round(value * 1024 * 1024 * 1024);
+      case 'b':
+      case '':
+        return Math.round(value);
+      default:
+        return Math.round(value);
+    }
+  }
+
+  /**
    * Remove the container to allow recreation with new mounts.
    */
   async removeContainer(): Promise<void> {
@@ -1074,14 +1282,18 @@ class CodeServerService {
     this.starting = true;
 
     try {
-      // Step 1: Verify Docker
-      await this.checkDockerAvailable();
+      const config = this.getCodeServerConfig();
+
+      // Step 1: Verify Docker (respects autoStartDocker config)
+      await this.checkDockerAvailable(config.autoStartDocker);
 
       // Step 2: Ensure our custom image exists (build if needed)
       await this.ensureImageExists();
 
-      // Step 3: Sync settings and create config files
-      this.syncVSCodeSettings();
+      // Step 3: Sync settings and create config files (respects autoSyncHostSettings)
+      if (config.autoSyncHostSettings) {
+        this.syncVSCodeSettings();
+      }
       this.createContainerGitConfig();
       this.createContainerBashrc(projectPath);
       this.syncSSHConfig();
@@ -1100,6 +1312,18 @@ class CodeServerService {
         if (!hasMultiMount) {
           console.log(
             '[CodeServer] Existing container uses old mount config, recreating with multi-mount...'
+          );
+          await this.removeContainer();
+          containerState = 'none';
+        }
+      }
+
+      // If container exists, check if resource config has changed since creation
+      if (containerState !== 'none') {
+        const configChanged = await this.hasResourceConfigChanged(config);
+        if (configChanged) {
+          console.log(
+            '[CodeServer] Resource config changed, recreating container with new settings...'
           );
           await this.removeContainer();
           containerState = 'none';
@@ -1140,6 +1364,13 @@ class CodeServerService {
       // Step 7: Fix SSH permissions (Windows mounts files as root)
       await this.fixSSHPermissions();
 
+      // Step 8: Auto-install extensions (non-blocking)
+      if (config.autoInstallExtensions.length > 0) {
+        this.installExtensions(config.autoInstallExtensions).catch((err) => {
+          console.error('[CodeServer] Extension auto-install failed:', err);
+        });
+      }
+
       // Store state
       this.containerName = CodeServerService.getContainerName();
       this.port = port;
@@ -1172,12 +1403,30 @@ class CodeServerService {
     // Load and cache workspace base paths for path mapping
     this.loadWorkspaceBasePaths();
 
+    const config = this.getCodeServerConfig();
     const gitMounts = this.getGitMounts();
     const workspaceMounts = this.getWorkspaceMounts();
 
     // Get initial folder path for VS Code (first project opened)
     const initialContainerPath = this.hostToContainerPath(_projectPath);
     const defaultWorkspace = initialContainerPath || '/config/workspaces';
+
+    // Build resource limit args from config
+    const resourceArgs: string[] = [];
+    if (config.cpuLimit !== null) {
+      resourceArgs.push('--cpus', String(config.cpuLimit));
+    }
+    if (config.memoryLimit !== null) {
+      resourceArgs.push('--memory', config.memoryLimit);
+    }
+
+    // Build custom env var args (filter out reserved names)
+    const customEnvArgs: string[] = [];
+    for (const envVar of config.customEnvVars) {
+      if (!RESERVED_ENV_VARS.includes(envVar.key)) {
+        customEnvArgs.push('-e', `${envVar.key}=${envVar.value}`);
+      }
+    }
 
     const args = [
       'run',
@@ -1189,8 +1438,10 @@ class CodeServerService {
       `127.0.0.1:${port}:8443`,
       // Performance: allocate pseudo-TTY for better terminal responsiveness
       '-t',
-      // Performance: increase shared memory for better IPC (default 64MB is too small)
-      '--shm-size=256m',
+      // Performance: shared memory from config (default 256m)
+      `--shm-size=${config.shmSize}`,
+      // Resource limits from config
+      ...resourceArgs,
       // LinuxServer.io config persistence (includes code-server data, extensions, etc.)
       '-v',
       `${this.toDockerPath(userDataDir)}:/config`,
@@ -1210,7 +1461,7 @@ class CodeServerService {
       '-e',
       `PGID=${process.getgid?.() ?? 1000}`,
       '-e',
-      'TZ=UTC',
+      `TZ=${config.timezone}`,
       // Disable password authentication
       '-e',
       'PASSWORD=',
@@ -1225,6 +1476,8 @@ class CodeServerService {
       // Git config env var (LinuxServer uses 'abc' user, not 'coder')
       '-e',
       'GIT_CONFIG_GLOBAL=/config/gitconfig',
+      // Custom env vars from config (reserved names filtered out)
+      ...customEnvArgs,
       // Custom image with Node.js, npm, Python, Claude Code pre-installed
       'cola-code-server:latest',
     ];

@@ -202,7 +202,7 @@ describe('BranchDetailModal', () => {
       expect(deleteBtn?.disabled).toBe(true);
     });
 
-    expect(screen.getByText('Cannot delete the currently checked out branch')).toBeDefined();
+    expect(screen.getByText('Cannot delete the current branch')).toBeDefined();
   });
 
   it('disables delete button for protected branch', async () => {
@@ -223,9 +223,7 @@ describe('BranchDetailModal', () => {
       expect(deleteBtn?.disabled).toBe(true);
     });
 
-    expect(
-      screen.getByText('Cannot delete protected branches (main, master, dev, develop)')
-    ).toBeDefined();
+    expect(screen.getByText('Cannot delete protected branches')).toBeDefined();
   });
 
   it('shows confirmation dialog when delete is clicked', async () => {
@@ -248,7 +246,7 @@ describe('BranchDetailModal', () => {
 
     await user.click(screen.getByText('Delete Branch'));
 
-    expect(screen.getByText(/Are you sure you want to delete/)).toBeDefined();
+    expect(screen.getByText(/Delete \u201Cfeature\u201D\?/)).toBeDefined();
     expect(screen.getByText('Cancel')).toBeDefined();
     expect(screen.getByText('Confirm Delete')).toBeDefined();
   });

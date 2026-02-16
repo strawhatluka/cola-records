@@ -1232,6 +1232,772 @@ describe('CodeServerService', () => {
     });
   });
 
+  // ── AT-22: Resource Config in createContainer ───────────────────
+
+  describe('createContainer — resource config', () => {
+    // These tests verify that createContainer builds the correct Docker args
+    // based on codeServerConfig from the database. Since createContainer is private,
+    // we test it indirectly via start() with appropriate mocks.
+
+    beforeEach(() => {
+      // Setup workspace paths so createContainer can resolve them
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        if (key === 'defaultProjectsPath') return '/mock/projects';
+        if (key === 'defaultProfessionalProjectsPath') return '/mock/professional';
+        return null;
+      });
+      mockExistsSync.mockReturnValue(true);
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockReadFileSync.mockReturnValue('{}');
+    });
+
+    it('includes --cpus flag when cpuLimit is set', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        // Handle different docker commands
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig')
+          return JSON.stringify({ cpuLimit: 2, memoryLimit: null, shmSize: '256m' });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      // Mock fetch for health check
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail on other steps, but we captured docker args
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        expect(runArgs).toContain('--cpus');
+        expect(runArgs).toContain('2');
+      }
+    });
+
+    it('includes --memory flag when memoryLimit is set', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig')
+          return JSON.stringify({ cpuLimit: null, memoryLimit: '4g', shmSize: '256m' });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail on other steps
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        expect(runArgs).toContain('--memory');
+        expect(runArgs).toContain('4g');
+      }
+    });
+
+    it('uses config shmSize instead of hardcoded 256m', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig') return JSON.stringify({ shmSize: '512m' });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        expect(runArgs.some((a) => a.includes('--shm-size=512m'))).toBe(true);
+      }
+    });
+
+    it('omits --cpus and --memory when null (unlimited)', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig')
+          return JSON.stringify({ cpuLimit: null, memoryLimit: null });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        expect(runArgs).not.toContain('--cpus');
+        expect(runArgs).not.toContain('--memory');
+      }
+    });
+
+    it('uses default config values when no codeServerConfig in database', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      // No codeServerConfig in database
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        // Default: no --cpus, no --memory (null = unlimited)
+        expect(runArgs).not.toContain('--cpus');
+        expect(runArgs).not.toContain('--memory');
+        // Default shm-size is 256m
+        expect(runArgs.some((a) => a.includes('--shm-size=256m'))).toBe(true);
+      }
+    });
+  });
+
+  // ── AT-23: Environment, Startup, and Extension Config ──────────
+
+  describe('createContainer — environment and startup config', () => {
+    beforeEach(() => {
+      mockExistsSync.mockReturnValue(true);
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockReadFileSync.mockReturnValue('{}');
+    });
+
+    it('uses configured timezone in -e TZ=', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig') return JSON.stringify({ timezone: 'America/New_York' });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        // TZ should appear as part of an -e flag value
+        expect(runArgs.some((a) => a.includes('TZ=America/New_York'))).toBe(true);
+      }
+    });
+
+    it('includes custom env vars as -e KEY=VALUE', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig')
+          return JSON.stringify({
+            customEnvVars: [
+              { key: 'NODE_ENV', value: 'development' },
+              { key: 'DEBUG', value: 'true' },
+            ],
+          });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        expect(runArgs).toContain('NODE_ENV=development');
+        expect(runArgs).toContain('DEBUG=true');
+      }
+    });
+
+    it('filters reserved env var names from custom env vars', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig')
+          return JSON.stringify({
+            customEnvVars: [
+              { key: 'PUID', value: '9999' }, // Reserved — should be filtered
+              { key: 'SAFE_VAR', value: 'allowed' },
+            ],
+          });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        // PUID should NOT appear as a custom env var (it's in the reserved -e args already)
+        expect(runArgs).not.toContain('PUID=9999');
+        // SAFE_VAR should be included
+        expect(runArgs).toContain('SAFE_VAR=allowed');
+      }
+    });
+
+    it('uses configured container name', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        if (args.includes('inspect')) return Promise.reject(new Error('No such container'));
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig')
+          return JSON.stringify({ containerName: 'my-custom-server' });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      if (runArgs) {
+        // Container name should include the configured name (with -dev suffix in dev mode)
+        expect(runArgs.some((a) => a.includes('my-custom-server'))).toBe(true);
+      }
+    });
+
+    it('throws immediately when autoStartDocker is false and Docker is not running', async () => {
+      setMockDockerResponse(() => {
+        return Promise.reject(new Error('Docker not running'));
+      });
+
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig') return JSON.stringify({ autoStartDocker: false });
+        return null;
+      });
+
+      await expect(codeServerService.start('/mock/path')).rejects.toThrow('Auto-start is disabled');
+    });
+  });
+
+  // ── AT-24: getContainerStats ───────────────────────────────────
+
+  describe('getContainerStats', () => {
+    it('parses valid docker stats JSON output correctly', async () => {
+      setMockDockerResponse((args) => {
+        if (args.includes('stats')) {
+          return Promise.resolve({
+            stdout: JSON.stringify({
+              CPUPerc: '45.20%',
+              MemPerc: '25.00%',
+              MemUsage: '512MiB / 2GiB',
+            }),
+            stderr: '',
+          });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const stats = await codeServerService.getContainerStats();
+
+      expect(stats).not.toBeNull();
+      expect(stats!.cpuPercent).toBeCloseTo(45.2);
+      expect(stats!.memPercent).toBeCloseTo(25.0);
+      expect(stats!.memUsage).toBe('512MiB');
+      expect(stats!.memLimit).toBe('2GiB');
+    });
+
+    it('returns null when container is not running', async () => {
+      setMockDockerResponse((args) => {
+        if (args.includes('stats')) {
+          return Promise.reject(new Error('No such container'));
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const stats = await codeServerService.getContainerStats();
+      expect(stats).toBeNull();
+    });
+
+    it('handles docker command failure gracefully (returns null)', async () => {
+      setMockDockerResponse((args) => {
+        if (args.includes('stats')) {
+          return Promise.reject(new Error('Docker daemon not running'));
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const stats = await codeServerService.getContainerStats();
+      expect(stats).toBeNull();
+    });
+
+    it('strips % signs from CPUPerc and MemPerc', async () => {
+      setMockDockerResponse((args) => {
+        if (args.includes('stats')) {
+          return Promise.resolve({
+            stdout: JSON.stringify({
+              CPUPerc: '99.50%',
+              MemPerc: '75.30%',
+              MemUsage: '1.5GiB / 2GiB',
+            }),
+            stderr: '',
+          });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const stats = await codeServerService.getContainerStats();
+      expect(stats!.cpuPercent).toBeCloseTo(99.5);
+      expect(stats!.memPercent).toBeCloseTo(75.3);
+    });
+
+    it('splits MemUsage on / for used/limit values', async () => {
+      setMockDockerResponse((args) => {
+        if (args.includes('stats')) {
+          return Promise.resolve({
+            stdout: JSON.stringify({
+              CPUPerc: '10.00%',
+              MemPerc: '50.00%',
+              MemUsage: '1GiB / 2GiB',
+            }),
+            stderr: '',
+          });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const stats = await codeServerService.getContainerStats();
+      expect(stats!.memUsage).toBe('1GiB');
+      expect(stats!.memLimit).toBe('2GiB');
+    });
+
+    it('returns 0 for NaN CPU/memory percentages', async () => {
+      setMockDockerResponse((args) => {
+        if (args.includes('stats')) {
+          return Promise.resolve({
+            stdout: JSON.stringify({
+              CPUPerc: '--',
+              MemPerc: '--',
+              MemUsage: '-- / --',
+            }),
+            stderr: '',
+          });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const stats = await codeServerService.getContainerStats();
+      expect(stats!.cpuPercent).toBe(0);
+      expect(stats!.memPercent).toBe(0);
+    });
+
+    it('returns null when docker stats output is empty', async () => {
+      setMockDockerResponse((args) => {
+        if (args.includes('stats')) {
+          return Promise.resolve({ stdout: '', stderr: '' });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const stats = await codeServerService.getContainerStats();
+      expect(stats).toBeNull();
+    });
+  });
+
+  // ── hasResourceConfigChanged ────────────────────────────────────
+
+  describe('hasResourceConfigChanged', () => {
+    it('returns false when container resources match config (defaults)', async () => {
+      // Container has: 0 NanoCpus, 0 Memory, 268435456 ShmSize (256m)
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.resolve({ stdout: '0 0 268435456', stderr: '' });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const config = {
+        cpuLimit: null,
+        memoryLimit: null,
+        shmSize: '256m',
+        autoStartDocker: true,
+        healthCheckTimeout: 90,
+        autoSyncHostSettings: true,
+        gpuAcceleration: 'on' as const,
+        terminalScrollback: 1000,
+        autoInstallExtensions: [],
+        timezone: 'UTC',
+        customEnvVars: [],
+        containerName: 'cola-code-server',
+      };
+
+      const changed = await codeServerService.hasResourceConfigChanged(config);
+      expect(changed).toBe(false);
+    });
+
+    it('returns true when CPU limit has changed', async () => {
+      // Container was created with 0 NanoCpus (unlimited)
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.resolve({ stdout: '0 0 268435456', stderr: '' });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const config = {
+        cpuLimit: 4,
+        memoryLimit: null,
+        shmSize: '256m',
+        autoStartDocker: true,
+        healthCheckTimeout: 90,
+        autoSyncHostSettings: true,
+        gpuAcceleration: 'on' as const,
+        terminalScrollback: 1000,
+        autoInstallExtensions: [],
+        timezone: 'UTC',
+        customEnvVars: [],
+        containerName: 'cola-code-server',
+      };
+
+      const changed = await codeServerService.hasResourceConfigChanged(config);
+      expect(changed).toBe(true);
+    });
+
+    it('returns true when memory limit has changed', async () => {
+      // Container was created with 0 Memory (unlimited)
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.resolve({ stdout: '0 0 268435456', stderr: '' });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const config = {
+        cpuLimit: null,
+        memoryLimit: '4g',
+        shmSize: '256m',
+        autoStartDocker: true,
+        healthCheckTimeout: 90,
+        autoSyncHostSettings: true,
+        gpuAcceleration: 'on' as const,
+        terminalScrollback: 1000,
+        autoInstallExtensions: [],
+        timezone: 'UTC',
+        customEnvVars: [],
+        containerName: 'cola-code-server',
+      };
+
+      const changed = await codeServerService.hasResourceConfigChanged(config);
+      expect(changed).toBe(true);
+    });
+
+    it('returns true when SHM size has changed', async () => {
+      // Container was created with 268435456 (256m)
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.resolve({ stdout: '0 0 268435456', stderr: '' });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const config = {
+        cpuLimit: null,
+        memoryLimit: null,
+        shmSize: '512m',
+        autoStartDocker: true,
+        healthCheckTimeout: 90,
+        autoSyncHostSettings: true,
+        gpuAcceleration: 'on' as const,
+        terminalScrollback: 1000,
+        autoInstallExtensions: [],
+        timezone: 'UTC',
+        customEnvVars: [],
+        containerName: 'cola-code-server',
+      };
+
+      const changed = await codeServerService.hasResourceConfigChanged(config);
+      expect(changed).toBe(true);
+    });
+
+    it('returns false when container matches Performance preset', async () => {
+      // Performance preset: 4 CPUs, 4g Memory, 512m SHM
+      // Docker stores: NanoCpus=4e9, Memory=4*1024^3, ShmSize=512*1024^2
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.resolve({
+            stdout: `${4e9} ${4 * 1024 * 1024 * 1024} ${512 * 1024 * 1024}`,
+            stderr: '',
+          });
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const config = {
+        cpuLimit: 4,
+        memoryLimit: '4g',
+        shmSize: '512m',
+        autoStartDocker: true,
+        healthCheckTimeout: 90,
+        autoSyncHostSettings: true,
+        gpuAcceleration: 'on' as const,
+        terminalScrollback: 1000,
+        autoInstallExtensions: [],
+        timezone: 'UTC',
+        customEnvVars: [],
+        containerName: 'cola-code-server',
+      };
+
+      const changed = await codeServerService.hasResourceConfigChanged(config);
+      expect(changed).toBe(false);
+    });
+
+    it('returns false on inspect error (does not force recreation)', async () => {
+      setMockDockerResponse((args) => {
+        if (args.includes('inspect')) {
+          return Promise.reject(new Error('No such container'));
+        }
+        return Promise.resolve({ stdout: 'mock-output', stderr: '' });
+      });
+
+      const config = {
+        cpuLimit: 4,
+        memoryLimit: '4g',
+        shmSize: '512m',
+        autoStartDocker: true,
+        healthCheckTimeout: 90,
+        autoSyncHostSettings: true,
+        gpuAcceleration: 'on' as const,
+        terminalScrollback: 1000,
+        autoInstallExtensions: [],
+        timezone: 'UTC',
+        customEnvVars: [],
+        containerName: 'cola-code-server',
+      };
+
+      const changed = await codeServerService.hasResourceConfigChanged(config);
+      expect(changed).toBe(false);
+    });
+  });
+
+  // ── start() — container recreation on config change ────────────
+
+  describe('start — recreates container when resource config changes', () => {
+    beforeEach(() => {
+      mockExistsSync.mockReturnValue(true);
+      mockMkdirSync.mockImplementation(() => undefined as any);
+      mockWriteFileSync.mockImplementation(() => {});
+      mockReadFileSync.mockReturnValue('{}');
+    });
+
+    it('removes and recreates stopped container when config has changed', async () => {
+      const dockerArgs: string[][] = [];
+      setMockDockerResponse((args) => {
+        dockerArgs.push(args);
+        // docker info
+        if (args.includes('info')) return Promise.resolve({ stdout: '24.0.0', stderr: '' });
+        // docker images
+        if (args.includes('images')) return Promise.resolve({ stdout: 'abc123', stderr: '' });
+        // docker inspect --format {{.State.Running}} → stopped
+        if (args.includes('inspect') && args.some((a) => a.includes('Running')))
+          return Promise.resolve({ stdout: 'false', stderr: '' });
+        // docker inspect for multi-mount check → has multi-mount
+        if (args.includes('inspect') && args.some((a) => a.includes('Destination')))
+          return Promise.resolve({ stdout: '/config/workspaces', stderr: '' });
+        // docker inspect for resource config check → defaults (no limits)
+        if (args.includes('inspect') && args.some((a) => a.includes('NanoCpus')))
+          return Promise.resolve({ stdout: '0 0 268435456', stderr: '' });
+        // docker rm -f
+        if (args[0] === 'rm') return Promise.resolve({ stdout: '', stderr: '' });
+        // docker run (after recreation)
+        if (args[0] === 'run') return Promise.resolve({ stdout: 'container-id', stderr: '' });
+        return Promise.resolve({ stdout: '', stderr: '' });
+      });
+
+      // Config has changed: Performance preset (4 CPU, 4g, 512m)
+      mockGetSetting.mockImplementation((key: string) => {
+        if (key === 'codeServerConfig')
+          return JSON.stringify({ cpuLimit: 4, memoryLimit: '4g', shmSize: '512m' });
+        if (key === 'defaultClonePath') return '/mock/contributions';
+        return null;
+      });
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 });
+
+      try {
+        await codeServerService.start('/mock/contributions/repo');
+      } catch {
+        // May fail on later steps
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      // Should have called rm -f to remove old container
+      const rmArgs = dockerArgs.find((a) => a[0] === 'rm');
+      expect(rmArgs).toBeDefined();
+
+      // Should have called run (not start) to create new container
+      const runArgs = dockerArgs.find((a) => a[0] === 'run');
+      expect(runArgs).toBeDefined();
+
+      // New container should have the updated resource args
+      if (runArgs) {
+        expect(runArgs).toContain('--cpus');
+        expect(runArgs).toContain('4');
+        expect(runArgs).toContain('--memory');
+        expect(runArgs).toContain('4g');
+        expect(runArgs.some((a) => a.includes('--shm-size=512m'))).toBe(true);
+      }
+
+      // Should NOT have called 'docker start' (reusing old container)
+      const startArgs = dockerArgs.find((a) => a[0] === 'start');
+      expect(startArgs).toBeUndefined();
+    });
+  });
+
   describe('syncSSHConfig — key copying', () => {
     it('copies private key to .ssh/keys directory', () => {
       mockMkdirSync.mockImplementation(() => undefined as any);

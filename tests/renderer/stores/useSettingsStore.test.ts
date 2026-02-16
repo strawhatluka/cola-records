@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act } from '@testing-library/react';
-import { createMockSettings } from '../../mocks/factories';
+import { createMockSettings, createMockCodeServerConfig } from '../../mocks/factories';
 
 // Mock the IPC client module
 const mockInvoke = vi.fn();
@@ -186,6 +186,68 @@ describe('useSettingsStore', () => {
         defaultProfessionalProjectsPath: '/professional',
       });
       expect(useSettingsStore.getState().defaultProfessionalProjectsPath).toBe('/professional');
+    });
+  });
+
+  // ── AT-25: codeServerConfig State Tests ─────────────────────────
+
+  describe('codeServerConfig', () => {
+    it('initial state has codeServerConfig as undefined', () => {
+      const state = useSettingsStore.getState();
+      expect(state.codeServerConfig).toBeUndefined();
+    });
+
+    it('fetchSettings populates codeServerConfig from IPC response', async () => {
+      const config = createMockCodeServerConfig({ cpuLimit: 4, memoryLimit: '4g' });
+      const mockSettings = createMockSettings({ codeServerConfig: config });
+      mockInvoke.mockResolvedValueOnce(mockSettings);
+
+      await act(async () => {
+        await useSettingsStore.getState().fetchSettings();
+      });
+
+      const state = useSettingsStore.getState();
+      expect(state.codeServerConfig).toBeDefined();
+      expect(state.codeServerConfig!.cpuLimit).toBe(4);
+      expect(state.codeServerConfig!.memoryLimit).toBe('4g');
+    });
+
+    it('updateSettings sends codeServerConfig via IPC and updates store', async () => {
+      const config = createMockCodeServerConfig({ shmSize: '512m' });
+      const updatedSettings = createMockSettings({ codeServerConfig: config });
+      mockInvoke.mockResolvedValueOnce(updatedSettings);
+
+      await act(async () => {
+        await useSettingsStore.getState().updateSettings({ codeServerConfig: config });
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('settings:update', { codeServerConfig: config });
+      expect(useSettingsStore.getState().codeServerConfig?.shmSize).toBe('512m');
+    });
+
+    it('error during update sets error state without corrupting existing config', async () => {
+      // First, populate the store with a config
+      const config = createMockCodeServerConfig({ cpuLimit: 2 });
+      const existingSettings = createMockSettings({ codeServerConfig: config });
+      mockInvoke.mockResolvedValueOnce(existingSettings);
+
+      await act(async () => {
+        await useSettingsStore.getState().fetchSettings();
+      });
+
+      // Now try an update that fails
+      mockInvoke.mockRejectedValueOnce(new Error('Update failed'));
+
+      await expect(
+        useSettingsStore
+          .getState()
+          .updateSettings({ codeServerConfig: createMockCodeServerConfig({ cpuLimit: 8 }) })
+      ).rejects.toThrow('Update failed');
+
+      const state = useSettingsStore.getState();
+      expect(state.error).toContain('Update failed');
+      // The existing config should still be intact (cpuLimit: 2, not 8)
+      expect(state.codeServerConfig?.cpuLimit).toBe(2);
     });
   });
 });

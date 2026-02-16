@@ -435,6 +435,26 @@ export interface DevScript {
   updatedAt?: string;
 }
 
+export interface EnvVar {
+  key: string;
+  value: string;
+}
+
+export interface CodeServerConfig {
+  cpuLimit: number | null;
+  memoryLimit: string | null;
+  shmSize: string;
+  autoStartDocker: boolean;
+  healthCheckTimeout: number;
+  autoSyncHostSettings: boolean;
+  gpuAcceleration: 'on' | 'off' | 'auto';
+  terminalScrollback: number;
+  autoInstallExtensions: string[];
+  timezone: string;
+  customEnvVars: EnvVar[];
+  containerName: string;
+}
+
 export interface AppSettings {
   githubToken?: string;
   spotifyClientId?: string;
@@ -446,6 +466,7 @@ export interface AppSettings {
   autoFetch: boolean;
   aliases?: Alias[];
   bashProfile?: BashProfileSettings;
+  codeServerConfig?: CodeServerConfig;
 }
 
 /**
@@ -925,6 +946,12 @@ export interface IpcChannels {
   // Returns { shouldStop: true } when last workspace is removed
   'code-server:remove-workspace': (projectPath: string) => { shouldStop: boolean };
   'code-server:get-mounted-projects': () => string[];
+  'code-server:get-stats': () => {
+    cpuPercent: number;
+    memUsage: string;
+    memLimit: string;
+    memPercent: number;
+  } | null;
 
   // PR Check Status Channels
   'github:get-pr-check-status': (owner: string, repo: string, sha: string) => PRCheckStatus;
