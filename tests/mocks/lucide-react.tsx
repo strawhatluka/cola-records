@@ -20,6 +20,7 @@ function createIcon(name: string) {
 // All icons used across the codebase
 export const AlertTriangle = createIcon('AlertTriangle');
 export const ArrowDown = createIcon('ArrowDown');
+export const ArrowLeft = createIcon('ArrowLeft');
 export const ArrowRight = createIcon('ArrowRight');
 export const ArrowUp = createIcon('ArrowUp');
 export const AtSign = createIcon('AtSign');

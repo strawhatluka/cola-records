@@ -33,6 +33,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `parseMemoryString()` converts Docker memory notation (e.g. `4g`, `512m`) to bytes for comparison
   - `start()` now detects config drift on stopped or running containers and recreates with updated settings
 - `checkDockerAvailable()` respects `autoStartDocker` config setting — throws immediately when disabled instead of polling
+- Tool Box expansion: Issues and Pull Requests moved from header dropdowns into Tool Box panel ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+  - New `IssuesTool` component with inline list, detail, and create views inside Tool Box
+  - New `PullRequestsTool` component with inline list, detail, and create views inside Tool Box
+  - Tool Box now opens by default when entering Development screen with 60/40 IDE/Tool Box split
+  - Tool Box panel is resizable by dragging the border (min 300px, max 70% of viewport)
+  - Tool navigation order: Issues → Pull Requests → Dev Scripts → Terminal → Maintenance
+  - Header Issues/PR buttons now act as Tool Box navigation shortcuts (color indicators preserved)
+  - Added `inline` rendering mode to `DevelopmentIssueDetailModal`, `CreateIssueModal`, `PullRequestDetailModal`, and `CreatePullRequestModal`
+  - Removed standalone Issues/PR dropdown panels and modal popups from header toolbar
 
 ### Tests
 
@@ -44,6 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `useSettingsStore.test.ts`: 4 tests covering `codeServerConfig` state lifecycle
   - `SettingsScreen.test.tsx`: 2 tests covering Code Server tab navigation
   - `factories.ts`: New `createMockCodeServerConfig()` and `createMockEnvVar()` test factories
+- 31 new tests for Tool Box expansion (all passing)
+  - `IssuesTool.test.tsx`: 15 tests covering list/detail/create views, sorting, badges, callbacks, error/empty states
+  - `PullRequestsTool.test.tsx`: 16 tests covering list/detail/create views, sorting, badges, callbacks, error/empty states
+  - Updated `ToolsPanel.test.tsx` for new default tool (Issues) and 5-tool menu
+  - Updated `DevelopmentScreen.toolbar.test.tsx` for Tool Box navigation pattern (removed dropdown/modal tests)
+  - Updated `DevelopmentScreen.tools.test.tsx` to remove stale modal mocks
 
 ## [1.0.3] - 2026-02-15
 

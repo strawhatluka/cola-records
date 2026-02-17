@@ -17,7 +17,7 @@ import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
 import { ReactionDisplay } from '../ui/ReactionPicker';
 import { CreateSubIssueModal } from './CreateSubIssueModal';
 import { AddExistingSubIssueModal } from './AddExistingSubIssueModal';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -67,6 +67,8 @@ interface DevelopmentIssueDetailModalProps {
   isBranched?: boolean;
   githubUsername: string;
   onClose: () => void;
+  /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
+  inline?: boolean;
 }
 
 export function issueStatusBadge(state: string) {
@@ -94,6 +96,7 @@ export function DevelopmentIssueDetailModal({
   isBranched,
   githubUsername,
   onClose,
+  inline,
 }: DevelopmentIssueDetailModalProps) {
   const [issueDetail, setIssueDetail] = useState<IssueDetail | null>(null);
   const [comments, setComments] = useState<IssueComment[]>([]);
@@ -366,338 +369,280 @@ export function DevelopmentIssueDetailModal({
 
   if (!issue) return null;
 
-  return (
-    <Dialog open={!!issue} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto styled-scroll">
-        <DialogHeader>
-          <div className="flex items-start justify-between pr-8">
-            <div className="flex-1">
-              <DialogTitle className="text-xl">
-                {issueDetail?.title || issue.title}
-                <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                Issue #{issue.number} details
-              </DialogDescription>
-              <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
-                {issueStatusBadge(issueState)}
-                {isBranched && (
-                  <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                    branched
-                  </Badge>
+  const header = (
+    <div className="flex items-start justify-between">
+      <div className="flex-1">
+        <h2 className="text-xl font-semibold">
+          {issueDetail?.title || issue.title}
+          <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
+        </h2>
+        <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
+          {issueStatusBadge(issueState)}
+          {isBranched && (
+            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">branched</Badge>
+          )}
+          <span>{issue.author}</span>
+          <span>opened this issue</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const content = (
+    <>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+        </div>
+      ) : error ? (
+        <div className="py-8 text-center">
+          <p className="text-destructive text-sm">{error}</p>
+          <Button variant="outline" className="mt-3" onClick={() => fetchData(issue.number)}>
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Labels */}
+          {issueDetail && issueDetail.labels.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {issueDetail.labels.map((label) => (
+                <Badge key={label} variant="secondary">
+                  {label}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Issue Body */}
+          {issueDetail?.body && (
+            <div className="border rounded-md p-4">
+              <div className="flex items-center gap-2 mb-3">
+                {issue.authorAvatarUrl ? (
+                  <img
+                    src={issue.authorAvatarUrl}
+                    alt={issue.author}
+                    className="w-6 h-6 rounded-full"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-muted" />
                 )}
-                <span>{issue.author}</span>
-                <span>opened this issue</span>
+                <span className="text-sm font-medium">{issue.author}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(issueDetail.createdAt)}
+                </span>
+              </div>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown>{issueDetail.body}</ReactMarkdown>
+              </div>
+              {/* Reactions on issue body */}
+              <ReactionDisplay
+                reactions={issueReactions}
+                currentUser={githubUsername}
+                onAdd={handleAddIssueReaction}
+                onRemove={handleRemoveIssueReaction}
+              />
+              {/* Sub-issue dropdown */}
+              <div className="mt-3 pt-2 border-t border-border/30">
+                <div className="relative inline-block" ref={subIssueMenuRef}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs pr-1.5"
+                    onClick={() => setSubIssueMenuOpen(!subIssueMenuOpen)}
+                  >
+                    Create sub-issue
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                  {subIssueMenuOpen && (
+                    <div className="absolute left-0 top-full mt-1 w-52 rounded-md border border-border bg-popover shadow-lg z-50">
+                      <button
+                        onClick={() => {
+                          setSubIssueMenuOpen(false);
+                          setShowCreateSubIssue(true);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Create sub-issue
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSubIssueMenuOpen(false);
+                          setShowAddExistingSubIssue(true);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                      >
+                        <Link2 className="h-4 w-4" />
+                        Add existing issue
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </DialogHeader>
+          )}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-          </div>
-        ) : error ? (
-          <div className="py-8 text-center">
-            <p className="text-destructive text-sm">{error}</p>
-            <Button variant="outline" className="mt-3" onClick={() => fetchData(issue.number)}>
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Labels */}
-            {issueDetail && issueDetail.labels.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {issueDetail.labels.map((label) => (
-                  <Badge key={label} variant="secondary">
-                    {label}
-                  </Badge>
+          {/* Sub-issues list */}
+          {subIssues.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Sub-issues ({subIssues.length})</h3>
+              <div className="space-y-1">
+                {subIssues.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm"
+                  >
+                    <span
+                      className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        sub.state === 'open'
+                          ? 'bg-green-500/10 text-green-500'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {sub.state}
+                    </span>
+                    <span className="truncate flex-1">{sub.title}</span>
+                    <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
+                  </div>
                 ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Issue Body */}
-            {issueDetail?.body && (
-              <div className="border rounded-md p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  {issue.authorAvatarUrl ? (
-                    <img
-                      src={issue.authorAvatarUrl}
-                      alt={issue.author}
-                      className="w-6 h-6 rounded-full"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-muted" />
-                  )}
-                  <span className="text-sm font-medium">{issue.author}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(issueDetail.createdAt)}
-                  </span>
-                </div>
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{issueDetail.body}</ReactMarkdown>
-                </div>
-                {/* Reactions on issue body */}
-                <ReactionDisplay
-                  reactions={issueReactions}
-                  currentUser={githubUsername}
-                  onAdd={handleAddIssueReaction}
-                  onRemove={handleRemoveIssueReaction}
-                />
-                {/* Sub-issue dropdown */}
-                <div className="mt-3 pt-2 border-t border-border/30">
-                  <div className="relative inline-block" ref={subIssueMenuRef}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs pr-1.5"
-                      onClick={() => setSubIssueMenuOpen(!subIssueMenuOpen)}
-                    >
-                      Create sub-issue
-                      <ChevronDown className="h-3 w-3 ml-1" />
-                    </Button>
-                    {subIssueMenuOpen && (
-                      <div className="absolute left-0 top-full mt-1 w-52 rounded-md border border-border bg-popover shadow-lg z-50">
-                        <button
-                          onClick={() => {
-                            setSubIssueMenuOpen(false);
-                            setShowCreateSubIssue(true);
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Create sub-issue
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSubIssueMenuOpen(false);
-                            setShowAddExistingSubIssue(true);
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
-                        >
-                          <Link2 className="h-4 w-4" />
-                          Add existing issue
-                        </button>
-                      </div>
+          {/* Comments Timeline */}
+          {comments.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Comments ({comments.length})
+              </h3>
+
+              {comments.map((c) => (
+                <div key={`comment-${c.id}`} className="border rounded-md p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    {c.authorAvatarUrl ? (
+                      <img
+                        src={c.authorAvatarUrl}
+                        alt={c.author}
+                        className="w-5 h-5 rounded-full"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-muted" />
                     )}
+                    <span className="text-sm font-medium">{c.author}</span>
+                    <span className="text-xs text-muted-foreground">{formatDate(c.createdAt)}</span>
                   </div>
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown>{c.body}</ReactMarkdown>
+                  </div>
+                  <ReactionDisplay
+                    reactions={commentReactions[c.id] || []}
+                    currentUser={githubUsername}
+                    onAdd={(content) => handleAddCommentReaction(c.id, content)}
+                    onRemove={(reactionId) => handleRemoveCommentReaction(c.id, reactionId)}
+                  />
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+          )}
 
-            {/* Sub-issues list */}
-            {subIssues.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Sub-issues ({subIssues.length})</h3>
-                <div className="space-y-1">
-                  {subIssues.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm"
+          {comments.length === 0 && !issueDetail?.body && (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No activity on this issue yet.
+            </p>
+          )}
+
+          {/* Duplicate Search Panel */}
+          {duplicateSearchOpen && (
+            <div className="border rounded-md p-4 bg-muted/30">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  Select duplicate issue
+                </h3>
+                <Button variant="ghost" size="sm" onClick={() => setDuplicateSearchOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+              <Input
+                value={duplicateSearchQuery}
+                onChange={(e) => setDuplicateSearchQuery(e.target.value)}
+                placeholder="Search issues by title or number..."
+                className="mb-3"
+              />
+              <div className="max-h-48 overflow-y-auto space-y-1 styled-scroll">
+                {allIssuesLoading ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    Loading issues...
+                  </p>
+                ) : filteredDuplicateIssues.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">No issues found</p>
+                ) : (
+                  filteredDuplicateIssues.map((di) => (
+                    <button
+                      key={di.number}
+                      onClick={() => handleCloseIssue('not_planned', di.number)}
+                      disabled={closing}
+                      className="w-full text-left flex items-center gap-2 p-2 rounded-md hover:bg-accent text-xs transition-colors"
                     >
                       <span
                         className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          sub.state === 'open'
+                          di.state === 'open'
                             ? 'bg-green-500/10 text-green-500'
                             : 'bg-muted text-muted-foreground'
                         }`}
                       >
-                        {sub.state}
+                        {di.state}
                       </span>
-                      <span className="truncate flex-1">{sub.title}</span>
-                      <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
-                    </div>
-                  ))}
-                </div>
+                      <span className="truncate flex-1">{di.title}</span>
+                      <span className="text-muted-foreground shrink-0">#{di.number}</span>
+                    </button>
+                  ))
+                )}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Comments Timeline */}
-            {comments.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Comments ({comments.length})
-                </h3>
-
-                {comments.map((c) => (
-                  <div key={`comment-${c.id}`} className="border rounded-md p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      {c.authorAvatarUrl ? (
-                        <img
-                          src={c.authorAvatarUrl}
-                          alt={c.author}
-                          className="w-5 h-5 rounded-full"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-muted" />
-                      )}
-                      <span className="text-sm font-medium">{c.author}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(c.createdAt)}
-                      </span>
-                    </div>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown>{c.body}</ReactMarkdown>
-                    </div>
-                    <ReactionDisplay
-                      reactions={commentReactions[c.id] || []}
-                      currentUser={githubUsername}
-                      onAdd={(content) => handleAddCommentReaction(c.id, content)}
-                      onRemove={(reactionId) => handleRemoveCommentReaction(c.id, reactionId)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {comments.length === 0 && !issueDetail?.body && (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                No activity on this issue yet.
-              </p>
-            )}
-
-            {/* Duplicate Search Panel */}
-            {duplicateSearchOpen && (
-              <div className="border rounded-md p-4 bg-muted/30">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium flex items-center gap-2">
-                    <Search className="h-4 w-4" />
-                    Select duplicate issue
-                  </h3>
-                  <Button variant="ghost" size="sm" onClick={() => setDuplicateSearchOpen(false)}>
-                    Cancel
+          {/* Comment Input */}
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium mb-2">Leave a comment</h3>
+            <MarkdownEditor
+              value={newComment}
+              onChange={setNewComment}
+              placeholder="Write a comment... (Markdown supported)"
+              disabled={submitting}
+              minHeight="80px"
+            />
+            <div className="flex justify-between items-center mt-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await ipc.invoke('shell:open-external', issue.url);
+                    } catch {
+                      // URL open failed
+                    }
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View on GitHub
+                </Button>
+                {issueState === 'open' && !isBranched && (
+                  <Button size="sm" onClick={handleFixIssue} disabled={creatingBranch}>
+                    <GitBranch className="h-4 w-4 mr-2" />
+                    {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
                   </Button>
-                </div>
-                <Input
-                  value={duplicateSearchQuery}
-                  onChange={(e) => setDuplicateSearchQuery(e.target.value)}
-                  placeholder="Search issues by title or number..."
-                  className="mb-3"
-                />
-                <div className="max-h-48 overflow-y-auto space-y-1 styled-scroll">
-                  {allIssuesLoading ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">
-                      Loading issues...
-                    </p>
-                  ) : filteredDuplicateIssues.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">
-                      No issues found
-                    </p>
-                  ) : (
-                    filteredDuplicateIssues.map((di) => (
-                      <button
-                        key={di.number}
-                        onClick={() => handleCloseIssue('not_planned', di.number)}
-                        disabled={closing}
-                        className="w-full text-left flex items-center gap-2 p-2 rounded-md hover:bg-accent text-xs transition-colors"
-                      >
-                        <span
-                          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            di.state === 'open'
-                              ? 'bg-green-500/10 text-green-500'
-                              : 'bg-muted text-muted-foreground'
-                          }`}
-                        >
-                          {di.state}
-                        </span>
-                        <span className="truncate flex-1">{di.title}</span>
-                        <span className="text-muted-foreground shrink-0">#{di.number}</span>
-                      </button>
-                    ))
-                  )}
-                </div>
+                )}
               </div>
-            )}
-
-            {/* Comment Input */}
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-2">Leave a comment</h3>
-              <MarkdownEditor
-                value={newComment}
-                onChange={setNewComment}
-                placeholder="Write a comment... (Markdown supported)"
-                disabled={submitting}
-                minHeight="80px"
-              />
-              <div className="flex justify-between items-center mt-2">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        await ipc.invoke('shell:open-external', issue.url);
-                      } catch {
-                        // URL open failed
-                      }
-                    }}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View on GitHub
-                  </Button>
-                  {issueState === 'open' && !isBranched && (
-                    <Button size="sm" onClick={handleFixIssue} disabled={creatingBranch}>
-                      <GitBranch className="h-4 w-4 mr-2" />
-                      {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
-                    </Button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {issueState === 'open' ? (
-                    <div className="relative" ref={closeMenuRef}>
-                      <div className="flex">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleSubmitComment}
-                          disabled={!newComment.trim() || submitting}
-                        >
-                          <Send className="h-4 w-4 mr-2" />
-                          {submitting ? 'Submitting...' : 'Comment'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="ml-2 pr-1.5"
-                          onClick={() => setCloseMenuOpen(!closeMenuOpen)}
-                          disabled={closing}
-                        >
-                          {closing ? 'Closing...' : 'Close'}
-                          <ChevronDown className="h-3.5 w-3.5 ml-1" />
-                        </Button>
-                      </div>
-                      {closeMenuOpen && (
-                        <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md border border-border bg-popover shadow-lg z-50">
-                          <button
-                            onClick={() => handleCloseIssue('completed')}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
-                          >
-                            <CheckCircle2 className="h-4 w-4 text-purple-500" />
-                            Close as completed
-                          </button>
-                          <button
-                            onClick={() => handleCloseIssue('not_planned')}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
-                          >
-                            <Ban className="h-4 w-4 text-muted-foreground" />
-                            Close as not planned
-                          </button>
-                          <button
-                            onClick={handleOpenDuplicateSearch}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors border-t border-border"
-                          >
-                            <Copy className="h-4 w-4 text-muted-foreground" />
-                            Close as duplicate
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {issueState === 'open' ? (
+                  <div className="relative" ref={closeMenuRef}>
+                    <div className="flex">
                       <Button
                         size="sm"
                         variant="outline"
@@ -709,42 +654,111 @@ export function DevelopmentIssueDetailModal({
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={handleReopenIssue}
+                        variant="destructive"
+                        className="ml-2 pr-1.5"
+                        onClick={() => setCloseMenuOpen(!closeMenuOpen)}
                         disabled={closing}
                       >
-                        {closing ? 'Reopening...' : 'Reopen'}
+                        {closing ? 'Closing...' : 'Close'}
+                        <ChevronDown className="h-3.5 w-3.5 ml-1" />
                       </Button>
                     </div>
-                  )}
-                </div>
+                    {closeMenuOpen && (
+                      <div className="absolute right-0 bottom-full mb-1 w-56 rounded-md border border-border bg-popover shadow-lg z-50">
+                        <button
+                          onClick={() => handleCloseIssue('completed')}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                          Close as completed
+                        </button>
+                        <button
+                          onClick={() => handleCloseIssue('not_planned')}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                        >
+                          <Ban className="h-4 w-4 text-muted-foreground" />
+                          Close as not planned
+                        </button>
+                        <button
+                          onClick={handleOpenDuplicateSearch}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors border-t border-border"
+                        >
+                          <Copy className="h-4 w-4 text-muted-foreground" />
+                          Close as duplicate
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleSubmitComment}
+                      disabled={!newComment.trim() || submitting}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {submitting ? 'Submitting...' : 'Comment'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleReopenIssue}
+                      disabled={closing}
+                    >
+                      {closing ? 'Reopening...' : 'Reopen'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        )}
-      </DialogContent>
-
-      {/* Sub-issue modals */}
-      {issue && (
-        <>
-          <CreateSubIssueModal
-            open={showCreateSubIssue}
-            owner={owner}
-            repo={repo}
-            parentIssueNumber={issue.number}
-            onClose={() => setShowCreateSubIssue(false)}
-            onCreated={() => fetchSubIssues(issue.number)}
-          />
-          <AddExistingSubIssueModal
-            open={showAddExistingSubIssue}
-            owner={owner}
-            repo={repo}
-            parentIssueNumber={issue.number}
-            onClose={() => setShowAddExistingSubIssue(false)}
-            onAdded={() => fetchSubIssues(issue.number)}
-          />
-        </>
+        </div>
       )}
+    </>
+  );
+
+  const subIssueModals = issue ? (
+    <>
+      <CreateSubIssueModal
+        open={showCreateSubIssue}
+        owner={owner}
+        repo={repo}
+        parentIssueNumber={issue.number}
+        onClose={() => setShowCreateSubIssue(false)}
+        onCreated={() => fetchSubIssues(issue.number)}
+      />
+      <AddExistingSubIssueModal
+        open={showAddExistingSubIssue}
+        owner={owner}
+        repo={repo}
+        parentIssueNumber={issue.number}
+        onClose={() => setShowAddExistingSubIssue(false)}
+        onAdded={() => fetchSubIssues(issue.number)}
+      />
+    </>
+  ) : null;
+
+  if (inline) {
+    return (
+      <div className="flex flex-col h-full overflow-auto styled-scroll p-4">
+        {header}
+        <div className="mt-4">{content}</div>
+        {subIssueModals}
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={!!issue} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto styled-scroll">
+        <DialogHeader>
+          <div className="pr-8">{header}</div>
+          <DialogDescription className="sr-only">Issue #{issue.number} details</DialogDescription>
+        </DialogHeader>
+        {content}
+      </DialogContent>
+      {subIssueModals}
     </Dialog>
   );
 }

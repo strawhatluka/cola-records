@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/DropdownMenu';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { ipc } from '../../ipc/client';
@@ -148,6 +148,8 @@ interface PullRequestDetailModalProps {
   onRefresh?: () => void;
   /** Whether the user has write access to the repository (can merge/close PRs) */
   canWrite?: boolean;
+  /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
+  inline?: boolean;
 }
 
 export function reviewStateBadge(state: string) {
@@ -240,6 +242,7 @@ export function PullRequestDetailModal({
   onClose,
   onRefresh,
   canWrite = true,
+  inline,
 }: PullRequestDetailModalProps) {
   const [prDetail, setPrDetail] = useState<PRDetail | null>(null);
   const [comments, setComments] = useState<PRComment[]>([]);
@@ -655,784 +658,793 @@ export function PullRequestDetailModal({
 
   timeline.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  return (
-    <Dialog open={!!pr} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto styled-scroll">
-        <DialogHeader>
-          <div className="flex items-start justify-between pr-8">
-            <div className="flex-1">
-              <DialogTitle className="text-xl">
-                {prDetail?.title || pr.title}
-                <span className="text-muted-foreground font-normal ml-2">#{pr.number}</span>
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                Pull request #{pr.number} details
-              </DialogDescription>
-              <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
-                {statusBadge(pr.state, pr.merged)}
-                <CheckStatusIndicator status={checkStatus} loading={checkStatusLoading} />
-                <span>{pr.author}</span>
-                <span>wants to merge</span>
-                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{pr.headBranch}</code>
+  const header = (
+    <div className="flex items-start justify-between">
+      <div className="flex-1">
+        <h2 className="text-xl font-semibold">
+          {prDetail?.title || pr.title}
+          <span className="text-muted-foreground font-normal ml-2">#{pr.number}</span>
+        </h2>
+        <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
+          {statusBadge(pr.state, pr.merged)}
+          <CheckStatusIndicator status={checkStatus} loading={checkStatusLoading} />
+          <span>{pr.author}</span>
+          <span>wants to merge</span>
+          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{pr.headBranch}</code>
+        </div>
+        {/* Aggregated review status - shows most significant review per reviewer */}
+        {reviews.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(() => {
+              const latestReviewByAuthor = new Map<
+                string,
+                { state: string; author: string; avatarUrl: string }
+              >();
+              [...reviews]
+                .sort(
+                  (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
+                )
+                .forEach((r) => {
+                  if (
+                    r.state === 'APPROVED' ||
+                    r.state === 'CHANGES_REQUESTED' ||
+                    r.state === 'DISMISSED'
+                  ) {
+                    latestReviewByAuthor.set(r.author, {
+                      state: r.state,
+                      author: r.author,
+                      avatarUrl: r.authorAvatarUrl,
+                    });
+                  }
+                });
+
+              const reviewerStates = Array.from(latestReviewByAuthor.values());
+              if (reviewerStates.length === 0) return null;
+
+              return reviewerStates.map((review) => (
+                <div
+                  key={review.author}
+                  className="flex items-center gap-1.5 text-xs border rounded-full px-2 py-1"
+                >
+                  {review.avatarUrl ? (
+                    <img
+                      src={review.avatarUrl}
+                      alt={review.author}
+                      className="w-4 h-4 rounded-full"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full bg-muted" />
+                  )}
+                  <span className="font-medium">{review.author}</span>
+                  {reviewStateBadge(review.state)}
+                </div>
+              ));
+            })()}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const body = (
+    <>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+        </div>
+      ) : error ? (
+        <div className="py-8 text-center">
+          <p className="text-destructive text-sm">{error}</p>
+          <Button variant="outline" className="mt-3" onClick={() => fetchData(pr.number)}>
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* PR Description */}
+          {prDetail?.body && (
+            <div className="border rounded-md p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <img
+                  src={`https://github.com/${pr.author}.png?size=32`}
+                  alt={pr.author}
+                  className="w-6 h-6 rounded-full"
+                  loading="lazy"
+                />
+                <span className="text-sm font-medium">{pr.author}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(prDetail.createdAt)}
+                </span>
               </div>
-              {/* Aggregated review status - shows most significant review per reviewer */}
-              {reviews.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(() => {
-                    // Get the latest review per reviewer (most recent takes precedence)
-                    const latestReviewByAuthor = new Map<
-                      string,
-                      { state: string; author: string; avatarUrl: string }
-                    >();
-                    // Sort reviews by date (oldest first) so we overwrite with latest
-                    [...reviews]
-                      .sort(
-                        (a, b) =>
-                          new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
-                      )
-                      .forEach((r) => {
-                        // Only track meaningful review states
-                        if (
-                          r.state === 'APPROVED' ||
-                          r.state === 'CHANGES_REQUESTED' ||
-                          r.state === 'DISMISSED'
-                        ) {
-                          latestReviewByAuthor.set(r.author, {
-                            state: r.state,
-                            author: r.author,
-                            avatarUrl: r.authorAvatarUrl,
-                          });
-                        }
-                      });
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown>{prDetail.body}</ReactMarkdown>
+              </div>
+              <ReactionDisplay
+                reactions={prReactions}
+                currentUser={githubUsername}
+                onAdd={handleAddPrReaction}
+                onRemove={handleRemovePrReaction}
+              />
+            </div>
+          )}
 
-                    const reviewerStates = Array.from(latestReviewByAuthor.values());
-                    if (reviewerStates.length === 0) return null;
+          {/* Timeline */}
+          {timeline.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Activity ({timeline.length})
+              </h3>
 
-                    return reviewerStates.map((review) => (
-                      <div
-                        key={review.author}
-                        className="flex items-center gap-1.5 text-xs border rounded-full px-2 py-1"
-                      >
-                        {review.avatarUrl ? (
+              {timeline.map((item) => {
+                if (item.type === 'comment') {
+                  const c = item.data as PRComment;
+                  return (
+                    <div key={`comment-${c.id}`} className="border rounded-md p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        {c.authorAvatarUrl ? (
                           <img
-                            src={review.avatarUrl}
-                            alt={review.author}
-                            className="w-4 h-4 rounded-full"
+                            src={c.authorAvatarUrl}
+                            alt={c.author}
+                            className="w-5 h-5 rounded-full"
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-4 h-4 rounded-full bg-muted" />
+                          <div className="w-5 h-5 rounded-full bg-muted" />
                         )}
-                        <span className="font-medium">{review.author}</span>
-                        {reviewStateBadge(review.state)}
+                        <span className="text-sm font-medium">{c.author}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(c.createdAt)}
+                        </span>
                       </div>
-                    ));
-                  })()}
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogHeader>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown>{c.body}</ReactMarkdown>
+                      </div>
+                      <ReactionDisplay
+                        reactions={commentReactions[c.id] || []}
+                        currentUser={githubUsername}
+                        onAdd={(content) => handleAddCommentReaction(c.id, content)}
+                        onRemove={(reactionId) => handleRemoveCommentReaction(c.id, reactionId)}
+                      />
+                    </div>
+                  );
+                }
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-          </div>
-        ) : error ? (
-          <div className="py-8 text-center">
-            <p className="text-destructive text-sm">{error}</p>
-            <Button variant="outline" className="mt-3" onClick={() => fetchData(pr.number)}>
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* PR Description */}
-            {prDetail?.body && (
-              <div className="border rounded-md p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <img
-                    src={`https://github.com/${pr.author}.png?size=32`}
-                    alt={pr.author}
-                    className="w-6 h-6 rounded-full"
-                    loading="lazy"
-                  />
-                  <span className="text-sm font-medium">{pr.author}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(prDetail.createdAt)}
-                  </span>
-                </div>
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{prDetail.body}</ReactMarkdown>
-                </div>
-                <ReactionDisplay
-                  reactions={prReactions}
-                  currentUser={githubUsername}
-                  onAdd={handleAddPrReaction}
-                  onRemove={handleRemovePrReaction}
-                />
-              </div>
-            )}
-
-            {/* Timeline */}
-            {timeline.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Activity ({timeline.length})
-                </h3>
-
-                {timeline.map((item) => {
-                  if (item.type === 'comment') {
-                    const c = item.data as PRComment;
-                    return (
-                      <div key={`comment-${c.id}`} className="border rounded-md p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          {c.authorAvatarUrl ? (
+                if (item.type === 'review') {
+                  const r = item.data as PRReview;
+                  return (
+                    <div key={`review-${r.id}`} className="border rounded-md overflow-hidden">
+                      {/* Review header - GitHub style */}
+                      <div className="bg-muted/30 px-4 py-3 border-b flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {r.authorAvatarUrl ? (
                             <img
-                              src={c.authorAvatarUrl}
-                              alt={c.author}
+                              src={r.authorAvatarUrl}
+                              alt={r.author}
                               className="w-5 h-5 rounded-full"
                               loading="lazy"
                             />
                           ) : (
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}
-                          <span className="text-sm font-medium">{c.author}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(c.createdAt)}
+                          <span className="text-sm">
+                            <span className="font-medium">{r.author}</span>
+                            <span className="text-muted-foreground">
+                              {' '}
+                              {getReviewActionText(r.state)}{' '}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {formatRelativeTime(r.submittedAt)}
+                            </span>
+                          </span>
+                          {reviewStateBadge(r.state)}
+                        </div>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={async () => {
+                            try {
+                              // Open the PR page with review anchor
+                              await ipc.invoke(
+                                'shell:open-external',
+                                `${pr.url}#pullrequestreview-${r.id}`
+                              );
+                            } catch {
+                              // URL open failed
+                            }
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          View reviewed changes
+                        </Button>
+                      </div>
+                      {r.body && (
+                        <div className="p-4 prose prose-sm dark:prose-invert max-w-none">
+                          <ReactMarkdown>{r.body}</ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (item.type === 'review-thread') {
+                  const thread = item.data as ReviewThread;
+                  const lineRange =
+                    thread.startLine && thread.line && thread.startLine !== thread.line
+                      ? `${thread.startLine}-${thread.line}`
+                      : thread.line
+                        ? `${thread.line}`
+                        : '';
+
+                  // Parse line numbers from diff hunk
+                  const lineInfo = thread.diffHunk ? parseDiffHunkHeader(thread.diffHunk) : null;
+
+                  return (
+                    <div
+                      key={`thread-${thread.id}`}
+                      className={`border rounded-md overflow-hidden ${thread.isResolved ? 'opacity-60' : ''}`}
+                    >
+                      {/* File path header */}
+                      <div className="bg-muted/50 px-3 py-2 border-b flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <FileCode className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-mono text-muted-foreground">{thread.path}</span>
+                          {lineRange && (
+                            <span className="text-muted-foreground">
+                              {thread.startLine && thread.line && thread.startLine !== thread.line
+                                ? `lines ${lineRange}`
+                                : `line ${lineRange}`}
+                            </span>
+                          )}
+                        </div>
+                        {thread.isResolved && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Resolved
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Diff hunk (code context) with line numbers */}
+                      {thread.diffHunk && (
+                        <div className="bg-zinc-900 border-b overflow-x-auto">
+                          <pre className="text-xs font-mono p-0 m-0">
+                            {thread.diffHunk.split('\n').map((line, idx) => {
+                              let bgColor = '';
+                              let textColor = 'text-zinc-400';
+                              let oldLineNum = '';
+                              let newLineNum = '';
+
+                              if (line.startsWith('@@')) {
+                                textColor = 'text-blue-400';
+                                // Header line - no line numbers
+                              } else if (lineInfo && idx > 0) {
+                                // Calculate line numbers
+                                const prevLines = (thread.diffHunk ?? '').split('\n').slice(1, idx);
+                                const oldOffset = prevLines.filter(
+                                  (l) => !l.startsWith('+')
+                                ).length;
+                                const newOffset = prevLines.filter(
+                                  (l) => !l.startsWith('-')
+                                ).length;
+
+                                if (line.startsWith('+')) {
+                                  bgColor = 'bg-green-500/10';
+                                  textColor = 'text-green-400';
+                                  newLineNum = String(lineInfo.newStart + newOffset);
+                                } else if (line.startsWith('-')) {
+                                  bgColor = 'bg-red-500/10';
+                                  textColor = 'text-red-400';
+                                  oldLineNum = String(lineInfo.oldStart + oldOffset);
+                                } else {
+                                  oldLineNum = String(lineInfo.oldStart + oldOffset);
+                                  newLineNum = String(lineInfo.newStart + newOffset);
+                                }
+                              }
+
+                              return (
+                                <div key={idx} className={`flex ${bgColor} ${textColor}`}>
+                                  {/* Line number gutter */}
+                                  {!line.startsWith('@@') && lineInfo && idx > 0 && (
+                                    <>
+                                      <span className="w-10 text-right pr-2 text-zinc-600 select-none border-r border-zinc-800">
+                                        {oldLineNum}
+                                      </span>
+                                      <span className="w-10 text-right pr-2 text-zinc-600 select-none border-r border-zinc-800">
+                                        {newLineNum}
+                                      </span>
+                                    </>
+                                  )}
+                                  <span className="px-3 py-0.5 flex-1">{line || ' '}</span>
+                                </div>
+                              );
+                            })}
+                          </pre>
+                        </div>
+                      )}
+
+                      {/* Comment thread */}
+                      <div className="divide-y">
+                        {thread.comments.map((rc, idx) => (
+                          <div key={rc.id} className="p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                {rc.authorAvatarUrl ? (
+                                  <img
+                                    src={rc.authorAvatarUrl}
+                                    alt={rc.author}
+                                    className="w-5 h-5 rounded-full"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="w-5 h-5 rounded-full bg-muted" />
+                                )}
+                                <span className="text-sm font-medium">{rc.author}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatRelativeTime(rc.createdAt)}
+                                </span>
+                                {idx > 0 && (
+                                  <span className="text-xs text-muted-foreground italic">
+                                    (reply)
+                                  </span>
+                                )}
+                              </div>
+                              {/* Three-dot menu */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleCopyLink(rc.htmlUrl)}>
+                                    <Link className="h-4 w-4 mr-2" />
+                                    Copy link
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleQuoteReply(thread.id, rc.body)}
+                                  >
+                                    <Quote className="h-4 w-4 mr-2" />
+                                    Quote reply
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                              <ReactMarkdown>{rc.body}</ReactMarkdown>
+                            </div>
+                            {/* Reactions for each review comment */}
+                            <ReactionDisplay
+                              reactions={reviewCommentReactions[rc.id] || []}
+                              currentUser={githubUsername}
+                              onAdd={(content) => handleAddReviewCommentReaction(rc.id, content)}
+                              onRemove={(reactionId) =>
+                                handleRemoveReviewCommentReaction(rc.id, reactionId)
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Reply input */}
+                      <div className="p-3 border-t bg-muted/20">
+                        <MarkdownEditor
+                          value={replyInputs[thread.id] || ''}
+                          onChange={(value) =>
+                            setReplyInputs((prev) => ({ ...prev, [thread.id]: value }))
+                          }
+                          placeholder="Reply..."
+                          disabled={submittingReply === thread.id}
+                          minHeight="60px"
+                        />
+                        <div className="flex items-center justify-between mt-2">
+                          {/* Resolve/Unresolve button */}
+                          {thread.graphqlId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() =>
+                                handleToggleResolve(thread.graphqlId ?? '', thread.isResolved)
+                              }
+                              disabled={resolvingThread === thread.graphqlId}
+                            >
+                              {resolvingThread === thread.graphqlId ? (
+                                <div className="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full mr-1" />
+                              ) : thread.isResolved ? (
+                                <CircleDot className="h-3 w-3 mr-1" />
+                              ) : (
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                              )}
+                              {thread.isResolved
+                                ? 'Unresolve conversation'
+                                : 'Resolve conversation'}
+                            </Button>
+                          )}
+                          {!thread.graphqlId && <div />}
+                          <Button
+                            size="sm"
+                            onClick={() => handleReplyToThread(thread.id)}
+                            disabled={
+                              !replyInputs[thread.id]?.trim() || submittingReply === thread.id
+                            }
+                          >
+                            <Send className="h-3 w-3 mr-1" />
+                            {submittingReply === thread.id ? 'Replying...' : 'Reply'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (item.type === 'commit') {
+                  const commit = item.data as PRCommit;
+                  const shortSha = commit.sha.substring(0, 7);
+                  const firstLine = commit.message.split('\n')[0];
+
+                  return (
+                    <div
+                      key={`commit-${commit.sha}`}
+                      className="flex items-center gap-3 py-2 text-sm"
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                        <GitCommit className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {commit.authorAvatarUrl ? (
+                            <img
+                              src={commit.authorAvatarUrl}
+                              alt={commit.author}
+                              className="w-4 h-4 rounded-full"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full bg-muted" />
+                          )}
+                          <span className="font-medium">{commit.author}</span>
+                          <span className="text-muted-foreground">added a commit</span>
+                          <span className="text-muted-foreground">
+                            {formatRelativeTime(commit.date)}
                           </span>
                         </div>
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <ReactMarkdown>{c.body}</ReactMarkdown>
-                        </div>
-                        <ReactionDisplay
-                          reactions={commentReactions[c.id] || []}
-                          currentUser={githubUsername}
-                          onAdd={(content) => handleAddCommentReaction(c.id, content)}
-                          onRemove={(reactionId) => handleRemoveCommentReaction(c.id, reactionId)}
-                        />
-                      </div>
-                    );
-                  }
-
-                  if (item.type === 'review') {
-                    const r = item.data as PRReview;
-                    return (
-                      <div key={`review-${r.id}`} className="border rounded-md overflow-hidden">
-                        {/* Review header - GitHub style */}
-                        <div className="bg-muted/30 px-4 py-3 border-b flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {r.authorAvatarUrl ? (
-                              <img
-                                src={r.authorAvatarUrl}
-                                alt={r.author}
-                                className="w-5 h-5 rounded-full"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="w-5 h-5 rounded-full bg-muted" />
-                            )}
-                            <span className="text-sm">
-                              <span className="font-medium">{r.author}</span>
-                              <span className="text-muted-foreground">
-                                {' '}
-                                {getReviewActionText(r.state)}{' '}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {formatRelativeTime(r.submittedAt)}
-                              </span>
-                            </span>
-                            {reviewStateBadge(r.state)}
-                          </div>
+                        <div className="mt-1 flex items-center gap-2">
                           <Button
                             variant="link"
                             size="sm"
-                            className="text-xs h-auto p-0"
+                            className="h-auto p-0 text-xs font-mono"
                             onClick={async () => {
                               try {
-                                // Open the PR page with review anchor
-                                await ipc.invoke(
-                                  'shell:open-external',
-                                  `${pr.url}#pullrequestreview-${r.id}`
-                                );
+                                await ipc.invoke('shell:open-external', commit.url);
                               } catch {
                                 // URL open failed
                               }
                             }}
                           >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View reviewed changes
+                            {shortSha}
                           </Button>
+                          <span className="text-muted-foreground truncate">{firstLine}</span>
                         </div>
-                        {r.body && (
-                          <div className="p-4 prose prose-sm dark:prose-invert max-w-none">
-                            <ReactMarkdown>{r.body}</ReactMarkdown>
-                          </div>
-                        )}
                       </div>
-                    );
-                  }
+                    </div>
+                  );
+                }
 
-                  if (item.type === 'review-thread') {
-                    const thread = item.data as ReviewThread;
-                    const lineRange =
-                      thread.startLine && thread.line && thread.startLine !== thread.line
-                        ? `${thread.startLine}-${thread.line}`
-                        : thread.line
-                          ? `${thread.line}`
-                          : '';
+                if (item.type === 'event') {
+                  const event = item.data as PREvent;
 
-                    // Parse line numbers from diff hunk
-                    const lineInfo = thread.diffHunk ? parseDiffHunkHeader(thread.diffHunk) : null;
-
-                    return (
-                      <div
-                        key={`thread-${thread.id}`}
-                        className={`border rounded-md overflow-hidden ${thread.isResolved ? 'opacity-60' : ''}`}
-                      >
-                        {/* File path header */}
-                        <div className="bg-muted/50 px-3 py-2 border-b flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <FileCode className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="font-mono text-muted-foreground">{thread.path}</span>
-                            {lineRange && (
-                              <span className="text-muted-foreground">
-                                {thread.startLine && thread.line && thread.startLine !== thread.line
-                                  ? `lines ${lineRange}`
-                                  : `line ${lineRange}`}
+                  // Render different event types
+                  const renderEventContent = () => {
+                    switch (event.event) {
+                      case 'renamed':
+                        return (
+                          <>
+                            <Pencil className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground"> changed the title </span>
+                              <span className="line-through text-muted-foreground">
+                                {event.rename?.from}
                               </span>
-                            )}
-                          </div>
-                          {thread.isResolved && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Resolved
+                              <span className="text-muted-foreground"> → </span>
+                              <span className="font-medium">{event.rename?.to}</span>
                             </span>
-                          )}
-                        </div>
-
-                        {/* Diff hunk (code context) with line numbers */}
-                        {thread.diffHunk && (
-                          <div className="bg-zinc-900 border-b overflow-x-auto">
-                            <pre className="text-xs font-mono p-0 m-0">
-                              {thread.diffHunk.split('\n').map((line, idx) => {
-                                let bgColor = '';
-                                let textColor = 'text-zinc-400';
-                                let oldLineNum = '';
-                                let newLineNum = '';
-
-                                if (line.startsWith('@@')) {
-                                  textColor = 'text-blue-400';
-                                  // Header line - no line numbers
-                                } else if (lineInfo && idx > 0) {
-                                  // Calculate line numbers
-                                  const prevLines = (thread.diffHunk ?? '')
-                                    .split('\n')
-                                    .slice(1, idx);
-                                  const oldOffset = prevLines.filter(
-                                    (l) => !l.startsWith('+')
-                                  ).length;
-                                  const newOffset = prevLines.filter(
-                                    (l) => !l.startsWith('-')
-                                  ).length;
-
-                                  if (line.startsWith('+')) {
-                                    bgColor = 'bg-green-500/10';
-                                    textColor = 'text-green-400';
-                                    newLineNum = String(lineInfo.newStart + newOffset);
-                                  } else if (line.startsWith('-')) {
-                                    bgColor = 'bg-red-500/10';
-                                    textColor = 'text-red-400';
-                                    oldLineNum = String(lineInfo.oldStart + oldOffset);
-                                  } else {
-                                    oldLineNum = String(lineInfo.oldStart + oldOffset);
-                                    newLineNum = String(lineInfo.newStart + newOffset);
-                                  }
-                                }
-
-                                return (
-                                  <div key={idx} className={`flex ${bgColor} ${textColor}`}>
-                                    {/* Line number gutter */}
-                                    {!line.startsWith('@@') && lineInfo && idx > 0 && (
-                                      <>
-                                        <span className="w-10 text-right pr-2 text-zinc-600 select-none border-r border-zinc-800">
-                                          {oldLineNum}
-                                        </span>
-                                        <span className="w-10 text-right pr-2 text-zinc-600 select-none border-r border-zinc-800">
-                                          {newLineNum}
-                                        </span>
-                                      </>
-                                    )}
-                                    <span className="px-3 py-0.5 flex-1">{line || ' '}</span>
-                                  </div>
-                                );
-                              })}
-                            </pre>
-                          </div>
-                        )}
-
-                        {/* Comment thread */}
-                        <div className="divide-y">
-                          {thread.comments.map((rc, idx) => (
-                            <div key={rc.id} className="p-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  {rc.authorAvatarUrl ? (
-                                    <img
-                                      src={rc.authorAvatarUrl}
-                                      alt={rc.author}
-                                      className="w-5 h-5 rounded-full"
-                                      loading="lazy"
-                                    />
-                                  ) : (
-                                    <div className="w-5 h-5 rounded-full bg-muted" />
-                                  )}
-                                  <span className="text-sm font-medium">{rc.author}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatRelativeTime(rc.createdAt)}
-                                  </span>
-                                  {idx > 0 && (
-                                    <span className="text-xs text-muted-foreground italic">
-                                      (reply)
-                                    </span>
-                                  )}
-                                </div>
-                                {/* Three-dot menu */}
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleCopyLink(rc.htmlUrl)}>
-                                      <Link className="h-4 w-4 mr-2" />
-                                      Copy link
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleQuoteReply(thread.id, rc.body)}
-                                    >
-                                      <Quote className="h-4 w-4 mr-2" />
-                                      Quote reply
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                              <div className="prose prose-sm dark:prose-invert max-w-none">
-                                <ReactMarkdown>{rc.body}</ReactMarkdown>
-                              </div>
-                              {/* Reactions for each review comment */}
-                              <ReactionDisplay
-                                reactions={reviewCommentReactions[rc.id] || []}
-                                currentUser={githubUsername}
-                                onAdd={(content) => handleAddReviewCommentReaction(rc.id, content)}
-                                onRemove={(reactionId) =>
-                                  handleRemoveReviewCommentReaction(rc.id, reactionId)
-                                }
-                              />
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Reply input */}
-                        <div className="p-3 border-t bg-muted/20">
-                          <MarkdownEditor
-                            value={replyInputs[thread.id] || ''}
-                            onChange={(value) =>
-                              setReplyInputs((prev) => ({ ...prev, [thread.id]: value }))
-                            }
-                            placeholder="Reply..."
-                            disabled={submittingReply === thread.id}
-                            minHeight="60px"
-                          />
-                          <div className="flex items-center justify-between mt-2">
-                            {/* Resolve/Unresolve button */}
-                            {thread.graphqlId && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
+                          </>
+                        );
+                      case 'closed':
+                        return (
+                          <>
+                            <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground"> closed this</span>
+                            </span>
+                          </>
+                        );
+                      case 'reopened':
+                        return (
+                          <>
+                            <CircleDot className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground"> reopened this</span>
+                            </span>
+                          </>
+                        );
+                      case 'merged':
+                        return (
+                          <>
+                            <GitMerge className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground"> merged commit </span>
+                              <code className="text-xs bg-muted px-1 rounded">
+                                {event.commitId?.substring(0, 7)}
+                              </code>
+                            </span>
+                          </>
+                        );
+                      case 'labeled':
+                        return (
+                          <>
+                            <Tag className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground"> added the </span>
+                              <Badge
+                                variant="outline"
                                 className="text-xs"
-                                onClick={() =>
-                                  handleToggleResolve(thread.graphqlId ?? '', thread.isResolved)
-                                }
-                                disabled={resolvingThread === thread.graphqlId}
+                                style={{
+                                  backgroundColor: event.label?.color
+                                    ? `#${event.label.color}20`
+                                    : undefined,
+                                  borderColor: event.label?.color
+                                    ? `#${event.label.color}`
+                                    : undefined,
+                                }}
                               >
-                                {resolvingThread === thread.graphqlId ? (
-                                  <div className="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full mr-1" />
-                                ) : thread.isResolved ? (
-                                  <CircleDot className="h-3 w-3 mr-1" />
-                                ) : (
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                )}
-                                {thread.isResolved
-                                  ? 'Unresolve conversation'
-                                  : 'Resolve conversation'}
-                              </Button>
-                            )}
-                            {!thread.graphqlId && <div />}
-                            <Button
-                              size="sm"
-                              onClick={() => handleReplyToThread(thread.id)}
-                              disabled={
-                                !replyInputs[thread.id]?.trim() || submittingReply === thread.id
-                              }
-                            >
-                              <Send className="h-3 w-3 mr-1" />
-                              {submittingReply === thread.id ? 'Replying...' : 'Reply'}
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  if (item.type === 'commit') {
-                    const commit = item.data as PRCommit;
-                    const shortSha = commit.sha.substring(0, 7);
-                    const firstLine = commit.message.split('\n')[0];
-
-                    return (
-                      <div
-                        key={`commit-${commit.sha}`}
-                        className="flex items-center gap-3 py-2 text-sm"
-                      >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          <GitCommit className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            {commit.authorAvatarUrl ? (
-                              <img
-                                src={commit.authorAvatarUrl}
-                                alt={commit.author}
-                                className="w-4 h-4 rounded-full"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="w-4 h-4 rounded-full bg-muted" />
-                            )}
-                            <span className="font-medium">{commit.author}</span>
-                            <span className="text-muted-foreground">added a commit</span>
-                            <span className="text-muted-foreground">
-                              {formatRelativeTime(commit.date)}
+                                {event.label?.name}
+                              </Badge>
+                              <span className="text-muted-foreground"> label</span>
                             </span>
-                          </div>
-                          <div className="mt-1 flex items-center gap-2">
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0 text-xs font-mono"
-                              onClick={async () => {
-                                try {
-                                  await ipc.invoke('shell:open-external', commit.url);
-                                } catch {
-                                  // URL open failed
-                                }
-                              }}
-                            >
-                              {shortSha}
-                            </Button>
-                            <span className="text-muted-foreground truncate">{firstLine}</span>
-                          </div>
-                        </div>
+                          </>
+                        );
+                      case 'unlabeled':
+                        return (
+                          <>
+                            <Tag className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground"> removed the </span>
+                              <Badge variant="outline" className="text-xs">
+                                {event.label?.name}
+                              </Badge>
+                              <span className="text-muted-foreground"> label</span>
+                            </span>
+                          </>
+                        );
+                      case 'head_ref_force_pushed':
+                        return (
+                          <>
+                            <GitCommit className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground">
+                                {' '}
+                                force-pushed the branch
+                              </span>
+                            </span>
+                          </>
+                        );
+                      case 'ready_for_review':
+                        return (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground">
+                                {' '}
+                                marked this pull request as ready for review
+                              </span>
+                            </span>
+                          </>
+                        );
+                      case 'converted_to_draft':
+                        return (
+                          <>
+                            <Pencil className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground">
+                                {' '}
+                                converted this to a draft
+                              </span>
+                            </span>
+                          </>
+                        );
+                      default:
+                        return (
+                          <>
+                            <CircleDot className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span>
+                              <span className="font-medium">{event.actor}</span>
+                              <span className="text-muted-foreground">
+                                {' '}
+                                {event.event.replace(/_/g, ' ')}
+                              </span>
+                            </span>
+                          </>
+                        );
+                    }
+                  };
+
+                  return (
+                    <div key={`event-${event.id}`} className="flex items-center gap-3 py-2 text-sm">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                        {event.actorAvatarUrl ? (
+                          <img
+                            src={event.actorAvatarUrl}
+                            alt={event.actor}
+                            className="w-5 h-5 rounded-full"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-muted" />
+                        )}
                       </div>
-                    );
-                  }
-
-                  if (item.type === 'event') {
-                    const event = item.data as PREvent;
-
-                    // Render different event types
-                    const renderEventContent = () => {
-                      switch (event.event) {
-                        case 'renamed':
-                          return (
-                            <>
-                              <Pencil className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground"> changed the title </span>
-                                <span className="line-through text-muted-foreground">
-                                  {event.rename?.from}
-                                </span>
-                                <span className="text-muted-foreground"> → </span>
-                                <span className="font-medium">{event.rename?.to}</span>
-                              </span>
-                            </>
-                          );
-                        case 'closed':
-                          return (
-                            <>
-                              <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground"> closed this</span>
-                              </span>
-                            </>
-                          );
-                        case 'reopened':
-                          return (
-                            <>
-                              <CircleDot className="h-4 w-4 text-green-500 flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground"> reopened this</span>
-                              </span>
-                            </>
-                          );
-                        case 'merged':
-                          return (
-                            <>
-                              <GitMerge className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground"> merged commit </span>
-                                <code className="text-xs bg-muted px-1 rounded">
-                                  {event.commitId?.substring(0, 7)}
-                                </code>
-                              </span>
-                            </>
-                          );
-                        case 'labeled':
-                          return (
-                            <>
-                              <Tag className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground"> added the </span>
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs"
-                                  style={{
-                                    backgroundColor: event.label?.color
-                                      ? `#${event.label.color}20`
-                                      : undefined,
-                                    borderColor: event.label?.color
-                                      ? `#${event.label.color}`
-                                      : undefined,
-                                  }}
-                                >
-                                  {event.label?.name}
-                                </Badge>
-                                <span className="text-muted-foreground"> label</span>
-                              </span>
-                            </>
-                          );
-                        case 'unlabeled':
-                          return (
-                            <>
-                              <Tag className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground"> removed the </span>
-                                <Badge variant="outline" className="text-xs">
-                                  {event.label?.name}
-                                </Badge>
-                                <span className="text-muted-foreground"> label</span>
-                              </span>
-                            </>
-                          );
-                        case 'head_ref_force_pushed':
-                          return (
-                            <>
-                              <GitCommit className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground">
-                                  {' '}
-                                  force-pushed the branch
-                                </span>
-                              </span>
-                            </>
-                          );
-                        case 'ready_for_review':
-                          return (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground">
-                                  {' '}
-                                  marked this pull request as ready for review
-                                </span>
-                              </span>
-                            </>
-                          );
-                        case 'converted_to_draft':
-                          return (
-                            <>
-                              <Pencil className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground">
-                                  {' '}
-                                  converted this to a draft
-                                </span>
-                              </span>
-                            </>
-                          );
-                        default:
-                          return (
-                            <>
-                              <CircleDot className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                              <span>
-                                <span className="font-medium">{event.actor}</span>
-                                <span className="text-muted-foreground">
-                                  {' '}
-                                  {event.event.replace(/_/g, ' ')}
-                                </span>
-                              </span>
-                            </>
-                          );
-                      }
-                    };
-
-                    return (
-                      <div
-                        key={`event-${event.id}`}
-                        className="flex items-center gap-3 py-2 text-sm"
-                      >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          {event.actorAvatarUrl ? (
-                            <img
-                              src={event.actorAvatarUrl}
-                              alt={event.actor}
-                              className="w-5 h-5 rounded-full"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-muted" />
-                          )}
-                        </div>
-                        <div className="flex-1 flex items-center gap-2 flex-wrap">
-                          {renderEventContent()}
-                          <span className="text-muted-foreground text-xs">
-                            {formatRelativeTime(event.createdAt)}
-                          </span>
-                        </div>
+                      <div className="flex-1 flex items-center gap-2 flex-wrap">
+                        {renderEventContent()}
+                        <span className="text-muted-foreground text-xs">
+                          {formatRelativeTime(event.createdAt)}
+                        </span>
                       </div>
-                    );
+                    </div>
+                  );
+                }
+
+                return null;
+              })}
+            </div>
+          )}
+
+          {timeline.length === 0 && !prDetail?.body && (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No activity on this pull request yet.
+            </p>
+          )}
+
+          {/* Comment Input */}
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium mb-2">Leave a comment</h3>
+            <MarkdownEditor
+              value={newComment}
+              onChange={setNewComment}
+              placeholder="Write a comment... (Markdown supported)"
+              disabled={submitting}
+              minHeight="80px"
+            />
+            <div className="flex justify-between items-center mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await ipc.invoke('shell:open-external', pr.url);
+                  } catch {
+                    // URL open failed
                   }
+                }}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View on GitHub
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSubmitComment}
+                disabled={!newComment.trim() || submitting}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {submitting ? 'Submitting...' : 'Comment'}
+              </Button>
+            </div>
+          </div>
 
-                  return null;
-                })}
-              </div>
-            )}
-
-            {timeline.length === 0 && !prDetail?.body && (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                No activity on this pull request yet.
-              </p>
-            )}
-
-            {/* Comment Input */}
+          {/* Merge/Close Actions - only for open PRs when user has write access */}
+          {pr.state === 'open' && !pr.merged && canWrite && (
             <div className="border-t pt-4">
-              <h3 className="text-sm font-medium mb-2">Leave a comment</h3>
-              <MarkdownEditor
-                value={newComment}
-                onChange={setNewComment}
-                placeholder="Write a comment... (Markdown supported)"
-                disabled={submitting}
-                minHeight="80px"
-              />
-              <div className="flex justify-between items-center mt-2">
+              {actionError && <p className="text-sm text-destructive mb-3">{actionError}</p>}
+              <div className="flex items-center gap-2">
+                {/* Merge Button with Dropdown */}
+                <div className="flex">
+                  <Button
+                    size="sm"
+                    className="rounded-r-none bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => handleMerge('merge')}
+                    disabled={merging || closing}
+                  >
+                    <GitMerge className="h-4 w-4 mr-2" />
+                    {merging ? 'Merging...' : 'Merge pull request'}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        className="rounded-l-none border-l border-green-700 bg-green-600 hover:bg-green-700 text-white px-2"
+                        disabled={merging || closing}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleMerge('merge')}>
+                        <div>
+                          <div className="font-medium">Create a merge commit</div>
+                          <div className="text-xs text-muted-foreground">
+                            All commits will be added to the base branch via a merge commit.
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMerge('squash')}>
+                        <div>
+                          <div className="font-medium">Squash and merge</div>
+                          <div className="text-xs text-muted-foreground">
+                            The commits will be combined into one commit in the base branch.
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMerge('rebase')}>
+                        <div>
+                          <div className="font-medium">Rebase and merge</div>
+                          <div className="text-xs text-muted-foreground">
+                            The commits will be rebased and added to the base branch.
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Close Button */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={async () => {
-                    try {
-                      await ipc.invoke('shell:open-external', pr.url);
-                    } catch {
-                      // URL open failed
-                    }
-                  }}
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={handleClose}
+                  disabled={merging || closing}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View on GitHub
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSubmitComment}
-                  disabled={!newComment.trim() || submitting}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {submitting ? 'Submitting...' : 'Comment'}
+                  <XCircle className="h-4 w-4 mr-2" />
+                  {closing ? 'Closing...' : 'Close pull request'}
                 </Button>
               </div>
             </div>
+          )}
+        </div>
+      )}
+    </>
+  );
 
-            {/* Merge/Close Actions - only for open PRs when user has write access */}
-            {pr.state === 'open' && !pr.merged && canWrite && (
-              <div className="border-t pt-4">
-                {actionError && <p className="text-sm text-destructive mb-3">{actionError}</p>}
-                <div className="flex items-center gap-2">
-                  {/* Merge Button with Dropdown */}
-                  <div className="flex">
-                    <Button
-                      size="sm"
-                      className="rounded-r-none bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => handleMerge('merge')}
-                      disabled={merging || closing}
-                    >
-                      <GitMerge className="h-4 w-4 mr-2" />
-                      {merging ? 'Merging...' : 'Merge pull request'}
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          size="sm"
-                          className="rounded-l-none border-l border-green-700 bg-green-600 hover:bg-green-700 text-white px-2"
-                          disabled={merging || closing}
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleMerge('merge')}>
-                          <div>
-                            <div className="font-medium">Create a merge commit</div>
-                            <div className="text-xs text-muted-foreground">
-                              All commits will be added to the base branch via a merge commit.
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleMerge('squash')}>
-                          <div>
-                            <div className="font-medium">Squash and merge</div>
-                            <div className="text-xs text-muted-foreground">
-                              The commits will be combined into one commit in the base branch.
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleMerge('rebase')}>
-                          <div>
-                            <div className="font-medium">Rebase and merge</div>
-                            <div className="text-xs text-muted-foreground">
-                              The commits will be rebased and added to the base branch.
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+  if (inline) {
+    return (
+      <div className="flex flex-col h-full overflow-auto styled-scroll p-4">
+        {header}
+        <div className="mt-4">{body}</div>
+      </div>
+    );
+  }
 
-                  {/* Close Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:bg-destructive/10"
-                    onClick={handleClose}
-                    disabled={merging || closing}
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    {closing ? 'Closing...' : 'Close pull request'}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+  return (
+    <Dialog open={!!pr} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto styled-scroll">
+        <DialogHeader>
+          {header}
+          <DialogDescription className="sr-only">
+            Pull request #{pr.number} details
+          </DialogDescription>
+        </DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );

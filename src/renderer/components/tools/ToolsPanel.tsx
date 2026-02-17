@@ -1,19 +1,22 @@
 /**
  * ToolsPanel
  *
- * Collapsible side panel containing Terminal, Dev Scripts, and Maintenance tools.
- * Uses hamburger-style navigation to switch between tools.
+ * Collapsible side panel containing Issues, Pull Requests, Dev Scripts, Terminal,
+ * and Maintenance tools. Uses hamburger-style navigation to switch between tools.
  */
 
 import { useState } from 'react';
-import { Terminal, Code, Wrench, X, Menu } from 'lucide-react';
+import { Terminal, Code, Wrench, X, Menu, CircleDot, GitPullRequest } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TerminalTool } from './TerminalTool';
 import { DevScriptsTool } from './DevScriptsTool';
 import { MaintenanceTool } from './MaintenanceTool';
+import { IssuesTool } from './IssuesTool';
+import { PullRequestsTool } from './PullRequestsTool';
 import { cn } from '../../lib/utils';
+import type { Contribution } from '../../../main/ipc/channels';
 
-type ToolType = 'terminal' | 'dev-scripts' | 'maintenance';
+type ToolType = 'issues' | 'pull-requests' | 'dev-scripts' | 'terminal' | 'maintenance';
 
 interface ToolItem {
   id: ToolType;
@@ -22,10 +25,18 @@ interface ToolItem {
 }
 
 const tools: ToolItem[] = [
-  { id: 'terminal', label: 'Terminal', icon: Terminal },
+  { id: 'issues', label: 'Issues', icon: CircleDot },
+  { id: 'pull-requests', label: 'Pull Requests', icon: GitPullRequest },
   { id: 'dev-scripts', label: 'Dev Scripts', icon: Code },
+  { id: 'terminal', label: 'Terminal', icon: Terminal },
   { id: 'maintenance', label: 'Maintenance', icon: Wrench },
 ];
+
+interface GitRemote {
+  name: string;
+  fetchUrl: string;
+  pushUrl: string;
+}
 
 /** Session to adopt into Terminal tool (from ScriptExecutionModal) */
 interface AdoptSession {
@@ -41,6 +52,16 @@ interface ToolsPanelProps {
   adoptSessions?: AdoptSession[];
   /** Callback when sessions are adopted */
   onSessionsAdopted?: () => void;
+  /** Contribution data for Issues/PR tools */
+  contribution?: Contribution;
+  /** Local branch list for Issues/PR tools */
+  branches?: string[];
+  /** Git remotes for Create PR tool */
+  remotes?: GitRemote[];
+  /** Authenticated GitHub username */
+  githubUsername?: string;
+  /** Callback to refresh branches after issue/PR actions */
+  onRefreshBranches?: () => void;
 }
 
 export function ToolsPanel({
@@ -48,10 +69,15 @@ export function ToolsPanel({
   onClose,
   adoptSessions,
   onSessionsAdopted,
+  contribution,
+  branches = [],
+  remotes = [],
+  githubUsername = '',
+  onRefreshBranches,
 }: ToolsPanelProps) {
   const hasSessionsToAdopt = adoptSessions && adoptSessions.length > 0;
   const [activeTool, setActiveTool] = useState<ToolType>(
-    hasSessionsToAdopt ? 'terminal' : 'terminal'
+    hasSessionsToAdopt ? 'terminal' : 'issues'
   );
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -62,6 +88,25 @@ export function ToolsPanel({
 
   const renderTool = () => {
     switch (activeTool) {
+      case 'issues':
+        return contribution ? (
+          <IssuesTool
+            contribution={contribution}
+            branches={branches}
+            githubUsername={githubUsername}
+            onRefreshBranches={onRefreshBranches}
+          />
+        ) : null;
+      case 'pull-requests':
+        return contribution ? (
+          <PullRequestsTool
+            contribution={contribution}
+            branches={branches}
+            remotes={remotes}
+            githubUsername={githubUsername}
+            onRefreshBranches={onRefreshBranches}
+          />
+        ) : null;
       case 'terminal':
         return (
           <TerminalTool
@@ -82,7 +127,7 @@ export function ToolsPanel({
   const ActiveIcon = tools.find((t) => t.id === activeTool)?.icon || Terminal;
 
   return (
-    <div className="flex flex-col h-full bg-background border-l border-border">
+    <div className="flex flex-col h-full bg-background">
       {/* Header with hamburger menu */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
         <div className="relative">

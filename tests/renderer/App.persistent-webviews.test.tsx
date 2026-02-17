@@ -143,6 +143,10 @@ vi.mock('../../src/renderer/stores/useOpenProjectsStore', () => {
   return { useOpenProjectsStore: hook };
 });
 
+// ── Static import (after all vi.mock calls) ────────────────────────────
+
+import App from '../../src/renderer/App';
+
 // ── Helpers ────────────────────────────────────────────────────────────
 
 function createOpenProject(
@@ -219,30 +223,22 @@ describe('App - Persistent Webview Sessions', () => {
     });
   });
 
-  it('renders multiple DevelopmentScreens simultaneously when projects are open', async () => {
+  it('renders multiple DevelopmentScreens simultaneously when projects are open', () => {
     mockOpenProjectsState.projects = [projectA, projectB];
     mockOpenProjectsState.activeProjectId = 'project-alpha';
 
-    const { default: App } = await import('../../src/renderer/App');
-
-    await act(async () => {
-      render(<App />);
-    });
+    render(<App />);
 
     // Both DevelopmentScreens should be in the DOM regardless of current screen
     expect(screen.getByTestId('dev-screen-project-alpha')).toBeDefined();
     expect(screen.getByTestId('dev-screen-project-beta')).toBeDefined();
   });
 
-  it('hides inactive project with display: none on IDE screen', async () => {
+  it('hides inactive project with display: none on IDE screen', () => {
     mockOpenProjectsState.projects = [projectA, projectB];
     mockOpenProjectsState.activeProjectId = 'project-alpha';
 
-    const { default: App } = await import('../../src/renderer/App');
-
-    await act(async () => {
-      render(<App />);
-    });
+    render(<App />);
 
     // Navigate to IDE screen
     navigateTo('ide');
@@ -255,15 +251,11 @@ describe('App - Persistent Webview Sessions', () => {
     expect(wrapperB.style.display).toBe('none');
   });
 
-  it('shows active project with display: contents on IDE screen', async () => {
+  it('shows active project with display: contents on IDE screen', () => {
     mockOpenProjectsState.projects = [projectA, projectB];
     mockOpenProjectsState.activeProjectId = 'project-alpha';
 
-    const { default: App } = await import('../../src/renderer/App');
-
-    await act(async () => {
-      render(<App />);
-    });
+    render(<App />);
 
     navigateTo('ide');
 
@@ -271,15 +263,11 @@ describe('App - Persistent Webview Sessions', () => {
     expect(wrapperA.style.display).toBe('contents');
   });
 
-  it('preserves DevelopmentScreen DOM when switching between projects', async () => {
+  it('preserves DevelopmentScreen DOM when switching between projects', () => {
     mockOpenProjectsState.projects = [projectA, projectB];
     mockOpenProjectsState.activeProjectId = 'project-alpha';
 
-    const { default: App } = await import('../../src/renderer/App');
-
-    await act(async () => {
-      render(<App />);
-    });
+    render(<App />);
 
     navigateTo('ide');
 
@@ -298,15 +286,11 @@ describe('App - Persistent Webview Sessions', () => {
     expect(screen.getByTestId('dev-screen-project-beta')).toBeDefined();
   });
 
-  it('hides all project wrappers on non-IDE screens', async () => {
+  it('hides all project wrappers on non-IDE screens', () => {
     mockOpenProjectsState.projects = [projectA, projectB];
     mockOpenProjectsState.activeProjectId = 'project-alpha';
 
-    const { default: App } = await import('../../src/renderer/App');
-
-    await act(async () => {
-      render(<App />);
-    });
+    render(<App />);
 
     // App starts on 'dashboard' screen — all project wrappers should have display: none
     const wrapperA = screen.getByTestId('dev-screen-project-alpha').parentElement!;
@@ -322,15 +306,11 @@ describe('App - Persistent Webview Sessions', () => {
     expect(wrapperB.style.display).toBe('none');
   });
 
-  it('removes only the closed project from DOM while preserving others', async () => {
+  it('removes only the closed project from DOM while preserving others', () => {
     mockOpenProjectsState.projects = [projectA, projectB];
     mockOpenProjectsState.activeProjectId = 'project-alpha';
 
-    const { default: App } = await import('../../src/renderer/App');
-
-    const { rerender } = await act(async () => {
-      return render(<App />);
-    });
+    const { rerender } = render(<App />);
 
     // Both screens present
     expect(screen.getByTestId('dev-screen-project-alpha')).toBeDefined();
@@ -340,9 +320,7 @@ describe('App - Persistent Webview Sessions', () => {
     mockOpenProjectsState.projects = [projectA];
     mockOpenProjectsState.activeProjectId = 'project-alpha';
 
-    await act(async () => {
-      rerender(<App />);
-    });
+    rerender(<App />);
 
     // Project A should still be present
     expect(screen.getByTestId('dev-screen-project-alpha')).toBeDefined();
@@ -350,15 +328,11 @@ describe('App - Persistent Webview Sessions', () => {
     expect(screen.queryByTestId('dev-screen-project-beta')).toBeNull();
   });
 
-  it('shows empty state when on IDE screen with no projects', async () => {
+  it('shows empty state when on IDE screen with no projects', () => {
     mockOpenProjectsState.projects = [];
     mockOpenProjectsState.activeProjectId = null;
 
-    const { default: App } = await import('../../src/renderer/App');
-
-    await act(async () => {
-      render(<App />);
-    });
+    render(<App />);
 
     // Navigate to IDE screen
     navigateTo('ide');

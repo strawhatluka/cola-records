@@ -12,9 +12,18 @@ interface CreateIssueModalProps {
   repo: string;
   onClose: () => void;
   onCreated: () => void;
+  /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
+  inline?: boolean;
 }
 
-export function CreateIssueModal({ open, owner, repo, onClose, onCreated }: CreateIssueModalProps) {
+export function CreateIssueModal({
+  open,
+  owner,
+  repo,
+  onClose,
+  onCreated,
+  inline,
+}: CreateIssueModalProps) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [labels, setLabels] = useState('');
@@ -54,6 +63,68 @@ export function CreateIssueModal({ open, owner, repo, onClose, onCreated }: Crea
     }
   };
 
+  const formContent = (
+    <div className="space-y-4">
+      {inline && (
+        <div>
+          <h2 className="text-lg font-semibold">Create New Issue</h2>
+          <p className="text-sm text-muted-foreground">
+            Submit a new issue to {owner}/{repo}
+          </p>
+        </div>
+      )}
+
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Title</label>
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Issue title"
+          disabled={submitting}
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Description</label>
+        <MarkdownEditor
+          value={body}
+          onChange={setBody}
+          placeholder="Describe the issue..."
+          disabled={submitting}
+          minHeight="160px"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Labels</label>
+        <Input
+          value={labels}
+          onChange={(e) => setLabels(e.target.value)}
+          placeholder="bug, enhancement (comma-separated, optional)"
+          disabled={submitting}
+        />
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onClose} disabled={submitting}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={!title.trim() || submitting}>
+          <Send className="h-4 w-4 mr-2" />
+          {submitting ? 'Creating...' : 'Create Issue'}
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (inline) {
+    return open ? (
+      <div className="flex flex-col h-full overflow-auto styled-scroll p-4">{formContent}</div>
+    ) : null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
@@ -63,51 +134,7 @@ export function CreateIssueModal({ open, owner, repo, onClose, onCreated }: Crea
             Submit a new issue to {owner}/{repo}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Title</label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Issue title"
-              disabled={submitting}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Description</label>
-            <MarkdownEditor
-              value={body}
-              onChange={setBody}
-              placeholder="Describe the issue..."
-              disabled={submitting}
-              minHeight="160px"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Labels</label>
-            <Input
-              value={labels}
-              onChange={(e) => setLabels(e.target.value)}
-              placeholder="bug, enhancement (comma-separated, optional)"
-              disabled={submitting}
-            />
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={!title.trim() || submitting}>
-              <Send className="h-4 w-4 mr-2" />
-              {submitting ? 'Creating...' : 'Create Issue'}
-            </Button>
-          </div>
-        </div>
+        {formContent}
       </DialogContent>
     </Dialog>
   );

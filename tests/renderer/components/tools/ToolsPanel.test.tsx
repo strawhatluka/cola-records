@@ -68,9 +68,9 @@ describe('ToolsPanel', () => {
     });
   });
 
-  it('renders with terminal tool selected by default', () => {
+  it('renders with issues tool selected by default', () => {
     render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
-    expect(screen.getByText('Terminal')).toBeDefined();
+    expect(screen.getByText('Issues')).toBeDefined();
   });
 
   it('renders hamburger menu button', () => {
@@ -103,9 +103,11 @@ describe('ToolsPanel', () => {
     expect(menuButton).not.toBeNull();
     await user.click(menuButton as HTMLButtonElement);
 
-    // Menu should show all three tool options
-    expect(screen.getAllByText('Terminal').length).toBeGreaterThanOrEqual(1);
+    // Menu should show all five tool options
+    expect(screen.getAllByText('Issues').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Pull Requests')).toBeDefined();
     expect(screen.getByText('Dev Scripts')).toBeDefined();
+    expect(screen.getAllByText('Terminal').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Maintenance')).toBeDefined();
   });
 
@@ -178,19 +180,26 @@ describe('ToolsPanel', () => {
     expect(menuButton).not.toBeNull();
     await user.click(menuButton as HTMLButtonElement);
 
-    // Terminal should have bg-accent class (active)
-    const terminalButtons = screen.getAllByText('Terminal');
-    const terminalMenuItem = terminalButtons.find((el) =>
+    // Issues should have bg-accent class (active, it's the default tool)
+    const issuesButtons = screen.getAllByText('Issues');
+    const issuesMenuItem = issuesButtons.find((el) =>
       el.closest('button')?.className.includes('bg-accent')
     );
-    expect(terminalMenuItem).toBeDefined();
+    expect(issuesMenuItem).toBeDefined();
   });
 
   it('passes workingDirectory to TerminalTool', async () => {
+    const user = userEvent.setup();
     render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+    // Default tool is now Issues — navigate to Terminal via menu
+    const menuButton = screen.getByTestId('icon-menu').closest('button');
+    await user.click(menuButton as HTMLButtonElement);
+    const terminalOptions = screen.getAllByText('Terminal');
+    const terminalMenuItem = terminalOptions.find((el) => el.closest('button'));
+    await user.click(terminalMenuItem as HTMLElement);
+
     // The XTermTerminal mock should be rendered (through TerminalTool) after terminal spawns
-    // Note: Initial render shows "No terminal open" until terminal is spawned
-    // The terminal spawn is triggered on mount, so we need to wait for it
     await vi.waitFor(() => {
       expect(screen.getByTestId('xterm-terminal')).toBeDefined();
     });
