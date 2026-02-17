@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New `PullRequestsTool` component with inline list, detail, and create views inside Tool Box
   - Tool Box now opens by default when entering Development screen with 60/40 IDE/Tool Box split
   - Tool Box panel is resizable by dragging the border (min 300px, max 70% of viewport)
+  - Invisible overlay during resize prevents Electron `<webview>` from capturing mouse events (fixes drag lock and choppy movement)
+  - First-click resize reads actual DOM width to avoid snap when pixel state is uninitialized
   - Tool navigation order: Issues → Pull Requests → Dev Scripts → Terminal → Maintenance
   - Header Issues/PR buttons now act as Tool Box navigation shortcuts (color indicators preserved)
   - Added `inline` rendering mode to `DevelopmentIssueDetailModal`, `CreateIssueModal`, `PullRequestDetailModal`, and `CreatePullRequestModal`

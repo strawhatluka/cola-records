@@ -66,6 +66,7 @@ export function DevelopmentScreen({
   const [githubUsername, setGithubUsername] = useState<string>('');
   const [toolsPanelOpen, setToolsPanelOpen] = useState(true);
   const [toolsPanelWidth, setToolsPanelWidth] = useState<number>(0);
+  const [isResizing, setIsResizing] = useState(false);
   const [executingScript, setExecutingScript] = useState<DevScript | null>(null);
   // Sessions to adopt into ToolBox (from ScriptExecutionModal multi-terminal support)
   const [adoptSessions, setAdoptSessions] = useState<
@@ -73,6 +74,7 @@ export function DevelopmentScreen({
   >([]);
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const toolsPanelRef = useRef<HTMLDivElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -85,11 +87,16 @@ export function DevelopmentScreen({
   }, [toolsPanelOpen, toolsPanelWidth]);
 
   // Drag-to-resize handler for the tools panel divider
+  // Uses an overlay during drag to prevent the <webview> element from capturing mouse events
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       const startX = e.clientX;
-      const startWidth = toolsPanelWidth;
+      // If toolsPanelWidth is 0 (CSS fallback), read actual rendered width from DOM
+      const startWidth =
+        toolsPanelWidth > 0 ? toolsPanelWidth : (toolsPanelRef.current?.offsetWidth ?? 0);
+      if (startWidth > 0) setToolsPanelWidth(startWidth);
+      setIsResizing(true);
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const delta = startX - moveEvent.clientX;
@@ -104,6 +111,7 @@ export function DevelopmentScreen({
         document.removeEventListener('mouseup', handleMouseUp);
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
+        setIsResizing(false);
       };
 
       document.addEventListener('mousemove', handleMouseMove);
@@ -470,7 +478,9 @@ export function DevelopmentScreen({
       </div>
 
       {/* Main content area with optional tools panel */}
-      <div ref={containerRef} className="flex flex-1 overflow-hidden">
+      <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
+        {/* Invisible overlay during drag to prevent webview from capturing mouse events */}
+        {isResizing && <div className="absolute inset-0 z-10" style={{ cursor: 'col-resize' }} />}
         {/* eslint-disable react/no-unknown-property -- Electron webview attributes */}
         {url && (
           <webview
@@ -500,6 +510,7 @@ export function DevelopmentScreen({
               className="w-1 shrink-0 bg-border hover:bg-primary/50 active:bg-primary transition-colors cursor-col-resize"
             />
             <div
+              ref={toolsPanelRef}
               style={toolsPanelWidth > 0 ? { width: toolsPanelWidth } : { flex: 1 }}
               className="shrink-0 h-full"
             >
