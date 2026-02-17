@@ -32,6 +32,9 @@ const mockPullsMerge = vi.fn();
 const mockPullsUpdate = vi.fn();
 const mockReposGetCombinedStatusForRef = vi.fn();
 const mockChecksListSuitesForRef = vi.fn();
+const mockActionsListWorkflowRunsForRepo = vi.fn();
+const mockActionsListJobsForWorkflowRun = vi.fn();
+const mockActionsDownloadJobLogsForWorkflowRun = vi.fn();
 
 // Use a class so `new Octokit(...)` works
 vi.mock('@octokit/rest', () => ({
@@ -73,11 +76,16 @@ vi.mock('@octokit/rest', () => ({
       merge: mockPullsMerge,
       update: mockPullsUpdate,
     };
-    // The service calls client.rest.pulls for merge/close operations
+    // The service calls client.rest for merge/close and actions operations
     rest = {
       pulls: {
         merge: mockPullsMerge,
         update: mockPullsUpdate,
+      },
+      actions: {
+        listWorkflowRunsForRepo: mockActionsListWorkflowRunsForRepo,
+        listJobsForWorkflowRun: mockActionsListJobsForWorkflowRun,
+        downloadJobLogsForWorkflowRun: mockActionsDownloadJobLogsForWorkflowRun,
       },
     };
     activity = {
@@ -1511,6 +1519,162 @@ describe('GitHubRestService', () => {
       const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
       expect(status.state).toBe('unknown');
       expect(status.total).toBe(0);
+    });
+  });
+
+  // ─── GitHub Actions ─────────────────────────────────────────
+
+  describe('listWorkflowRuns', () => {
+    it('returns normalized workflow runs', async () => {
+      mockActionsListWorkflowRunsForRepo.mockResolvedValue({
+        data: {
+          workflow_runs: [
+            {
+              id: 1001,
+              name: 'CI',
+              display_title: 'Fix tests',
+              status: 'completed',
+              conclusion: 'success',
+              head_branch: 'main',
+              head_sha: 'abc123',
+              event: 'push',
+              run_number: 42,
+              created_at: '2026-02-01T00:00:00Z',
+              updated_at: '2026-02-01T01:00:00Z',
+              html_url: 'https://github.com/org/repo/actions/runs/1001',
+              actor: { login: 'dev', avatar_url: 'https://avatar.url/dev' },
+            },
+          ],
+        },
+      });
+
+      const runs = await service.listWorkflowRuns('org', 'repo');
+      expect(runs).toHaveLength(1);
+      expect(runs[0].id).toBe(1001);
+      expect(runs[0].name).toBe('CI');
+      expect(runs[0].displayTitle).toBe('Fix tests');
+      expect(runs[0].status).toBe('completed');
+      expect(runs[0].conclusion).toBe('success');
+      expect(runs[0].headBranch).toBe('main');
+      expect(runs[0].headSha).toBe('abc123');
+      expect(runs[0].event).toBe('push');
+      expect(runs[0].runNumber).toBe(42);
+      expect(runs[0].htmlUrl).toBe('https://github.com/org/repo/actions/runs/1001');
+      expect(runs[0].actor).toBe('dev');
+      expect(runs[0].actorAvatarUrl).toBe('https://avatar.url/dev');
+    });
+
+    it('returns empty array when no runs', async () => {
+      mockActionsListWorkflowRunsForRepo.mockResolvedValue({
+        data: { workflow_runs: [] },
+      });
+
+      const runs = await service.listWorkflowRuns('org', 'repo');
+      expect(runs).toEqual([]);
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockActionsListWorkflowRunsForRepo.mockRejectedValue(new Error('API failure'));
+      await expect(service.listWorkflowRuns('org', 'repo')).rejects.toThrow(
+        'Failed to list workflow runs'
+      );
+    });
+  });
+
+  describe('listWorkflowRunJobs', () => {
+    it('returns normalized jobs with steps', async () => {
+      mockActionsListJobsForWorkflowRun.mockResolvedValue({
+        data: {
+          jobs: [
+            {
+              id: 2001,
+              name: 'build',
+              status: 'completed',
+              conclusion: 'success',
+              started_at: '2026-02-01T00:00:00Z',
+              completed_at: '2026-02-01T00:05:00Z',
+              html_url: 'https://github.com/org/repo/actions/runs/1001/jobs/2001',
+              runner_name: 'ubuntu-latest',
+              labels: ['ubuntu-latest'],
+              steps: [
+                {
+                  name: 'Checkout',
+                  status: 'completed',
+                  conclusion: 'success',
+                  number: 1,
+                },
+                {
+                  name: 'Run tests',
+                  status: 'completed',
+                  conclusion: 'failure',
+                  number: 2,
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      const jobs = await service.listWorkflowRunJobs('org', 'repo', 1001);
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0].id).toBe(2001);
+      expect(jobs[0].name).toBe('build');
+      expect(jobs[0].status).toBe('completed');
+      expect(jobs[0].conclusion).toBe('success');
+      expect(jobs[0].startedAt).toBe('2026-02-01T00:00:00Z');
+      expect(jobs[0].completedAt).toBe('2026-02-01T00:05:00Z');
+      expect(jobs[0].htmlUrl).toBe('https://github.com/org/repo/actions/runs/1001/jobs/2001');
+      expect(jobs[0].runnerName).toBe('ubuntu-latest');
+      expect(jobs[0].labels).toEqual(['ubuntu-latest']);
+      expect(jobs[0].steps).toHaveLength(2);
+      expect(jobs[0].steps[0].name).toBe('Checkout');
+      expect(jobs[0].steps[0].conclusion).toBe('success');
+      expect(jobs[0].steps[1].name).toBe('Run tests');
+      expect(jobs[0].steps[1].conclusion).toBe('failure');
+    });
+
+    it('returns empty array when no jobs', async () => {
+      mockActionsListJobsForWorkflowRun.mockResolvedValue({
+        data: { jobs: [] },
+      });
+
+      const jobs = await service.listWorkflowRunJobs('org', 'repo', 1001);
+      expect(jobs).toEqual([]);
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockActionsListJobsForWorkflowRun.mockRejectedValue(new Error('API failure'));
+      await expect(service.listWorkflowRunJobs('org', 'repo', 1001)).rejects.toThrow(
+        'Failed to list jobs for workflow run'
+      );
+    });
+  });
+
+  describe('getJobLogs', () => {
+    it('returns log content as string', async () => {
+      mockActionsDownloadJobLogsForWorkflowRun.mockResolvedValue({
+        data: '2026-02-01T00:00:00Z Running tests...\n2026-02-01T00:01:00Z Tests passed',
+      });
+
+      const logs = await service.getJobLogs('org', 'repo', 2001);
+      expect(logs).toContain('Running tests');
+      expect(logs).toContain('Tests passed');
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockActionsDownloadJobLogsForWorkflowRun.mockRejectedValue(new Error('API failure'));
+      await expect(service.getJobLogs('org', 'repo', 2001)).rejects.toThrow(
+        'Failed to get job logs'
+      );
+    });
+
+    it('handles empty log response', async () => {
+      mockActionsDownloadJobLogsForWorkflowRun.mockResolvedValue({
+        data: '',
+      });
+
+      const logs = await service.getJobLogs('org', 'repo', 2001);
+      expect(logs).toBe('');
     });
   });
 });

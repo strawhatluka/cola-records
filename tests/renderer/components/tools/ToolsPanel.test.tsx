@@ -103,9 +103,10 @@ describe('ToolsPanel', () => {
     expect(menuButton).not.toBeNull();
     await user.click(menuButton as HTMLButtonElement);
 
-    // Menu should show all five tool options
+    // Menu should show all six tool options
     expect(screen.getAllByText('Issues').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Pull Requests')).toBeDefined();
+    expect(screen.getByText('Actions')).toBeDefined();
     expect(screen.getByText('Dev Scripts')).toBeDefined();
     expect(screen.getAllByText('Terminal').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Maintenance')).toBeDefined();

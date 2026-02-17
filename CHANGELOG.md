@@ -40,10 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tool Box panel is resizable by dragging the border (min 300px, max 70% of viewport)
   - Invisible overlay during resize prevents Electron `<webview>` from capturing mouse events (fixes drag lock and choppy movement)
   - First-click resize reads actual DOM width to avoid snap when pixel state is uninitialized
-  - Tool navigation order: Issues → Pull Requests → Dev Scripts → Terminal → Maintenance
+  - Tool navigation order: Issues → Pull Requests → Actions → Dev Scripts → Terminal → Maintenance
   - Header Issues/PR buttons now act as Tool Box navigation shortcuts (color indicators preserved)
   - Added `inline` rendering mode to `DevelopmentIssueDetailModal`, `CreateIssueModal`, `PullRequestDetailModal`, and `CreatePullRequestModal`
   - Removed standalone Issues/PR dropdown panels and modal popups from header toolbar
+- GitHub Actions tool in Tool Box with workflow run monitoring ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+  - New `ActionsTool` component with list → run detail → job logs navigation
+  - Workflow runs list with color-coded status badges (green/red/yellow/gray), branch, event, actor, and relative timestamps
+  - Run detail view showing summary metadata, jobs with duration, and step-by-step status dots
+  - Job logs viewer with truncation (last 500 lines) and "Open in GitHub" link
+  - 3 new IPC channels: `github:list-workflow-runs`, `github:list-workflow-run-jobs`, `github:get-job-logs`
+  - 3 new `GitHubRestService` methods: `listWorkflowRuns`, `listWorkflowRunJobs`, `getJobLogs`
 
 ### Tests
 
@@ -58,8 +65,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 31 new tests for Tool Box expansion (all passing)
   - `IssuesTool.test.tsx`: 15 tests covering list/detail/create views, sorting, badges, callbacks, error/empty states
   - `PullRequestsTool.test.tsx`: 16 tests covering list/detail/create views, sorting, badges, callbacks, error/empty states
-  - Updated `ToolsPanel.test.tsx` for new default tool (Issues) and 5-tool menu
+  - Updated `ToolsPanel.test.tsx` for new default tool (Issues) and 6-tool menu
   - Updated `DevelopmentScreen.toolbar.test.tsx` for Tool Box navigation pattern (removed dropdown/modal tests)
+- Tests for GitHub Actions tool
+  - `ActionsTool.test.tsx`: 18 tests covering list/detail/logs views, status badges, navigation, refresh, error/empty states
+  - `github-rest.service.test.ts`: 9 new tests for `listWorkflowRuns`, `listWorkflowRunJobs`, `getJobLogs` (field mapping, empty results, API errors)
   - Updated `DevelopmentScreen.tools.test.tsx` to remove stale modal mocks
 
 ## [1.0.3] - 2026-02-15

@@ -768,6 +768,22 @@ const setupIpcHandlers = () => {
     return await gitHubRestService.listPREvents(owner, repo, prNumber);
   });
 
+  // GitHub Actions handlers
+  handleIpc('github:list-workflow-runs', async (_event, owner, repo) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listWorkflowRuns(owner, repo);
+  });
+
+  handleIpc('github:list-workflow-run-jobs', async (_event, owner, repo, runId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listWorkflowRunJobs(owner, repo, runId);
+  });
+
+  handleIpc('github:get-job-logs', async (_event, owner, repo, jobId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.getJobLogs(owner, repo, jobId);
+  });
+
   // PR Check Status handler
   handleIpc('github:get-pr-check-status', async (_event, owner, repo, sha) => {
     const { gitHubRestService } = await import('./services/github-rest.service');

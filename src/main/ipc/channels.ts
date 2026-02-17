@@ -953,6 +953,49 @@ export interface IpcChannels {
     memPercent: number;
   } | null;
 
+  // GitHub Actions Channels
+  'github:list-workflow-runs': (
+    owner: string,
+    repo: string
+  ) => {
+    id: number;
+    name: string;
+    displayTitle: string;
+    status: string;
+    conclusion: string | null;
+    headBranch: string;
+    headSha: string;
+    event: string;
+    runNumber: number;
+    createdAt: string;
+    updatedAt: string;
+    htmlUrl: string;
+    actor: string;
+    actorAvatarUrl: string;
+  }[];
+  'github:list-workflow-run-jobs': (
+    owner: string,
+    repo: string,
+    runId: number
+  ) => {
+    id: number;
+    name: string;
+    status: string;
+    conclusion: string | null;
+    startedAt: string | null;
+    completedAt: string | null;
+    htmlUrl: string;
+    runnerName: string | null;
+    labels: string[];
+    steps: {
+      name: string;
+      status: string;
+      conclusion: string | null;
+      number: number;
+    }[];
+  }[];
+  'github:get-job-logs': (owner: string, repo: string, jobId: number) => string;
+
   // PR Check Status Channels
   'github:get-pr-check-status': (owner: string, repo: string, sha: string) => PRCheckStatus;
 

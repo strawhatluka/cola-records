@@ -993,6 +993,94 @@ export class GitHubRestService {
     }
   }
 
+  // ─── GitHub Actions ───────────────────────────────────────────────
+
+  /**
+   * List workflow runs for a repository
+   */
+  async listWorkflowRuns(owner: string, repo: string): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.actions.listWorkflowRunsForRepo({
+        owner,
+        repo,
+        per_page: 30,
+      });
+
+      return response.data.workflow_runs.map((run: any) => ({
+        id: run.id,
+        name: run.name || '',
+        displayTitle: run.display_title || run.name || '',
+        status: run.status || '',
+        conclusion: run.conclusion || null,
+        headBranch: run.head_branch || '',
+        headSha: run.head_sha || '',
+        event: run.event || '',
+        runNumber: run.run_number,
+        createdAt: run.created_at,
+        updatedAt: run.updated_at,
+        htmlUrl: run.html_url,
+        actor: run.actor?.login || 'unknown',
+        actorAvatarUrl: run.actor?.avatar_url || '',
+      }));
+    } catch (error) {
+      throw new Error(`Failed to list workflow runs for ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
+   * List jobs for a workflow run
+   */
+  async listWorkflowRunJobs(owner: string, repo: string, runId: number): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.actions.listJobsForWorkflowRun({
+        owner,
+        repo,
+        run_id: runId,
+        filter: 'latest',
+      });
+
+      return response.data.jobs.map((job: any) => ({
+        id: job.id,
+        name: job.name || '',
+        status: job.status || '',
+        conclusion: job.conclusion || null,
+        startedAt: job.started_at || null,
+        completedAt: job.completed_at || null,
+        htmlUrl: job.html_url,
+        runnerName: job.runner_name || null,
+        labels: job.labels || [],
+        steps: (job.steps || []).map((step: any) => ({
+          name: step.name || '',
+          status: step.status || '',
+          conclusion: step.conclusion || null,
+          number: step.number,
+        })),
+      }));
+    } catch (error) {
+      throw new Error(`Failed to list jobs for workflow run ${owner}/${repo}#${runId}: ${error}`);
+    }
+  }
+
+  /**
+   * Get logs for a specific job
+   */
+  async getJobLogs(owner: string, repo: string, jobId: number): Promise<string> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.actions.downloadJobLogsForWorkflowRun({
+        owner,
+        repo,
+        job_id: jobId,
+      });
+
+      return typeof response.data === 'string' ? response.data : String(response.data);
+    } catch (error) {
+      throw new Error(`Failed to get job logs for ${owner}/${repo} job ${jobId}: ${error}`);
+    }
+  }
+
   // ─── PR Timeline Events ───────────────────────────────────────────────
 
   /**
