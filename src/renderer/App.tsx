@@ -33,7 +33,6 @@ const App: React.FC = () => {
     openProject,
     closeProject,
     setActiveProject,
-    getActiveProject,
     updateProjectState,
   } = useOpenProjectsStore();
 
@@ -141,9 +140,6 @@ const App: React.FC = () => {
     }
   }, [ideOrigin]);
 
-  // Get the active project for rendering
-  const activeProject = getActiveProject();
-
   const renderScreen = () => {
     switch (currentScreen) {
       case 'dashboard':
@@ -161,19 +157,12 @@ const App: React.FC = () => {
       case 'documentation':
         return <DocumentationScreen />;
       case 'ide':
-        return activeProject ? (
-          <DevelopmentScreen
-            contribution={activeProject.contribution}
-            onNavigateBack={handleNavigateBack}
-            codeServerUrl={activeProject.codeServerUrl}
-            projectState={activeProject.state}
-            projectError={activeProject.error}
-          />
-        ) : (
+        // DevelopmentScreens are rendered persistently below — only show empty state here
+        return projects.length === 0 ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             No project selected. Go to Contributions to open a project.
           </div>
-        );
+        ) : null;
       default:
         return <DashboardScreen />;
     }
@@ -191,6 +180,26 @@ const App: React.FC = () => {
           onCloseProject={handleCloseProject}
         >
           {renderScreen()}
+          {/* Render ALL open DevelopmentScreens persistently to preserve webview
+              connections and background processes across tab switches (#6) */}
+          {projects.map((project) => (
+            <div
+              key={project.id}
+              data-project-id={project.id}
+              style={{
+                display:
+                  currentScreen === 'ide' && project.id === activeProjectId ? 'contents' : 'none',
+              }}
+            >
+              <DevelopmentScreen
+                contribution={project.contribution}
+                onNavigateBack={handleNavigateBack}
+                codeServerUrl={project.codeServerUrl}
+                projectState={project.state}
+                projectError={project.error}
+              />
+            </div>
+          ))}
         </Layout>
         <Toaster />
         <UpdateNotification />

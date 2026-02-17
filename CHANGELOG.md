@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Persistent webview sessions for multi-project support ([#6](https://github.com/lukadfagundes/cola-records/issues/6))
+  - All open DevelopmentScreens now render persistently using CSS visibility toggling (`display: none`/`display: contents`) instead of conditional mounting
+  - Background processes (Claude Code, terminals, builds) survive tab switches — webview WebSocket connections stay alive
+  - Previously, switching project tabs unmounted the `<webview>`, severing the code-server connection and killing the Extension Host Process ~5 min later
 - In-app documentation reader with category navigation and Mermaid diagram support ([#8](https://github.com/lukadfagundes/cola-records/issues/8))
   - New "Documentation" screen accessible from sidebar navigation
   - Category-based browsing of `docs/` directory (subdirectories as categories)
@@ -32,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- 7 new tests for persistent webview sessions (1759 total, 109 test files, all passing)
+  - `App.persistent-webviews.test.tsx`: 7 tests covering simultaneous rendering, display state toggling, tab switch DOM preservation, non-IDE screen hiding, project close cleanup, and empty state
 - 67 new tests for Code Server settings feature (1752 total, 108 test files, all passing)
   - `CodeServerTab.test.tsx`: 37 tests covering rendering, presets, save/reset/validation, extensions, env vars, stats polling
   - `code-server.service.test.ts`: 24 tests covering resource config in `createContainer`, env/startup config, `getContainerStats`, `hasResourceConfigChanged`, container recreation on config change
