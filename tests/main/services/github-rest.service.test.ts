@@ -32,6 +32,14 @@ const mockPullsMerge = vi.fn();
 const mockPullsUpdate = vi.fn();
 const mockReposGetCombinedStatusForRef = vi.fn();
 const mockChecksListSuitesForRef = vi.fn();
+const mockActionsListWorkflowRunsForRepo = vi.fn();
+const mockActionsListJobsForWorkflowRun = vi.fn();
+const mockActionsDownloadJobLogsForWorkflowRun = vi.fn();
+const mockReposListReleases = vi.fn();
+const mockReposGetRelease = vi.fn();
+const mockReposCreateRelease = vi.fn();
+const mockReposUpdateRelease = vi.fn();
+const mockReposDeleteRelease = vi.fn();
 
 // Use a class so `new Octokit(...)` works
 vi.mock('@octokit/rest', () => ({
@@ -73,11 +81,24 @@ vi.mock('@octokit/rest', () => ({
       merge: mockPullsMerge,
       update: mockPullsUpdate,
     };
-    // The service calls client.rest.pulls for merge/close operations
+    // The service calls client.rest for merge/close and actions operations
     rest = {
       pulls: {
         merge: mockPullsMerge,
         update: mockPullsUpdate,
+      },
+      actions: {
+        listWorkflowRunsForRepo: mockActionsListWorkflowRunsForRepo,
+        listJobsForWorkflowRun: mockActionsListJobsForWorkflowRun,
+        downloadJobLogsForWorkflowRun: mockActionsDownloadJobLogsForWorkflowRun,
+      },
+      repos: {
+        listReleases: mockReposListReleases,
+        getRelease: mockReposGetRelease,
+        createRelease: mockReposCreateRelease,
+        updateRelease: mockReposUpdateRelease,
+        deleteRelease: mockReposDeleteRelease,
+        getCombinedStatusForRef: mockReposGetCombinedStatusForRef,
       },
     };
     activity = {
@@ -1511,6 +1532,456 @@ describe('GitHubRestService', () => {
       const status = await service.getPRCheckStatus('org', 'repo', 'abc123');
       expect(status.state).toBe('unknown');
       expect(status.total).toBe(0);
+    });
+  });
+
+  // ─── GitHub Actions ─────────────────────────────────────────
+
+  describe('listWorkflowRuns', () => {
+    it('returns normalized workflow runs', async () => {
+      mockActionsListWorkflowRunsForRepo.mockResolvedValue({
+        data: {
+          workflow_runs: [
+            {
+              id: 1001,
+              name: 'CI',
+              display_title: 'Fix tests',
+              status: 'completed',
+              conclusion: 'success',
+              head_branch: 'main',
+              head_sha: 'abc123',
+              event: 'push',
+              run_number: 42,
+              created_at: '2026-02-01T00:00:00Z',
+              updated_at: '2026-02-01T01:00:00Z',
+              html_url: 'https://github.com/org/repo/actions/runs/1001',
+              actor: { login: 'dev', avatar_url: 'https://avatar.url/dev' },
+            },
+          ],
+        },
+      });
+
+      const runs = await service.listWorkflowRuns('org', 'repo');
+      expect(runs).toHaveLength(1);
+      expect(runs[0].id).toBe(1001);
+      expect(runs[0].name).toBe('CI');
+      expect(runs[0].displayTitle).toBe('Fix tests');
+      expect(runs[0].status).toBe('completed');
+      expect(runs[0].conclusion).toBe('success');
+      expect(runs[0].headBranch).toBe('main');
+      expect(runs[0].headSha).toBe('abc123');
+      expect(runs[0].event).toBe('push');
+      expect(runs[0].runNumber).toBe(42);
+      expect(runs[0].htmlUrl).toBe('https://github.com/org/repo/actions/runs/1001');
+      expect(runs[0].actor).toBe('dev');
+      expect(runs[0].actorAvatarUrl).toBe('https://avatar.url/dev');
+    });
+
+    it('returns empty array when no runs', async () => {
+      mockActionsListWorkflowRunsForRepo.mockResolvedValue({
+        data: { workflow_runs: [] },
+      });
+
+      const runs = await service.listWorkflowRuns('org', 'repo');
+      expect(runs).toEqual([]);
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockActionsListWorkflowRunsForRepo.mockRejectedValue(new Error('API failure'));
+      await expect(service.listWorkflowRuns('org', 'repo')).rejects.toThrow(
+        'Failed to list workflow runs'
+      );
+    });
+  });
+
+  describe('listWorkflowRunJobs', () => {
+    it('returns normalized jobs with steps', async () => {
+      mockActionsListJobsForWorkflowRun.mockResolvedValue({
+        data: {
+          jobs: [
+            {
+              id: 2001,
+              name: 'build',
+              status: 'completed',
+              conclusion: 'success',
+              started_at: '2026-02-01T00:00:00Z',
+              completed_at: '2026-02-01T00:05:00Z',
+              html_url: 'https://github.com/org/repo/actions/runs/1001/jobs/2001',
+              runner_name: 'ubuntu-latest',
+              labels: ['ubuntu-latest'],
+              steps: [
+                {
+                  name: 'Checkout',
+                  status: 'completed',
+                  conclusion: 'success',
+                  number: 1,
+                },
+                {
+                  name: 'Run tests',
+                  status: 'completed',
+                  conclusion: 'failure',
+                  number: 2,
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      const jobs = await service.listWorkflowRunJobs('org', 'repo', 1001);
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0].id).toBe(2001);
+      expect(jobs[0].name).toBe('build');
+      expect(jobs[0].status).toBe('completed');
+      expect(jobs[0].conclusion).toBe('success');
+      expect(jobs[0].startedAt).toBe('2026-02-01T00:00:00Z');
+      expect(jobs[0].completedAt).toBe('2026-02-01T00:05:00Z');
+      expect(jobs[0].htmlUrl).toBe('https://github.com/org/repo/actions/runs/1001/jobs/2001');
+      expect(jobs[0].runnerName).toBe('ubuntu-latest');
+      expect(jobs[0].labels).toEqual(['ubuntu-latest']);
+      expect(jobs[0].steps).toHaveLength(2);
+      expect(jobs[0].steps[0].name).toBe('Checkout');
+      expect(jobs[0].steps[0].conclusion).toBe('success');
+      expect(jobs[0].steps[1].name).toBe('Run tests');
+      expect(jobs[0].steps[1].conclusion).toBe('failure');
+    });
+
+    it('returns empty array when no jobs', async () => {
+      mockActionsListJobsForWorkflowRun.mockResolvedValue({
+        data: { jobs: [] },
+      });
+
+      const jobs = await service.listWorkflowRunJobs('org', 'repo', 1001);
+      expect(jobs).toEqual([]);
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockActionsListJobsForWorkflowRun.mockRejectedValue(new Error('API failure'));
+      await expect(service.listWorkflowRunJobs('org', 'repo', 1001)).rejects.toThrow(
+        'Failed to list jobs for workflow run'
+      );
+    });
+  });
+
+  describe('getJobLogs', () => {
+    it('returns log content as string', async () => {
+      mockActionsDownloadJobLogsForWorkflowRun.mockResolvedValue({
+        data: '2026-02-01T00:00:00Z Running tests...\n2026-02-01T00:01:00Z Tests passed',
+      });
+
+      const logs = await service.getJobLogs('org', 'repo', 2001);
+      expect(logs).toContain('Running tests');
+      expect(logs).toContain('Tests passed');
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockActionsDownloadJobLogsForWorkflowRun.mockRejectedValue(new Error('API failure'));
+      await expect(service.getJobLogs('org', 'repo', 2001)).rejects.toThrow(
+        'Failed to get job logs'
+      );
+    });
+
+    it('handles empty log response', async () => {
+      mockActionsDownloadJobLogsForWorkflowRun.mockResolvedValue({
+        data: '',
+      });
+
+      const logs = await service.getJobLogs('org', 'repo', 2001);
+      expect(logs).toBe('');
+    });
+  });
+
+  // ─── GitHub Releases ─────────────────────────────────────────
+
+  describe('listReleases', () => {
+    it('returns normalized releases with isLatest flag', async () => {
+      mockReposListReleases.mockResolvedValue({
+        data: [
+          {
+            id: 3001,
+            tag_name: 'v1.2.0',
+            name: 'Release 1.2.0',
+            body: '## Changes',
+            draft: false,
+            prerelease: false,
+            created_at: '2026-02-15T00:00:00Z',
+            published_at: '2026-02-15T00:00:00Z',
+            html_url: 'https://github.com/org/repo/releases/tag/v1.2.0',
+            author: { login: 'dev', avatar_url: 'https://avatar.url/dev' },
+          },
+          {
+            id: 3002,
+            tag_name: 'v1.1.0',
+            name: 'Release 1.1.0',
+            body: '## Old release',
+            draft: false,
+            prerelease: false,
+            created_at: '2026-02-01T00:00:00Z',
+            published_at: '2026-02-01T00:00:00Z',
+            html_url: 'https://github.com/org/repo/releases/tag/v1.1.0',
+            author: { login: 'dev', avatar_url: '' },
+          },
+          {
+            id: 3003,
+            tag_name: 'v2.0.0-beta',
+            name: 'Beta 2.0',
+            body: '## Beta',
+            draft: true,
+            prerelease: false,
+            created_at: '2026-02-10T00:00:00Z',
+            published_at: null,
+            html_url: 'https://github.com/org/repo/releases/tag/v2.0.0-beta',
+            author: { login: 'dev', avatar_url: '' },
+          },
+        ],
+      });
+
+      const releases = await service.listReleases('org', 'repo');
+      expect(releases).toHaveLength(3);
+      // First non-draft non-prerelease is latest
+      expect(releases[0].isLatest).toBe(true);
+      expect(releases[0].tagName).toBe('v1.2.0');
+      // Second non-draft non-prerelease is NOT latest
+      expect(releases[1].isLatest).toBe(false);
+      // Draft is never latest
+      expect(releases[2].isLatest).toBe(false);
+      expect(releases[2].draft).toBe(true);
+      expect(releases[2].publishedAt).toBeNull();
+    });
+
+    it('returns empty array when no releases', async () => {
+      mockReposListReleases.mockResolvedValue({ data: [] });
+      const releases = await service.listReleases('org', 'repo');
+      expect(releases).toEqual([]);
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockReposListReleases.mockRejectedValue(new Error('API failure'));
+      await expect(service.listReleases('org', 'repo')).rejects.toThrow('Failed to list releases');
+    });
+  });
+
+  describe('getRelease', () => {
+    it('returns full release details with targetCommitish', async () => {
+      mockReposGetRelease.mockResolvedValue({
+        data: {
+          id: 3001,
+          tag_name: 'v1.2.0',
+          name: 'Release 1.2.0',
+          body: '## Changes',
+          draft: false,
+          prerelease: false,
+          created_at: '2026-02-15T00:00:00Z',
+          published_at: '2026-02-15T00:00:00Z',
+          html_url: 'https://github.com/org/repo/releases/tag/v1.2.0',
+          author: { login: 'dev', avatar_url: 'https://avatar.url/dev' },
+          target_commitish: 'main',
+        },
+      });
+
+      const release = await service.getRelease('org', 'repo', 3001);
+      expect(release.id).toBe(3001);
+      expect(release.tagName).toBe('v1.2.0');
+      expect(release.name).toBe('Release 1.2.0');
+      expect(release.targetCommitish).toBe('main');
+      expect(release.author).toBe('dev');
+      expect(release.isLatest).toBe(true);
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockReposGetRelease.mockRejectedValue(new Error('API failure'));
+      await expect(service.getRelease('org', 'repo', 3001)).rejects.toThrow(
+        'Failed to get release'
+      );
+    });
+
+    it('handles release with null published_at (draft)', async () => {
+      mockReposGetRelease.mockResolvedValue({
+        data: {
+          id: 3003,
+          tag_name: 'v2.0.0-beta',
+          name: 'Beta 2.0',
+          body: '## Beta',
+          draft: true,
+          prerelease: false,
+          created_at: '2026-02-10T00:00:00Z',
+          published_at: null,
+          html_url: 'https://github.com/org/repo/releases/tag/v2.0.0-beta',
+          author: { login: 'dev', avatar_url: '' },
+          target_commitish: 'develop',
+        },
+      });
+
+      const release = await service.getRelease('org', 'repo', 3003);
+      expect(release.publishedAt).toBeNull();
+      expect(release.draft).toBe(true);
+      expect(release.isLatest).toBe(false); // draft is not latest
+    });
+  });
+
+  describe('createRelease', () => {
+    it('creates release and returns normalized result', async () => {
+      mockReposCreateRelease.mockResolvedValue({
+        data: {
+          id: 3010,
+          tag_name: 'v1.3.0',
+          name: 'Release 1.3.0',
+          body: '## New release',
+          draft: true,
+          prerelease: false,
+          html_url: 'https://github.com/org/repo/releases/tag/v1.3.0',
+        },
+      });
+
+      const release = await service.createRelease('org', 'repo', {
+        tagName: 'v1.3.0',
+        name: 'Release 1.3.0',
+        body: '## New release',
+        draft: true,
+        prerelease: false,
+        makeLatest: 'true',
+      });
+
+      expect(release.id).toBe(3010);
+      expect(release.tagName).toBe('v1.3.0');
+      expect(release.draft).toBe(true);
+      expect(mockReposCreateRelease).toHaveBeenCalledWith(
+        expect.objectContaining({
+          owner: 'org',
+          repo: 'repo',
+          tag_name: 'v1.3.0',
+          make_latest: 'true',
+        })
+      );
+    });
+
+    it('passes target_commitish when provided', async () => {
+      mockReposCreateRelease.mockResolvedValue({
+        data: {
+          id: 3011,
+          tag_name: 'v1.4.0',
+          name: 'Release 1.4.0',
+          body: '',
+          draft: true,
+          prerelease: false,
+          html_url: 'https://github.com/org/repo/releases/tag/v1.4.0',
+        },
+      });
+
+      await service.createRelease('org', 'repo', {
+        tagName: 'v1.4.0',
+        name: 'Release 1.4.0',
+        body: '',
+        draft: true,
+        prerelease: false,
+        makeLatest: 'false',
+        targetCommitish: 'develop',
+      });
+
+      expect(mockReposCreateRelease).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target_commitish: 'develop',
+        })
+      );
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockReposCreateRelease.mockRejectedValue(new Error('API failure'));
+      await expect(
+        service.createRelease('org', 'repo', {
+          tagName: 'v1.0.0',
+          name: 'test',
+          body: '',
+          draft: true,
+          prerelease: false,
+          makeLatest: 'true',
+        })
+      ).rejects.toThrow('Failed to create release');
+    });
+  });
+
+  describe('updateRelease', () => {
+    it('updates release and returns normalized result', async () => {
+      mockReposUpdateRelease.mockResolvedValue({
+        data: {
+          id: 3001,
+          tag_name: 'v1.2.1',
+          name: 'Updated Release',
+          body: '## Updated',
+          draft: false,
+          prerelease: false,
+          html_url: 'https://github.com/org/repo/releases/tag/v1.2.1',
+        },
+      });
+
+      const release = await service.updateRelease('org', 'repo', 3001, {
+        tagName: 'v1.2.1',
+        name: 'Updated Release',
+        body: '## Updated',
+      });
+
+      expect(release.id).toBe(3001);
+      expect(release.tagName).toBe('v1.2.1');
+      expect(release.name).toBe('Updated Release');
+    });
+
+    it('only sends provided fields (partial update)', async () => {
+      mockReposUpdateRelease.mockResolvedValue({
+        data: {
+          id: 3001,
+          tag_name: 'v1.2.0',
+          name: 'Release 1.2.0',
+          body: '## Updated body only',
+          draft: false,
+          prerelease: false,
+          html_url: 'https://github.com/org/repo/releases/tag/v1.2.0',
+        },
+      });
+
+      await service.updateRelease('org', 'repo', 3001, {
+        body: '## Updated body only',
+      });
+
+      const calledWith = mockReposUpdateRelease.mock.calls[0][0];
+      expect(calledWith.body).toBe('## Updated body only');
+      expect(calledWith.owner).toBe('org');
+      expect(calledWith.repo).toBe('repo');
+      expect(calledWith.release_id).toBe(3001);
+      // Should NOT have tag_name, name, draft, prerelease, make_latest
+      expect(calledWith.tag_name).toBeUndefined();
+      expect(calledWith.name).toBeUndefined();
+      expect(calledWith.draft).toBeUndefined();
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockReposUpdateRelease.mockRejectedValue(new Error('API failure'));
+      await expect(service.updateRelease('org', 'repo', 3001, { name: 'test' })).rejects.toThrow(
+        'Failed to update release'
+      );
+    });
+  });
+
+  describe('deleteRelease', () => {
+    it('deletes release successfully', async () => {
+      mockReposDeleteRelease.mockResolvedValue({ status: 204 });
+      await expect(service.deleteRelease('org', 'repo', 3001)).resolves.toBeUndefined();
+    });
+
+    it('throws descriptive error on API failure', async () => {
+      mockReposDeleteRelease.mockRejectedValue(new Error('API failure'));
+      await expect(service.deleteRelease('org', 'repo', 3001)).rejects.toThrow(
+        'Failed to delete release'
+      );
+    });
+
+    it('calls correct Octokit method with release_id', async () => {
+      mockReposDeleteRelease.mockResolvedValue({ status: 204 });
+      await service.deleteRelease('org', 'repo', 3001);
+      expect(mockReposDeleteRelease).toHaveBeenCalledWith({
+        owner: 'org',
+        repo: 'repo',
+        release_id: 3001,
+      });
     });
   });
 });

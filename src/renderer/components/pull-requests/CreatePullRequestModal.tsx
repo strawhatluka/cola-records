@@ -31,6 +31,8 @@ interface CreatePullRequestModalProps {
   defaultBranchName?: string;
   onClose: () => void;
   onCreated: () => void;
+  /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
+  inline?: boolean;
 }
 
 function branchToTitle(branchName: string): string {
@@ -141,6 +143,7 @@ export function CreatePullRequestModal({
   defaultBranchName,
   onClose,
   onCreated,
+  inline,
 }: CreatePullRequestModalProps) {
   const [base, setBase] = useState('');
   const [compare, setCompare] = useState('');
@@ -333,6 +336,345 @@ export function CreatePullRequestModal({
     });
   };
 
+  const formContent = (
+    <div className="space-y-4 min-w-0 overflow-hidden">
+      {/* Branch Selectors */}
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-end">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Base Branch</label>
+          <Select value={base} onValueChange={setBase} disabled={submitting}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select base branch" />
+            </SelectTrigger>
+            <SelectContent>
+              {branches.map((b) => (
+                <SelectItem key={b} value={b}>
+                  {b}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">The branch you want to merge into</p>
+        </div>
+
+        <ArrowRight className="h-4 w-4 text-muted-foreground mb-6" />
+
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Compare Branch</label>
+          <Select value={compare} onValueChange={setCompare} disabled={submitting}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select compare branch" />
+            </SelectTrigger>
+            <SelectContent>
+              {branches.map((b) => (
+                <SelectItem key={b} value={b}>
+                  {b}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">The branch with your changes</p>
+        </div>
+      </div>
+
+      {/* Comparison Preview */}
+      {base && compare && base !== compare && (
+        <div className="border rounded-md overflow-hidden min-w-0">
+          {comparisonLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+            </div>
+          ) : comparisonError ? (
+            <div className="px-4 py-3 text-sm text-destructive">
+              Failed to compare branches: {comparisonError}
+            </div>
+          ) : comparison ? (
+            comparison.commits.length === 0 && comparison.files.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                These branches are identical — no changes to show.
+              </div>
+            ) : (
+              <>
+                {/* Summary bar */}
+                <div className="px-4 py-2 bg-muted/30 border-b text-sm flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <GitCommitIcon className="h-3.5 w-3.5" />
+                    {comparison.commits.length} commit
+                    {comparison.commits.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <FileText className="h-3.5 w-3.5" />
+                    {comparison.totalFilesChanged} file
+                    {comparison.totalFilesChanged !== 1 ? 's' : ''} changed
+                  </span>
+                  <span className="text-green-500">+{comparison.totalInsertions}</span>
+                  <span className="text-red-500">-{comparison.totalDeletions}</span>
+                </div>
+
+                <div className="max-h-[300px] overflow-y-auto styled-scroll">
+                  {/* Commits */}
+                  {visibleCommits.length > 0 && (
+                    <div className="border-b">
+                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground bg-muted/20">
+                        Commits
+                      </div>
+                      {visibleCommits.map((commit) => (
+                        <div
+                          key={commit.hash}
+                          className="px-4 py-1.5 flex items-center gap-3 text-xs hover:bg-muted/20 border-b border-border/50 last:border-b-0"
+                        >
+                          <code className="text-[11px] font-mono text-muted-foreground shrink-0">
+                            {commit.hash.substring(0, 7)}
+                          </code>
+                          <span className="truncate flex-1">{commit.message}</span>
+                          <span className="text-muted-foreground shrink-0">
+                            {commit.author.split(' <')[0]}
+                          </span>
+                          <span className="text-muted-foreground shrink-0">
+                            {new Date(commit.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                      {!showAllCommits && comparison.commits.length > 20 && (
+                        <button
+                          onClick={() => setShowAllCommits(true)}
+                          className="w-full px-4 py-1.5 text-xs text-primary hover:bg-muted/20 transition-colors"
+                        >
+                          Show all {comparison.commits.length} commits
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Files changed — unified diff view */}
+                  {parsedDiff.length > 0 && (
+                    <div>
+                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground bg-muted/20 border-t">
+                        Showing {visibleFiles.length}
+                        {parsedDiff.length > MAX_FILES_SHOWN && !showAllFiles
+                          ? ` of ${parsedDiff.length}`
+                          : ''}{' '}
+                        changed file
+                        {comparison.totalFilesChanged !== 1 ? 's' : ''} with{' '}
+                        {comparison.totalInsertions} addition
+                        {comparison.totalInsertions !== 1 ? 's' : ''} and{' '}
+                        {comparison.totalDeletions} deletion
+                        {comparison.totalDeletions !== 1 ? 's' : ''}
+                      </div>
+                      {visibleFiles.map((fileDiff) => {
+                        const isExpanded = expandedFiles.has(fileDiff.filename);
+                        const total = fileDiff.insertions + fileDiff.deletions;
+                        const blocks = Math.min(
+                          5,
+                          Math.max(
+                            1,
+                            Math.ceil(
+                              (total /
+                                Math.max(
+                                  1,
+                                  comparison.totalInsertions + comparison.totalDeletions
+                                )) *
+                                5
+                            )
+                          )
+                        );
+                        const addBlocks =
+                          total > 0 ? Math.round((fileDiff.insertions / total) * blocks) : 0;
+                        const delBlocks = blocks - addBlocks;
+                        return (
+                          <div key={fileDiff.filename} className="border-t border-border/50">
+                            {/* File header */}
+                            <button
+                              onClick={() => toggleFileExpanded(fileDiff.filename)}
+                              className="w-full px-4 py-2 flex items-center gap-2 text-xs hover:bg-muted/20 transition-colors"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-3 w-3 shrink-0" />
+                              ) : (
+                                <ChevronRight className="h-3 w-3 shrink-0" />
+                              )}
+                              <span className="font-mono text-[11px] truncate flex-1 text-left">
+                                {fileDiff.filename}
+                              </span>
+                              {fileDiff.binary ? (
+                                <span className="text-muted-foreground text-[10px] px-1.5 py-0.5 rounded bg-muted shrink-0">
+                                  Binary
+                                </span>
+                              ) : (
+                                <>
+                                  <span className="text-green-500 shrink-0">
+                                    +{fileDiff.insertions}
+                                  </span>
+                                  <span className="text-red-500 shrink-0">
+                                    -{fileDiff.deletions}
+                                  </span>
+                                  <span className="flex gap-px shrink-0">
+                                    {Array.from({ length: addBlocks }).map((_, i) => (
+                                      <span
+                                        key={`a${i}`}
+                                        className="w-2 h-2 bg-green-500 rounded-sm"
+                                      />
+                                    ))}
+                                    {Array.from({ length: delBlocks }).map((_, i) => (
+                                      <span
+                                        key={`d${i}`}
+                                        className="w-2 h-2 bg-red-500 rounded-sm"
+                                      />
+                                    ))}
+                                    {Array.from({ length: 5 - blocks }).map((_, i) => (
+                                      <span key={`n${i}`} className="w-2 h-2 bg-muted rounded-sm" />
+                                    ))}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* Diff content */}
+                            {isExpanded && !fileDiff.binary && (
+                              <div className="overflow-x-auto border-t border-border/50 max-w-full">
+                                {fileDiff.lines.length > 500 && (
+                                  <div className="px-4 py-2 text-xs text-muted-foreground bg-muted/20 border-b border-border/50">
+                                    Large file diff truncated. Showing first 500 of{' '}
+                                    {fileDiff.lines.length} lines.
+                                  </div>
+                                )}
+                                <table className="w-full text-[11px] font-mono leading-[1.6] table-fixed">
+                                  <tbody>
+                                    {fileDiff.lines.slice(0, 500).map((line, idx) => {
+                                      if (line.type === 'hunk-header') {
+                                        return (
+                                          <tr key={idx} className="bg-blue-500/5">
+                                            <td className="px-2 text-muted-foreground select-none w-10 text-right">
+                                              ...
+                                            </td>
+                                            <td className="px-2 text-muted-foreground select-none w-10 text-right">
+                                              ...
+                                            </td>
+                                            <td className="px-2 py-0.5 text-blue-400">
+                                              {line.content}
+                                            </td>
+                                          </tr>
+                                        );
+                                      }
+                                      const bgClass =
+                                        line.type === 'add'
+                                          ? 'bg-green-500/10'
+                                          : line.type === 'remove'
+                                            ? 'bg-red-500/10'
+                                            : '';
+                                      const textClass =
+                                        line.type === 'add'
+                                          ? 'text-green-400'
+                                          : line.type === 'remove'
+                                            ? 'text-red-400'
+                                            : '';
+                                      const prefix =
+                                        line.type === 'add'
+                                          ? '+'
+                                          : line.type === 'remove'
+                                            ? '-'
+                                            : ' ';
+                                      return (
+                                        <tr key={idx} className={bgClass}>
+                                          <td className="px-2 text-muted-foreground/50 select-none w-10 text-right border-r border-border/30">
+                                            {line.type !== 'add' ? line.oldLine : ''}
+                                          </td>
+                                          <td className="px-2 text-muted-foreground/50 select-none w-10 text-right border-r border-border/30">
+                                            {line.type !== 'remove' ? line.newLine : ''}
+                                          </td>
+                                          <td
+                                            className={`px-2 py-0 whitespace-pre overflow-hidden text-ellipsis ${textClass}`}
+                                          >
+                                            <span className="select-none">{prefix}</span>
+                                            {line.content}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {!showAllFiles && parsedDiff.length > MAX_FILES_SHOWN && (
+                        <button
+                          onClick={() => setShowAllFiles(true)}
+                          className="w-full px-4 py-2 text-xs text-primary hover:bg-muted/20 transition-colors border-t border-border/50"
+                        >
+                          Show all {parsedDiff.length} files
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )
+          ) : null}
+        </div>
+      )}
+
+      {base === compare && base !== '' && (
+        <div className="border rounded-md px-4 py-3 text-sm text-muted-foreground text-center">
+          Select different branches to see changes.
+        </div>
+      )}
+
+      {/* Title */}
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Title</label>
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Pull request title"
+          disabled={submitting}
+        />
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Description</label>
+        <MarkdownEditor
+          value={body}
+          onChange={setBody}
+          placeholder="Describe your changes... (Markdown supported)"
+          disabled={submitting}
+          minHeight="160px"
+        />
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onClose} disabled={submitting}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={
+            !title.trim() || !base.trim() || !compare.trim() || base === compare || submitting
+          }
+        >
+          <GitPullRequest className="h-4 w-4 mr-2" />
+          {submitting ? 'Creating...' : 'Create Pull Request'}
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (inline) {
+    return (
+      <div className="flex flex-col h-full overflow-auto styled-scroll p-4">
+        <h2 className="text-lg font-semibold mb-1">Create Pull Request</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Submit a pull request to {owner}/{repo}
+        </p>
+        {formContent}
+      </div>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto styled-scroll">
@@ -342,336 +684,7 @@ export function CreatePullRequestModal({
             Submit a pull request to {owner}/{repo}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4 min-w-0 overflow-hidden">
-          {/* Branch Selectors */}
-          <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-end">
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Base Branch</label>
-              <Select value={base} onValueChange={setBase} disabled={submitting}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select base branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {b}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                The branch you want to merge into
-              </p>
-            </div>
-
-            <ArrowRight className="h-4 w-4 text-muted-foreground mb-6" />
-
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Compare Branch</label>
-              <Select value={compare} onValueChange={setCompare} disabled={submitting}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select compare branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {b}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">The branch with your changes</p>
-            </div>
-          </div>
-
-          {/* Comparison Preview */}
-          {base && compare && base !== compare && (
-            <div className="border rounded-md overflow-hidden min-w-0">
-              {comparisonLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
-                </div>
-              ) : comparisonError ? (
-                <div className="px-4 py-3 text-sm text-destructive">
-                  Failed to compare branches: {comparisonError}
-                </div>
-              ) : comparison ? (
-                comparison.commits.length === 0 && comparison.files.length === 0 ? (
-                  <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-                    These branches are identical — no changes to show.
-                  </div>
-                ) : (
-                  <>
-                    {/* Summary bar */}
-                    <div className="px-4 py-2 bg-muted/30 border-b text-sm flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <GitCommitIcon className="h-3.5 w-3.5" />
-                        {comparison.commits.length} commit
-                        {comparison.commits.length !== 1 ? 's' : ''}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5" />
-                        {comparison.totalFilesChanged} file
-                        {comparison.totalFilesChanged !== 1 ? 's' : ''} changed
-                      </span>
-                      <span className="text-green-500">+{comparison.totalInsertions}</span>
-                      <span className="text-red-500">-{comparison.totalDeletions}</span>
-                    </div>
-
-                    <div className="max-h-[300px] overflow-y-auto styled-scroll">
-                      {/* Commits */}
-                      {visibleCommits.length > 0 && (
-                        <div className="border-b">
-                          <div className="px-4 py-2 text-xs font-medium text-muted-foreground bg-muted/20">
-                            Commits
-                          </div>
-                          {visibleCommits.map((commit) => (
-                            <div
-                              key={commit.hash}
-                              className="px-4 py-1.5 flex items-center gap-3 text-xs hover:bg-muted/20 border-b border-border/50 last:border-b-0"
-                            >
-                              <code className="text-[11px] font-mono text-muted-foreground shrink-0">
-                                {commit.hash.substring(0, 7)}
-                              </code>
-                              <span className="truncate flex-1">{commit.message}</span>
-                              <span className="text-muted-foreground shrink-0">
-                                {commit.author.split(' <')[0]}
-                              </span>
-                              <span className="text-muted-foreground shrink-0">
-                                {new Date(commit.date).toLocaleDateString()}
-                              </span>
-                            </div>
-                          ))}
-                          {!showAllCommits && comparison.commits.length > 20 && (
-                            <button
-                              onClick={() => setShowAllCommits(true)}
-                              className="w-full px-4 py-1.5 text-xs text-primary hover:bg-muted/20 transition-colors"
-                            >
-                              Show all {comparison.commits.length} commits
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Files changed — unified diff view */}
-                      {parsedDiff.length > 0 && (
-                        <div>
-                          <div className="px-4 py-2 text-xs font-medium text-muted-foreground bg-muted/20 border-t">
-                            Showing {visibleFiles.length}
-                            {parsedDiff.length > MAX_FILES_SHOWN && !showAllFiles
-                              ? ` of ${parsedDiff.length}`
-                              : ''}{' '}
-                            changed file
-                            {comparison.totalFilesChanged !== 1 ? 's' : ''} with{' '}
-                            {comparison.totalInsertions} addition
-                            {comparison.totalInsertions !== 1 ? 's' : ''} and{' '}
-                            {comparison.totalDeletions} deletion
-                            {comparison.totalDeletions !== 1 ? 's' : ''}
-                          </div>
-                          {visibleFiles.map((fileDiff) => {
-                            const isExpanded = expandedFiles.has(fileDiff.filename);
-                            const total = fileDiff.insertions + fileDiff.deletions;
-                            const blocks = Math.min(
-                              5,
-                              Math.max(
-                                1,
-                                Math.ceil(
-                                  (total /
-                                    Math.max(
-                                      1,
-                                      comparison.totalInsertions + comparison.totalDeletions
-                                    )) *
-                                    5
-                                )
-                              )
-                            );
-                            const addBlocks =
-                              total > 0 ? Math.round((fileDiff.insertions / total) * blocks) : 0;
-                            const delBlocks = blocks - addBlocks;
-                            return (
-                              <div key={fileDiff.filename} className="border-t border-border/50">
-                                {/* File header */}
-                                <button
-                                  onClick={() => toggleFileExpanded(fileDiff.filename)}
-                                  className="w-full px-4 py-2 flex items-center gap-2 text-xs hover:bg-muted/20 transition-colors"
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDown className="h-3 w-3 shrink-0" />
-                                  ) : (
-                                    <ChevronRight className="h-3 w-3 shrink-0" />
-                                  )}
-                                  <span className="font-mono text-[11px] truncate flex-1 text-left">
-                                    {fileDiff.filename}
-                                  </span>
-                                  {fileDiff.binary ? (
-                                    <span className="text-muted-foreground text-[10px] px-1.5 py-0.5 rounded bg-muted shrink-0">
-                                      Binary
-                                    </span>
-                                  ) : (
-                                    <>
-                                      <span className="text-green-500 shrink-0">
-                                        +{fileDiff.insertions}
-                                      </span>
-                                      <span className="text-red-500 shrink-0">
-                                        -{fileDiff.deletions}
-                                      </span>
-                                      <span className="flex gap-px shrink-0">
-                                        {Array.from({ length: addBlocks }).map((_, i) => (
-                                          <span
-                                            key={`a${i}`}
-                                            className="w-2 h-2 bg-green-500 rounded-sm"
-                                          />
-                                        ))}
-                                        {Array.from({ length: delBlocks }).map((_, i) => (
-                                          <span
-                                            key={`d${i}`}
-                                            className="w-2 h-2 bg-red-500 rounded-sm"
-                                          />
-                                        ))}
-                                        {Array.from({ length: 5 - blocks }).map((_, i) => (
-                                          <span
-                                            key={`n${i}`}
-                                            className="w-2 h-2 bg-muted rounded-sm"
-                                          />
-                                        ))}
-                                      </span>
-                                    </>
-                                  )}
-                                </button>
-
-                                {/* Diff content */}
-                                {isExpanded && !fileDiff.binary && (
-                                  <div className="overflow-x-auto border-t border-border/50 max-w-full">
-                                    {fileDiff.lines.length > 500 && (
-                                      <div className="px-4 py-2 text-xs text-muted-foreground bg-muted/20 border-b border-border/50">
-                                        Large file diff truncated. Showing first 500 of{' '}
-                                        {fileDiff.lines.length} lines.
-                                      </div>
-                                    )}
-                                    <table className="w-full text-[11px] font-mono leading-[1.6] table-fixed">
-                                      <tbody>
-                                        {fileDiff.lines.slice(0, 500).map((line, idx) => {
-                                          if (line.type === 'hunk-header') {
-                                            return (
-                                              <tr key={idx} className="bg-blue-500/5">
-                                                <td className="px-2 text-muted-foreground select-none w-10 text-right">
-                                                  ...
-                                                </td>
-                                                <td className="px-2 text-muted-foreground select-none w-10 text-right">
-                                                  ...
-                                                </td>
-                                                <td className="px-2 py-0.5 text-blue-400">
-                                                  {line.content}
-                                                </td>
-                                              </tr>
-                                            );
-                                          }
-                                          const bgClass =
-                                            line.type === 'add'
-                                              ? 'bg-green-500/10'
-                                              : line.type === 'remove'
-                                                ? 'bg-red-500/10'
-                                                : '';
-                                          const textClass =
-                                            line.type === 'add'
-                                              ? 'text-green-400'
-                                              : line.type === 'remove'
-                                                ? 'text-red-400'
-                                                : '';
-                                          const prefix =
-                                            line.type === 'add'
-                                              ? '+'
-                                              : line.type === 'remove'
-                                                ? '-'
-                                                : ' ';
-                                          return (
-                                            <tr key={idx} className={bgClass}>
-                                              <td className="px-2 text-muted-foreground/50 select-none w-10 text-right border-r border-border/30">
-                                                {line.type !== 'add' ? line.oldLine : ''}
-                                              </td>
-                                              <td className="px-2 text-muted-foreground/50 select-none w-10 text-right border-r border-border/30">
-                                                {line.type !== 'remove' ? line.newLine : ''}
-                                              </td>
-                                              <td
-                                                className={`px-2 py-0 whitespace-pre overflow-hidden text-ellipsis ${textClass}`}
-                                              >
-                                                <span className="select-none">{prefix}</span>
-                                                {line.content}
-                                              </td>
-                                            </tr>
-                                          );
-                                        })}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                          {!showAllFiles && parsedDiff.length > MAX_FILES_SHOWN && (
-                            <button
-                              onClick={() => setShowAllFiles(true)}
-                              className="w-full px-4 py-2 text-xs text-primary hover:bg-muted/20 transition-colors border-t border-border/50"
-                            >
-                              Show all {parsedDiff.length} files
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )
-              ) : null}
-            </div>
-          )}
-
-          {base === compare && base !== '' && (
-            <div className="border rounded-md px-4 py-3 text-sm text-muted-foreground text-center">
-              Select different branches to see changes.
-            </div>
-          )}
-
-          {/* Title */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Title</label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Pull request title"
-              disabled={submitting}
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Description</label>
-            <MarkdownEditor
-              value={body}
-              onChange={setBody}
-              placeholder="Describe your changes... (Markdown supported)"
-              disabled={submitting}
-              minHeight="160px"
-            />
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={
-                !title.trim() || !base.trim() || !compare.trim() || base === compare || submitting
-              }
-            >
-              <GitPullRequest className="h-4 w-4 mr-2" />
-              {submitting ? 'Creating...' : 'Create Pull Request'}
-            </Button>
-          </div>
-        </div>
+        {formContent}
       </DialogContent>
     </Dialog>
   );

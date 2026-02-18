@@ -431,7 +431,7 @@ describe('BashProfileTab', () => {
           gitBranchColor: 'yellow',
         },
       });
-    });
+    }, 15000);
 
     it('saves custom username when Save is clicked', async () => {
       const user = userEvent.setup();

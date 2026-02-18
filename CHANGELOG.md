@@ -33,6 +33,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `parseMemoryString()` converts Docker memory notation (e.g. `4g`, `512m`) to bytes for comparison
   - `start()` now detects config drift on stopped or running containers and recreates with updated settings
 - `checkDockerAvailable()` respects `autoStartDocker` config setting — throws immediately when disabled instead of polling
+- Tool Box expansion: Issues and Pull Requests moved from header dropdowns into Tool Box panel ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+  - New `IssuesTool` component with inline list, detail, and create views inside Tool Box
+  - New `PullRequestsTool` component with inline list, detail, and create views inside Tool Box
+  - Tool Box now opens by default when entering Development screen with 60/40 IDE/Tool Box split
+  - Tool Box panel is resizable by dragging the border (min 300px, max 70% of viewport)
+  - Invisible overlay during resize prevents Electron `<webview>` from capturing mouse events (fixes drag lock and choppy movement)
+  - First-click resize reads actual DOM width to avoid snap when pixel state is uninitialized
+  - Tool navigation order: Issues → Pull Requests → Actions → Dev Scripts → Terminal → Maintenance
+  - Header Issues/PR buttons now act as Tool Box navigation shortcuts (color indicators preserved)
+  - Added `inline` rendering mode to `DevelopmentIssueDetailModal`, `CreateIssueModal`, `PullRequestDetailModal`, and `CreatePullRequestModal`
+  - Removed standalone Issues/PR dropdown panels and modal popups from header toolbar
+- GitHub Actions tool in Tool Box with workflow run monitoring ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+  - New `ActionsTool` component with list → run detail → job logs navigation
+  - Workflow runs list with color-coded status badges (green/red/yellow/gray), branch, event, actor, and relative timestamps
+  - Run detail view showing summary metadata, jobs with duration, and step-by-step status dots
+  - Job logs viewer with truncation (last 500 lines) and "Open in GitHub" link
+  - 3 new IPC channels: `github:list-workflow-runs`, `github:list-workflow-run-jobs`, `github:get-job-logs`
+  - 3 new `GitHubRestService` methods: `listWorkflowRuns`, `listWorkflowRunJobs`, `getJobLogs`
+- GitHub Releases tool in Tool Box with full release lifecycle management ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+  - New `ReleasesTool` component with list → detail → draft-edit → create views
+  - Releases list sorted newest-to-oldest with Latest, Draft, and Pre-release badges
+  - Detail view with full Markdown rendering (ReactMarkdown + remark-gfm + rehype-raw) and delete confirmation
+  - Draft edit view with tag, title, body (MarkdownEditor with write/preview tabs), pre-release and latest checkboxes, save/publish/delete actions
+  - Create view for new draft releases with tag name, title, target branch, body, and pre-release/latest options
+  - 6 new IPC channels: `github:list-releases`, `github:get-release`, `github:create-release`, `github:update-release`, `github:delete-release`, `github:publish-release`
+  - 5 new `GitHubRestService` methods: `listReleases`, `getRelease`, `createRelease`, `updateRelease`, `deleteRelease`
+  - Tool navigation order updated: Issues → Pull Requests → Actions → Releases → Dev Scripts → Terminal → Maintenance
+- Persistent terminal bar at bottom of Tool Box panel ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+  - Terminal removed from hamburger menu navigation (6 tools remain: Issues, Pull Requests, Actions, Releases, Dev Scripts, Maintenance)
+  - Minimized terminal bar always visible at bottom of Tool Box regardless of active tool, with Terminal icon, label, and expand chevron
+  - Click to expand terminal to 50% of Tool Box height; tool content on top, terminal on bottom
+  - Vertical drag-to-resize handle between tool content and terminal when expanded (min 100px, max 80% of container)
+  - Invisible overlay during resize prevents content from capturing mouse events (same pattern as horizontal IDE/Tool Box resize)
+  - `adoptSessions` auto-expands terminal bar instead of switching active tool
+  - Tool navigation order updated: Issues → Pull Requests → Actions → Releases → Dev Scripts → Maintenance (Terminal is always-present fixture)
 
 ### Tests
 
@@ -44,6 +79,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `useSettingsStore.test.ts`: 4 tests covering `codeServerConfig` state lifecycle
   - `SettingsScreen.test.tsx`: 2 tests covering Code Server tab navigation
   - `factories.ts`: New `createMockCodeServerConfig()` and `createMockEnvVar()` test factories
+- 31 new tests for Tool Box expansion (all passing)
+  - `IssuesTool.test.tsx`: 15 tests covering list/detail/create views, sorting, badges, callbacks, error/empty states
+  - `PullRequestsTool.test.tsx`: 16 tests covering list/detail/create views, sorting, badges, callbacks, error/empty states
+  - Updated `ToolsPanel.test.tsx` for new default tool (Issues) and 6-tool menu
+  - Updated `DevelopmentScreen.toolbar.test.tsx` for Tool Box navigation pattern (removed dropdown/modal tests)
+- Tests for GitHub Actions tool
+  - `ActionsTool.test.tsx`: 18 tests covering list/detail/logs views, status badges, navigation, refresh, error/empty states
+  - `github-rest.service.test.ts`: 9 new tests for `listWorkflowRuns`, `listWorkflowRunJobs`, `getJobLogs` (field mapping, empty results, API errors)
+  - Updated `DevelopmentScreen.tools.test.tsx` to remove stale modal mocks
+- Tests for GitHub Releases tool
+  - `ReleasesTool.test.tsx`: 22 tests covering list/detail/draft-edit/create views, badges, navigation, delete confirmation, publish, MarkdownEditor integration
+  - `github-rest.service.test.ts`: 15 new tests for `listReleases`, `getRelease`, `createRelease`, `updateRelease`, `deleteRelease` (field mapping, isLatest inference, empty results, API errors)
+  - Updated `ToolsPanel.test.tsx` for 7-tool menu
+- Tests for persistent terminal bar
+  - Updated `ToolsPanel.test.tsx`: 6-tool menu assertions (Terminal removed), new `persistent terminal bar` describe block with 5 tests (minimized bar rendering, expand on click, collapse on click, drag handle presence, bar visible across tool switches), updated adoption tests for auto-expand behavior
 
 ## [1.0.3] - 2026-02-15
 

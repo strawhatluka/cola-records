@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createElement } from 'react';
 
 // Mock IPC
 const mockInvoke = vi.fn();
@@ -17,6 +18,28 @@ vi.mock('../../../../src/renderer/ipc/client', () => ({
 // Mock react-markdown
 vi.mock('react-markdown', () => ({
   default: () => null,
+}));
+
+// Mock MarkdownEditor to avoid Radix Tooltip complexity in jsdom
+vi.mock('../../../../src/renderer/components/pull-requests/MarkdownEditor', () => ({
+  MarkdownEditor: ({
+    value,
+    onChange,
+    placeholder,
+    disabled,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+    disabled?: boolean;
+  }) =>
+    createElement('textarea', {
+      'data-testid': 'markdown-editor',
+      value,
+      onChange: (e: any) => onChange(e.target.value),
+      placeholder,
+      disabled,
+    }),
 }));
 
 // Mock lucide-react

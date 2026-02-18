@@ -31,23 +31,7 @@ Object.defineProperty(window, 'electronAPI', {
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../mocks/lucide-react'));
 
-// Mock all modals to avoid nested IPC complexity
-vi.mock('../../../src/renderer/components/pull-requests/PullRequestDetailModal', () => ({
-  PullRequestDetailModal: () => <div data-testid="pr-detail-modal" />,
-}));
-
-vi.mock('../../../src/renderer/components/issues/DevelopmentIssueDetailModal', () => ({
-  DevelopmentIssueDetailModal: () => <div data-testid="issue-detail-modal" />,
-}));
-
-vi.mock('../../../src/renderer/components/issues/CreateIssueModal', () => ({
-  CreateIssueModal: () => null,
-}));
-
-vi.mock('../../../src/renderer/components/pull-requests/CreatePullRequestModal', () => ({
-  CreatePullRequestModal: () => null,
-}));
-
+// Mock BranchDetailModal to avoid nested IPC complexity
 vi.mock('../../../src/renderer/components/branches/BranchDetailModal', () => ({
   BranchDetailModal: () => null,
 }));
@@ -174,43 +158,25 @@ describe('DevelopmentScreen Tools Integration', () => {
       expect(screen.getByText('Tool Box')).toBeDefined();
     });
 
-    it('Tool Box button has default styling when panel is closed', async () => {
+    it('Tool Box button has active styling when panel is open by default', async () => {
       await renderInRunningState();
       const toolBoxBtn = screen.getByText('Tool Box');
-      expect(toolBoxBtn.className).toContain('border-border');
-      // Note: hover:bg-accent is in the class but bg-accent without hover is not
-      expect(toolBoxBtn.className).toMatch(/border-border.*hover:bg-accent/);
+      expect(toolBoxBtn.className).toContain('bg-accent');
     });
 
-    it('opens Tools Panel when Tool Box button is clicked', async () => {
-      const user = userEvent.setup();
+    it('Tools Panel is open by default', async () => {
       await renderInRunningState();
-
-      await user.click(screen.getByText('Tool Box'));
 
       await waitFor(() => {
         expect(screen.getByTestId('tools-panel')).toBeDefined();
       });
     });
 
-    it('Tool Box button has active styling when panel is open', async () => {
+    it('closes Tools Panel when Tool Box button is clicked', async () => {
       const user = userEvent.setup();
       await renderInRunningState();
 
-      await user.click(screen.getByText('Tool Box'));
-
-      await waitFor(() => {
-        const toolBoxBtn = screen.getByText('Tool Box');
-        expect(toolBoxBtn.className).toContain('bg-accent');
-      });
-    });
-
-    it('closes Tools Panel when Tool Box button is clicked again', async () => {
-      const user = userEvent.setup();
-      await renderInRunningState();
-
-      // Open
-      await user.click(screen.getByText('Tool Box'));
+      // Panel starts open
       await waitFor(() => {
         expect(screen.getByTestId('tools-panel')).toBeDefined();
       });
@@ -221,14 +187,41 @@ describe('DevelopmentScreen Tools Integration', () => {
         expect(screen.queryByTestId('tools-panel')).toBeNull();
       });
     });
+
+    it('Tool Box button has default styling when panel is closed', async () => {
+      const user = userEvent.setup();
+      await renderInRunningState();
+
+      // Close panel
+      await user.click(screen.getByText('Tool Box'));
+
+      await waitFor(() => {
+        const toolBoxBtn = screen.getByText('Tool Box');
+        expect(toolBoxBtn.className).toContain('border-border');
+      });
+    });
+
+    it('reopens Tools Panel when Tool Box button is clicked again', async () => {
+      const user = userEvent.setup();
+      await renderInRunningState();
+
+      // Close
+      await user.click(screen.getByText('Tool Box'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('tools-panel')).toBeNull();
+      });
+
+      // Reopen
+      await user.click(screen.getByText('Tool Box'));
+      await waitFor(() => {
+        expect(screen.getByTestId('tools-panel')).toBeDefined();
+      });
+    });
   });
 
   describe('Tools Panel integration', () => {
     it('passes workingDirectory to ToolsPanel', async () => {
-      const user = userEvent.setup();
       await renderInRunningState({ localPath: '/custom/project/path' });
-
-      await user.click(screen.getByText('Tool Box'));
 
       await waitFor(() => {
         const panel = screen.getByTestId('tools-panel');
@@ -240,8 +233,7 @@ describe('DevelopmentScreen Tools Integration', () => {
       const user = userEvent.setup();
       await renderInRunningState();
 
-      // Open panel
-      await user.click(screen.getByText('Tool Box'));
+      // Panel starts open
       await waitFor(() => {
         expect(screen.getByTestId('tools-panel')).toBeDefined();
       });
@@ -254,11 +246,8 @@ describe('DevelopmentScreen Tools Integration', () => {
       });
     });
 
-    it('displays Tools Panel text when open', async () => {
-      const user = userEvent.setup();
+    it('displays Tools Panel text when open by default', async () => {
       await renderInRunningState();
-
-      await user.click(screen.getByText('Tool Box'));
 
       await waitFor(() => {
         expect(screen.getByText('Tools Panel')).toBeDefined();
@@ -267,28 +256,27 @@ describe('DevelopmentScreen Tools Integration', () => {
   });
 
   describe('Layout with Tools Panel', () => {
-    it('webview takes full width when Tools Panel is closed', async () => {
+    it('renders webview and Tools Panel side by side by default', async () => {
       await renderInRunningState();
-
-      // Webview should exist
-      const webview = document.querySelector('webview');
-      expect(webview).toBeDefined();
-
-      // No tools panel
-      expect(screen.queryByTestId('tools-panel')).toBeNull();
-    });
-
-    it('renders webview and Tools Panel side by side when open', async () => {
-      const user = userEvent.setup();
-      await renderInRunningState();
-
-      await user.click(screen.getByText('Tool Box'));
 
       await waitFor(() => {
-        // Both webview and tools panel should exist
         const webview = document.querySelector('webview');
         expect(webview).toBeDefined();
         expect(screen.getByTestId('tools-panel')).toBeDefined();
+      });
+    });
+
+    it('webview takes full width when Tools Panel is closed', async () => {
+      const user = userEvent.setup();
+      await renderInRunningState();
+
+      // Close the panel
+      await user.click(screen.getByText('Tool Box'));
+
+      await waitFor(() => {
+        const webview = document.querySelector('webview');
+        expect(webview).toBeDefined();
+        expect(screen.queryByTestId('tools-panel')).toBeNull();
       });
     });
   });
@@ -298,8 +286,7 @@ describe('DevelopmentScreen Tools Integration', () => {
       const user = userEvent.setup();
       const { onNavigateBack } = await renderInRunningState();
 
-      // Open tools panel
-      await user.click(screen.getByText('Tool Box'));
+      // Panel starts open by default
       await waitFor(() => {
         expect(screen.getByTestId('tools-panel')).toBeDefined();
       });
@@ -318,9 +305,7 @@ describe('DevelopmentScreen Tools Integration', () => {
       // All buttons should be visible
       // Note: Branches button shows the current branch name ('feature-branch') instead of 'Branches'
       expect(screen.getByText('feature-branch')).toBeDefined();
-      expect(screen.getByText('Issues')).toBeDefined();
       expect(screen.getByText('Remotes')).toBeDefined();
-      expect(screen.getByText('Pull Requests')).toBeDefined();
       expect(screen.getByText('Tool Box')).toBeDefined();
       expect(screen.getByText('Stop & Back')).toBeDefined();
     });

@@ -8,10 +8,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ipc } from '../ipc/client';
 import type { Contribution, DevScript } from '../../main/ipc/channels';
-import { PullRequestDetailModal } from '../components/pull-requests/PullRequestDetailModal';
-import { CreatePullRequestModal } from '../components/pull-requests/CreatePullRequestModal';
-import { DevelopmentIssueDetailModal } from '../components/issues/DevelopmentIssueDetailModal';
-import { CreateIssueModal } from '../components/issues/CreateIssueModal';
 import { BranchDetailModal } from '../components/branches/BranchDetailModal';
 import { ToolsPanel } from '../components/tools/ToolsPanel';
 import { ScriptButton } from '../components/tools/ScriptButton';
@@ -31,48 +27,12 @@ interface DevelopmentScreenProps {
   projectError?: string | null;
 }
 
-type ToolDropdown = 'branches' | 'issues' | 'remotes' | 'pull-requests' | null;
+type ToolDropdown = 'branches' | 'remotes' | null;
 
 interface GitRemote {
   name: string;
   fetchUrl: string;
   pushUrl: string;
-}
-
-interface PullRequest {
-  number: number;
-  title: string;
-  url: string;
-  state: string;
-  merged: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  author: string;
-  headBranch: string;
-}
-
-interface Issue {
-  number: number;
-  title: string;
-  body: string;
-  url: string;
-  state: string;
-  labels: string[];
-  createdAt: Date;
-  updatedAt: Date;
-  author: string;
-  authorAvatarUrl: string;
-}
-
-interface PRComment {
-  author: string;
-  updatedAt?: string | Date;
-  createdAt: string | Date;
-}
-
-interface PRReview {
-  author: string;
-  submittedAt: string | Date;
 }
 
 export function extractOwnerRepo(repoUrl: string): { owner: string; repo: string } | null {
@@ -100,31 +60,67 @@ export function DevelopmentScreen({
   const [activeDropdown, setActiveDropdown] = useState<ToolDropdown>(null);
   const [remotes, setRemotes] = useState<GitRemote[]>([]);
   const [remotesLoading, setRemotesLoading] = useState(false);
-  const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
-  const [prsLoading, setPrsLoading] = useState(false);
-  const [prsError, setPrsError] = useState<string | null>(null);
-  const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [issuesLoading, setIssuesLoading] = useState(false);
-  const [issuesError, setIssuesError] = useState<string | null>(null);
-  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
-  const [showCreateIssue, setShowCreateIssue] = useState(false);
-  const [showCreatePR, setShowCreatePR] = useState(false);
   const [branches, setBranches] = useState<string[]>([]);
   const [currentBranch, setCurrentBranch] = useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [githubUsername, setGithubUsername] = useState<string>('');
-  const [awaitingResponse, setAwaitingResponse] = useState(false);
-  const [toolsPanelOpen, setToolsPanelOpen] = useState(false);
+  const [toolsPanelOpen, setToolsPanelOpen] = useState(true);
+  const [toolsPanelWidth, setToolsPanelWidth] = useState<number>(0);
+  const [isResizing, setIsResizing] = useState(false);
   const [executingScript, setExecutingScript] = useState<DevScript | null>(null);
   // Sessions to adopt into ToolBox (from ScriptExecutionModal multi-terminal support)
   const [adoptSessions, setAdoptSessions] = useState<
     Array<{ sessionId: string; output: string; name: string }>
   >([]);
   const webviewRef = useRef<HTMLWebViewElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const toolsPanelRef = useRef<HTMLDivElement>(null);
   const isMounted = useRef(true);
   const hasStarted = useRef(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Initialize tools panel width to 40% of container on first open
+  useEffect(() => {
+    if (toolsPanelOpen && toolsPanelWidth === 0 && containerRef.current) {
+      setToolsPanelWidth(Math.max(300, Math.floor(containerRef.current.offsetWidth * 0.4)));
+    }
+  }, [toolsPanelOpen, toolsPanelWidth]);
+
+  // Drag-to-resize handler for the tools panel divider
+  // Uses an overlay during drag to prevent the <webview> element from capturing mouse events
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      // If toolsPanelWidth is 0 (CSS fallback), read actual rendered width from DOM
+      const startWidth =
+        toolsPanelWidth > 0 ? toolsPanelWidth : (toolsPanelRef.current?.offsetWidth ?? 0);
+      if (startWidth > 0) setToolsPanelWidth(startWidth);
+      setIsResizing(true);
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const delta = startX - moveEvent.clientX;
+        const containerWidth = containerRef.current?.offsetWidth ?? 0;
+        const maxWidth = Math.floor(containerWidth * 0.7);
+        const newWidth = Math.min(maxWidth, Math.max(300, startWidth + delta));
+        setToolsPanelWidth(newWidth);
+      };
+
+      const handleMouseUp = () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        setIsResizing(false);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    },
+    [toolsPanelWidth]
+  );
 
   // Dev scripts store
   const { scripts: devScripts, loadScripts: loadDevScripts } = useDevScriptsStore();
@@ -179,39 +175,6 @@ export function DevelopmentScreen({
       });
   }, []);
 
-  const fetchPullRequests = useCallback(() => {
-    const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-    if (!targetUrl) return;
-
-    const parsed = extractOwnerRepo(targetUrl);
-    if (!parsed) return;
-
-    setPrsLoading(true);
-    setPrsError(null);
-    ipc
-      .invoke('github:list-pull-requests', parsed.owner, parsed.repo, 'all')
-      .then((result) => {
-        if (isMounted.current) setPullRequests(result);
-      })
-      .catch((err) => {
-        if (isMounted.current) {
-          setPrsError(err instanceof Error ? err.message : String(err));
-          setPullRequests([]);
-        }
-      })
-      .finally(() => {
-        if (isMounted.current) setPrsLoading(false);
-      });
-  }, [contribution.upstreamUrl, contribution.repositoryUrl]);
-
-  // Fetch pull requests eagerly on mount (for button color) and refresh on dropdown open
-  useEffect(() => {
-    // Skip if we already have PRs and the dropdown isn't open
-    if (pullRequests.length > 0 && activeDropdown !== 'pull-requests') return;
-
-    fetchPullRequests();
-  }, [activeDropdown, fetchPullRequests]);
-
   // Reusable function to fetch branches (for issue-button color logic)
   const fetchBranches = useCallback(() => {
     if (!contribution.localPath) return;
@@ -253,105 +216,6 @@ export function DevelopmentScreen({
 
     return () => clearInterval(interval);
   }, [contribution.localPath]);
-
-  // Check if any of the user's open PRs have a response awaiting action (for orange indicator)
-  useEffect(() => {
-    if (contribution.type === 'project' || !githubUsername || pullRequests.length === 0) {
-      setAwaitingResponse(false);
-      return;
-    }
-
-    const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-    if (!targetUrl) return;
-    const parsed = extractOwnerRepo(targetUrl);
-    if (!parsed) return;
-
-    const myOpenPRs = pullRequests.filter(
-      (pr) => !pr.merged && pr.state === 'open' && pr.author === githubUsername
-    );
-    if (myOpenPRs.length === 0) {
-      setAwaitingResponse(false);
-      return;
-    }
-
-    // For each of user's open PRs, check if the latest activity is from someone else
-    Promise.all(
-      myOpenPRs.map(async (pr) => {
-        const [comments, reviews] = await Promise.all([
-          ipc.invoke('github:list-pr-comments', parsed.owner, parsed.repo, pr.number),
-          ipc.invoke('github:list-pr-reviews', parsed.owner, parsed.repo, pr.number),
-        ]);
-
-        // Combine all activity and find the latest from user and from others
-        const allActivity = [
-          ...(comments as PRComment[]).map((c) => ({
-            author: c.author,
-            date: new Date(c.updatedAt || c.createdAt).getTime(),
-          })),
-          ...(reviews as PRReview[]).map((r) => ({
-            author: r.author,
-            date: new Date(r.submittedAt).getTime(),
-          })),
-        ];
-
-        const latestFromOther = allActivity
-          .filter((a) => a.author !== githubUsername)
-          .reduce((max, a) => Math.max(max, a.date), 0);
-
-        const latestFromUser = allActivity
-          .filter((a) => a.author === githubUsername)
-          .reduce((max, a) => Math.max(max, a.date), 0);
-
-        return latestFromOther > latestFromUser;
-      })
-    )
-      .then((results) => {
-        if (isMounted.current) setAwaitingResponse(results.some(Boolean));
-      })
-      .catch(() => {
-        // PR response check is best-effort
-      });
-  }, [
-    pullRequests,
-    githubUsername,
-    contribution.type,
-    contribution.upstreamUrl,
-    contribution.repositoryUrl,
-  ]);
-
-  // Reusable function to fetch issues
-  const fetchIssues = useCallback(() => {
-    const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-    if (!targetUrl) return;
-
-    const parsed = extractOwnerRepo(targetUrl);
-    if (!parsed) return;
-
-    setIssuesLoading(true);
-    setIssuesError(null);
-    ipc
-      .invoke('github:list-issues', parsed.owner, parsed.repo, 'open')
-      .then((result) => {
-        if (isMounted.current) setIssues(result);
-      })
-      .catch((err) => {
-        if (isMounted.current) {
-          setIssuesError(err instanceof Error ? err.message : String(err));
-          setIssues([]);
-        }
-      })
-      .finally(() => {
-        if (isMounted.current) setIssuesLoading(false);
-      });
-  }, [contribution.upstreamUrl, contribution.repositoryUrl]);
-
-  // Fetch issues eagerly on mount and refresh when the dropdown opens
-  useEffect(() => {
-    // Skip if we already have issues and the dropdown isn't open (avoid re-fetch on every render)
-    if (issues.length > 0 && activeDropdown !== 'issues') return;
-
-    fetchIssues();
-  }, [activeDropdown, fetchIssues]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -470,31 +334,6 @@ export function DevelopmentScreen({
 
   // ── Running State ────────────────────────────────────────────────
 
-  // Issues button color priority:
-  // Green: no open issues on the repo
-  // Yellow: open issues exist AND at least one has a branch matching its number
-  // Red: open issues exist but NONE have a branch matching their number
-  const openIssues = issues.filter((i) => i.state === 'open');
-  const hasBranchedIssue =
-    openIssues.length > 0 &&
-    openIssues.some((i) => branches.some((b) => new RegExp(`\\b${i.number}\\b`).test(b)));
-  const issueButtonColor: 'red' | 'yellow' | 'green' =
-    openIssues.length === 0 ? 'green' : hasBranchedIssue ? 'yellow' : 'red';
-
-  // PR button color logic — differs between contributions and projects
-  const openPRs = pullRequests.filter((pr) => !pr.merged && pr.state === 'open');
-  const prButtonColor: 'red' | 'orange' | 'blue' | 'green' | null = (() => {
-    if (contribution.type === 'project') {
-      // Projects: green = no open PRs, red = any open PRs
-      return openPRs.length === 0 ? 'green' : 'red';
-    }
-    // Contributions: null = no user PRs, orange = awaiting response, blue = has open PR
-    const myOpenPRs = githubUsername ? openPRs.filter((pr) => pr.author === githubUsername) : [];
-    if (myOpenPRs.length === 0) return null;
-    if (awaitingResponse) return 'orange';
-    return 'blue';
-  })();
-
   return (
     <div className="flex flex-col h-full">
       {/* Header bar */}
@@ -523,53 +362,24 @@ export function DevelopmentScreen({
           )}
         </div>
         <div className="flex gap-2" ref={dropdownRef}>
-          {(['branches', 'issues', 'remotes', 'pull-requests'] as const).map((name) => (
+          {/* Dropdown buttons: Branches, Remotes */}
+          {(['branches', 'remotes'] as const).map((name) => (
             <div key={name} className="relative">
               <button
                 onClick={() => toggleDropdown(name)}
                 className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                  name === 'issues' && issueButtonColor === 'red'
+                  name === 'remotes' && contribution.remotesValid
                     ? activeDropdown === name
-                      ? 'border-red-500 bg-red-500 text-white'
-                      : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
-                    : name === 'issues' && issueButtonColor === 'yellow'
-                      ? activeDropdown === name
-                        ? 'border-yellow-500 bg-yellow-500 text-white'
-                        : 'border-yellow-500 bg-yellow-500 text-white hover:bg-yellow-500/80'
-                      : name === 'issues' && issueButtonColor === 'green'
-                        ? activeDropdown === name
-                          ? 'border-green-500 bg-green-500 text-white'
-                          : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
-                        : name === 'remotes' && contribution.remotesValid
-                          ? activeDropdown === name
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
-                          : name === 'pull-requests' && prButtonColor === 'red'
-                            ? activeDropdown === name
-                              ? 'border-red-500 bg-red-500 text-white'
-                              : 'border-red-500 bg-red-500 text-white hover:bg-red-500/80'
-                            : name === 'pull-requests' && prButtonColor === 'orange'
-                              ? activeDropdown === name
-                                ? 'border-orange-500 bg-orange-500 text-white'
-                                : 'border-orange-500 bg-orange-500 text-white hover:bg-orange-500/80'
-                              : name === 'pull-requests' && prButtonColor === 'blue'
-                                ? activeDropdown === name
-                                  ? 'border-blue-500 bg-blue-500 text-white'
-                                  : 'border-blue-500 bg-blue-500 text-white hover:bg-blue-500/80'
-                                : name === 'pull-requests' && prButtonColor === 'green'
-                                  ? activeDropdown === name
-                                    ? 'border-green-500 bg-green-500 text-white'
-                                    : 'border-green-500 bg-green-500 text-white hover:bg-green-500/80'
-                                  : activeDropdown === name
-                                    ? 'border-primary bg-accent'
-                                    : 'border-border hover:bg-accent'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
+                    : activeDropdown === name
+                      ? 'border-primary bg-accent'
+                      : 'border-border hover:bg-accent'
                 }`}
               >
-                {name === 'pull-requests'
-                  ? 'Pull Requests'
-                  : name === 'branches' && currentBranch
-                    ? currentBranch
-                    : name.charAt(0).toUpperCase() + name.slice(1)}
+                {name === 'branches' && currentBranch
+                  ? currentBranch
+                  : name.charAt(0).toUpperCase() + name.slice(1)}
               </button>
               {activeDropdown === name && name === 'remotes' && (
                 <div className="absolute right-0 top-full mt-1 w-80 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
@@ -607,170 +417,6 @@ export function DevelopmentScreen({
                           )}
                         </div>
                       ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {activeDropdown === name && name === 'pull-requests' && (
-                <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto styled-scroll">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium">Pull Requests</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowCreatePR(true);
-                        setActiveDropdown(null);
-                      }}
-                      className="px-2 py-1 text-xs rounded-md border border-border hover:bg-accent transition-colors"
-                    >
-                      + New PR
-                    </button>
-                  </div>
-                  {prsLoading ? (
-                    <p className="text-xs text-muted-foreground">Loading...</p>
-                  ) : prsError ? (
-                    <p className="text-xs text-destructive">{prsError}</p>
-                  ) : pullRequests.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No pull requests found</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {[...pullRequests]
-                        .sort((a, b) => {
-                          // Sort user's own PRs to the top
-                          const aIsMine = githubUsername && a.author === githubUsername;
-                          const bIsMine = githubUsername && b.author === githubUsername;
-                          if (aIsMine && !bIsMine) return -1;
-                          if (!aIsMine && bIsMine) return 1;
-                          return 0;
-                        })
-                        .map((pr) => {
-                          const status = pr.merged ? 'merged' : pr.state;
-                          const isMine = githubUsername && pr.author === githubUsername;
-                          return (
-                            <div
-                              key={pr.number}
-                              onClick={() => {
-                                setSelectedPR(pr);
-                                setActiveDropdown(null);
-                              }}
-                              className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs"
-                            >
-                              <span
-                                className={`mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                  status === 'merged'
-                                    ? 'bg-primary/10 text-primary'
-                                    : status === 'open'
-                                      ? 'bg-green-500/10 text-green-500'
-                                      : 'bg-muted text-muted-foreground'
-                                }`}
-                              >
-                                {status}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-medium text-sm truncate">{pr.title}</span>
-                                  <span className="text-muted-foreground shrink-0">
-                                    #{pr.number}
-                                  </span>
-                                  {isMine && (
-                                    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
-                                      submitted
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-muted-foreground mt-0.5">
-                                  {pr.headBranch} &middot; {pr.author}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              )}
-              {activeDropdown === name && name === 'issues' && (
-                <div className="absolute right-0 top-full mt-1 w-96 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto styled-scroll">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium">Issues</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowCreateIssue(true);
-                        setActiveDropdown(null);
-                      }}
-                      className="px-2 py-1 text-xs rounded-md border border-border hover:bg-accent transition-colors"
-                    >
-                      + New Issue
-                    </button>
-                  </div>
-                  {issuesLoading ? (
-                    <p className="text-xs text-muted-foreground">Loading...</p>
-                  ) : issuesError ? (
-                    <p className="text-xs text-destructive">{issuesError}</p>
-                  ) : issues.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No issues found</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {[...issues]
-                        .sort((a, b) => {
-                          // Sort branched issues to the top
-                          const aBranched = branches.some((br) =>
-                            new RegExp(`\\b${a.number}\\b`).test(br)
-                          );
-                          const bBranched = branches.some((br) =>
-                            new RegExp(`\\b${b.number}\\b`).test(br)
-                          );
-                          if (aBranched && !bBranched) return -1;
-                          if (!aBranched && bBranched) return 1;
-                          return 0; // Keep original order within each group
-                        })
-                        .map((issue) => {
-                          const branchMatches = branches.some((br) =>
-                            new RegExp(`\\b${issue.number}\\b`).test(br)
-                          );
-                          return (
-                            <div
-                              key={issue.number}
-                              onClick={() => {
-                                setSelectedIssue(issue);
-                                setActiveDropdown(null);
-                              }}
-                              className="flex items-start gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs"
-                            >
-                              <span
-                                className={`mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                  issue.state === 'open'
-                                    ? 'bg-green-500/10 text-green-500'
-                                    : 'bg-muted text-muted-foreground'
-                                }`}
-                              >
-                                {issue.state}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-medium text-sm truncate">
-                                    {issue.title}
-                                  </span>
-                                  <span className="text-muted-foreground shrink-0">
-                                    #{issue.number}
-                                  </span>
-                                  {branchMatches && (
-                                    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
-                                      branched
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-muted-foreground mt-0.5">
-                                  {issue.author}
-                                  {issue.labels.length > 0 && (
-                                    <span> &middot; {issue.labels.slice(0, 3).join(', ')}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
                     </div>
                   )}
                 </div>
@@ -832,114 +478,59 @@ export function DevelopmentScreen({
       </div>
 
       {/* Main content area with optional tools panel */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* VS Code webview */}
+      <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
+        {/* Invisible overlay during drag to prevent webview from capturing mouse events */}
+        {isResizing && <div className="absolute inset-0 z-10" style={{ cursor: 'col-resize' }} />}
         {/* eslint-disable react/no-unknown-property -- Electron webview attributes */}
         {url && (
           <webview
             ref={webviewRef}
             src={url}
-            style={{ flex: 1, width: '100%', height: '100%' }}
-            className={toolsPanelOpen ? 'w-[70%]' : 'w-full'}
+            style={{
+              flex: toolsPanelOpen ? 'none' : 1,
+              width: toolsPanelOpen
+                ? toolsPanelWidth > 0
+                  ? `calc(100% - ${toolsPanelWidth + 4}px)`
+                  : '60%'
+                : '100%',
+              height: '100%',
+            }}
             // @ts-expect-error - webview attributes not in React types
             allowpopups="true"
           />
         )}
         {/* eslint-enable react/no-unknown-property */}
 
-        {/* Tools Panel (30% width when open) */}
+        {/* Resizable Tools Panel */}
         {toolsPanelOpen && (
-          <div className="w-[30%] min-w-[300px] max-w-[500px]">
-            <ToolsPanel
-              workingDirectory={contribution.localPath}
-              onClose={() => setToolsPanelOpen(false)}
-              adoptSessions={adoptSessions}
-              onSessionsAdopted={() => {
-                setAdoptSessions([]);
-              }}
+          <>
+            {/* Drag handle */}
+            <div
+              onMouseDown={handleResizeStart}
+              className="w-1 shrink-0 bg-border hover:bg-primary/50 active:bg-primary transition-colors cursor-col-resize"
             />
-          </div>
+            <div
+              ref={toolsPanelRef}
+              style={toolsPanelWidth > 0 ? { width: toolsPanelWidth } : { flex: 1 }}
+              className="shrink-0 h-full"
+            >
+              <ToolsPanel
+                workingDirectory={contribution.localPath}
+                onClose={() => setToolsPanelOpen(false)}
+                adoptSessions={adoptSessions}
+                onSessionsAdopted={() => {
+                  setAdoptSessions([]);
+                }}
+                contribution={contribution}
+                branches={branches}
+                remotes={remotes}
+                githubUsername={githubUsername}
+                onRefreshBranches={fetchBranches}
+              />
+            </div>
+          </>
         )}
       </div>
-
-      {/* PR Detail Modal */}
-      {selectedPR &&
-        (() => {
-          const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-          const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-          return parsed ? (
-            <PullRequestDetailModal
-              pr={selectedPR}
-              owner={parsed.owner}
-              repo={parsed.repo}
-              githubUsername={githubUsername}
-              onClose={() => setSelectedPR(null)}
-              onRefresh={() => fetchPullRequests()}
-              canWrite={contribution.type === 'project'}
-            />
-          ) : null;
-        })()}
-
-      {/* Issue Detail Modal */}
-      {selectedIssue &&
-        (() => {
-          const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-          const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-          const branchMatches = branches.some((br) =>
-            new RegExp(`\\b${selectedIssue.number}\\b`).test(br)
-          );
-          return parsed ? (
-            <DevelopmentIssueDetailModal
-              issue={selectedIssue}
-              owner={parsed.owner}
-              repo={parsed.repo}
-              localPath={contribution.localPath}
-              isBranched={branchMatches}
-              githubUsername={githubUsername}
-              onClose={() => {
-                setSelectedIssue(null);
-                fetchIssues();
-                fetchBranches();
-              }}
-            />
-          ) : null;
-        })()}
-
-      {/* Create Issue Modal */}
-      {showCreateIssue &&
-        (() => {
-          const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-          const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-          return parsed ? (
-            <CreateIssueModal
-              open={showCreateIssue}
-              owner={parsed.owner}
-              repo={parsed.repo}
-              onClose={() => setShowCreateIssue(false)}
-              onCreated={() => fetchIssues()}
-            />
-          ) : null;
-        })()}
-
-      {/* Create PR Modal */}
-      {showCreatePR &&
-        (() => {
-          const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
-          const parsed = targetUrl ? extractOwnerRepo(targetUrl) : null;
-          return parsed ? (
-            <CreatePullRequestModal
-              open={showCreatePR}
-              owner={parsed.owner}
-              repo={parsed.repo}
-              localPath={contribution.localPath}
-              branches={branches}
-              remotes={remotes}
-              defaultBranchName={contribution.branchName}
-              onClose={() => setShowCreatePR(false)}
-              onCreated={() => fetchPullRequests()}
-            />
-          ) : null;
-        })()}
 
       {/* Branch Detail Modal */}
       {selectedBranch && (
