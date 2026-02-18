@@ -996,6 +996,97 @@ export interface IpcChannels {
   }[];
   'github:get-job-logs': (owner: string, repo: string, jobId: number) => string;
 
+  // GitHub Releases Channels
+  'github:list-releases': (
+    owner: string,
+    repo: string
+  ) => {
+    id: number;
+    tagName: string;
+    name: string;
+    body: string;
+    draft: boolean;
+    prerelease: boolean;
+    createdAt: string;
+    publishedAt: string | null;
+    htmlUrl: string;
+    author: string;
+    authorAvatarUrl: string;
+    isLatest: boolean;
+  }[];
+  'github:get-release': (
+    owner: string,
+    repo: string,
+    releaseId: number
+  ) => {
+    id: number;
+    tagName: string;
+    name: string;
+    body: string;
+    draft: boolean;
+    prerelease: boolean;
+    createdAt: string;
+    publishedAt: string | null;
+    htmlUrl: string;
+    author: string;
+    authorAvatarUrl: string;
+    targetCommitish: string;
+    isLatest: boolean;
+  };
+  'github:create-release': (
+    owner: string,
+    repo: string,
+    data: {
+      tagName: string;
+      name: string;
+      body: string;
+      draft: boolean;
+      prerelease: boolean;
+      makeLatest: 'true' | 'false' | 'legacy';
+      targetCommitish?: string;
+    }
+  ) => {
+    id: number;
+    tagName: string;
+    name: string;
+    body: string;
+    draft: boolean;
+    prerelease: boolean;
+    htmlUrl: string;
+  };
+  'github:update-release': (
+    owner: string,
+    repo: string,
+    releaseId: number,
+    data: {
+      tagName?: string;
+      name?: string;
+      body?: string;
+      draft?: boolean;
+      prerelease?: boolean;
+      makeLatest?: 'true' | 'false' | 'legacy';
+    }
+  ) => {
+    id: number;
+    tagName: string;
+    name: string;
+    body: string;
+    draft: boolean;
+    prerelease: boolean;
+    htmlUrl: string;
+  };
+  'github:delete-release': (owner: string, repo: string, releaseId: number) => void;
+  'github:publish-release': (
+    owner: string,
+    repo: string,
+    releaseId: number
+  ) => {
+    id: number;
+    tagName: string;
+    name: string;
+    htmlUrl: string;
+  };
+
   // PR Check Status Channels
   'github:get-pr-check-status': (owner: string, repo: string, sha: string) => PRCheckStatus;
 

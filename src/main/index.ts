@@ -784,6 +784,37 @@ const setupIpcHandlers = () => {
     return await gitHubRestService.getJobLogs(owner, repo, jobId);
   });
 
+  // GitHub Releases handlers
+  handleIpc('github:list-releases', async (_event, owner, repo) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listReleases(owner, repo);
+  });
+
+  handleIpc('github:get-release', async (_event, owner, repo, releaseId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.getRelease(owner, repo, releaseId);
+  });
+
+  handleIpc('github:create-release', async (_event, owner, repo, data) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.createRelease(owner, repo, data);
+  });
+
+  handleIpc('github:update-release', async (_event, owner, repo, releaseId, data) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.updateRelease(owner, repo, releaseId, data);
+  });
+
+  handleIpc('github:delete-release', async (_event, owner, repo, releaseId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.deleteRelease(owner, repo, releaseId);
+  });
+
+  handleIpc('github:publish-release', async (_event, owner, repo, releaseId) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.updateRelease(owner, repo, releaseId, { draft: false });
+  });
+
   // PR Check Status handler
   handleIpc('github:get-pr-check-status', async (_event, owner, repo, sha) => {
     const { gitHubRestService } = await import('./services/github-rest.service');

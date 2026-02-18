@@ -51,6 +51,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Job logs viewer with truncation (last 500 lines) and "Open in GitHub" link
   - 3 new IPC channels: `github:list-workflow-runs`, `github:list-workflow-run-jobs`, `github:get-job-logs`
   - 3 new `GitHubRestService` methods: `listWorkflowRuns`, `listWorkflowRunJobs`, `getJobLogs`
+- GitHub Releases tool in Tool Box with full release lifecycle management ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+  - New `ReleasesTool` component with list → detail → draft-edit → create views
+  - Releases list sorted newest-to-oldest with Latest, Draft, and Pre-release badges
+  - Detail view with full Markdown rendering (ReactMarkdown + remark-gfm + rehype-raw) and delete confirmation
+  - Draft edit view with tag, title, body (MarkdownEditor with write/preview tabs), pre-release and latest checkboxes, save/publish/delete actions
+  - Create view for new draft releases with tag name, title, target branch, body, and pre-release/latest options
+  - 6 new IPC channels: `github:list-releases`, `github:get-release`, `github:create-release`, `github:update-release`, `github:delete-release`, `github:publish-release`
+  - 5 new `GitHubRestService` methods: `listReleases`, `getRelease`, `createRelease`, `updateRelease`, `deleteRelease`
+  - Tool navigation order updated: Issues → Pull Requests → Actions → Releases → Dev Scripts → Terminal → Maintenance
 
 ### Tests
 
@@ -71,6 +80,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ActionsTool.test.tsx`: 18 tests covering list/detail/logs views, status badges, navigation, refresh, error/empty states
   - `github-rest.service.test.ts`: 9 new tests for `listWorkflowRuns`, `listWorkflowRunJobs`, `getJobLogs` (field mapping, empty results, API errors)
   - Updated `DevelopmentScreen.tools.test.tsx` to remove stale modal mocks
+- Tests for GitHub Releases tool
+  - `ReleasesTool.test.tsx`: 22 tests covering list/detail/draft-edit/create views, badges, navigation, delete confirmation, publish, MarkdownEditor integration
+  - `github-rest.service.test.ts`: 15 new tests for `listReleases`, `getRelease`, `createRelease`, `updateRelease`, `deleteRelease` (field mapping, isLatest inference, empty results, API errors)
+  - Updated `ToolsPanel.test.tsx` for 7-tool menu
 
 ## [1.0.3] - 2026-02-15
 

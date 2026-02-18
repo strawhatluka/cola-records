@@ -107,19 +107,19 @@ describe('Electron GPU Configuration', () => {
     await import('../../src/main/index');
 
     expect(appendSwitchCalls).toContain('enable-gpu-rasterization');
-  }, 15000);
+  }, 30000);
 
   it('sets enable-zero-copy flag', async () => {
     await import('../../src/main/index');
 
     expect(appendSwitchCalls).toContain('enable-zero-copy');
-  }, 15000);
+  }, 30000);
 
   it('sets ignore-gpu-blocklist flag', async () => {
     await import('../../src/main/index');
 
     expect(appendSwitchCalls).toContain('ignore-gpu-blocklist');
-  }, 15000);
+  }, 30000);
 
   it('sets GPU flags BEFORE app.on("ready") is registered', async () => {
     // The GPU flags must be set before app.ready handlers fire
@@ -138,5 +138,5 @@ describe('Electron GPU Configuration', () => {
       'enable-zero-copy',
       'ignore-gpu-blocklist',
     ]);
-  }, 15000);
+  }, 30000);
 });

@@ -1081,6 +1081,187 @@ export class GitHubRestService {
     }
   }
 
+  // ─── GitHub Releases ───────────────────────────────────────────────
+
+  /**
+   * List releases for a repository
+   */
+  async listReleases(owner: string, repo: string): Promise<any[]> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.repos.listReleases({
+        owner,
+        repo,
+        per_page: 30,
+      });
+
+      // Infer isLatest: first non-draft, non-prerelease entry
+      let foundLatest = false;
+      return response.data.map((release: any) => {
+        let isLatest = false;
+        if (!foundLatest && !release.draft && !release.prerelease) {
+          isLatest = true;
+          foundLatest = true;
+        }
+        return {
+          id: release.id,
+          tagName: release.tag_name || '',
+          name: release.name || '',
+          body: release.body || '',
+          draft: release.draft || false,
+          prerelease: release.prerelease || false,
+          createdAt: release.created_at,
+          publishedAt: release.published_at || null,
+          htmlUrl: release.html_url,
+          author: release.author?.login || 'unknown',
+          authorAvatarUrl: release.author?.avatar_url || '',
+          isLatest,
+        };
+      });
+    } catch (error) {
+      throw new Error(`Failed to list releases for ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
+   * Get a single release by ID
+   */
+  async getRelease(owner: string, repo: string, releaseId: number): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.repos.getRelease({
+        owner,
+        repo,
+        release_id: releaseId,
+      });
+
+      const release = response.data;
+      return {
+        id: release.id,
+        tagName: release.tag_name || '',
+        name: release.name || '',
+        body: release.body || '',
+        draft: release.draft || false,
+        prerelease: release.prerelease || false,
+        createdAt: release.created_at,
+        publishedAt: release.published_at || null,
+        htmlUrl: release.html_url,
+        author: release.author?.login || 'unknown',
+        authorAvatarUrl: release.author?.avatar_url || '',
+        targetCommitish: release.target_commitish || '',
+        isLatest: !release.draft && !release.prerelease,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get release ${releaseId} for ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
+   * Create a new release
+   */
+  async createRelease(
+    owner: string,
+    repo: string,
+    data: {
+      tagName: string;
+      name: string;
+      body: string;
+      draft: boolean;
+      prerelease: boolean;
+      makeLatest: 'true' | 'false' | 'legacy';
+      targetCommitish?: string;
+    }
+  ): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.repos.createRelease({
+        owner,
+        repo,
+        tag_name: data.tagName,
+        name: data.name,
+        body: data.body,
+        draft: data.draft,
+        prerelease: data.prerelease,
+        make_latest: data.makeLatest,
+        ...(data.targetCommitish ? { target_commitish: data.targetCommitish } : {}),
+      });
+
+      const release = response.data;
+      return {
+        id: release.id,
+        tagName: release.tag_name || '',
+        name: release.name || '',
+        body: release.body || '',
+        draft: release.draft || false,
+        prerelease: release.prerelease || false,
+        htmlUrl: release.html_url,
+      };
+    } catch (error) {
+      throw new Error(`Failed to create release for ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
+   * Update an existing release
+   */
+  async updateRelease(
+    owner: string,
+    repo: string,
+    releaseId: number,
+    data: {
+      tagName?: string;
+      name?: string;
+      body?: string;
+      draft?: boolean;
+      prerelease?: boolean;
+      makeLatest?: 'true' | 'false' | 'legacy';
+    }
+  ): Promise<any> {
+    try {
+      const client = this.getClient();
+      const response = await client.rest.repos.updateRelease({
+        owner,
+        repo,
+        release_id: releaseId,
+        ...(data.tagName !== undefined ? { tag_name: data.tagName } : {}),
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.body !== undefined ? { body: data.body } : {}),
+        ...(data.draft !== undefined ? { draft: data.draft } : {}),
+        ...(data.prerelease !== undefined ? { prerelease: data.prerelease } : {}),
+        ...(data.makeLatest !== undefined ? { make_latest: data.makeLatest } : {}),
+      });
+
+      const release = response.data;
+      return {
+        id: release.id,
+        tagName: release.tag_name || '',
+        name: release.name || '',
+        body: release.body || '',
+        draft: release.draft || false,
+        prerelease: release.prerelease || false,
+        htmlUrl: release.html_url,
+      };
+    } catch (error) {
+      throw new Error(`Failed to update release ${releaseId} for ${owner}/${repo}: ${error}`);
+    }
+  }
+
+  /**
+   * Delete a release
+   */
+  async deleteRelease(owner: string, repo: string, releaseId: number): Promise<void> {
+    try {
+      const client = this.getClient();
+      await client.rest.repos.deleteRelease({
+        owner,
+        repo,
+        release_id: releaseId,
+      });
+    } catch (error) {
+      throw new Error(`Failed to delete release ${releaseId} for ${owner}/${repo}: ${error}`);
+    }
+  }
+
   // ─── PR Timeline Events ───────────────────────────────────────────────
 
   /**

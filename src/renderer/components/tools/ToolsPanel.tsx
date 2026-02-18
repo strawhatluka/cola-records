@@ -6,7 +6,17 @@
  */
 
 import { useState } from 'react';
-import { Terminal, Code, Wrench, X, Menu, CircleDot, GitPullRequest, Play } from 'lucide-react';
+import {
+  Terminal,
+  Code,
+  Wrench,
+  X,
+  Menu,
+  CircleDot,
+  GitPullRequest,
+  Play,
+  Tag,
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TerminalTool } from './TerminalTool';
 import { DevScriptsTool } from './DevScriptsTool';
@@ -14,10 +24,18 @@ import { MaintenanceTool } from './MaintenanceTool';
 import { IssuesTool } from './IssuesTool';
 import { PullRequestsTool } from './PullRequestsTool';
 import { ActionsTool } from './ActionsTool';
+import { ReleasesTool } from './ReleasesTool';
 import { cn } from '../../lib/utils';
 import type { Contribution } from '../../../main/ipc/channels';
 
-type ToolType = 'issues' | 'pull-requests' | 'actions' | 'dev-scripts' | 'terminal' | 'maintenance';
+type ToolType =
+  | 'issues'
+  | 'pull-requests'
+  | 'actions'
+  | 'releases'
+  | 'dev-scripts'
+  | 'terminal'
+  | 'maintenance';
 
 interface ToolItem {
   id: ToolType;
@@ -29,6 +47,7 @@ const tools: ToolItem[] = [
   { id: 'issues', label: 'Issues', icon: CircleDot },
   { id: 'pull-requests', label: 'Pull Requests', icon: GitPullRequest },
   { id: 'actions', label: 'Actions', icon: Play },
+  { id: 'releases', label: 'Releases', icon: Tag },
   { id: 'dev-scripts', label: 'Dev Scripts', icon: Code },
   { id: 'terminal', label: 'Terminal', icon: Terminal },
   { id: 'maintenance', label: 'Maintenance', icon: Wrench },
@@ -111,6 +130,8 @@ export function ToolsPanel({
         ) : null;
       case 'actions':
         return contribution ? <ActionsTool contribution={contribution} /> : null;
+      case 'releases':
+        return contribution ? <ReleasesTool contribution={contribution} /> : null;
       case 'terminal':
         return (
           <TerminalTool
