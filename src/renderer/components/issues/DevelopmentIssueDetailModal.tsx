@@ -325,6 +325,13 @@ export function DevelopmentIssueDetailModal({
       // Checkout the default branch first, then create the fix branch from it
       await ipc.invoke('git:checkout', localPath, defaultBranch);
       await ipc.invoke('git:create-branch', localPath, branchName);
+      // Best-effort: assign the issue to ourselves so it appears in dashboard
+      try {
+        const user = await ipc.invoke('github:get-authenticated-user');
+        await ipc.invoke('github:add-assignees', owner, repo, issue.number, [user.login]);
+      } catch {
+        // Assignment is non-critical — don't block branch creation
+      }
       onClose();
     } catch (err) {
       alert(`Failed to create branch: ${err instanceof Error ? err.message : String(err)}`);

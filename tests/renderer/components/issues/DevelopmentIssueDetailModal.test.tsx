@@ -582,4 +582,103 @@ describe('DevelopmentIssueDetailModal', () => {
       });
     });
   });
+
+  describe('Fix Issue auto-assign', () => {
+    it('assigns the issue to the authenticated user after branch creation', async () => {
+      setupMockIPC();
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      // After detail loads, override mock to handle Fix Issue flow
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          isBranched={false}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Set up mock for the Fix Issue flow channels
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'dev'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      const assignCalls = mockInvoke.mock.calls.filter(
+        (c: unknown[]) => c[0] === 'github:add-assignees'
+      );
+      expect(assignCalls).toHaveLength(1);
+      expect(assignCalls[0]).toEqual(['github:add-assignees', 'org', 'repo', 10, ['testuser']]);
+    });
+
+    it('still completes branch creation when assignment fails', async () => {
+      setupMockIPC();
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          isBranched={false}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Assignment rejects, but everything else succeeds
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            throw new Error('Forbidden');
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+    });
+  });
 });

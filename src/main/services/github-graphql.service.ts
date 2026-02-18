@@ -196,7 +196,18 @@ export class GitHubGraphQLService {
   /**
    * Get authenticated user information
    */
-  async getAuthenticatedUser(): Promise<{ login: string; name: string; email: string }> {
+  async getAuthenticatedUser(): Promise<{
+    login: string;
+    name: string;
+    email: string;
+    avatarUrl: string;
+    bio: string;
+    followers: number;
+    following: number;
+    createdAt: string;
+    location: string;
+    company: string;
+  }> {
     try {
       const client = this.getClient();
 
@@ -207,6 +218,13 @@ export class GitHubGraphQLService {
             login
             name
             email
+            avatarUrl
+            bio
+            followers { totalCount }
+            following { totalCount }
+            createdAt
+            location
+            company
           }
         }
         `
@@ -216,6 +234,13 @@ export class GitHubGraphQLService {
         login: response.viewer.login,
         name: response.viewer.name || '',
         email: response.viewer.email || '',
+        avatarUrl: response.viewer.avatarUrl || '',
+        bio: response.viewer.bio || '',
+        followers: response.viewer.followers?.totalCount ?? 0,
+        following: response.viewer.following?.totalCount ?? 0,
+        createdAt: response.viewer.createdAt || '',
+        location: response.viewer.location || '',
+        company: response.viewer.company || '',
       };
     } catch (error) {
       throw new Error(`Failed to get authenticated user: ${error}`);

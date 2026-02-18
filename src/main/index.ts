@@ -622,6 +622,11 @@ const setupIpcHandlers = () => {
     return await gitHubRestService.getIssue(owner, repo, issueNumber);
   });
 
+  handleIpc('github:add-assignees', async (_event, owner, repo, issueNumber, assignees) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    await gitHubRestService.addAssignees(owner, repo, issueNumber, assignees);
+  });
+
   handleIpc('github:list-issue-comments', async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listIssueComments(owner, repo, issueNumber);
@@ -782,6 +787,24 @@ const setupIpcHandlers = () => {
   handleIpc('github:get-job-logs', async (_event, owner, repo, jobId) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.getJobLogs(owner, repo, jobId);
+  });
+
+  // GitHub Search handler
+  handleIpc('github:search-issues-and-prs', async (_event, query, perPage) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.searchIssuesAndPullRequests(query, perPage);
+  });
+
+  // GitHub User Events handler
+  handleIpc('github:list-user-events', async (_event, username, perPage) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.listUserEvents(username, perPage);
+  });
+
+  // GitHub User Repos handler
+  handleIpc('github:list-user-repos', async () => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    return await gitHubRestService.getUserRepositories();
   });
 
   // GitHub Releases handlers

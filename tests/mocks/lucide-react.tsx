@@ -78,11 +78,14 @@ export const Save = createIcon('Save');
 export const Search = createIcon('Search');
 export const Send = createIcon('Send');
 export const Settings = createIcon('Settings');
+export const Star = createIcon('Star');
 export const Strikethrough = createIcon('Strikethrough');
 export const Sun = createIcon('Sun');
 export const Tag = createIcon('Tag');
 export const Trash2 = createIcon('Trash2');
 export const User = createIcon('User');
+export const UserPlus = createIcon('UserPlus');
+export const Users = createIcon('Users');
 export const X = createIcon('X');
 export const XCircle = createIcon('XCircle');
 
