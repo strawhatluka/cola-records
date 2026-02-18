@@ -1,11 +1,12 @@
 /**
  * ToolsPanel
  *
- * Collapsible side panel containing Issues, Pull Requests, Dev Scripts, Terminal,
- * and Maintenance tools. Uses hamburger-style navigation to switch between tools.
+ * Collapsible side panel containing Issues, Pull Requests, Actions, Releases,
+ * Dev Scripts, and Maintenance tools. Uses hamburger-style navigation to switch
+ * between tools. Terminal is a persistent bar at the bottom with expand/collapse.
  */
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Terminal,
   Code,
@@ -16,6 +17,8 @@ import {
   GitPullRequest,
   Play,
   Tag,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TerminalTool } from './TerminalTool';
@@ -28,14 +31,7 @@ import { ReleasesTool } from './ReleasesTool';
 import { cn } from '../../lib/utils';
 import type { Contribution } from '../../../main/ipc/channels';
 
-type ToolType =
-  | 'issues'
-  | 'pull-requests'
-  | 'actions'
-  | 'releases'
-  | 'dev-scripts'
-  | 'terminal'
-  | 'maintenance';
+type ToolType = 'issues' | 'pull-requests' | 'actions' | 'releases' | 'dev-scripts' | 'maintenance';
 
 interface ToolItem {
   id: ToolType;
@@ -49,7 +45,6 @@ const tools: ToolItem[] = [
   { id: 'actions', label: 'Actions', icon: Play },
   { id: 'releases', label: 'Releases', icon: Tag },
   { id: 'dev-scripts', label: 'Dev Scripts', icon: Code },
-  { id: 'terminal', label: 'Terminal', icon: Terminal },
   { id: 'maintenance', label: 'Maintenance', icon: Wrench },
 ];
 
@@ -96,16 +91,69 @@ export function ToolsPanel({
   githubUsername = '',
   onRefreshBranches,
 }: ToolsPanelProps) {
-  const hasSessionsToAdopt = adoptSessions && adoptSessions.length > 0;
-  const [activeTool, setActiveTool] = useState<ToolType>(
-    hasSessionsToAdopt ? 'terminal' : 'issues'
-  );
+  const [activeTool, setActiveTool] = useState<ToolType>('issues');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [terminalExpanded, setTerminalExpanded] = useState(false);
+  const [terminalHeight, setTerminalHeight] = useState(0);
+  const [isResizingTerminal, setIsResizingTerminal] = useState(false);
+  // Track if terminal has ever been expanded — mount TerminalTool on first expand,
+  // keep it mounted after that to preserve xterm.js state across collapse/expand
+  const [terminalMounted, setTerminalMounted] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Switch to terminal when sessions to adopt are provided
-  if (hasSessionsToAdopt && activeTool !== 'terminal') {
-    setActiveTool('terminal');
+  // Auto-expand terminal when adoptSessions are provided
+  const hasSessionsToAdopt = adoptSessions && adoptSessions.length > 0;
+  if (hasSessionsToAdopt && !terminalExpanded) {
+    setTerminalExpanded(true);
+    setTerminalMounted(true);
+    if (containerRef.current) {
+      setTerminalHeight(Math.floor(containerRef.current.offsetHeight * 0.5));
+    }
   }
+
+  const handleExpandTerminal = useCallback(() => {
+    setTerminalExpanded(true);
+    setTerminalMounted(true);
+    if (containerRef.current) {
+      setTerminalHeight(Math.floor(containerRef.current.offsetHeight * 0.5));
+    }
+  }, []);
+
+  const handleCollapseTerminal = useCallback(() => {
+    setTerminalExpanded(false);
+    setTerminalHeight(0);
+  }, []);
+
+  const handleTerminalResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startHeight = terminalHeight;
+      setIsResizingTerminal(true);
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const delta = startY - moveEvent.clientY;
+        const containerHeight = containerRef.current?.offsetHeight ?? 0;
+        const maxHeight = Math.floor(containerHeight * 0.8);
+        const newHeight = Math.min(maxHeight, Math.max(100, startHeight + delta));
+        setTerminalHeight(newHeight);
+      };
+
+      const handleMouseUp = () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        setIsResizingTerminal(false);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+    },
+    [terminalHeight]
+  );
 
   const renderTool = () => {
     switch (activeTool) {
@@ -132,14 +180,6 @@ export function ToolsPanel({
         return contribution ? <ActionsTool contribution={contribution} /> : null;
       case 'releases':
         return contribution ? <ReleasesTool contribution={contribution} /> : null;
-      case 'terminal':
-        return (
-          <TerminalTool
-            workingDirectory={workingDirectory}
-            adoptSessions={adoptSessions}
-            onSessionsAdopted={onSessionsAdopted}
-          />
-        );
       case 'dev-scripts':
         return <DevScriptsTool workingDirectory={workingDirectory} />;
       case 'maintenance':
@@ -152,7 +192,12 @@ export function ToolsPanel({
   const ActiveIcon = tools.find((t) => t.id === activeTool)?.icon || Terminal;
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div ref={containerRef} className="flex flex-col h-full bg-background relative">
+      {/* Invisible overlay during terminal resize to prevent content from capturing mouse events */}
+      {isResizingTerminal && (
+        <div className="absolute inset-0 z-10" style={{ cursor: 'row-resize' }} />
+      )}
+
       {/* Header with hamburger menu */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
         <div className="relative">
@@ -204,8 +249,62 @@ export function ToolsPanel({
         </Button>
       </div>
 
-      {/* Tool content */}
-      <div className="flex-1 overflow-hidden">{renderTool()}</div>
+      {/* Tool content — fills remaining space minus terminal */}
+      <div
+        className="overflow-hidden"
+        style={
+          terminalExpanded
+            ? { flex: 'none', height: `calc(100% - ${terminalHeight}px)` }
+            : { flex: 1 }
+        }
+      >
+        {renderTool()}
+      </div>
+
+      {/* Drag handle (only when terminal expanded) */}
+      {terminalExpanded && (
+        <div
+          onMouseDown={handleTerminalResizeStart}
+          className="h-1 cursor-row-resize bg-border hover:bg-primary/50 flex-shrink-0"
+        />
+      )}
+
+      {/* Terminal content — mounted on first expand, kept mounted after to preserve xterm.js state */}
+      {terminalMounted && (
+        <div
+          style={terminalExpanded ? { height: terminalHeight } : { height: 0 }}
+          className="overflow-hidden flex-shrink-0 flex flex-col"
+        >
+          <div className="flex items-center justify-between px-3 py-1 border-b border-border bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Terminal</span>
+            </div>
+            <button onClick={handleCollapseTerminal} className="p-0.5 hover:bg-accent rounded">
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <TerminalTool
+              workingDirectory={workingDirectory}
+              adoptSessions={adoptSessions}
+              onSessionsAdopted={onSessionsAdopted}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Minimized terminal bar (when collapsed) */}
+      {!terminalExpanded && (
+        <div
+          onClick={handleExpandTerminal}
+          className="flex items-center gap-2 px-3 py-1.5 border-t border-border cursor-pointer hover:bg-accent/50 flex-shrink-0"
+        >
+          <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Terminal</span>
+          <ChevronUp className="h-3 w-3 ml-auto text-muted-foreground" />
+        </div>
+      )}
     </div>
   );
 }

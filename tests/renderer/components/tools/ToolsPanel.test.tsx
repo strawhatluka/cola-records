@@ -103,13 +103,12 @@ describe('ToolsPanel', () => {
     expect(menuButton).not.toBeNull();
     await user.click(menuButton as HTMLButtonElement);
 
-    // Menu should show all seven tool options
+    // Menu should show all six tool options (Terminal is no longer in menu)
     expect(screen.getAllByText('Issues').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Pull Requests')).toBeDefined();
     expect(screen.getByText('Actions')).toBeDefined();
     expect(screen.getByText('Releases')).toBeDefined();
     expect(screen.getByText('Dev Scripts')).toBeDefined();
-    expect(screen.getAllByText('Terminal').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Maintenance')).toBeDefined();
   });
 
@@ -190,25 +189,102 @@ describe('ToolsPanel', () => {
     expect(issuesMenuItem).toBeDefined();
   });
 
-  it('passes workingDirectory to TerminalTool', async () => {
-    const user = userEvent.setup();
-    render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+  describe('persistent terminal bar', () => {
+    it('renders minimized terminal bar by default', () => {
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
 
-    // Default tool is now Issues — navigate to Terminal via menu
-    const menuButton = screen.getByTestId('icon-menu').closest('button');
-    await user.click(menuButton as HTMLButtonElement);
-    const terminalOptions = screen.getAllByText('Terminal');
-    const terminalMenuItem = terminalOptions.find((el) => el.closest('button'));
-    await user.click(terminalMenuItem as HTMLElement);
+      // Terminal bar should show Terminal icon and label
+      expect(screen.getByTestId('icon-terminal')).toBeDefined();
+      // Terminal text appears in the minimized bar
+      expect(screen.getByText('Terminal')).toBeDefined();
+      // ChevronUp icon for expand
+      expect(screen.getByTestId('icon-chevronup')).toBeDefined();
+    });
 
-    // The XTermTerminal mock should be rendered (through TerminalTool) after terminal spawns
-    await vi.waitFor(() => {
-      expect(screen.getByTestId('xterm-terminal')).toBeDefined();
+    it('expands terminal when minimized bar is clicked', async () => {
+      const user = userEvent.setup();
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+      // Click the minimized terminal bar
+      const terminalBar = screen.getByText('Terminal').closest('div');
+      expect(terminalBar).not.toBeNull();
+      await user.click(terminalBar as HTMLElement);
+
+      // After expanding, ChevronDown (collapse) should appear in terminal header
+      // (TerminalTool's tab bar also renders a ChevronDown in its dropdown button)
+      const chevronDowns = screen.getAllByTestId('icon-chevrondown');
+      const collapseChevron = chevronDowns.find((el) =>
+        el.closest('button')?.classList.contains('hover:bg-accent')
+      );
+      expect(collapseChevron).toBeDefined();
+      // Terminal tool should be rendered (xterm mock)
+      await vi.waitFor(() => {
+        expect(screen.getByTestId('xterm-terminal')).toBeDefined();
+      });
+    });
+
+    it('collapses terminal when collapse button is clicked', async () => {
+      const user = userEvent.setup();
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+      // Expand first
+      const terminalBar = screen.getByText('Terminal').closest('div');
+      await user.click(terminalBar as HTMLElement);
+
+      // Now collapse using the ChevronDown button in the terminal header
+      // (TerminalTool's tab bar also renders a ChevronDown in its dropdown button)
+      const chevronDowns = screen.getAllByTestId('icon-chevrondown');
+      const collapseChevron = chevronDowns.find((el) =>
+        el.classList.contains('text-muted-foreground')
+      );
+      expect(collapseChevron).toBeDefined();
+      const collapseButton = collapseChevron!.closest('button');
+      expect(collapseButton).not.toBeNull();
+      await user.click(collapseButton as HTMLButtonElement);
+
+      // Should be back to minimized with ChevronUp
+      expect(screen.getByTestId('icon-chevronup')).toBeDefined();
+      // Terminal is always mounted (preserves xterm state) but container has height 0
+      const terminalContainer = screen.getByTestId('xterm-terminal').closest('[style]');
+      expect(terminalContainer).not.toBeNull();
+      expect((terminalContainer as HTMLElement).style.height).toBe('0px');
+    });
+
+    it('shows drag handle when terminal is expanded', async () => {
+      const user = userEvent.setup();
+      const { container } = render(
+        <ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />
+      );
+
+      // Expand terminal
+      const terminalBar = screen.getByText('Terminal').closest('div');
+      await user.click(terminalBar as HTMLElement);
+
+      // Drag handle should be present (cursor-row-resize class)
+      const dragHandle = container.querySelector('.cursor-row-resize');
+      expect(dragHandle).not.toBeNull();
+    });
+
+    it('terminal bar is visible regardless of active tool', async () => {
+      const user = userEvent.setup();
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+      // Default: Issues tool active, terminal bar visible
+      expect(screen.getByText('Terminal')).toBeDefined();
+
+      // Switch to Dev Scripts
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+      const devScriptsOption = screen.getByText('Dev Scripts');
+      await user.click(devScriptsOption);
+
+      // Terminal bar should still be visible
+      expect(screen.getByText('Terminal')).toBeDefined();
     });
   });
 
   describe('multi-session adoption', () => {
-    it('switches to terminal when adoptSessions is provided', () => {
+    it('auto-expands terminal when adoptSessions is provided', () => {
       const sessions = [
         { sessionId: 'session_1', output: 'output 1', name: 'Frontend' },
         { sessionId: 'session_2', output: 'output 2', name: 'Backend' },
@@ -223,7 +299,14 @@ describe('ToolsPanel', () => {
         />
       );
 
-      // Should be on terminal tool
+      // Terminal should be expanded (ChevronDown visible for collapse)
+      // (TerminalTool's tab bar also renders a ChevronDown in its dropdown button)
+      const chevronDowns = screen.getAllByTestId('icon-chevrondown');
+      const collapseChevron = chevronDowns.find((el) =>
+        el.classList.contains('text-muted-foreground')
+      );
+      expect(collapseChevron).toBeDefined();
+      // Terminal label should be visible in the expanded header
       expect(screen.getByText('Terminal')).toBeDefined();
     });
 

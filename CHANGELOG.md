@@ -60,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 6 new IPC channels: `github:list-releases`, `github:get-release`, `github:create-release`, `github:update-release`, `github:delete-release`, `github:publish-release`
   - 5 new `GitHubRestService` methods: `listReleases`, `getRelease`, `createRelease`, `updateRelease`, `deleteRelease`
   - Tool navigation order updated: Issues → Pull Requests → Actions → Releases → Dev Scripts → Terminal → Maintenance
+- Persistent terminal bar at bottom of Tool Box panel ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+  - Terminal removed from hamburger menu navigation (6 tools remain: Issues, Pull Requests, Actions, Releases, Dev Scripts, Maintenance)
+  - Minimized terminal bar always visible at bottom of Tool Box regardless of active tool, with Terminal icon, label, and expand chevron
+  - Click to expand terminal to 50% of Tool Box height; tool content on top, terminal on bottom
+  - Vertical drag-to-resize handle between tool content and terminal when expanded (min 100px, max 80% of container)
+  - Invisible overlay during resize prevents content from capturing mouse events (same pattern as horizontal IDE/Tool Box resize)
+  - `adoptSessions` auto-expands terminal bar instead of switching active tool
+  - Tool navigation order updated: Issues → Pull Requests → Actions → Releases → Dev Scripts → Maintenance (Terminal is always-present fixture)
 
 ### Tests
 
@@ -84,6 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ReleasesTool.test.tsx`: 22 tests covering list/detail/draft-edit/create views, badges, navigation, delete confirmation, publish, MarkdownEditor integration
   - `github-rest.service.test.ts`: 15 new tests for `listReleases`, `getRelease`, `createRelease`, `updateRelease`, `deleteRelease` (field mapping, isLatest inference, empty results, API errors)
   - Updated `ToolsPanel.test.tsx` for 7-tool menu
+- Tests for persistent terminal bar
+  - Updated `ToolsPanel.test.tsx`: 6-tool menu assertions (Terminal removed), new `persistent terminal bar` describe block with 5 tests (minimized bar rendering, expand on click, collapse on click, drag handle presence, bar visible across tool switches), updated adoption tests for auto-expand behavior
 
 ## [1.0.3] - 2026-02-15
 
