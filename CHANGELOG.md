@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-02-17
+
 ### Added
 
 - Persistent webview sessions for multi-project support ([#6](https://github.com/lukadfagundes/cola-records/issues/6))
