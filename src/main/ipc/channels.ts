@@ -1087,6 +1087,62 @@ export interface IpcChannels {
     htmlUrl: string;
   };
 
+  // GitHub Search Channel
+  'github:search-issues-and-prs': (
+    query: string,
+    perPage?: number
+  ) => {
+    totalCount: number;
+    items: {
+      id: number;
+      number: number;
+      title: string;
+      state: string;
+      htmlUrl: string;
+      createdAt: string;
+      updatedAt: string;
+      closedAt: string | null;
+      labels: string[];
+      repoFullName: string;
+      isPullRequest: boolean;
+      author: string;
+      pullRequest?: { mergedAt: string | null };
+    }[];
+  };
+
+  // GitHub User Events Channel
+  'github:list-user-events': (
+    username: string,
+    perPage?: number
+  ) => {
+    id: string;
+    type: string;
+    repoName: string;
+    createdAt: string;
+    action: string;
+    refType: string;
+    ref: string;
+    commitCount: number;
+    prNumber: number | null;
+    prTitle: string;
+    issueNumber: number | null;
+    issueTitle: string;
+  }[];
+
+  // GitHub User Repos Channel
+  'github:list-user-repos': () => {
+    id: string;
+    name: string;
+    fullName: string;
+    description: string;
+    url: string;
+    cloneUrl: string;
+    language: string;
+    stars: number;
+    forks: number;
+    private: boolean;
+  }[];
+
   // PR Check Status Channels
   'github:get-pr-check-status': (owner: string, repo: string, sha: string) => PRCheckStatus;
 

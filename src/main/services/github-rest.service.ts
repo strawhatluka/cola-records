@@ -1366,6 +1366,74 @@ export class GitHubRestService {
     }
   }
 
+  // ─── GitHub Search ───────────────────────────────────────────────
+
+  /**
+   * Search issues and pull requests across repositories using GitHub Search API
+   */
+  async searchIssuesAndPullRequests(query: string, perPage: number = 30) {
+    try {
+      const client = this.getClient();
+      const { data } = await client.search.issuesAndPullRequests({
+        q: query,
+        per_page: perPage,
+        sort: 'updated',
+        order: 'desc',
+      });
+      return {
+        totalCount: data.total_count,
+        items: data.items.map((item: any) => ({
+          id: item.id,
+          number: item.number,
+          title: item.title,
+          state: item.state,
+          htmlUrl: item.html_url,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          closedAt: item.closed_at,
+          labels: item.labels.map((l: any) => (typeof l === 'string' ? l : l.name || '')),
+          repoFullName: item.repository_url.replace('https://api.github.com/repos/', ''),
+          isPullRequest: !!item.pull_request,
+          author: item.user?.login || '',
+          pullRequest: item.pull_request ? { mergedAt: item.pull_request.merged_at } : undefined,
+        })),
+      };
+    } catch (error) {
+      throw new Error(`Failed to search issues and pull requests: ${error}`);
+    }
+  }
+
+  // ─── User Events ───────────────────────────────────────────────
+
+  /**
+   * List events for the authenticated user
+   */
+  async listUserEvents(username: string, perPage: number = 30) {
+    try {
+      const client = this.getClient();
+      const { data } = await client.activity.listEventsForAuthenticatedUser({
+        username,
+        per_page: perPage,
+      });
+      return data.map((event: any) => ({
+        id: event.id,
+        type: event.type || '',
+        repoName: event.repo?.name || '',
+        createdAt: event.created_at || '',
+        action: event.payload?.action || '',
+        refType: event.payload?.ref_type || '',
+        ref: event.payload?.ref || '',
+        commitCount: event.payload?.size || 0,
+        prNumber: event.payload?.pull_request?.number || null,
+        prTitle: event.payload?.pull_request?.title || '',
+        issueNumber: event.payload?.issue?.number || null,
+        issueTitle: event.payload?.issue?.title || '',
+      }));
+    } catch (error) {
+      throw new Error(`Failed to list user events: ${error}`);
+    }
+  }
+
   // ─── PR Check Status ───────────────────────────────────────────────
 
   /**

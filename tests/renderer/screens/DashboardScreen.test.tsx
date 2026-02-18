@@ -1,33 +1,72 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+
+// Mock all widget components to avoid async IPC side-effects.
+// Each widget is tested in its own dedicated test file.
+vi.mock('../../../src/renderer/components/dashboard/ContributionStatusWidget', () => ({
+  ContributionStatusWidget: () => (
+    <div data-testid="widget-contribution-status">ContributionStatusWidget</div>
+  ),
+}));
+vi.mock('../../../src/renderer/components/dashboard/GitHubProfileWidget', () => ({
+  GitHubProfileWidget: () => <div data-testid="widget-github-profile">GitHubProfileWidget</div>,
+}));
+vi.mock('../../../src/renderer/components/dashboard/PRsNeedingAttentionWidget', () => ({
+  PRsNeedingAttentionWidget: () => <div data-testid="widget-prs">PRsNeedingAttentionWidget</div>,
+}));
+vi.mock('../../../src/renderer/components/dashboard/OpenIssuesWidget', () => ({
+  OpenIssuesWidget: () => <div data-testid="widget-open-issues">OpenIssuesWidget</div>,
+}));
+vi.mock('../../../src/renderer/components/dashboard/RecentActivityWidget', () => ({
+  RecentActivityWidget: () => <div data-testid="widget-recent-activity">RecentActivityWidget</div>,
+}));
+vi.mock('../../../src/renderer/components/dashboard/CICDStatusWidget', () => ({
+  CICDStatusWidget: () => <div data-testid="widget-cicd">CICDStatusWidget</div>,
+}));
+
 import { DashboardScreen } from '../../../src/renderer/screens/DashboardScreen';
 
 describe('DashboardScreen', () => {
-  it('renders welcome message', () => {
+  it('renders the dashboard header', () => {
     render(<DashboardScreen />);
-    expect(screen.getByText('Welcome to Cola Records')).toBeDefined();
+    expect(screen.getByText('Dashboard')).toBeDefined();
+    expect(screen.getByText('Your contribution activity at a glance')).toBeDefined();
   });
 
-  it('renders active contributions card', () => {
+  it('renders all 6 widget components', () => {
     render(<DashboardScreen />);
-    expect(screen.getByText('Active Contributions')).toBeDefined();
+
+    expect(screen.getByTestId('widget-contribution-status')).toBeDefined();
+    expect(screen.getByTestId('widget-github-profile')).toBeDefined();
+    expect(screen.getByTestId('widget-prs')).toBeDefined();
+    expect(screen.getByTestId('widget-open-issues')).toBeDefined();
+    expect(screen.getByTestId('widget-recent-activity')).toBeDefined();
+    expect(screen.getByTestId('widget-cicd')).toBeDefined();
   });
 
-  it('renders issues viewed card', () => {
-    render(<DashboardScreen />);
-    expect(screen.getByText('Issues Viewed')).toBeDefined();
+  it('renders a grid layout', () => {
+    const { container } = render(<DashboardScreen />);
+    const grid = container.querySelector('.grid.grid-cols-1');
+    expect(grid).not.toBeNull();
   });
 
-  it('renders getting started guide', () => {
-    render(<DashboardScreen />);
-    expect(screen.getByText('Getting Started')).toBeDefined();
-    expect(screen.getByText(/Navigate to/)).toBeDefined();
-    expect(screen.getByText(/Configure your GitHub token/)).toBeDefined();
+  it('renders all 6 widgets inside the grid', () => {
+    const { container } = render(<DashboardScreen />);
+    const grid = container.querySelector('.grid.grid-cols-1');
+    expect(grid).not.toBeNull();
+    expect(grid!.children.length).toBe(6);
   });
 
-  it('shows zero counts initially', () => {
-    render(<DashboardScreen />);
-    const zeros = screen.getAllByText('0');
-    expect(zeros).toHaveLength(2);
+  it('renders scrollable content area', () => {
+    const { container } = render(<DashboardScreen />);
+    const scrollable = container.querySelector('.overflow-y-auto');
+    expect(scrollable).not.toBeNull();
+  });
+
+  it('renders header outside scrollable area', () => {
+    const { container } = render(<DashboardScreen />);
+    const header = screen.getByText('Dashboard');
+    const scrollable = container.querySelector('.overflow-y-auto');
+    expect(scrollable!.contains(header)).toBe(false);
   });
 });

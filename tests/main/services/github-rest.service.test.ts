@@ -40,6 +40,8 @@ const mockReposGetRelease = vi.fn();
 const mockReposCreateRelease = vi.fn();
 const mockReposUpdateRelease = vi.fn();
 const mockReposDeleteRelease = vi.fn();
+const mockSearchIssuesAndPullRequests = vi.fn();
+const mockActivityListEventsForAuthenticatedUser = vi.fn();
 
 // Use a class so `new Octokit(...)` works
 vi.mock('@octokit/rest', () => ({
@@ -101,10 +103,14 @@ vi.mock('@octokit/rest', () => ({
         getCombinedStatusForRef: mockReposGetCombinedStatusForRef,
       },
     };
+    search = {
+      issuesAndPullRequests: mockSearchIssuesAndPullRequests,
+    };
     activity = {
       checkRepoIsStarredByAuthenticatedUser: mockActivityCheckStar,
       starRepoForAuthenticatedUser: mockActivityStar,
       unstarRepoForAuthenticatedUser: mockActivityUnstar,
+      listEventsForAuthenticatedUser: mockActivityListEventsForAuthenticatedUser,
     };
     rateLimit = {
       get: mockRateLimitGet,
@@ -1982,6 +1988,200 @@ describe('GitHubRestService', () => {
         repo: 'repo',
         release_id: 3001,
       });
+    });
+  });
+
+  // ─── GitHub Search ─────────────────────────────────────────
+
+  describe('searchIssuesAndPullRequests', () => {
+    it('returns normalized search results', async () => {
+      mockSearchIssuesAndPullRequests.mockResolvedValue({
+        data: {
+          total_count: 2,
+          items: [
+            {
+              id: 100,
+              number: 10,
+              title: 'Open PR',
+              state: 'open',
+              html_url: 'https://github.com/org/repo/pull/10',
+              created_at: '2026-02-01T00:00:00Z',
+              updated_at: '2026-02-02T00:00:00Z',
+              closed_at: null,
+              labels: [{ name: 'enhancement' }],
+              repository_url: 'https://api.github.com/repos/org/repo',
+              pull_request: { merged_at: null },
+              user: { login: 'dev' },
+            },
+            {
+              id: 101,
+              number: 5,
+              title: 'Open Issue',
+              state: 'open',
+              html_url: 'https://github.com/org/repo/issues/5',
+              created_at: '2026-01-15T00:00:00Z',
+              updated_at: '2026-02-01T00:00:00Z',
+              closed_at: null,
+              labels: ['bug'],
+              repository_url: 'https://api.github.com/repos/org/repo',
+              pull_request: undefined,
+              user: null,
+            },
+          ],
+        },
+      });
+
+      const result = await service.searchIssuesAndPullRequests('author:dev type:pr is:open');
+      expect(result.totalCount).toBe(2);
+      expect(result.items).toHaveLength(2);
+
+      expect(result.items[0].id).toBe(100);
+      expect(result.items[0].number).toBe(10);
+      expect(result.items[0].title).toBe('Open PR');
+      expect(result.items[0].repoFullName).toBe('org/repo');
+      expect(result.items[0].isPullRequest).toBe(true);
+      expect(result.items[0].author).toBe('dev');
+      expect(result.items[0].labels).toEqual(['enhancement']);
+      expect(result.items[0].pullRequest).toEqual({ mergedAt: null });
+
+      expect(result.items[1].isPullRequest).toBe(false);
+      expect(result.items[1].author).toBe('');
+      expect(result.items[1].labels).toEqual(['bug']);
+      expect(result.items[1].pullRequest).toBeUndefined();
+    });
+
+    it('passes query and perPage to API', async () => {
+      mockSearchIssuesAndPullRequests.mockResolvedValue({
+        data: { total_count: 0, items: [] },
+      });
+
+      await service.searchIssuesAndPullRequests('assignee:user type:issue', 10);
+      expect(mockSearchIssuesAndPullRequests).toHaveBeenCalledWith({
+        q: 'assignee:user type:issue',
+        per_page: 10,
+        sort: 'updated',
+        order: 'desc',
+      });
+    });
+
+    it('returns empty items for no results', async () => {
+      mockSearchIssuesAndPullRequests.mockResolvedValue({
+        data: { total_count: 0, items: [] },
+      });
+
+      const result = await service.searchIssuesAndPullRequests('author:nobody');
+      expect(result.totalCount).toBe(0);
+      expect(result.items).toEqual([]);
+    });
+
+    it('throws on API error', async () => {
+      mockSearchIssuesAndPullRequests.mockRejectedValue(new Error('API failure'));
+      await expect(service.searchIssuesAndPullRequests('author:dev')).rejects.toThrow(
+        'Failed to search issues and pull requests'
+      );
+    });
+  });
+
+  // ─── User Events ─────────────────────────────────────────
+
+  describe('listUserEvents', () => {
+    it('returns normalized events', async () => {
+      mockActivityListEventsForAuthenticatedUser.mockResolvedValue({
+        data: [
+          {
+            id: '1',
+            type: 'PushEvent',
+            repo: { name: 'org/repo' },
+            created_at: '2026-02-18T10:00:00Z',
+            payload: { size: 3, ref: 'refs/heads/main', ref_type: '' },
+          },
+          {
+            id: '2',
+            type: 'PullRequestEvent',
+            repo: { name: 'org/repo' },
+            created_at: '2026-02-18T09:00:00Z',
+            payload: {
+              action: 'opened',
+              pull_request: { number: 42, title: 'New feature' },
+            },
+          },
+          {
+            id: '3',
+            type: 'IssuesEvent',
+            repo: { name: 'org/other' },
+            created_at: '2026-02-18T08:00:00Z',
+            payload: {
+              action: 'opened',
+              issue: { number: 7, title: 'Bug report' },
+            },
+          },
+        ],
+      });
+
+      const events = await service.listUserEvents('dev');
+      expect(events).toHaveLength(3);
+
+      expect(events[0].id).toBe('1');
+      expect(events[0].type).toBe('PushEvent');
+      expect(events[0].repoName).toBe('org/repo');
+      expect(events[0].commitCount).toBe(3);
+      expect(events[0].ref).toBe('refs/heads/main');
+
+      expect(events[1].type).toBe('PullRequestEvent');
+      expect(events[1].action).toBe('opened');
+      expect(events[1].prNumber).toBe(42);
+      expect(events[1].prTitle).toBe('New feature');
+
+      expect(events[2].type).toBe('IssuesEvent');
+      expect(events[2].action).toBe('opened');
+      expect(events[2].issueNumber).toBe(7);
+      expect(events[2].issueTitle).toBe('Bug report');
+    });
+
+    it('passes username and perPage to API', async () => {
+      mockActivityListEventsForAuthenticatedUser.mockResolvedValue({ data: [] });
+
+      await service.listUserEvents('testuser', 10);
+      expect(mockActivityListEventsForAuthenticatedUser).toHaveBeenCalledWith({
+        username: 'testuser',
+        per_page: 10,
+      });
+    });
+
+    it('handles events with missing fields gracefully', async () => {
+      mockActivityListEventsForAuthenticatedUser.mockResolvedValue({
+        data: [
+          {
+            id: '4',
+            type: null,
+            repo: null,
+            created_at: null,
+            payload: null,
+          },
+        ],
+      });
+
+      const events = await service.listUserEvents('dev');
+      expect(events).toHaveLength(1);
+      expect(events[0].type).toBe('');
+      expect(events[0].repoName).toBe('');
+      expect(events[0].createdAt).toBe('');
+      expect(events[0].action).toBe('');
+      expect(events[0].commitCount).toBe(0);
+      expect(events[0].prNumber).toBeNull();
+      expect(events[0].issueNumber).toBeNull();
+    });
+
+    it('returns empty array for no events', async () => {
+      mockActivityListEventsForAuthenticatedUser.mockResolvedValue({ data: [] });
+
+      const events = await service.listUserEvents('dev');
+      expect(events).toEqual([]);
+    });
+
+    it('throws on API error', async () => {
+      mockActivityListEventsForAuthenticatedUser.mockRejectedValue(new Error('API failure'));
+      await expect(service.listUserEvents('dev')).rejects.toThrow('Failed to list user events');
     });
   });
 });

@@ -78,6 +78,9 @@ export function removeAllIpcHandlers(): void {
     'github:create-pull-request',
     'github:merge-pull-request',
     'github:close-pull-request',
+    'github:search-issues-and-prs',
+    'github:list-user-events',
+    'github:list-user-repos',
     // Reactions
     'github:list-issue-reactions',
     'github:add-issue-reaction',

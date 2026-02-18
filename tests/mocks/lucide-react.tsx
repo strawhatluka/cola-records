@@ -78,6 +78,7 @@ export const Save = createIcon('Save');
 export const Search = createIcon('Search');
 export const Send = createIcon('Send');
 export const Settings = createIcon('Settings');
+export const Star = createIcon('Star');
 export const Strikethrough = createIcon('Strikethrough');
 export const Sun = createIcon('Sun');
 export const Tag = createIcon('Tag');

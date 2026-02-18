@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Dashboard screen with 6 live widgets in a responsive 2-column grid ([#18](https://github.com/lukadfagundes/cola-records/issues/18))
+  - **Contribution Status** widget: 4 metric cards (Open PRs, Merged PRs 30d, Open Issues, Closed Issues 30d) via `github:search-issues-and-prs` with `Promise.allSettled` error isolation
+  - **GitHub Profile** widget: avatar initial, login, public repo count, total stars, and top language via `github:get-authenticated-user` and `github:list-user-repos` IPC channel
+  - **PRs Needing Attention** widget: up to 5 open PRs with aggregated review state (approved/changes requested/pending) and CI status via `github:search-issues-and-prs`, `github:list-pr-reviews`, `github:get-pr-check-status`
+  - **Open Issues** widget: issues assigned to user across all of GitHub via `github:search-issues-and-prs` with label badges, limited to 10
+  - **Recent Activity** widget: last 10 GitHub events (push, PR, issue, create, delete, fork, star, comment, review, release) via `github:list-user-events` with type-specific icons
+  - **CI/CD Status** widget: latest workflow run per repo with color-coded status dots (green/red/yellow/gray) via `github:list-user-repos`, `github:list-workflow-runs` and `Promise.allSettled` error isolation
+  - Reusable `DashboardWidget` wrapper component with loading spinner, error + retry, empty state, and no-token fallback rendering
+  - Shared dashboard utilities: `formatRelativeTime`, CI status color constants
+  - New `github:search-issues-and-prs` IPC channel wrapping GitHub Search API with normalized results
+  - New `github:list-user-events` IPC channel wrapping GitHub Events API with normalized event data
+  - Barrel export for all dashboard components and utilities (`components/dashboard/index.ts`)
+  - All widgets fetch data directly from GitHub API — no dependency on local contributions store
+  - Graceful degradation: widgets detect missing GitHub token and show "Connect GitHub in Settings" prompt
+
+### Tests
+
+- Dashboard feature tests
+  - `utils.test.tsx`: tests covering `formatRelativeTime`, CI status color constants
+  - `DashboardWidget.test.tsx`: 10 tests covering loading, error, empty, noToken, children, retry, and state priority
+  - `ContributionStatusWidget.test.tsx`: 5 tests covering 4 metric cards with counts, no-token fallback, partial/total failure handling
+  - `GitHubProfileWidget.test.tsx`: 7 tests covering loading, error, data, noToken, profile stats
+  - `PRsNeedingAttentionWidget.test.tsx`: 6 tests covering PR list, review/CI icons, empty state, limit, error handling
+  - `OpenIssuesWidget.test.tsx`: 7 tests covering issue list, labels, 10-item limit, noToken, error handling
+  - `RecentActivityWidget.test.tsx`: 9 tests covering event descriptions (push/PR/issue/create), 10-item limit, noToken, error handling
+  - `CICDStatusWidget.test.tsx`: 9 tests covering pipeline list, status dots (green/red/yellow), empty repos, all-rejected error surfacing, noToken
+  - `DashboardScreen.test.tsx`: 6 tests covering header, widget composition, grid layout, scrollable area
+  - `github-rest.service.test.ts`: 9 new tests for `searchIssuesAndPullRequests` and `listUserEvents` (field mapping, query pass-through, empty results, API errors)
+
 ## [1.0.4] - 2026-02-17
 
 ### Added
