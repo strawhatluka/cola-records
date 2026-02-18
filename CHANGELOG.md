@@ -12,10 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard screen with 6 live widgets in a responsive 2-column grid ([#18](https://github.com/lukadfagundes/cola-records/issues/18))
   - **Contribution Status** widget: 4 metric cards (Open PRs, Merged PRs 30d, Open Issues, Closed Issues 30d) via `github:search-issues-and-prs` with `Promise.allSettled` error isolation
   - **GitHub Profile** widget: real avatar image (with initial fallback), bio, "Member since" date, 4-stat row (Repos/Stars/Followers/Following), and top-3 language usage bar via expanded `github:get-authenticated-user` GraphQL query and `github:list-user-repos` IPC channel
-  - **PRs Needing Attention** widget: up to 5 open PRs with aggregated review state (approved/changes requested/pending) and CI status via `github:search-issues-and-prs`, `github:list-pr-reviews`, `github:get-pr-check-status`
-  - **Open Issues** widget: issues assigned to user across all of GitHub via `github:search-issues-and-prs` with label badges, limited to 10
+  - **PRs Needing Attention** widget: up to 10 open PRs the user is involved in (`involves:` query — authored, assigned, review-requested, mentioned) with aggregated review state and CI status, plus "Open in Cola Records" button per entry via `github:search-issues-and-prs`, `github:list-pr-reviews`, `github:get-pr-check-status`
+  - **Open Issues** widget: issues assigned to user AND issues authored by user across all of GitHub via dual `github:search-issues-and-prs` queries with `Promise.allSettled`, merged and deduplicated, sorted by newest first, limited to 10, with label badges and "Open in Cola Records" button per entry
   - **Recent Activity** widget: last 10 GitHub events (push, PR, issue, create, delete, fork, star, comment, review, release) via `github:list-user-events` with type-specific icons
-  - **CI/CD Status** widget: latest workflow run per repo with color-coded status dots (green/red/yellow/gray) via `github:list-user-repos`, `github:list-workflow-runs` and `Promise.allSettled` error isolation
+  - **CI/CD Status** widget: latest workflow run per repo (all repos, no limit) with color-coded status dots (green/red/yellow/gray), sorted by most recent, limited to 10 displayed, via `github:list-user-repos`, `github:list-workflow-runs` and `Promise.allSettled` error isolation
   - Reusable `DashboardWidget` wrapper component with loading spinner, error + retry, empty state, and no-token fallback rendering
   - Shared dashboard utilities: `formatRelativeTime`, CI status color constants
   - New `github:search-issues-and-prs` IPC channel wrapping GitHub Search API with normalized results
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Barrel export for all dashboard components and utilities (`components/dashboard/index.ts`)
   - All widgets fetch data directly from GitHub API — no dependency on local contributions store
   - Graceful degradation: widgets detect missing GitHub token and show "Connect GitHub in Settings" prompt
+  - "Open in Cola Records" navigation: PRs and Issues widgets include a per-entry button that matches `repoFullName` to a local Contribution record and opens the project in the IDE via `DashboardScreen` → `App.tsx` `handleOpenIDE` callback plumbing
 - Auto-assign issue to authenticated user when clicking "Fix Issue" in the Issues tool ([#18](https://github.com/lukadfagundes/cola-records/issues/18))
   - New `github:add-assignees` IPC channel wrapping `client.issues.addAssignees`
   - New `addAssignees()` method in `GitHubRestService`
@@ -35,11 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DashboardWidget.test.tsx`: 10 tests covering loading, error, empty, noToken, children, retry, and state priority
   - `ContributionStatusWidget.test.tsx`: 5 tests covering 4 metric cards with counts, no-token fallback, partial/total failure handling
   - `GitHubProfileWidget.test.tsx`: 14 tests covering loading, error, data, noToken, avatar image/fallback, bio, followers/following, "Member since" date, language bar, repo count, stars
-  - `PRsNeedingAttentionWidget.test.tsx`: 6 tests covering PR list, review/CI icons, empty state, limit, error handling
-  - `OpenIssuesWidget.test.tsx`: 7 tests covering issue list, labels, 10-item limit, noToken, error handling
+  - `PRsNeedingAttentionWidget.test.tsx`: 9 tests covering PR list, review/CI icons, empty state, 10-item limit, `involves:` query, Open button callback, no Open button without prop, error handling
+  - `OpenIssuesWidget.test.tsx`: 11 tests covering issue list, labels, 10-item limit, noToken, dual-query merge/dedup, assigned + authored results, Open button callback, no Open button without prop, error handling
   - `RecentActivityWidget.test.tsx`: 9 tests covering event descriptions (push/PR/issue/create), 10-item limit, noToken, error handling
-  - `CICDStatusWidget.test.tsx`: 9 tests covering pipeline list, status dots (green/red/yellow), empty repos, all-rejected error surfacing, noToken
-  - `DashboardScreen.test.tsx`: 6 tests covering header, widget composition, grid layout, scrollable area
+  - `CICDStatusWidget.test.tsx`: 11 tests covering pipeline list, status dots (green/red/yellow), empty repos, all-rejected error surfacing, noToken, all repos processed (no 5-repo limit), 10-pipeline display limit
+  - `DashboardScreen.test.tsx`: 8 tests covering header, widget composition, grid layout, scrollable area, `onOpenIDE` prop plumbing to PRs and Issues widgets
   - `github-rest.service.test.ts`: 9 new tests for `searchIssuesAndPullRequests` and `listUserEvents` (field mapping, query pass-through, empty results, API errors)
   - `github-rest.service.test.ts`: 2 new tests for `addAssignees` (correct params, API error)
   - `DevelopmentIssueDetailModal.test.tsx`: 2 new tests for Fix Issue auto-assign (assigns user after branch creation, completes when assignment fails)

@@ -143,7 +143,7 @@ const App: React.FC = () => {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'dashboard':
-        return <DashboardScreen />;
+        return <DashboardScreen onOpenIDE={(c) => handleOpenIDE(c, 'dashboard')} />;
       case 'issues':
         return <IssueDiscoveryScreen onOpenIDE={handleOpenIDE} />;
       case 'projects':
@@ -164,7 +164,7 @@ const App: React.FC = () => {
           </div>
         ) : null;
       default:
-        return <DashboardScreen />;
+        return <DashboardScreen onOpenIDE={(c) => handleOpenIDE(c, 'dashboard')} />;
     }
   };
 

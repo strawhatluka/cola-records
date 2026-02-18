@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const mockInvoke = vi.fn();
 vi.mock('../../../../src/renderer/ipc/client', () => ({
@@ -15,6 +15,22 @@ vi.mock('../../../../src/renderer/ipc/client', () => ({
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
 import { OpenIssuesWidget } from '../../../../src/renderer/components/dashboard/OpenIssuesWidget';
+
+const makeItem = (overrides: Record<string, unknown> = {}) => ({
+  id: 1,
+  number: 1,
+  title: 'Issue title',
+  state: 'open',
+  htmlUrl: '',
+  createdAt: '2026-02-18T10:00:00Z',
+  updatedAt: '',
+  closedAt: null,
+  labels: [],
+  repoFullName: 'owner/repo',
+  isPullRequest: false,
+  author: 'testuser',
+  ...overrides,
+});
 
 describe('OpenIssuesWidget', () => {
   beforeEach(() => {
@@ -32,7 +48,7 @@ describe('OpenIssuesWidget', () => {
     render(<OpenIssuesWidget />);
 
     await waitFor(() => {
-      expect(screen.getByText('No assigned issues found')).toBeDefined();
+      expect(screen.getByText('No open issues found')).toBeDefined();
     });
   });
 
@@ -44,34 +60,20 @@ describe('OpenIssuesWidget', () => {
         return {
           totalCount: 2,
           items: [
-            {
+            makeItem({
               id: 1,
               number: 1,
               title: 'Fix a bug',
-              state: 'open',
-              htmlUrl: '',
-              createdAt: '2026-02-18T10:00:00Z',
-              updatedAt: '',
-              closedAt: null,
-              labels: ['bug'],
               repoFullName: 'owner/repo-a',
-              isPullRequest: false,
-              author: 'other',
-            },
-            {
+              labels: ['bug'],
+            }),
+            makeItem({
               id: 2,
               number: 5,
               title: 'Add feature',
-              state: 'open',
-              htmlUrl: '',
-              createdAt: '2026-02-17T10:00:00Z',
-              updatedAt: '',
-              closedAt: null,
-              labels: [],
               repoFullName: 'owner/repo-b',
-              isPullRequest: false,
-              author: 'other',
-            },
+              createdAt: '2026-02-17T10:00:00Z',
+            }),
           ],
         };
       }
@@ -97,20 +99,12 @@ describe('OpenIssuesWidget', () => {
         return {
           totalCount: 1,
           items: [
-            {
-              id: 1,
+            makeItem({
               number: 5,
               title: 'Issue',
-              state: 'open',
-              htmlUrl: '',
-              createdAt: '2026-02-18T10:00:00Z',
-              updatedAt: '',
-              closedAt: null,
               labels: ['bug', 'critical'],
               repoFullName: 'owner/repo',
-              isPullRequest: false,
-              author: 'testuser',
-            },
+            }),
           ],
         };
       }
@@ -126,20 +120,9 @@ describe('OpenIssuesWidget', () => {
   });
 
   it('limits to 10 issues', async () => {
-    const items = Array.from({ length: 15 }, (_, i) => ({
-      id: i,
-      number: i + 1,
-      title: `Issue ${i + 1}`,
-      state: 'open',
-      htmlUrl: '',
-      createdAt: '2026-02-18T10:00:00Z',
-      updatedAt: '',
-      closedAt: null,
-      labels: [],
-      repoFullName: 'owner/repo',
-      isPullRequest: false,
-      author: 'testuser',
-    }));
+    const items = Array.from({ length: 15 }, (_, i) =>
+      makeItem({ id: i, number: i + 1, title: `Issue ${i + 1}` })
+    );
 
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
@@ -176,7 +159,7 @@ describe('OpenIssuesWidget', () => {
     expect(screen.getByText('Open Issues')).toBeDefined();
   });
 
-  it('shows error when search fails', async () => {
+  it('shows empty state when both search queries fail (allSettled catches errors)', async () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
         return { login: 'testuser', name: 'Test', email: '' };
@@ -186,7 +169,150 @@ describe('OpenIssuesWidget', () => {
     render(<OpenIssuesWidget />);
 
     await waitFor(() => {
-      expect(screen.getByText('API down')).toBeDefined();
+      // Promise.allSettled catches both failures, resulting in empty arrays
+      expect(screen.getByText('No open issues found')).toBeDefined();
     });
+  });
+
+  it('merges assigned and authored issues and deduplicates', async () => {
+    let callCount = 0;
+    mockInvoke.mockImplementation(async (channel: string, query?: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        callCount++;
+        if (query?.includes('assignee:')) {
+          return {
+            totalCount: 2,
+            items: [
+              makeItem({ id: 1, number: 1, title: 'Assigned issue', repoFullName: 'owner/repo-a' }),
+              makeItem({ id: 2, number: 2, title: 'Shared issue', repoFullName: 'owner/repo-b' }),
+            ],
+          };
+        }
+        if (query?.includes('author:')) {
+          return {
+            totalCount: 2,
+            items: [
+              makeItem({ id: 2, number: 2, title: 'Shared issue', repoFullName: 'owner/repo-b' }),
+              makeItem({ id: 3, number: 3, title: 'Authored issue', repoFullName: 'owner/repo-c' }),
+            ],
+          };
+        }
+      }
+      return undefined;
+    });
+
+    render(<OpenIssuesWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Assigned issue')).toBeDefined();
+    });
+
+    // Both queries fired
+    expect(callCount).toBe(2);
+
+    // All 3 unique issues shown, duplicate removed
+    expect(screen.getByText('Assigned issue')).toBeDefined();
+    expect(screen.getByText('Shared issue')).toBeDefined();
+    expect(screen.getByText('Authored issue')).toBeDefined();
+
+    // Only 3 rows (not 4 — the duplicate is removed)
+    const rows = screen.getAllByText(/#\d+/);
+    expect(rows.length).toBe(3);
+  });
+
+  it('shows issues from both assigned and authored queries', async () => {
+    mockInvoke.mockImplementation(async (channel: string, query?: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        if (query?.includes('assignee:')) {
+          return {
+            totalCount: 1,
+            items: [
+              makeItem({
+                id: 1,
+                number: 10,
+                title: 'Assigned only',
+                repoFullName: 'owner/assigned-repo',
+              }),
+            ],
+          };
+        }
+        if (query?.includes('author:')) {
+          return {
+            totalCount: 1,
+            items: [
+              makeItem({
+                id: 2,
+                number: 20,
+                title: 'Authored only',
+                repoFullName: 'owner/authored-repo',
+              }),
+            ],
+          };
+        }
+      }
+      return undefined;
+    });
+
+    render(<OpenIssuesWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Assigned only')).toBeDefined();
+    });
+
+    expect(screen.getByText('Authored only')).toBeDefined();
+    expect(screen.getByText('owner/assigned-repo #10')).toBeDefined();
+    expect(screen.getByText('owner/authored-repo #20')).toBeDefined();
+  });
+
+  it('renders Open button when onOpenProject is provided', async () => {
+    const onOpenProject = vi.fn();
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        return {
+          totalCount: 1,
+          items: [makeItem({ number: 7, title: 'Test issue', repoFullName: 'owner/my-repo' })],
+        };
+      }
+      return undefined;
+    });
+
+    render(<OpenIssuesWidget onOpenProject={onOpenProject} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test issue')).toBeDefined();
+    });
+
+    const openButton = screen.getByTitle('Open in Cola Records');
+    expect(openButton).toBeDefined();
+    fireEvent.click(openButton);
+    expect(onOpenProject).toHaveBeenCalledWith('owner/my-repo');
+  });
+
+  it('does not render Open button when onOpenProject is not provided', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        return {
+          totalCount: 1,
+          items: [makeItem({ number: 7, title: 'Test issue', repoFullName: 'owner/my-repo' })],
+        };
+      }
+      return undefined;
+    });
+
+    render(<OpenIssuesWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test issue')).toBeDefined();
+    });
+
+    expect(screen.queryByTitle('Open in Cola Records')).toBeNull();
   });
 });

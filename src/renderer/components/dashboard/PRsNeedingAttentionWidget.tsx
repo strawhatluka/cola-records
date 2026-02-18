@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CheckCircle, XCircle, Clock, CircleDot } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, CircleDot, Folder } from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import { DashboardWidget } from './DashboardWidget';
+import { Button } from '../ui/Button';
 import { CI_STATUS_DOT_COLORS } from './utils';
 
 interface PRData {
@@ -12,7 +13,11 @@ interface PRData {
   ciStatus: 'success' | 'failure' | 'pending';
 }
 
-export function PRsNeedingAttentionWidget() {
+interface PRsNeedingAttentionWidgetProps {
+  onOpenProject?: (repoFullName: string) => void;
+}
+
+export function PRsNeedingAttentionWidget({ onOpenProject }: PRsNeedingAttentionWidgetProps) {
   const [prs, setPrs] = useState<PRData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,10 +41,10 @@ export function PRsNeedingAttentionWidget() {
 
       const searchResult = await ipc.invoke(
         'github:search-issues-and-prs',
-        `author:${username} type:pr is:open`
+        `involves:${username} type:pr is:open`
       );
 
-      const items = searchResult.items.slice(0, 5);
+      const items = searchResult.items.slice(0, 10);
       if (items.length === 0) {
         if (isMounted.current) {
           setPrs([]);
@@ -126,7 +131,7 @@ export function PRsNeedingAttentionWidget() {
   return (
     <DashboardWidget
       title="PRs Needing Attention"
-      description="Review and CI status for your open PRs"
+      description="Review and CI status for PRs you're involved in"
       loading={loading}
       error={error}
       onRetry={fetchPRData}
@@ -148,6 +153,18 @@ export function PRsNeedingAttentionWidget() {
               <CircleDot
                 className={`h-4 w-4 ${CI_STATUS_DOT_COLORS[pr.ciStatus] || 'text-muted-foreground'}`}
               />
+              {onOpenProject && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenProject(pr.repoName)}
+                  title="Open in Cola Records"
+                  className="h-7 px-2 text-xs"
+                >
+                  <Folder className="h-3.5 w-3.5 mr-1" />
+                  Open
+                </Button>
+              )}
             </div>
           </div>
         ))}

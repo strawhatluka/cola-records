@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Folder } from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import { DashboardWidget } from './DashboardWidget';
+import { Button } from '../ui/Button';
 import { formatRelativeTime, CI_STATUS_DOT_COLORS } from './utils';
 
 interface PipelineData {
@@ -11,7 +13,11 @@ interface PipelineData {
   htmlUrl: string;
 }
 
-export function CICDStatusWidget() {
+interface CICDStatusWidgetProps {
+  onOpenProject?: (repoFullName: string) => void;
+}
+
+export function CICDStatusWidget({ onOpenProject }: CICDStatusWidgetProps) {
   const [pipelines, setPipelines] = useState<PipelineData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +33,7 @@ export function CICDStatusWidget() {
       let repos: { fullName: string }[];
       try {
         const userRepos = await ipc.invoke('github:list-user-repos');
-        repos = userRepos.slice(0, 5).map((r) => ({ fullName: r.fullName }));
+        repos = userRepos.map((r) => ({ fullName: r.fullName }));
       } catch {
         if (isMounted.current) setNoToken(true);
         return;
@@ -73,7 +79,8 @@ export function CICDStatusWidget() {
                 r.status === 'fulfilled' && r.value !== null
             )
             .map((r) => r.value);
-          setPipelines(data);
+          data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setPipelines(data.slice(0, 10));
         }
       }
     } catch (err) {
@@ -121,9 +128,23 @@ export function CICDStatusWidget() {
                 <p className="text-xs text-muted-foreground truncate">{p.workflowName}</p>
               </div>
             </div>
-            <span className="text-xs text-muted-foreground shrink-0">
-              {formatRelativeTime(p.createdAt)}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-muted-foreground">
+                {formatRelativeTime(p.createdAt)}
+              </span>
+              {onOpenProject && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenProject(p.repoName)}
+                  title="Open in Cola Records"
+                  className="h-7 px-2 text-xs"
+                >
+                  <Folder className="h-3.5 w-3.5 mr-1" />
+                  Open
+                </Button>
+              )}
+            </div>
           </div>
         ))}
       </div>

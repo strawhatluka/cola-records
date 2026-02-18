@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const mockInvoke = vi.fn();
 vi.mock('../../../../src/renderer/ipc/client', () => ({
@@ -121,8 +121,8 @@ describe('PRsNeedingAttentionWidget', () => {
     expect(screen.getByTestId('icon-xcircle')).toBeDefined();
   });
 
-  it('limits to 5 PRs', async () => {
-    const items = Array.from({ length: 8 }, (_, i) => ({
+  it('limits to 10 PRs', async () => {
+    const items = Array.from({ length: 15 }, (_, i) => ({
       id: i,
       number: i + 1,
       title: `PR ${i + 1}`,
@@ -140,7 +140,7 @@ describe('PRsNeedingAttentionWidget', () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
         return { login: 'testuser', name: 'Test', email: '' };
-      if (channel === 'github:search-issues-and-prs') return { totalCount: 8, items };
+      if (channel === 'github:search-issues-and-prs') return { totalCount: 15, items };
       if (channel === 'github:list-pr-reviews') return [];
       if (channel === 'github:get-pull-request') return { title: 'PR Title', headSha: 'sha' };
       if (channel === 'github:get-pr-check-status')
@@ -151,9 +151,29 @@ describe('PRsNeedingAttentionWidget', () => {
     render(<PRsNeedingAttentionWidget />);
 
     await waitFor(() => {
-      const items = screen.getAllByText(/owner\/repo #\d/);
-      expect(items.length).toBeLessThanOrEqual(5);
+      const items = screen.getAllByText(/owner\/repo #\d+/);
+      expect(items.length).toBeLessThanOrEqual(10);
     });
+  });
+
+  it('uses involves: query instead of author:', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') return { totalCount: 0, items: [] };
+      return undefined;
+    });
+
+    render(<PRsNeedingAttentionWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No open PRs needing attention')).toBeDefined();
+    });
+
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'github:search-issues-and-prs',
+      'involves:testuser type:pr is:open'
+    );
   });
 
   it('renders no-token fallback when auth fails', async () => {
@@ -174,5 +194,91 @@ describe('PRsNeedingAttentionWidget', () => {
     });
     render(<PRsNeedingAttentionWidget />);
     expect(screen.getByText('PRs Needing Attention')).toBeDefined();
+  });
+
+  it('renders Open button when onOpenProject is provided', async () => {
+    const onOpenProject = vi.fn();
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        return {
+          totalCount: 1,
+          items: [
+            {
+              id: 100,
+              number: 42,
+              title: 'Fix the bug',
+              state: 'open',
+              htmlUrl: '',
+              createdAt: '',
+              updatedAt: '',
+              closedAt: null,
+              labels: [],
+              repoFullName: 'owner/repo',
+              isPullRequest: true,
+              author: 'testuser',
+            },
+          ],
+        };
+      }
+      if (channel === 'github:list-pr-reviews') return [];
+      if (channel === 'github:get-pull-request') return { title: 'Fix the bug', headSha: 'abc123' };
+      if (channel === 'github:get-pr-check-status')
+        return { state: 'success', total: 3, passed: 3, failed: 0, pending: 0 };
+      return undefined;
+    });
+
+    render(<PRsNeedingAttentionWidget onOpenProject={onOpenProject} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Fix the bug')).toBeDefined();
+    });
+
+    const openButton = screen.getByTitle('Open in Cola Records');
+    expect(openButton).toBeDefined();
+    fireEvent.click(openButton);
+    expect(onOpenProject).toHaveBeenCalledWith('owner/repo');
+  });
+
+  it('does not render Open button when onOpenProject is not provided', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        return {
+          totalCount: 1,
+          items: [
+            {
+              id: 100,
+              number: 42,
+              title: 'Fix the bug',
+              state: 'open',
+              htmlUrl: '',
+              createdAt: '',
+              updatedAt: '',
+              closedAt: null,
+              labels: [],
+              repoFullName: 'owner/repo',
+              isPullRequest: true,
+              author: 'testuser',
+            },
+          ],
+        };
+      }
+      if (channel === 'github:list-pr-reviews') return [];
+      if (channel === 'github:get-pull-request') return { title: 'Fix the bug', headSha: 'abc123' };
+      if (channel === 'github:get-pr-check-status')
+        return { state: 'success', total: 3, passed: 3, failed: 0, pending: 0 };
+      return undefined;
+    });
+
+    render(<PRsNeedingAttentionWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Fix the bug')).toBeDefined();
+    });
+
+    expect(screen.queryByTitle('Open in Cola Records')).toBeNull();
   });
 });

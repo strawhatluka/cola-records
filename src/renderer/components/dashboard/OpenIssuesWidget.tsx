@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Folder } from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import { DashboardWidget } from './DashboardWidget';
+import { Button } from '../ui/Button';
 import { formatRelativeTime } from './utils';
 
 interface IssueData {
@@ -11,7 +13,11 @@ interface IssueData {
   createdAt: string;
 }
 
-export function OpenIssuesWidget() {
+interface OpenIssuesWidgetProps {
+  onOpenProject?: (repoFullName: string) => void;
+}
+
+export function OpenIssuesWidget({ onOpenProject }: OpenIssuesWidgetProps) {
   const [issues, setIssues] = useState<IssueData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,21 +39,36 @@ export function OpenIssuesWidget() {
         return;
       }
 
-      const searchResult = await ipc.invoke(
-        'github:search-issues-and-prs',
-        `assignee:${username} type:issue is:open`
-      );
+      const [assignedResult, authoredResult] = await Promise.allSettled([
+        ipc.invoke('github:search-issues-and-prs', `assignee:${username} type:issue is:open`),
+        ipc.invoke('github:search-issues-and-prs', `author:${username} type:issue is:open`),
+      ]);
 
-      if (isMounted.current) {
-        setIssues(
-          searchResult.items.slice(0, 10).map((item) => ({
+      const assignedItems = assignedResult.status === 'fulfilled' ? assignedResult.value.items : [];
+      const authoredItems = authoredResult.status === 'fulfilled' ? authoredResult.value.items : [];
+
+      // Merge and deduplicate by repoFullName + number
+      const seen = new Set<string>();
+      const merged: IssueData[] = [];
+      for (const item of [...assignedItems, ...authoredItems]) {
+        const key = `${item.repoFullName}#${item.number}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push({
             number: item.number,
             title: item.title,
             repoName: item.repoFullName,
             labels: item.labels,
             createdAt: item.createdAt,
-          }))
-        );
+          });
+        }
+      }
+
+      // Sort by createdAt descending (newest first), limit to 10
+      merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      if (isMounted.current) {
+        setIssues(merged.slice(0, 10));
       }
     } catch (err) {
       if (isMounted.current) {
@@ -69,13 +90,13 @@ export function OpenIssuesWidget() {
   return (
     <DashboardWidget
       title="Open Issues"
-      description="Issues assigned to you across GitHub"
+      description="Issues you're assigned to or authored across GitHub"
       loading={loading}
       error={error}
       onRetry={fetchIssues}
       noToken={noToken}
       empty={issues.length === 0}
-      emptyMessage="No assigned issues found"
+      emptyMessage="No open issues found"
     >
       <div className="space-y-3">
         {issues.map((issue) => (
@@ -98,9 +119,23 @@ export function OpenIssuesWidget() {
                 </div>
               )}
             </div>
-            <span className="text-xs text-muted-foreground shrink-0">
-              {formatRelativeTime(issue.createdAt)}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-muted-foreground">
+                {formatRelativeTime(issue.createdAt)}
+              </span>
+              {onOpenProject && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenProject(issue.repoName)}
+                  title="Open in Cola Records"
+                  className="h-7 px-2 text-xs"
+                >
+                  <Folder className="h-3.5 w-3.5 mr-1" />
+                  Open
+                </Button>
+              )}
+            </div>
           </div>
         ))}
       </div>
