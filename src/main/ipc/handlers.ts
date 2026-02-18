@@ -73,6 +73,7 @@ export function removeAllIpcHandlers(): void {
     'github:get-issue',
     'github:list-issue-comments',
     'github:create-issue-comment',
+    'github:add-assignees',
     'github:update-issue',
     'github:create-issue',
     'github:create-pull-request',

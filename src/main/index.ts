@@ -622,6 +622,11 @@ const setupIpcHandlers = () => {
     return await gitHubRestService.getIssue(owner, repo, issueNumber);
   });
 
+  handleIpc('github:add-assignees', async (_event, owner, repo, issueNumber, assignees) => {
+    const { gitHubRestService } = await import('./services/github-rest.service');
+    await gitHubRestService.addAssignees(owner, repo, issueNumber, assignees);
+  });
+
   handleIpc('github:list-issue-comments', async (_event, owner, repo, issueNumber) => {
     const { gitHubRestService } = await import('./services/github-rest.service');
     return await gitHubRestService.listIssueComments(owner, repo, issueNumber);

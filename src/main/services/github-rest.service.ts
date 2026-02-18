@@ -191,6 +191,28 @@ export class GitHubRestService {
   }
 
   /**
+   * Add assignees to an issue
+   */
+  async addAssignees(
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    assignees: string[]
+  ): Promise<void> {
+    try {
+      const client = this.getClient();
+      await client.issues.addAssignees({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        assignees,
+      });
+    } catch (error) {
+      throw new Error(`Failed to add assignees to issue #${issueNumber}: ${error}`);
+    }
+  }
+
+  /**
    * List comments on an issue
    */
   async listIssueComments(owner: string, repo: string, issueNumber: number): Promise<any[]> {

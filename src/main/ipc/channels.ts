@@ -739,6 +739,12 @@ export interface IpcChannels {
     author: string;
     authorAvatarUrl: string;
   };
+  'github:add-assignees': (
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    assignees: string[]
+  ) => void;
   'github:list-issue-comments': (
     owner: string,
     repo: string,

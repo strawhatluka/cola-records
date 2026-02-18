@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Barrel export for all dashboard components and utilities (`components/dashboard/index.ts`)
   - All widgets fetch data directly from GitHub API — no dependency on local contributions store
   - Graceful degradation: widgets detect missing GitHub token and show "Connect GitHub in Settings" prompt
+- Auto-assign issue to authenticated user when clicking "Fix Issue" in the Issues tool ([#18](https://github.com/lukadfagundes/cola-records/issues/18))
+  - New `github:add-assignees` IPC channel wrapping `client.issues.addAssignees`
+  - New `addAssignees()` method in `GitHubRestService`
+  - Best-effort assignment after branch creation — failure does not block the Fix Issue flow
 
 ### Tests
 
@@ -37,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `CICDStatusWidget.test.tsx`: 9 tests covering pipeline list, status dots (green/red/yellow), empty repos, all-rejected error surfacing, noToken
   - `DashboardScreen.test.tsx`: 6 tests covering header, widget composition, grid layout, scrollable area
   - `github-rest.service.test.ts`: 9 new tests for `searchIssuesAndPullRequests` and `listUserEvents` (field mapping, query pass-through, empty results, API errors)
+  - `github-rest.service.test.ts`: 2 new tests for `addAssignees` (correct params, API error)
+  - `DevelopmentIssueDetailModal.test.tsx`: 2 new tests for Fix Issue auto-assign (assigns user after branch creation, completes when assignment fails)
 
 ## [1.0.4] - 2026-02-17
 

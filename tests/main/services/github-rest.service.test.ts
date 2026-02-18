@@ -40,6 +40,7 @@ const mockReposGetRelease = vi.fn();
 const mockReposCreateRelease = vi.fn();
 const mockReposUpdateRelease = vi.fn();
 const mockReposDeleteRelease = vi.fn();
+const mockIssuesAddAssignees = vi.fn();
 const mockSearchIssuesAndPullRequests = vi.fn();
 const mockActivityListEventsForAuthenticatedUser = vi.fn();
 
@@ -54,6 +55,7 @@ vi.mock('@octokit/rest', () => ({
       createComment: mockIssuesCreateComment,
       listComments: mockIssuesListComments,
       listForRepo: mockIssuesListForRepo,
+      addAssignees: mockIssuesAddAssignees,
     };
     reactions = {
       listForIssue: mockReactionsListForIssue,
@@ -2182,6 +2184,28 @@ describe('GitHubRestService', () => {
     it('throws on API error', async () => {
       mockActivityListEventsForAuthenticatedUser.mockRejectedValue(new Error('API failure'));
       await expect(service.listUserEvents('dev')).rejects.toThrow('Failed to list user events');
+    });
+  });
+
+  describe('addAssignees', () => {
+    it('calls client.issues.addAssignees with correct params', async () => {
+      mockIssuesAddAssignees.mockResolvedValue({ data: {} });
+
+      await service.addAssignees('owner', 'repo', 42, ['testuser']);
+
+      expect(mockIssuesAddAssignees).toHaveBeenCalledWith({
+        owner: 'owner',
+        repo: 'repo',
+        issue_number: 42,
+        assignees: ['testuser'],
+      });
+    });
+
+    it('throws on API error', async () => {
+      mockIssuesAddAssignees.mockRejectedValue(new Error('Forbidden'));
+      await expect(service.addAssignees('owner', 'repo', 42, ['testuser'])).rejects.toThrow(
+        'Failed to add assignees to issue #42'
+      );
     });
   });
 });
