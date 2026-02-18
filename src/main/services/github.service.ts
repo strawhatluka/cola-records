@@ -102,7 +102,18 @@ export class GitHubService {
   /**
    * Get authenticated user
    */
-  async getAuthenticatedUser(): Promise<{ login: string; name: string; email: string }> {
+  async getAuthenticatedUser(): Promise<{
+    login: string;
+    name: string;
+    email: string;
+    avatarUrl: string;
+    bio: string;
+    followers: number;
+    following: number;
+    createdAt: string;
+    location: string;
+    company: string;
+  }> {
     const cacheKey = this.getCacheKey('user', 'authenticated');
 
     return this.getCached(cacheKey, () => gitHubGraphQLService.getAuthenticatedUser(), false);

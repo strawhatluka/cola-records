@@ -16,7 +16,19 @@ vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
 import { GitHubProfileWidget } from '../../../../src/renderer/components/dashboard/GitHubProfileWidget';
 
-const mockUser = { login: 'octocat', name: 'The Octocat', email: 'octo@github.com' };
+const mockUser = {
+  login: 'octocat',
+  name: 'The Octocat',
+  email: 'octo@github.com',
+  avatarUrl: 'https://avatars.githubusercontent.com/u/583231',
+  bio: 'Starting Developer, excited to be here',
+  followers: 42,
+  following: 10,
+  createdAt: '2024-02-15T00:00:00Z',
+  location: '',
+  company: '',
+};
+
 const mockRepos = [
   {
     id: '1',
@@ -56,6 +68,16 @@ const mockRepos = [
   },
 ];
 
+function setupMockIPC(overrides?: { user?: typeof mockUser | null; repos?: typeof mockRepos }) {
+  const user = overrides?.user !== undefined ? overrides.user : mockUser;
+  const repos = overrides?.repos !== undefined ? overrides.repos : mockRepos;
+  mockInvoke.mockImplementation(async (channel: string) => {
+    if (channel === 'github:get-authenticated-user') return user;
+    if (channel === 'github:list-user-repos') return repos;
+    return undefined;
+  });
+}
+
 describe('GitHubProfileWidget', () => {
   beforeEach(() => {
     mockInvoke.mockReset();
@@ -68,12 +90,7 @@ describe('GitHubProfileWidget', () => {
   });
 
   it('renders user info after fetch', async () => {
-    mockInvoke.mockImplementation(async (channel: string) => {
-      if (channel === 'github:get-authenticated-user') return mockUser;
-      if (channel === 'github:list-user-repos') return mockRepos;
-      return undefined;
-    });
-
+    setupMockIPC();
     render(<GitHubProfileWidget />);
 
     await waitFor(() => {
@@ -81,16 +98,68 @@ describe('GitHubProfileWidget', () => {
     });
 
     expect(screen.getByText('@octocat')).toBeDefined();
+  });
+
+  it('shows avatar image when avatarUrl is present', async () => {
+    setupMockIPC();
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Octocat')).toBeDefined();
+    });
+
+    const img = screen.getByAltText('octocat avatar');
+    expect(img).toBeDefined();
+    expect(img.getAttribute('src')).toBe('https://avatars.githubusercontent.com/u/583231');
+  });
+
+  it('falls back to initial when avatarUrl is empty', async () => {
+    setupMockIPC({ user: { ...mockUser, avatarUrl: '' } });
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Octocat')).toBeDefined();
+    });
+
     expect(screen.getByText('O')).toBeDefined(); // avatar initial
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  it('shows bio text', async () => {
+    setupMockIPC();
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Starting Developer, excited to be here')).toBeDefined();
+    });
+  });
+
+  it('hides bio when empty', async () => {
+    setupMockIPC({ user: { ...mockUser, bio: '' } });
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Octocat')).toBeDefined();
+    });
+
+    expect(screen.queryByText('Starting Developer, excited to be here')).toBeNull();
+  });
+
+  it('shows followers and following counts', async () => {
+    setupMockIPC();
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('42')).toBeDefined();
+    });
+
+    expect(screen.getByText('Followers')).toBeDefined();
+    expect(screen.getByText('10')).toBeDefined();
+    expect(screen.getByText('Following')).toBeDefined();
   });
 
   it('shows public repo count (excludes private)', async () => {
-    mockInvoke.mockImplementation(async (channel: string) => {
-      if (channel === 'github:get-authenticated-user') return mockUser;
-      if (channel === 'github:list-user-repos') return mockRepos;
-      return undefined;
-    });
-
+    setupMockIPC();
     render(<GitHubProfileWidget />);
 
     await waitFor(() => {
@@ -101,12 +170,7 @@ describe('GitHubProfileWidget', () => {
   });
 
   it('shows total stars', async () => {
-    mockInvoke.mockImplementation(async (channel: string) => {
-      if (channel === 'github:get-authenticated-user') return mockUser;
-      if (channel === 'github:list-user-repos') return mockRepos;
-      return undefined;
-    });
-
+    setupMockIPC();
     render(<GitHubProfileWidget />);
 
     await waitFor(() => {
@@ -116,20 +180,35 @@ describe('GitHubProfileWidget', () => {
     expect(screen.getByText('Stars')).toBeDefined();
   });
 
-  it('shows top language', async () => {
-    mockInvoke.mockImplementation(async (channel: string) => {
-      if (channel === 'github:get-authenticated-user') return mockUser;
-      if (channel === 'github:list-user-repos') return mockRepos;
-      return undefined;
-    });
-
+  it('shows "Member since" date', async () => {
+    setupMockIPC();
     render(<GitHubProfileWidget />);
 
     await waitFor(() => {
-      expect(screen.getByText('TypeScript')).toBeDefined();
+      expect(screen.getByText('Member since Feb 2024')).toBeDefined();
+    });
+  });
+
+  it('hides "Member since" when createdAt is empty', async () => {
+    setupMockIPC({ user: { ...mockUser, createdAt: '' } });
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Octocat')).toBeDefined();
     });
 
-    expect(screen.getByText('Top Lang')).toBeDefined();
+    expect(screen.queryByText(/Member since/)).toBeNull();
+  });
+
+  it('renders language bar segments', async () => {
+    setupMockIPC();
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/TypeScript/)).toBeDefined();
+    });
+
+    expect(screen.getByText(/Python/)).toBeDefined();
   });
 
   it('renders no-token fallback when auth fails', async () => {

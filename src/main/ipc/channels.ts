@@ -507,7 +507,18 @@ export interface IpcChannels {
   'git:get-branch-info': (repoPath: string, branchName: string) => BranchInfo;
 
   // GitHub Channels
-  'github:get-authenticated-user': () => { login: string; name: string; email: string };
+  'github:get-authenticated-user': () => {
+    login: string;
+    name: string;
+    email: string;
+    avatarUrl: string;
+    bio: string;
+    followers: number;
+    following: number;
+    createdAt: string;
+    location: string;
+    company: string;
+  };
   'github:search-issues': (query: string, labels: string[]) => GitHubIssue[];
   'github:get-repository': (owner: string, repo: string) => GitHubRepository;
   'github:validate-token': (token: string) => boolean;

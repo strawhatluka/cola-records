@@ -84,6 +84,8 @@ export const Sun = createIcon('Sun');
 export const Tag = createIcon('Tag');
 export const Trash2 = createIcon('Trash2');
 export const User = createIcon('User');
+export const UserPlus = createIcon('UserPlus');
+export const Users = createIcon('Users');
 export const X = createIcon('X');
 export const XCircle = createIcon('XCircle');
 
