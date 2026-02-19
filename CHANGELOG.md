@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Create Pull Request form not scrolling in Tool Box inline mode ([#25](https://github.com/lukadfagundes/cola-records/issues/25))
   - Removed `overflow-hidden` from `formContent` wrapper in `CreatePullRequestModal` which was blocking the outer scroll container
   - Title, Description, and Submit button are now reachable when the comparison preview is tall
+- Fixed terminal output overflow breaking Tool Box layout ([#26](https://github.com/lukadfagundes/cola-records/issues/26))
+  - Replaced `calc(100% - terminalHeight)` with flex-based layout in ToolsPanel to prevent ~44px overflow when header and drag handle were unaccounted for
+  - Added `overflow-hidden` to ToolsPanel wrapper in DevelopmentScreen for containment
+  - Header now has explicit `shrink-0` to prevent compression when terminal is large
 
 ### Tests
 
@@ -51,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `github-rest.service.test.ts`: 2 new tests for `addAssignees` (correct params, API error)
   - `DevelopmentIssueDetailModal.test.tsx`: 2 new tests for Fix Issue auto-assign (assigns user after branch creation, completes when assignment fails)
   - `CreatePullRequestModal.test.tsx`: 1 new test for inline mode scrollable container regression check
+  - `ToolsPanel.test.tsx`: 1 new test for flex-based tool content layout regression guard ([#26](https://github.com/lukadfagundes/cola-records/issues/26))
 
 ## [1.0.4] - 2026-02-17
 

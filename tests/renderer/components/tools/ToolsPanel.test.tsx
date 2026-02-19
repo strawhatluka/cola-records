@@ -265,6 +265,24 @@ describe('ToolsPanel', () => {
       expect(dragHandle).not.toBeNull();
     });
 
+    it('tool content uses flex layout (no calc overflow) when terminal is expanded', async () => {
+      const user = userEvent.setup();
+      const { container } = render(
+        <ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />
+      );
+
+      // Expand terminal
+      const terminalBar = screen.getByText('Terminal').closest('div');
+      await user.click(terminalBar as HTMLElement);
+
+      // Tool content should use flex:1, NOT a calc() height
+      const toolContent = container.querySelector('.overflow-hidden[style]');
+      expect(toolContent).not.toBeNull();
+      const style = (toolContent as HTMLElement).style;
+      expect(style.flex).toContain('1');
+      expect(style.height).toBe('');
+    });
+
     it('terminal bar is visible regardless of active tool', async () => {
       const user = userEvent.setup();
       render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);

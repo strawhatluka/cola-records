@@ -512,7 +512,7 @@ export function DevelopmentScreen({
             <div
               ref={toolsPanelRef}
               style={toolsPanelWidth > 0 ? { width: toolsPanelWidth } : { flex: 1 }}
-              className="shrink-0 h-full"
+              className="shrink-0 h-full overflow-hidden"
             >
               <ToolsPanel
                 workingDirectory={contribution.localPath}
