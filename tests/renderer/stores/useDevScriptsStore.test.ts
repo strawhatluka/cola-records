@@ -14,7 +14,10 @@ vi.mock('../../../src/renderer/ipc/client', () => ({
   },
 }));
 
-import { useDevScriptsStore } from '../../../src/renderer/stores/useDevScriptsStore';
+import {
+  useDevScriptsStore,
+  selectScriptsForProject,
+} from '../../../src/renderer/stores/useDevScriptsStore';
 
 describe('useDevScriptsStore', () => {
   beforeEach(() => {
@@ -405,7 +408,10 @@ describe('useDevScriptsStore', () => {
 
   describe('edge cases', () => {
     it('should handle loading same scripts multiple times', async () => {
-      const scripts = createMockDevScriptsList();
+      const scripts = createMockDevScriptsList().map((s) => ({
+        ...s,
+        projectPath: '/test/project',
+      }));
       mockInvoke.mockResolvedValue(scripts);
 
       await act(async () => {
@@ -420,9 +426,9 @@ describe('useDevScriptsStore', () => {
       expect(useDevScriptsStore.getState().scripts).toHaveLength(3);
     });
 
-    it('should handle loading different project paths', async () => {
-      const scripts1 = [createMockDevScript({ projectPath: '/project/one' })];
-      const scripts2 = [createMockDevScript({ projectPath: '/project/two' })];
+    it('should merge scripts when loading different project paths', async () => {
+      const scripts1 = [createMockDevScript({ id: 'a1', projectPath: '/project/one' })];
+      const scripts2 = [createMockDevScript({ id: 'b1', projectPath: '/project/two' })];
 
       mockInvoke.mockResolvedValueOnce(scripts1);
 
@@ -438,8 +444,11 @@ describe('useDevScriptsStore', () => {
         await useDevScriptsStore.getState().loadScripts('/project/two');
       });
 
-      // Should replace with new scripts
-      expect(useDevScriptsStore.getState().scripts).toEqual(scripts2);
+      // Should contain scripts from BOTH projects
+      const state = useDevScriptsStore.getState();
+      expect(state.scripts).toHaveLength(2);
+      expect(state.scripts.find((s) => s.id === 'a1')).toBeDefined();
+      expect(state.scripts.find((s) => s.id === 'b1')).toBeDefined();
     });
 
     it('should handle empty scripts array', async () => {
@@ -452,6 +461,70 @@ describe('useDevScriptsStore', () => {
       expect(useDevScriptsStore.getState().scripts).toEqual([]);
       expect(useDevScriptsStore.getState().loading).toBe(false);
       expect(useDevScriptsStore.getState().error).toBeNull();
+    });
+
+    it('should replace only scripts for the reloaded project on re-load', async () => {
+      // Pre-populate with scripts from two projects
+      useDevScriptsStore.setState({
+        scripts: [
+          createMockDevScript({ id: 'a1', projectPath: '/project/a', name: 'Old A' }),
+          createMockDevScript({ id: 'b1', projectPath: '/project/b', name: 'B Script' }),
+        ],
+      });
+
+      const updatedA = [
+        createMockDevScript({ id: 'a2', projectPath: '/project/a', name: 'New A' }),
+      ];
+      mockInvoke.mockResolvedValueOnce(updatedA);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/project/a');
+      });
+
+      const state = useDevScriptsStore.getState();
+      expect(state.scripts).toHaveLength(2);
+      expect(state.scripts.find((s) => s.id === 'a1')).toBeUndefined();
+      expect(state.scripts.find((s) => s.id === 'a2')).toBeDefined();
+      expect(state.scripts.find((s) => s.id === 'b1')).toBeDefined();
+    });
+
+    it('should preserve other projects scripts on save', async () => {
+      useDevScriptsStore.setState({
+        scripts: [createMockDevScript({ id: 'b1', projectPath: '/project/b' })],
+      });
+
+      const newScript = createMockDevScript({ id: 'a1', projectPath: '/project/a' });
+      mockInvoke.mockResolvedValueOnce(undefined); // save
+      mockInvoke.mockResolvedValueOnce([newScript]); // reload for project/a
+
+      await act(async () => {
+        await useDevScriptsStore.getState().saveScript(newScript);
+      });
+
+      const state = useDevScriptsStore.getState();
+      expect(state.scripts).toHaveLength(2);
+      expect(state.scripts.find((s) => s.id === 'b1')).toBeDefined();
+      expect(state.scripts.find((s) => s.id === 'a1')).toBeDefined();
+    });
+
+    it('should preserve other projects scripts on delete', async () => {
+      useDevScriptsStore.setState({
+        scripts: [
+          createMockDevScript({ id: 'a1', projectPath: '/project/a' }),
+          createMockDevScript({ id: 'b1', projectPath: '/project/b' }),
+        ],
+      });
+
+      mockInvoke.mockResolvedValueOnce(undefined); // delete
+      mockInvoke.mockResolvedValueOnce([]); // reload for project/a (empty after delete)
+
+      await act(async () => {
+        await useDevScriptsStore.getState().deleteScript('a1');
+      });
+
+      const state = useDevScriptsStore.getState();
+      expect(state.scripts).toHaveLength(1);
+      expect(state.scripts[0].id).toBe('b1');
     });
 
     it('should preserve execution state during load', async () => {
@@ -469,6 +542,34 @@ describe('useDevScriptsStore', () => {
       // Execution state should remain unchanged
       expect(useDevScriptsStore.getState().executingScriptId).toBe('running_script');
       expect(useDevScriptsStore.getState().activeTerminalSession).toBe('active_session');
+    });
+  });
+
+  // ── selectScriptsForProject ──────────────────────────────────────────
+
+  describe('selectScriptsForProject', () => {
+    it('should return only scripts matching the given projectPath', () => {
+      const scripts = [
+        createMockDevScript({ id: 'a1', projectPath: '/project/a' }),
+        createMockDevScript({ id: 'b1', projectPath: '/project/b' }),
+        createMockDevScript({ id: 'a2', projectPath: '/project/a' }),
+      ];
+
+      const result = selectScriptsForProject(scripts, '/project/a');
+      expect(result).toHaveLength(2);
+      expect(result.every((s) => s.projectPath === '/project/a')).toBe(true);
+    });
+
+    it('should return empty array when no scripts match', () => {
+      const scripts = [createMockDevScript({ id: 'b1', projectPath: '/project/b' })];
+
+      const result = selectScriptsForProject(scripts, '/project/a');
+      expect(result).toHaveLength(0);
+    });
+
+    it('should return empty array for empty input', () => {
+      const result = selectScriptsForProject([], '/project/a');
+      expect(result).toHaveLength(0);
     });
   });
 });

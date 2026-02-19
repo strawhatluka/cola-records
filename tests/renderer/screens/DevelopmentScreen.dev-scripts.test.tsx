@@ -44,6 +44,8 @@ let mockDevScriptsState = {
 
 vi.mock('../../../src/renderer/stores/useDevScriptsStore', () => ({
   useDevScriptsStore: () => mockDevScriptsState,
+  selectScriptsForProject: (scripts: any[], projectPath: string) =>
+    scripts.filter((s: any) => s.projectPath === projectPath),
 }));
 
 // Mock ScriptButton
