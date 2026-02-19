@@ -5,7 +5,7 @@
  * Scripts appear as buttons in the Development screen header for quick execution.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Plus,
   Pencil,
@@ -20,7 +20,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { useDevScriptsStore } from '../../stores/useDevScriptsStore';
+import { useDevScriptsStore, selectScriptsForProject } from '../../stores/useDevScriptsStore';
 import type { DevScript, DevScriptTerminal } from '../../../main/ipc/channels';
 import { cn } from '../../lib/utils';
 
@@ -29,7 +29,17 @@ interface DevScriptsToolProps {
 }
 
 export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
-  const { scripts, loading, loadScripts, saveScript, deleteScript } = useDevScriptsStore();
+  const {
+    scripts: allScripts,
+    loading,
+    loadScripts,
+    saveScript,
+    deleteScript,
+  } = useDevScriptsStore();
+  const scripts = useMemo(
+    () => selectScriptsForProject(allScripts, workingDirectory),
+    [allScripts, workingDirectory]
+  );
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);

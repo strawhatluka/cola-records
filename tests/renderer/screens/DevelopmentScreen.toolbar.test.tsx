@@ -50,6 +50,8 @@ vi.mock('../../../src/renderer/stores/useDevScriptsStore', () => ({
     saveScript: vi.fn(),
     deleteScript: vi.fn(),
   }),
+  selectScriptsForProject: (scripts: any[], projectPath: string) =>
+    scripts.filter((s: any) => s.projectPath === projectPath),
 }));
 
 // Mock ScriptButton

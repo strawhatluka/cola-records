@@ -27,8 +27,11 @@ export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
   loadScripts: async (projectPath: string) => {
     set({ loading: true, error: null });
     try {
-      const scripts = await ipc.invoke('dev-scripts:get-all', projectPath);
-      set({ scripts, loading: false });
+      const loaded = await ipc.invoke('dev-scripts:get-all', projectPath);
+      set((state) => ({
+        scripts: [...state.scripts.filter((s) => s.projectPath !== projectPath), ...loaded],
+        loading: false,
+      }));
     } catch (error) {
       set({ error: String(error), loading: false });
     }
@@ -39,8 +42,11 @@ export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
     try {
       await ipc.invoke('dev-scripts:save', script);
       // Reload scripts to get updated list
-      const scripts = await ipc.invoke('dev-scripts:get-all', script.projectPath);
-      set({ scripts, loading: false });
+      const loaded = await ipc.invoke('dev-scripts:get-all', script.projectPath);
+      set((state) => ({
+        scripts: [...state.scripts.filter((s) => s.projectPath !== script.projectPath), ...loaded],
+        loading: false,
+      }));
     } catch (error) {
       set({ error: String(error), loading: false });
       throw error;
@@ -56,8 +62,11 @@ export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
     try {
       await ipc.invoke('dev-scripts:delete', id);
       // Reload scripts to get updated list
-      const updatedScripts = await ipc.invoke('dev-scripts:get-all', script.projectPath);
-      set({ scripts: updatedScripts, loading: false });
+      const loaded = await ipc.invoke('dev-scripts:get-all', script.projectPath);
+      set((state) => ({
+        scripts: [...state.scripts.filter((s) => s.projectPath !== script.projectPath), ...loaded],
+        loading: false,
+      }));
     } catch (error) {
       set({ error: String(error), loading: false });
       throw error;
@@ -72,3 +81,8 @@ export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
     set({ activeTerminalSession: sessionId });
   },
 }));
+
+/** Select only scripts belonging to a specific project path */
+export function selectScriptsForProject(scripts: DevScript[], projectPath: string): DevScript[] {
+  return scripts.filter((s) => s.projectPath === projectPath);
+}

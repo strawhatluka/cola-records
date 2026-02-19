@@ -31,6 +31,8 @@ vi.mock('../../../../src/renderer/stores/useDevScriptsStore', () => ({
     saveScript: mockSaveScript,
     deleteScript: mockDeleteScript,
   }),
+  selectScriptsForProject: (scripts: any[], projectPath: string) =>
+    scripts.filter((s: any) => s.projectPath === projectPath),
 }));
 
 import { DevScriptsTool } from '../../../../src/renderer/components/tools/DevScriptsTool';
@@ -64,8 +66,18 @@ describe('DevScriptsTool', () => {
 
     it('should render script list when scripts exist', () => {
       mockStoreState.scripts = [
-        createMockDevScript({ id: 'script_1', name: 'Build', command: 'npm run build' }),
-        createMockDevScript({ id: 'script_2', name: 'Test', command: 'npm test' }),
+        createMockDevScript({
+          id: 'script_1',
+          name: 'Build',
+          command: 'npm run build',
+          projectPath: '/test/project/path',
+        }),
+        createMockDevScript({
+          id: 'script_2',
+          name: 'Test',
+          command: 'npm test',
+          projectPath: '/test/project/path',
+        }),
       ];
 
       render(<DevScriptsTool {...defaultProps} />);
@@ -273,6 +285,7 @@ describe('DevScriptsTool', () => {
           name: 'Build',
           command: 'npm run build',
           commands: ['npm run build'],
+          projectPath: '/test/project/path',
         }),
       ];
 
@@ -300,6 +313,7 @@ describe('DevScriptsTool', () => {
           name: 'Build',
           command: 'npm run build',
           commands: ['npm run build'],
+          projectPath: '/test/project/path',
         }),
       ];
       mockSaveScript.mockResolvedValueOnce(undefined);
@@ -337,6 +351,7 @@ describe('DevScriptsTool', () => {
           name: 'Build',
           command: 'npm run build',
           commands: ['npm run build'],
+          projectPath: '/test/project/path',
         }),
       ];
 
@@ -368,6 +383,7 @@ describe('DevScriptsTool', () => {
           name: 'Build',
           command: 'npm run build',
           commands: ['npm run build'],
+          projectPath: '/test/project/path',
         }),
       ];
 
@@ -390,6 +406,7 @@ describe('DevScriptsTool', () => {
           name: 'Build',
           command: 'npm run build',
           commands: ['npm run build'],
+          projectPath: '/test/project/path',
         }),
       ];
       mockDeleteScript.mockResolvedValueOnce(undefined);
@@ -419,6 +436,7 @@ describe('DevScriptsTool', () => {
           name: 'Build',
           command: 'npm run build',
           commands: ['npm run build'],
+          projectPath: '/test/project/path',
         }),
       ];
 
@@ -449,6 +467,7 @@ describe('DevScriptsTool', () => {
         name: 'Build',
         command: 'npm run build',
         commands: ['npm run build'],
+        projectPath: '/test/project/path',
       });
       mockStoreState.scripts = [mockScript];
 
@@ -479,6 +498,7 @@ describe('DevScriptsTool', () => {
           name: 'Build',
           command: 'npm run build',
           commands: ['npm run build'],
+          projectPath: '/test/project/path',
         }),
       ];
 
@@ -509,6 +529,40 @@ describe('DevScriptsTool', () => {
       await waitFor(() => {
         expect(screen.getByText('A script with this name already exists')).toBeDefined();
       });
+    });
+  });
+
+  describe('multi-project isolation', () => {
+    it('should not show scripts from a different project', () => {
+      mockStoreState.scripts = [
+        createMockDevScript({
+          id: 'script_other',
+          name: 'Other Build',
+          projectPath: '/other/project',
+        }),
+      ];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.getByText('No scripts yet')).toBeDefined();
+    });
+
+    it('should show only scripts matching workingDirectory', () => {
+      mockStoreState.scripts = [
+        createMockDevScript({
+          id: 'script_mine',
+          name: 'My Build',
+          projectPath: '/test/project/path',
+        }),
+        createMockDevScript({
+          id: 'script_other',
+          name: 'Other Build',
+          projectPath: '/other/project',
+        }),
+      ];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.getByText('My Build')).toBeDefined();
+      expect(screen.queryByText('Other Build')).toBeNull();
     });
   });
 });

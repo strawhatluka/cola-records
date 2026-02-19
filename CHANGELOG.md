@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Replaced `calc(100% - terminalHeight)` with flex-based layout in ToolsPanel to prevent ~44px overflow when header and drag handle were unaccounted for
   - Added `overflow-hidden` to ToolsPanel wrapper in DevelopmentScreen for containment
   - Header now has explicit `shrink-0` to prevent compression when terminal is large
+- Fixed dev scripts from wrong project appearing in header and Tool Box when multiple projects open ([#24](https://github.com/lukadfagundes/cola-records/issues/24))
+  - Changed `useDevScriptsStore` to merge scripts from multiple projects instead of replacing the global array
+  - Added `selectScriptsForProject()` utility for consumer-side filtering by `projectPath`
+  - `DevelopmentScreen` header buttons now filter by `contribution.localPath`
+  - `DevScriptsTool` script list now filters by `workingDirectory`
 
 ### Tests
 
@@ -56,6 +61,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DevelopmentIssueDetailModal.test.tsx`: 2 new tests for Fix Issue auto-assign (assigns user after branch creation, completes when assignment fails)
   - `CreatePullRequestModal.test.tsx`: 1 new test for inline mode scrollable container regression check
   - `ToolsPanel.test.tsx`: 1 new test for flex-based tool content layout regression guard ([#26](https://github.com/lukadfagundes/cola-records/issues/26))
+- Dev script overrun fix tests ([#24](https://github.com/lukadfagundes/cola-records/issues/24))
+  - `useDevScriptsStore.test.ts`: 6 new tests for multi-project merge behavior and `selectScriptsForProject`
+  - `DevScriptsTool.test.tsx`: 2 new tests for cross-project script isolation
+  - Updated existing "different project paths" test for merge semantics
+  - Updated store mocks in 4 DevelopmentScreen test files and ToolsPanel test to export `selectScriptsForProject`
 
 ## [1.0.4] - 2026-02-17
 

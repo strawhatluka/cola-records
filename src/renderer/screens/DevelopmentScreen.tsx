@@ -5,14 +5,14 @@
  * State machine: idle → starting → running → error
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { ipc } from '../ipc/client';
 import type { Contribution, DevScript } from '../../main/ipc/channels';
 import { BranchDetailModal } from '../components/branches/BranchDetailModal';
 import { ToolsPanel } from '../components/tools/ToolsPanel';
 import { ScriptButton } from '../components/tools/ScriptButton';
 import { ScriptExecutionModal } from '../components/tools/ScriptExecutionModal';
-import { useDevScriptsStore } from '../stores/useDevScriptsStore';
+import { useDevScriptsStore, selectScriptsForProject } from '../stores/useDevScriptsStore';
 
 type ScreenState = 'idle' | 'starting' | 'running' | 'error';
 
@@ -123,7 +123,11 @@ export function DevelopmentScreen({
   );
 
   // Dev scripts store
-  const { scripts: devScripts, loadScripts: loadDevScripts } = useDevScriptsStore();
+  const { scripts: allScripts, loadScripts: loadDevScripts } = useDevScriptsStore();
+  const devScripts = useMemo(
+    () => selectScriptsForProject(allScripts, contribution.localPath),
+    [allScripts, contribution.localPath]
+  );
 
   // Fetch remotes on mount (needed for PR creation fork detection)
   useEffect(() => {
