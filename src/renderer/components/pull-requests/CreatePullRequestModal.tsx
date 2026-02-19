@@ -337,7 +337,7 @@ export function CreatePullRequestModal({
   };
 
   const formContent = (
-    <div className="space-y-4 min-w-0 overflow-hidden">
+    <div className="space-y-4 min-w-0">
       {/* Branch Selectors */}
       <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-end">
         <div>
