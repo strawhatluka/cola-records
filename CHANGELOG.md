@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `selectScriptsForProject()` utility for consumer-side filtering by `projectPath`
   - `DevelopmentScreen` header buttons now filter by `contribution.localPath`
   - `DevScriptsTool` script list now filters by `workingDirectory`
+- Fixed links in code-server opening in Electron window instead of user's default browser ([#28](https://github.com/lukadfagundes/cola-records/issues/28))
+  - Added global `app.on('web-contents-created')` handler with `setWindowOpenHandler` to redirect external URLs via `shell.openExternal`
+  - Only `http://` and `https://` protocols are opened externally (security hardening)
 
 ### Tests
 
@@ -66,6 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DevScriptsTool.test.tsx`: 2 new tests for cross-project script isolation
   - Updated existing "different project paths" test for merge semantics
   - Updated store mocks in 4 DevelopmentScreen test files and ToolsPanel test to export `selectScriptsForProject`
+- Webview external link redirect tests ([#28](https://github.com/lukadfagundes/cola-records/issues/28))
+  - `webview-external-links.test.ts`: 5 tests covering handler registration, http/https redirect, deny action, and non-http protocol blocking
 
 ## [1.0.4] - 2026-02-17
 
