@@ -1282,13 +1282,6 @@ const createWindow = () => {
     }
   });
 
-  // Handle window.open() and target="_blank" links
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // Open all new window requests in the default browser
-    shell.openExternal(url);
-    return { action: 'deny' };
-  });
-
   // Initialize auto-updater (only runs in production)
   updaterService.initialize(mainWindow);
 
@@ -1296,6 +1289,17 @@ const createWindow = () => {
     mainWindow = null;
   });
 };
+
+// Redirect external links from ALL webContents (including code-server webview)
+// to the user's default browser instead of opening Electron windows
+app.on('web-contents-created', (_event, contents) => {
+  contents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+});
 
 // This method will be called when Electron has finished initialization
 app.on('ready', async () => {
