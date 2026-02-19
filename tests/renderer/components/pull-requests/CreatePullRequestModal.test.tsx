@@ -218,4 +218,30 @@ describe('CreatePullRequestModal', () => {
       expect(comboboxes[1].textContent).toContain('develop');
     });
   });
+
+  it('inline mode renders scrollable container with all form fields accessible', async () => {
+    const { container } = render(<CreatePullRequestModal {...defaultProps} inline={true} />);
+
+    // Wait for init to complete (sets base, compare, title)
+    await waitFor(() => {
+      const titleInput = screen.getByPlaceholderText('Pull request title') as HTMLInputElement;
+      expect(titleInput.value).not.toBe('');
+    });
+
+    // The outer inline wrapper should be scrollable
+    const scrollContainer = container.querySelector('.overflow-auto');
+    expect(scrollContainer).not.toBeNull();
+
+    // Heading rendered inline (not inside Dialog)
+    expect(screen.getByRole('heading', { name: 'Create Pull Request' })).toBeInTheDocument();
+
+    // All form fields accessible
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Create Pull Request/ })).toBeInTheDocument();
+
+    // formContent should NOT have overflow-hidden (the bug fix)
+    const formContent = container.querySelector('.space-y-4.min-w-0');
+    expect(formContent).not.toBeNull();
+    expect(formContent!.classList.contains('overflow-hidden')).toBe(false);
+  });
 });
