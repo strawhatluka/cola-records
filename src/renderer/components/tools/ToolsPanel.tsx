@@ -199,7 +199,7 @@ export function ToolsPanel({
       )}
 
       {/* Header with hamburger menu */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 shrink-0">
         <div className="relative">
           <Button
             variant="ghost"
@@ -250,14 +250,7 @@ export function ToolsPanel({
       </div>
 
       {/* Tool content — fills remaining space minus terminal */}
-      <div
-        className="overflow-hidden"
-        style={
-          terminalExpanded
-            ? { flex: 'none', height: `calc(100% - ${terminalHeight}px)` }
-            : { flex: 1 }
-        }
-      >
+      <div className="overflow-hidden" style={{ flex: 1, minHeight: 0 }}>
         {renderTool()}
       </div>
 
