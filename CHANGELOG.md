@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-02-19
+
 ### Added
 
 - Dashboard screen with 6 live widgets in a responsive 2-column grid ([#18](https://github.com/lukadfagundes/cola-records/issues/18))
