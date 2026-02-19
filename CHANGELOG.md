@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Fixed innerHTML XSS vector in MermaidBlock component (CRIT-001)
+  - Added DOMPurify sanitization of Mermaid SVG output before DOM insertion
+  - DOMPurify config allows SVG profiles and `foreignObject` for Mermaid compatibility
+  - Blocks `<script>` tags, event handler attributes, and other XSS vectors
+  - Added `dompurify` as direct dependency (previously transitive only)
+
+### Tests
+
+- MermaidBlock sanitization tests (CRIT-001)
+  - 3 new tests: DOMPurify called with correct config, script tag stripping, event handler stripping
+  - Existing tests updated with DOMPurify mock (passthrough — no behavior change for valid SVG)
+
 ## [1.0.5] - 2026-02-19
 
 ### Added
