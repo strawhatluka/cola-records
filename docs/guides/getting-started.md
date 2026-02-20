@@ -135,7 +135,7 @@ src/
 
   renderer/                # Renderer Process (React)
     index.tsx              # React entry point
-    screens/               # Application screens (7 total)
+    screens/               # Application screens (8 total)
       DashboardScreen.tsx
       IssueDiscoveryScreen.tsx
       ContributionsScreen.tsx
@@ -143,23 +143,36 @@ src/
       ProfessionalProjectsScreen.tsx
       DevelopmentScreen.tsx
       SettingsScreen.tsx
-    components/            # React components (80 total)
-    stores/                # Zustand state stores (9 files, 5 exported via index.ts)
+      DocumentationScreen.tsx
+    components/            # React components (100 total)
+    stores/                # Zustand state stores (10 files, 5 exported via index.ts)
     hooks/                 # Custom React hooks
 ```
 
 ### State Stores Note
 
-The application uses 9 Zustand store files:
+The application uses 10 Zustand store files:
 
 - **5 stores** are exported from `stores/index.ts` for convenient imports
-- **4 stores** must be imported directly from their files:
+- **5 stores** must be imported directly from their files:
   - `useDiscordStore` - Discord connection state
   - `useProfessionalProjectsStore` - Professional project tracking
   - `useProjectsStore` - Open source project tracking
   - `useSpotifyStore` - Spotify playback state
+  - `useUpdaterStore` - Auto-update state management
 
 ## Core Features
+
+### Dashboard
+
+The Dashboard screen provides an at-a-glance overview of your GitHub activity through six widgets:
+
+- **Contribution Status** - Open PRs, merged PRs (30d), open issues, closed issues (30d)
+- **GitHub Profile** - Avatar, bio, repo count, stars, followers, top languages
+- **PRs Needing Attention** - Open PRs with review status and CI indicators
+- **Open Issues** - Issues you are assigned to or authored across all repos
+- **Recent Activity** - Latest GitHub events (pushes, PRs, issues, releases)
+- **CI/CD Status** - Latest pipeline run per repository with pass/fail indicators
 
 ### Contribution Tracking
 
@@ -178,6 +191,12 @@ The application uses 9 Zustand store files:
 - Integrated terminal with PTY support
 - Custom dev scripts per project
 - Monaco editor integration
+- GitHub Actions workflow viewer with job logs
+- Repository issues, pull requests, and releases panels
+
+### Documentation
+
+The in-app documentation viewer displays project docs with full markdown rendering and mermaid diagram support. Browse categorized documentation files without leaving the application.
 
 ### Integrations
 
@@ -200,7 +219,7 @@ Cola Records uses SQLite (better-sqlite3) for local data persistence:
 
 - [API Development Guide](./api-development.md) - Learn about IPC channels and services
 - [Deployment Guide](./deployment.md) - Build and distribute the application
-- [Contributing Guide](./contributing.md) - Contribute to the project
+- [Contributing Guide](../../CONTRIBUTING.md) - How to contribute to Cola Records
 
 ## Quick Reference
 

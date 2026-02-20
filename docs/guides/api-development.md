@@ -2,7 +2,7 @@
 
 ## Overview
 
-Cola Records uses Electron's IPC (Inter-Process Communication) for secure communication between the renderer (React UI) and main (Node.js backend) processes. This guide documents all 108 IPC channels and their usage.
+Cola Records uses Electron's IPC (Inter-Process Communication) for secure communication between the renderer (React UI) and main (Node.js backend) processes. This guide documents all 163 invoke channels and 9 event channels and their usage.
 
 ## IPC Architecture
 
@@ -17,7 +17,8 @@ Renderer Process (React)          Main Process (Node.js)
 ```
 
 - **Renderer Process**: React UI, Zustand stores, user interactions
-- **Preload Script**: Secure bridge exposing IPC methods via `window.electron`
+- **Preload Script**: Secure bridge exposing IPC methods via `window.electronAPI`
+- **IPC Client**: Type-safe `IpcClient` class in `src/renderer/ipc/client.ts` wrapping `window.electronAPI`
 - **Main Process**: Services, database, file system, external APIs
 
 ### Channel Naming Convention
@@ -37,22 +38,21 @@ Channels follow the `domain:action` pattern for consistency and organization:
 ### Basic Usage
 
 ```typescript
-// Using the typed IPC client
-const result = await window.electron.invoke('github:get-issue', {
-  owner: 'facebook',
-  repo: 'react',
-  issueNumber: 123,
-});
+import { ipc } from '../ipc/client';
+
+// Using the typed IPC client singleton
+const result = await ipc.invoke('github:get-issue', 'facebook', 'react', 123);
 ```
 
 ### With Error Handling
 
 ```typescript
+import { ipc } from '../ipc/client';
+
 try {
-  const issues = await window.electron.invoke('github:search-issues', {
-    query: 'is:open label:good-first-issue',
-    perPage: 20,
-  });
+  const issues = await ipc.invoke('github:search-issues', 'is:open label:good-first-issue', [
+    'good-first-issue',
+  ]);
   console.log('Found issues:', issues);
 } catch (error) {
   console.error('Failed to search issues:', error.message);
@@ -62,17 +62,19 @@ try {
 ### In Zustand Stores
 
 ```typescript
+import { ipc } from '../ipc/client';
+
 // Example from useContributionsStore.ts
 const useContributionsStore = create((set) => ({
   contributions: [],
 
   fetchContributions: async () => {
-    const contributions = await window.electron.invoke('contribution:get-all');
+    const contributions = await ipc.invoke('contribution:get-all');
     set({ contributions });
   },
 
   createContribution: async (data) => {
-    const contribution = await window.electron.invoke('contribution:create', data);
+    const contribution = await ipc.invoke('contribution:create', data);
     set((state) => ({
       contributions: [...state.contributions, contribution],
     }));
@@ -144,7 +146,7 @@ ipcMain.handle('contribution:create', async (event, data) => {
 | `git:add-remote`          | Add remote              | `{ repoPath: string, name: string, url: string }`        |
 | `git:get-remotes`         | List remotes            | `{ repoPath: string }`                                   |
 
-### GitHub Channels (github:) - 45 channels
+### GitHub Channels (github:) - 53 channels
 
 #### Repository Operations
 
@@ -164,7 +166,8 @@ ipcMain.handle('contribution:create', async (event, data) => {
 | `github:list-issues`            | List repository issues           |
 | `github:get-issue`              | Get single issue details         |
 | `github:create-issue`           | Create new issue                 |
-| `github:update-issue`           | Update issue                     |
+| `github:update-issue`           | Update issue state               |
+| `github:add-assignees`          | Add assignees to issue           |
 | `github:list-issue-comments`    | List issue comments              |
 | `github:create-issue-comment`   | Add comment to issue             |
 | `github:list-issue-reactions`   | List reactions on issue          |
@@ -210,6 +213,33 @@ ipcMain.handle('contribution:create', async (event, data) => {
 | `github:list-comment-reactions`  | List comment reactions  |
 | `github:add-comment-reaction`    | Add reaction to comment |
 | `github:delete-comment-reaction` | Remove comment reaction |
+
+#### GitHub Actions
+
+| Channel                         | Description                   | Parameters                                     | Returns                                                                                                                                         |
+| ------------------------------- | ----------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `github:list-workflow-runs`     | List workflow runs for a repo | `(owner: string, repo: string)`                | `{ id, name, displayTitle, status, conclusion, headBranch, headSha, event, runNumber, createdAt, updatedAt, htmlUrl, actor, actorAvatarUrl }[]` |
+| `github:list-workflow-run-jobs` | List jobs for a specific run  | `(owner: string, repo: string, runId: number)` | `{ id, name, status, conclusion, startedAt, completedAt, htmlUrl, runnerName, labels, steps[] }[]`                                              |
+| `github:get-job-logs`           | Get raw log output for a job  | `(owner: string, repo: string, jobId: number)` | `string`                                                                                                                                        |
+
+#### Releases
+
+| Channel                  | Description                | Parameters                                                                                | Returns                                                                                                                               |
+| ------------------------ | -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `github:list-releases`   | List repository releases   | `(owner: string, repo: string)`                                                           | `{ id, tagName, name, body, draft, prerelease, createdAt, publishedAt, htmlUrl, author, authorAvatarUrl, isLatest }[]`                |
+| `github:get-release`     | Get single release details | `(owner: string, repo: string, releaseId: number)`                                        | `{ id, tagName, name, body, draft, prerelease, createdAt, publishedAt, htmlUrl, author, authorAvatarUrl, targetCommitish, isLatest }` |
+| `github:create-release`  | Create a new release       | `(owner, repo, { tagName, name, body, draft, prerelease, makeLatest, targetCommitish? })` | `{ id, tagName, name, body, draft, prerelease, htmlUrl }`                                                                             |
+| `github:update-release`  | Update release metadata    | `(owner, repo, releaseId, { tagName?, name?, body?, draft?, prerelease?, makeLatest? })`  | `{ id, tagName, name, body, draft, prerelease, htmlUrl }`                                                                             |
+| `github:delete-release`  | Delete a release           | `(owner: string, repo: string, releaseId: number)`                                        | `void`                                                                                                                                |
+| `github:publish-release` | Publish a draft release    | `(owner: string, repo: string, releaseId: number)`                                        | `{ id, tagName, name, htmlUrl }`                                                                                                      |
+
+#### Search & User Activity
+
+| Channel                        | Description                          | Parameters                             | Returns                                                                                                                                       |
+| ------------------------------ | ------------------------------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `github:search-issues-and-prs` | Combined issue and PR search         | `(query: string, perPage?: number)`    | `{ totalCount, items: { id, number, title, state, htmlUrl, createdAt, updatedAt, closedAt, labels, repoFullName, isPullRequest, author }[] }` |
+| `github:list-user-events`      | List authenticated user activity     | `(username: string, perPage?: number)` | `{ id, type, repoName, createdAt, action, refType, ref, commitCount, prNumber, prTitle, issueNumber, issueTitle }[]`                          |
+| `github:list-user-repos`       | List authenticated user repositories | `()`                                   | `{ id, name, fullName, description, url, cloneUrl, language, stars, forks, private }[]`                                                       |
 
 ### Contribution Channels (contribution:) - 7 channels
 
@@ -316,16 +346,23 @@ ipcMain.handle('contribution:create', async (event, data) => {
 | `discord:send-thread-message`           | Send to thread           |
 | `discord:create-forum-thread`           | Create forum thread      |
 
-### Code Server Channels (code-server:) - 6 channels
+### Code Server Channels (code-server:) - 7 channels
 
-| Channel                            | Description                |
-| ---------------------------------- | -------------------------- |
-| `code-server:start`                | Start code-server instance |
-| `code-server:stop`                 | Stop code-server           |
-| `code-server:status`               | Get code-server status     |
-| `code-server:add-workspace`        | Add workspace folder       |
-| `code-server:remove-workspace`     | Remove workspace folder    |
-| `code-server:get-mounted-projects` | Get mounted projects       |
+| Channel                            | Description                         |
+| ---------------------------------- | ----------------------------------- |
+| `code-server:start`                | Start code-server instance          |
+| `code-server:stop`                 | Stop code-server                    |
+| `code-server:status`               | Get code-server status              |
+| `code-server:add-workspace`        | Add workspace folder                |
+| `code-server:remove-workspace`     | Remove workspace folder             |
+| `code-server:get-mounted-projects` | Get mounted projects                |
+| `code-server:get-stats`            | Get Docker container resource stats |
+
+### Documentation Channels (docs:) - 1 channel
+
+| Channel              | Description                      |
+| -------------------- | -------------------------------- |
+| `docs:get-structure` | Get documentation file structure |
 
 ### Terminal Channels (terminal:) - 4 channels
 
@@ -391,6 +428,7 @@ ipcMain.handle('contribution:create', async (event, data) => {
 | useSpotifyStore              | `useSpotifyStore.ts`              | Spotify playback state        |
 | useDevScriptsStore           | `useDevScriptsStore.ts`           | Dev scripts management        |
 | useOpenProjectsStore         | `useOpenProjectsStore.ts`         | Currently open projects       |
+| useUpdaterStore              | `useUpdaterStore.ts`              | Auto-update state management  |
 
 #### Store Export Status
 
@@ -415,7 +453,76 @@ import { useDiscordStore } from '@/stores/useDiscordStore';
 import { useProfessionalProjectsStore } from '@/stores/useProfessionalProjectsStore';
 import { useProjectsStore } from '@/stores/useProjectsStore';
 import { useSpotifyStore } from '@/stores/useSpotifyStore';
+import { useUpdaterStore } from '@/stores/useUpdaterStore';
 ```
+
+---
+
+## Domain-Split Service Architecture
+
+Two services have been refactored from monolithic files into domain-based sub-modules organized in subdirectories. Each uses a barrel `index.ts` re-export to preserve the original class API while splitting implementation into focused, testable units.
+
+### GitHub REST Service (`src/main/services/github/`)
+
+The `GitHubRestService` class extends `GitHubRestServiceBase` and delegates every public method to standalone functions in domain modules.
+
+| Module                     | File                              | Responsibility                                                                                      |
+| -------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| GitHubRestServiceBase      | `github-rest-base.service.ts`     | Octokit client management, token handling, authenticated user, search, user events, repository tree |
+| GitHub Issues              | `github-issues.service.ts`        | Issue CRUD, comments, reactions, sub-issues                                                         |
+| GitHub Pull Requests       | `github-pull-requests.service.ts` | PR CRUD, reviews, comments, reactions, merge, close, check status                                   |
+| GitHub Extras              | `github-extras.service.ts`        | Repositories, releases, actions, stars, rate limits, comment reactions                              |
+| GitHubRestService (facade) | `index.ts`                        | Re-exports class that delegates to all sub-modules                                                  |
+
+```
+src/main/services/github/
+  index.ts                          # GitHubRestService facade class + singleton export
+  github-rest-base.service.ts       # Base class with Octokit client
+  github-issues.service.ts          # Issue domain functions
+  github-pull-requests.service.ts   # PR domain functions
+  github-extras.service.ts          # Repository, releases, actions, misc functions
+```
+
+### Code Server Service (`src/main/services/code-server/`)
+
+The `CodeServerService` class orchestrates container lifecycle and delegates to domain modules for path mapping, config sync, and Docker operations.
+
+| Module                           | File             | Responsibility                                                                             |
+| -------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
+| Path Mapper                      | `path-mapper.ts` | Port allocation, host/container path translation, workspace category detection             |
+| Config Sync                      | `config-sync.ts` | VS Code settings sync, git config, bashrc, SSH config, Docker mount generation             |
+| Docker Ops                       | `docker-ops.ts`  | Docker CLI execution, container state, stats, image management, extensions                 |
+| Types                            | `types.ts`       | Shared TypeScript interfaces (`CodeServerStatus`, `CodeServerStats`, `WorkspaceBasePaths`) |
+| CodeServerService (orchestrator) | `index.ts`       | Lifecycle management, workspace tracking, delegates to sub-modules                         |
+
+```
+src/main/services/code-server/
+  index.ts          # CodeServerService orchestrator class + singleton export
+  path-mapper.ts    # Path translation utilities
+  config-sync.ts    # Configuration synchronization
+  docker-ops.ts     # Docker CLI operations
+  types.ts          # Shared type definitions
+```
+
+---
+
+## Event Channels (Main -> Renderer)
+
+In addition to the request/response invoke channels, Cola Records uses 9 one-way event channels for pushing data from the main process to the renderer. These are defined in `src/main/ipc/channels/events.ts`.
+
+| Channel                 | Payload                                                                             | Purpose                                 |
+| ----------------------- | ----------------------------------------------------------------------------------- | --------------------------------------- |
+| `git:status-changed`    | `(repoPath: string)`                                                                | Notify renderer that git status changed |
+| `terminal:data`         | `(terminalId: string, data: string)`                                                | PTY output data stream                  |
+| `terminal:exit`         | `(terminalId: string, exitCode: number)`                                            | PTY process exited                      |
+| `updater:checking`      | `()`                                                                                | Update check started                    |
+| `updater:available`     | `({ version: string, releaseDate: string, releaseNotes?: string })`                 | Update available with version info      |
+| `updater:not-available` | `()`                                                                                | No update available                     |
+| `updater:progress`      | `({ percent: number, bytesPerSecond: number, transferred: number, total: number })` | Download progress                       |
+| `updater:downloaded`    | `({ version: string, releaseDate: string, releaseNotes?: string })`                 | Update downloaded, ready to install     |
+| `updater:error`         | `({ message: string })`                                                             | Update error occurred                   |
+
+Event channels use `webContents.send()` in the main process and `ipcRenderer.on()` listeners in the renderer, unlike invoke channels which use the request/response pattern.
 
 ---
 
@@ -445,7 +552,7 @@ ipcMain.handle('github:get-issue', async (event, params) => {
 
 // Renderer - handle errors gracefully
 try {
-  const issue = await window.electron.invoke('github:get-issue', { issueNumber: 123 });
+  const issue = await ipc.invoke('github:get-issue', 'owner', 'repo', 123);
 } catch (error) {
   toast.error(error.message);
 }

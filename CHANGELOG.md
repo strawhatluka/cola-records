@@ -37,6 +37,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - On failure: deletes partially cloned directory via `fs:delete-directory` and removes DB record via `deleteContribution`
   - Rollback errors are caught and logged without masking the original error
 
+### Documentation
+
+- Updated all 4 docs/ files to match codebase reality after v1.0.4–v1.0.5 feature additions
+  - `component-hierarchy.md`: 87 → 108 components; added Dashboard (7), Documentation (3), Updates (1) sections with mermaid diagrams; updated Screens 7→8, Tools 7→11, Settings 4→5
+  - `mvc-flow.md`: added GitHub Actions, Releases, Dashboard, and Documentation data flow diagrams; updated IPC channel counts (108→163 invoke + 9 events); added useUpdaterStore to state table; documented domain-split service architecture
+  - `api-development.md`: added 27 new GitHub channels (Actions, Releases, Search, PR operations); added Event Channels and Domain-Split Service Architecture sections; fixed IPC client examples (`window.electron` → `ipc`)
+  - `getting-started.md`: updated component/store/screen counts; added Dashboard and Documentation feature descriptions; fixed contributing guide link
+- Fixed inaccuracies in `CONTRIBUTING.md`
+  - Corrected IPC usage example (`window.electron.invoke` → `ipc.invoke`)
+  - Fixed test file location (co-located → `tests/` directory mirroring `src/`)
+
 ### Changed
 
 - Split `channels.ts` (1,241 LOC) into domain-based type modules with barrel re-export (HIGH-003)
