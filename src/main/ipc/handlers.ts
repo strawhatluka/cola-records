@@ -28,10 +28,12 @@ export function removeIpcHandler(channel: keyof IpcChannels): void {
  * Remove all IPC handlers
  */
 export function removeAllIpcHandlers(): void {
-  // Get all channels from IpcChannels interface
+  // Complete list of all channels from IpcChannels interface.
+  // Grouped by domain to match handler module organisation.
   const channels: (keyof IpcChannels)[] = [
+    // ── Echo ──
     'echo',
-    // File System
+    // ── File System ──
     'fs:read-directory',
     'fs:read-file',
     'fs:write-file',
@@ -40,7 +42,7 @@ export function removeAllIpcHandlers(): void {
     'fs:rename-file',
     'fs:reveal-in-explorer',
     'fs:directory-exists',
-    // Git
+    // ── Git ──
     'git:status',
     'git:log',
     'git:add',
@@ -54,9 +56,14 @@ export function removeAllIpcHandlers(): void {
     'git:create-branch',
     'git:get-current-branch',
     'git:compare-branches',
+    'git:delete-branch',
+    'git:get-branch-info',
     'git:add-remote',
     'git:get-remotes',
-    // GitHub
+    // ── GitIgnore ──
+    'gitignore:is-ignored',
+    'gitignore:get-patterns',
+    // ── GitHub ──
     'github:get-authenticated-user',
     'github:search-issues',
     'github:get-repository',
@@ -69,31 +76,54 @@ export function removeAllIpcHandlers(): void {
     'github:list-pr-reviews',
     'github:list-pr-review-comments',
     'github:create-pr-comment',
+    'github:create-review-comment-reply',
+    'github:list-review-comment-reactions',
+    'github:add-review-comment-reaction',
+    'github:delete-review-comment-reaction',
+    'github:get-pr-review-threads',
+    'github:resolve-review-thread',
+    'github:unresolve-review-thread',
+    'github:list-pr-commits',
+    'github:list-pr-events',
     'github:list-issues',
     'github:get-issue',
+    'github:add-assignees',
     'github:list-issue-comments',
     'github:create-issue-comment',
-    'github:add-assignees',
     'github:update-issue',
     'github:create-issue',
     'github:create-pull-request',
     'github:merge-pull-request',
     'github:close-pull-request',
-    'github:search-issues-and-prs',
-    'github:list-user-events',
-    'github:list-user-repos',
-    // Reactions
+    // ── GitHub Reactions ──
     'github:list-issue-reactions',
     'github:add-issue-reaction',
     'github:delete-issue-reaction',
     'github:list-comment-reactions',
     'github:add-comment-reaction',
     'github:delete-comment-reaction',
-    // Sub-Issues
+    // ── GitHub Sub-Issues ──
     'github:list-sub-issues',
     'github:create-sub-issue',
     'github:add-existing-sub-issue',
-    // Contributions
+    // ── GitHub Actions ──
+    'github:list-workflow-runs',
+    'github:list-workflow-run-jobs',
+    'github:get-job-logs',
+    // ── GitHub Releases ──
+    'github:list-releases',
+    'github:get-release',
+    'github:create-release',
+    'github:update-release',
+    'github:delete-release',
+    'github:publish-release',
+    // ── GitHub Search & User ──
+    'github:search-issues-and-prs',
+    'github:list-user-events',
+    'github:list-user-repos',
+    // ── GitHub PR Status ──
+    'github:get-pr-check-status',
+    // ── Contributions ──
     'contribution:create',
     'contribution:get-all',
     'contribution:get-by-id',
@@ -101,21 +131,22 @@ export function removeAllIpcHandlers(): void {
     'contribution:delete',
     'contribution:scan-directory',
     'contribution:sync-with-github',
-    // Projects
+    // ── Projects ──
     'project:scan-directory',
-    // Settings
+    // ── Settings ──
     'settings:get',
     'settings:update',
-    // GitIgnore
-    'gitignore:is-ignored',
-    'gitignore:get-patterns',
-    // Dialog
+    'settings:get-ssh-remotes',
+    'settings:save-ssh-remotes',
+    // ── Dialog ──
     'dialog:open-directory',
-    // Shell
+    // ── Shell ──
     'shell:execute',
     'shell:open-external',
     'shell:launch-app',
-    // Spotify
+    // ── Documentation ──
+    'docs:get-structure',
+    // ── Spotify ──
     'spotify:is-connected',
     'spotify:start-auth',
     'spotify:disconnect',
@@ -134,7 +165,7 @@ export function removeAllIpcHandlers(): void {
     'spotify:remove-track',
     'spotify:is-track-saved',
     'spotify:seek',
-    // Discord
+    // ── Discord ──
     'discord:is-connected',
     'discord:connect',
     'discord:disconnect',
@@ -164,13 +195,24 @@ export function removeAllIpcHandlers(): void {
     'discord:get-thread-messages',
     'discord:send-thread-message',
     'discord:create-forum-thread',
-    // Documentation
-    'docs:get-structure',
-    // Code Server
+    // ── Code Server ──
     'code-server:start',
     'code-server:stop',
     'code-server:status',
-    // Updater
+    'code-server:add-workspace',
+    'code-server:remove-workspace',
+    'code-server:get-mounted-projects',
+    'code-server:get-stats',
+    // ── Terminal ──
+    'terminal:spawn',
+    'terminal:write',
+    'terminal:resize',
+    'terminal:kill',
+    // ── Dev Scripts ──
+    'dev-scripts:get-all',
+    'dev-scripts:save',
+    'dev-scripts:delete',
+    // ── Updater ──
     'updater:check',
     'updater:download',
     'updater:install',

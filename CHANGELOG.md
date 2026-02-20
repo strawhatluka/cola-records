@@ -48,6 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `code-server/docker-ops.ts` — Docker CLI execution, image management, container lifecycle, health checks, stats
   - `code-server/index.ts` — orchestration class managing container state and delegating to modules
   - Original `code-server.service.ts` reduced to 2-line barrel re-export
+- Split `setupIpcHandlers()` (164 handlers, ~1,202 LOC) from `index.ts` into 6 domain handler modules (HIGH-003)
+  - `handlers/github.handlers.ts` — 53 handlers for GitHub REST, GraphQL, reactions, reviews, releases, actions, sub-issues
+  - `handlers/core.handlers.ts` — 33 handlers for echo, fs, git, gitignore, dialog, shell, docs
+  - `handlers/contribution.handlers.ts` — 8 handlers for contribution and project scanning
+  - `handlers/settings.handlers.ts` — 4 handlers for settings CRUD and SSH remotes
+  - `handlers/integrations.handlers.ts` — 47 handlers for Spotify and Discord
+  - `handlers/dev-tools.handlers.ts` — 19 handlers for code-server, terminal, dev-scripts, updater
+  - `handlers/index.ts` — composer calling all 6 domain setup functions
+  - `index.ts` reduced from 1,361 to 153 lines (lifecycle only)
 - Eliminated all 86 unsafe `any` type annotations across 5 API service files (HIGH-001)
   - Created `src/types/spotify-api.types.ts` — 7 interfaces for Spotify REST API response shapes
   - Created `src/types/github-graphql.types.ts` — 7 interfaces for GitHub GraphQL response shapes
@@ -58,6 +67,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `spotify.service.ts`: 7 `any` → Spotify API response types
   - `github.service.ts`: 1 `any[]` → `unknown[]`
   - Fixed 3 catch blocks: `catch (error: any)` → `catch (error: unknown)` with proper type narrowing
+
+### Fixed
+
+- Fixed `removeAllIpcHandlers()` missing 22 channels from cleanup list (HIGH-003)
+  - Added all missing channels: code-server workspace management, terminal, dev-scripts, git branch ops, GitHub review comments/threads, releases, actions, PR check status, SSH remotes
+  - Channel list now covers all 164 registered IPC handlers
 
 ### Tests
 

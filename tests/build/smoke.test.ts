@@ -228,8 +228,16 @@ describe('Build Configuration Smoke Tests', () => {
       expect(content).toContain('import { updaterService }');
     });
 
-    it('main index has updater IPC handlers', () => {
+    it('main index delegates to setupIpcHandlers', () => {
       const content = fs.readFileSync(path.join(rootDir, 'src', 'main', 'index.ts'), 'utf-8');
+      expect(content).toContain('setupIpcHandlers()');
+    });
+
+    it('dev-tools handler module has updater IPC handlers', () => {
+      const content = fs.readFileSync(
+        path.join(rootDir, 'src', 'main', 'ipc', 'handlers', 'dev-tools.handlers.ts'),
+        'utf-8'
+      );
       expect(content).toContain("handleIpc('updater:check'");
       expect(content).toContain("handleIpc('updater:download'");
       expect(content).toContain("handleIpc('updater:install'");
