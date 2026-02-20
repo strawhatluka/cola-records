@@ -34,6 +34,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `pr-detail/utils.tsx` — 6 pure utility functions (`reviewStateBadge`, `statusBadge`, `formatDate`, `formatRelativeTime`, `parseDiffHunkHeader`, `getReviewActionText`)
   - `pr-detail/index.ts` — barrel re-export
   - `PullRequestDetailModal.tsx` reduced by ~200 lines
+- Split `github-rest.service.ts` (1,615 LOC, 50 methods) into domain modules with facade pattern (HIGH-003)
+  - `github/github-rest-base.service.ts` — base class with Octokit client init and token resolution
+  - `github/github-issues.service.ts` — 10 standalone functions for issue CRUD, comments, assignees, reactions
+  - `github/github-pull-requests.service.ts` — 16 standalone functions for PR CRUD, reviews, merge, timeline, check status
+  - `github/github-extras.service.ts` — 24 standalone functions for comment reactions, repos, actions, releases, search, events, sub-issues
+  - `github/index.ts` — facade class extending base, delegating all 50 methods to standalone functions
+  - Original `github-rest.service.ts` reduced to 1-line barrel re-export
+- Split `code-server.service.ts` (1,597 LOC) into domain modules with orchestration pattern (HIGH-003)
+  - `code-server/types.ts` — interfaces, defaults, constants (`CodeServerStatus`, `CodeServerStartResult`, `WorkspaceBasePaths`, `CodeServerStats`)
+  - `code-server/path-mapper.ts` — port allocation, Docker path conversion, workspace path mapping, memory string parsing
+  - `code-server/config-sync.ts` — VS Code settings, git config, bashrc, SSH config sync, mount helpers
+  - `code-server/docker-ops.ts` — Docker CLI execution, image management, container lifecycle, health checks, stats
+  - `code-server/index.ts` — orchestration class managing container state and delegating to modules
+  - Original `code-server.service.ts` reduced to 2-line barrel re-export
 - Eliminated all 86 unsafe `any` type annotations across 5 API service files (HIGH-001)
   - Created `src/types/spotify-api.types.ts` — 7 interfaces for Spotify REST API response shapes
   - Created `src/types/github-graphql.types.ts` — 7 interfaces for GitHub GraphQL response shapes
