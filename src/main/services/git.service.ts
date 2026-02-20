@@ -5,6 +5,7 @@ import * as path from 'path';
 import type { GitStatus, GitCommit, BranchComparison, BranchInfo } from '../ipc/channels';
 import { database } from '../database';
 import { env } from './environment.service';
+import { sanitizeGitError } from '../utils/sanitize-error';
 
 /**
  * Git Service
@@ -154,7 +155,7 @@ export class GitService {
         })),
       };
     } catch (error) {
-      throw new Error(`Failed to get git status for ${repoPath}: ${error}`);
+      throw new Error(`Failed to get git status for ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -173,7 +174,7 @@ export class GitService {
         date: new Date(commit.date),
       }));
     } catch (error) {
-      throw new Error(`Failed to get git log for ${repoPath}: ${error}`);
+      throw new Error(`Failed to get git log for ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -185,7 +186,7 @@ export class GitService {
       const git = this.getGit(repoPath);
       await git.add(files);
     } catch (error) {
-      throw new Error(`Failed to stage files in ${repoPath}: ${error}`);
+      throw new Error(`Failed to stage files in ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -197,7 +198,7 @@ export class GitService {
       const git = this.getGit(repoPath);
       await git.commit(message);
     } catch (error) {
-      throw new Error(`Failed to commit in ${repoPath}: ${error}`);
+      throw new Error(`Failed to commit in ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -221,7 +222,7 @@ export class GitService {
         }
       });
     } catch (error) {
-      throw new Error(`Failed to push in ${repoPath}: ${error}`);
+      throw new Error(`Failed to push in ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -239,7 +240,7 @@ export class GitService {
         }
       });
     } catch (error) {
-      throw new Error(`Failed to pull in ${repoPath}: ${error}`);
+      throw new Error(`Failed to pull in ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -260,7 +261,7 @@ export class GitService {
         await repoGit.remote(['set-url', 'origin', url]);
       }
     } catch (error) {
-      throw new Error(`Failed to clone ${url} to ${targetPath}: ${error}`);
+      throw new Error(`Failed to clone ${url} to ${targetPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -272,7 +273,7 @@ export class GitService {
       const git = this.getGit(repoPath);
       await git.checkout(branch);
     } catch (error) {
-      throw new Error(`Failed to checkout ${branch} in ${repoPath}: ${error}`);
+      throw new Error(`Failed to checkout ${branch} in ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -284,7 +285,9 @@ export class GitService {
       const git = this.getGit(repoPath);
       await git.checkoutLocalBranch(branchName);
     } catch (error) {
-      throw new Error(`Failed to create branch ${branchName} in ${repoPath}: ${error}`);
+      throw new Error(
+        `Failed to create branch ${branchName} in ${repoPath}: ${sanitizeGitError(error)}`
+      );
     }
   }
 
@@ -297,7 +300,7 @@ export class GitService {
       const status = await git.status();
       return status.current || null;
     } catch (error) {
-      throw new Error(`Failed to get current branch for ${repoPath}: ${error}`);
+      throw new Error(`Failed to get current branch for ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -334,7 +337,7 @@ export class GitService {
 
       return sortedBranches;
     } catch (error) {
-      throw new Error(`Failed to get branches for ${repoPath}: ${error}`);
+      throw new Error(`Failed to get branches for ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -362,7 +365,7 @@ export class GitService {
 
       return remoteBranches;
     } catch (error) {
-      throw new Error(`Failed to get remote branches for ${repoPath}: ${error}`);
+      throw new Error(`Failed to get remote branches for ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -387,7 +390,9 @@ export class GitService {
       const git = this.getGit(repoPath);
       await git.init();
     } catch (error) {
-      throw new Error(`Failed to initialize git repository in ${repoPath}: ${error}`);
+      throw new Error(
+        `Failed to initialize git repository in ${repoPath}: ${sanitizeGitError(error)}`
+      );
     }
   }
 
@@ -434,7 +439,7 @@ export class GitService {
         await git.fetch(remote);
       });
     } catch (error) {
-      throw new Error(`Failed to fetch from ${remote} in ${repoPath}: ${error}`);
+      throw new Error(`Failed to fetch from ${remote} in ${repoPath}: ${sanitizeGitError(error)}`);
     }
   }
   /**
@@ -445,7 +450,9 @@ export class GitService {
       const git = this.getGit(repoPath);
       await git.addRemote(remoteName, url);
     } catch (error) {
-      throw new Error(`Failed to add remote ${remoteName} in ${repoPath}: ${error}`);
+      throw new Error(
+        `Failed to add remote ${remoteName} in ${repoPath}: ${sanitizeGitError(error)}`
+      );
     }
   }
 
@@ -489,7 +496,9 @@ export class GitService {
         rawDiff,
       };
     } catch (error) {
-      throw new Error(`Failed to compare branches ${base}...${head} in ${repoPath}: ${error}`);
+      throw new Error(
+        `Failed to compare branches ${base}...${head} in ${repoPath}: ${sanitizeGitError(error)}`
+      );
     }
   }
 
@@ -526,7 +535,7 @@ export class GitService {
       const options = force ? ['-D'] : ['-d'];
       await git.branch([...options, branchName]);
     } catch (error) {
-      throw new Error(`Failed to delete branch ${branchName}: ${error}`);
+      throw new Error(`Failed to delete branch ${branchName}: ${sanitizeGitError(error)}`);
     }
   }
 
@@ -580,7 +589,7 @@ export class GitService {
         commitCount,
       };
     } catch (error) {
-      throw new Error(`Failed to get branch info for ${branchName}: ${error}`);
+      throw new Error(`Failed to get branch info for ${branchName}: ${sanitizeGitError(error)}`);
     }
   }
 }

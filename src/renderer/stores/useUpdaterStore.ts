@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import { ipc } from '../ipc/client';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('UpdaterStore');
 
 /**
  * Update status states
@@ -130,7 +133,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
     const { status } = get();
 
     if (status !== 'available') {
-      console.warn('[UpdaterStore] Cannot download - no update available');
+      logger.warn('Cannot download - no update available');
       return;
     }
 
@@ -155,7 +158,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
     const { status } = get();
 
     if (status !== 'downloaded') {
-      console.warn('[UpdaterStore] Cannot install - update not downloaded');
+      logger.warn('Cannot install - update not downloaded');
       return;
     }
 

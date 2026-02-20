@@ -16,6 +16,26 @@
 import { vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+// ============================================
+// electron-log Mocks (used by logger utilities)
+// ============================================
+const noopLogger = {
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+  debug: vi.fn(),
+  verbose: vi.fn(),
+  silly: vi.fn(),
+  log: vi.fn(),
+  transports: {
+    file: { level: 'info', maxSize: 10485760 },
+    console: { level: 'debug' },
+  },
+};
+
+vi.mock('electron-log/renderer', () => ({ default: noopLogger }));
+vi.mock('electron-log/main', () => ({ default: noopLogger }));
+
 // Guard: only set up window mocks when running in jsdom (window exists)
 if (typeof window !== 'undefined') {
   // ============================================

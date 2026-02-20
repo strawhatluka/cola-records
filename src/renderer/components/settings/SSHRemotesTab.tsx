@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { Plus, Trash2, Pencil, Save, X, Terminal, FolderOpen, AlertCircle } from 'lucide-react';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('SSHRemotes');
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -44,7 +47,7 @@ export function SSHRemotesTab({ className }: SSHRemotesTabProps) {
       const data = await ipc.invoke('settings:get-ssh-remotes');
       setRemotes(data);
     } catch (err) {
-      console.error('Failed to load SSH remotes:', err);
+      logger.error('Failed to load SSH remotes:', err);
     } finally {
       setLoading(false);
     }

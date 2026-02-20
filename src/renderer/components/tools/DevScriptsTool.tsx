@@ -19,6 +19,9 @@ import {
   Terminal,
   Layers,
 } from 'lucide-react';
+import { createLogger } from '../../../renderer/utils/logger';
+
+const logger = createLogger('DevScripts');
 import { Button } from '../ui/Button';
 import { useDevScriptsStore, selectScriptsForProject } from '../../stores/useDevScriptsStore';
 import type { DevScript, DevScriptTerminal } from '../../../main/ipc/channels';
@@ -324,7 +327,7 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
         await deleteScript(id);
         setDeleteConfirmId(null);
       } catch (error) {
-        console.error('Failed to delete script:', error);
+        logger.error('Failed to delete script:', error);
       }
     },
     [deleteScript]

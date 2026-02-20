@@ -13,7 +13,9 @@ import type { CodeServerConfig } from '../../ipc/channels';
 import type { CodeServerStats } from './types';
 import { DEFAULT_CODE_SERVER_CONFIG } from './types';
 import { parseMemoryString } from './path-mapper';
+import { createLogger } from '../../utils/logger';
 
+const logger = createLogger('CodeServer');
 const execFileAsync = promisify(execFile);
 
 // ── Docker CLI Execution ─────────────────────────────────────────
@@ -75,7 +77,7 @@ export async function checkDockerAvailable(autoStart = true): Promise<void> {
     );
   }
 
-  console.log('[CodeServer] Docker not running, attempting to start Docker Desktop...');
+  logger.info('Docker not running, attempting to start Docker Desktop...');
   await launchDockerDesktop();
 
   const maxAttempts = 30;
@@ -84,7 +86,7 @@ export async function checkDockerAvailable(autoStart = true): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, delay));
     try {
       await dockerExec(['info', '--format', '{{.ServerVersion}}']);
-      console.log(`[CodeServer] Docker became available after ${attempt * 2} seconds`);
+      logger.info(`Docker became available after ${attempt * 2} seconds`);
       return;
     } catch {
       // Still not ready
@@ -252,21 +254,19 @@ export async function hasResourceConfigChanged(config: CodeServerConfig): Promis
     const expectedShmSize = parseMemoryString(config.shmSize);
 
     if (containerNanoCpus !== expectedNanoCpus) {
-      console.log(
-        `[CodeServer] CPU config changed: container=${containerNanoCpus} expected=${expectedNanoCpus}`
+      logger.debug(
+        `CPU config changed: container=${containerNanoCpus} expected=${expectedNanoCpus}`
       );
       return true;
     }
     if (containerMemory !== expectedMemory) {
-      console.log(
-        `[CodeServer] Memory config changed: container=${containerMemory} expected=${expectedMemory}`
+      logger.debug(
+        `Memory config changed: container=${containerMemory} expected=${expectedMemory}`
       );
       return true;
     }
     if (containerShmSize !== expectedShmSize) {
-      console.log(
-        `[CodeServer] SHM config changed: container=${containerShmSize} expected=${expectedShmSize}`
-      );
+      logger.debug(`SHM config changed: container=${containerShmSize} expected=${expectedShmSize}`);
       return true;
     }
 
@@ -279,7 +279,7 @@ export async function hasResourceConfigChanged(config: CodeServerConfig): Promis
 export async function removeContainer(): Promise<void> {
   try {
     await dockerExec(['rm', '-f', getContainerName()]);
-    console.log('[CodeServer] Removed container for recreation');
+    logger.info('Removed container for recreation');
   } catch {
     // Container may not exist
   }
@@ -291,10 +291,10 @@ export async function installExtensions(extensionIds: string[]): Promise<void> {
   const containerName = getContainerName();
   for (const extId of extensionIds) {
     try {
-      console.log(`[CodeServer] Installing extension: ${extId}`);
+      logger.info(`Installing extension: ${extId}`);
       await dockerExec(['exec', containerName, 'code-server', '--install-extension', extId]);
     } catch (err) {
-      console.error(`[CodeServer] Failed to install extension ${extId}:`, err);
+      logger.error(`Failed to install extension ${extId}:`, err);
     }
   }
 }
@@ -315,14 +315,14 @@ export async function ensureImageExists(): Promise<void> {
   try {
     const images = await dockerExec(['images', '-q', imageName]);
     if (images.trim()) {
-      console.log('[CodeServer] Image cola-code-server:latest already exists');
+      logger.debug('Image cola-code-server:latest already exists');
       return;
     }
   } catch {
     // Error checking images - proceed to build
   }
 
-  console.log('[CodeServer] Building cola-code-server image (this may take a few minutes)...');
+  logger.info('Building cola-code-server image (this may take a few minutes)...');
 
   const dockerfilePath = getDockerfilePath();
 
@@ -330,10 +330,10 @@ export async function ensureImageExists(): Promise<void> {
     const { stdout } = await execFileAsync('docker', ['build', '-t', imageName, dockerfilePath], {
       timeout: 600_000,
     });
-    console.log('[CodeServer] Image build output:', stdout);
-    console.log('[CodeServer] Image cola-code-server:latest built successfully');
+    logger.debug('Image build output:', stdout);
+    logger.info('Image cola-code-server:latest built successfully');
   } catch (err) {
-    console.error('[CodeServer] Failed to build image:', err);
+    logger.error('Failed to build image:', err);
     throw new Error(
       'Failed to build cola-code-server Docker image. Please check Docker is running and try again.\n\n' +
         `Dockerfile location: ${dockerfilePath}`

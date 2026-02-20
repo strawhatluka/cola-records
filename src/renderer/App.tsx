@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createLogger } from './utils/logger';
 import { ThemeProvider } from './providers/ThemeProvider';
+
+const logger = createLogger('App');
 import { Layout } from './components/layout/Layout';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { IssueDiscoveryScreen } from './screens/IssueDiscoveryScreen';
@@ -69,7 +72,7 @@ const App: React.FC = () => {
       const project = openProject(contribution);
       if (!project) {
         // Max projects reached - could show a toast here
-        console.warn('Max projects reached');
+        logger.warn('Max projects reached');
         return;
       }
 

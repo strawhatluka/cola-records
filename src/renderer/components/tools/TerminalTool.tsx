@@ -7,6 +7,9 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
+import { createLogger } from '../../../renderer/utils/logger';
+
+const logger = createLogger('TerminalTool');
 import { Button } from '../ui/Button';
 import { XTermTerminal } from './XTermTerminal';
 import {
@@ -76,7 +79,7 @@ export function TerminalTool({
         setTabs((prev) => [...prev, newTab]);
         setActiveTabId(session.id);
       } catch (error) {
-        console.error('Failed to create terminal:', error);
+        logger.error('Failed to create terminal:', error);
       }
     },
     [workingDirectory]

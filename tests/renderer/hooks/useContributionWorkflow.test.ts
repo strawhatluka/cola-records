@@ -200,4 +200,109 @@ describe('useContributionWorkflow', () => {
     expect(result.current.state.error).toBeNull();
     expect(result.current.state.contribution).toBeNull();
   });
+
+  describe('rollback logic', () => {
+    it('deletes cloned directory when clone succeeds but later step fails', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:fork-repository')
+          return { name: 'repo', url: 'https://github.com/user/repo.git' };
+        if (channel === 'fs:directory-exists') return false;
+        if (channel === 'git:clone') return undefined;
+        if (channel === 'git:add-remote') throw new Error('Remote setup failed');
+        if (channel === 'fs:delete-directory') return undefined;
+        return undefined;
+      });
+
+      const { result } = renderHook(() => useContributionWorkflow());
+
+      await act(async () => {
+        try {
+          await result.current.startWorkflow(mockIssue);
+        } catch {
+          // Expected
+        }
+      });
+
+      expect(result.current.state.status).toBe('error');
+      expect(result.current.state.error).toBe('Remote setup failed');
+      expect(mockInvoke).toHaveBeenCalledWith('fs:delete-directory', '/mock/contributions/repo');
+    });
+
+    it('does not attempt directory cleanup when clone was never reached', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:fork-repository') throw new Error('Fork failed');
+        return undefined;
+      });
+
+      const { result } = renderHook(() => useContributionWorkflow());
+
+      await act(async () => {
+        try {
+          await result.current.startWorkflow(mockIssue);
+        } catch {
+          // Expected
+        }
+      });
+
+      expect(result.current.state.status).toBe('error');
+      expect(mockInvoke).not.toHaveBeenCalledWith('fs:delete-directory', expect.any(String));
+    });
+
+    it('deletes contribution record and cloned directory on branch creation failure', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:fork-repository')
+          return { name: 'repo', url: 'https://github.com/user/repo.git' };
+        if (channel === 'fs:directory-exists') return false;
+        if (channel === 'git:clone') return undefined;
+        if (channel === 'git:add-remote') return undefined;
+        if (channel === 'git:create-branch') throw new Error('Branch creation failed');
+        if (channel === 'fs:delete-directory') return undefined;
+        if (channel === 'contribution:delete') return undefined;
+        return undefined;
+      });
+
+      const { result } = renderHook(() => useContributionWorkflow());
+
+      await act(async () => {
+        try {
+          await result.current.startWorkflow(mockIssue);
+        } catch {
+          // Expected
+        }
+      });
+
+      expect(result.current.state.status).toBe('error');
+      // Directory should be cleaned up
+      expect(mockInvoke).toHaveBeenCalledWith('fs:delete-directory', '/mock/contributions/repo');
+      // No contribution was saved, so no delete call
+      expect(mockInvoke).not.toHaveBeenCalledWith('contribution:delete', expect.any(String));
+    });
+
+    it('handles rollback errors gracefully without throwing', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:fork-repository')
+          return { name: 'repo', url: 'https://github.com/user/repo.git' };
+        if (channel === 'fs:directory-exists') return false;
+        if (channel === 'git:clone') return undefined;
+        if (channel === 'git:add-remote') throw new Error('Remote setup failed');
+        if (channel === 'fs:delete-directory') throw new Error('Cleanup also failed');
+        return undefined;
+      });
+
+      const { result } = renderHook(() => useContributionWorkflow());
+
+      let caughtError: Error | undefined;
+      await act(async () => {
+        try {
+          await result.current.startWorkflow(mockIssue);
+        } catch (e) {
+          caughtError = e as Error;
+        }
+      });
+
+      // Original error is thrown, not the rollback error
+      expect(caughtError?.message).toBe('Remote setup failed');
+      expect(result.current.state.status).toBe('error');
+    });
+  });
 });

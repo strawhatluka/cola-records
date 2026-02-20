@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Sanitized git error messages to prevent token leakage to renderer (MED-005)
+  - Created `src/main/utils/sanitize-error.ts` with `sanitizeGitError()` stripping `x-access-token` URLs
+  - Applied to all 19 throw statements in `git.service.ts` that interpolate error messages
 - Fixed innerHTML XSS vector in MermaidBlock component (CRIT-001)
   - Added DOMPurify sanitization of Mermaid SVG output before DOM insertion
   - DOMPurify config allows SVG profiles and `foreignObject` for Mermaid compatibility
@@ -18,6 +21,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed `electron-icon-builder` (unused — pulled in `phantomjs-prebuilt` chain with 2 critical `form-data` CVEs)
   - Ran `npm audit fix` for safe transitive dependency patches
   - Remaining 52 vulnerabilities are dev-only toolchain deps (Electron Forge, ESLint) with zero runtime impact
+
+### Added
+
+- Centralized logging infrastructure with `electron-log` (MED-001)
+  - Created `src/main/utils/logger.ts` (main process) and `src/renderer/utils/logger.ts` (renderer) with tagged `createLogger(tag)` factory
+  - Replaced all 44 `console.log/error/warn` statements across 11 source files with structured, file-rotating logger
+  - Log levels: `debug` for dev-mode guards and config detection, `info` for operational events, `warn` for non-critical guards, `error` for failures
+  - File transport: 10 MB rotation, `info` level; console transport: `debug` level
+- Test coverage baseline and regression thresholds (MED-003)
+  - Configured `vitest.config.ts` coverage thresholds: statements 64%, branches 56%, functions 61%, lines 65%
+  - Baseline measured at: statements 69.59%, branches 61.27%, functions 66.85%, lines 70.48%
+- Contribution workflow rollback logic (MED-006)
+  - Implemented `rollback()` in `useContributionWorkflow` with `clonedPath` and `savedContributionId` state tracking
+  - On failure: deletes partially cloned directory via `fs:delete-directory` and removes DB record via `deleteContribution`
+  - Rollback errors are caught and logged without masking the original error
 
 ### Changed
 
@@ -76,6 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Git error sanitization tests (MED-005)
+  - `sanitize-error.test.ts`: 9 tests covering token stripping, multiple occurrences, non-token preservation, Error/string/undefined inputs
+- Contribution workflow rollback tests (MED-006)
+  - 4 new tests: directory cleanup on post-clone failure, no cleanup when clone never reached, no DB delete when contribution unsaved, graceful rollback error handling
+- Global `electron-log` test mocks added to `tests/setup.ts` for `electron-log/renderer` and `electron-log/main`
 - MermaidBlock sanitization tests (CRIT-001)
   - 3 new tests: DOMPurify called with correct config, script tag stripping, event handler stripping
   - Existing tests updated with DOMPurify mock (passthrough — no behavior change for valid SVG)

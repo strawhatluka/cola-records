@@ -33,6 +33,10 @@ import {
   getSSHMounts,
   getWorkspaceMounts,
 } from './config-sync';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('CodeServer');
+
 import {
   dockerExec,
   getCodeServerConfig,
@@ -217,7 +221,7 @@ class CodeServerService {
       if (containerState !== 'none') {
         const hasMultiMount = await hasMultiMountConfiguration();
         if (!hasMultiMount) {
-          console.log(
+          logger.info(
             '[CodeServer] Existing container uses old mount config, recreating with multi-mount...'
           );
           await removeContainer();
@@ -228,7 +232,7 @@ class CodeServerService {
       if (containerState !== 'none') {
         const configChanged = await hasResourceConfigChanged(config);
         if (configChanged) {
-          console.log(
+          logger.info(
             '[CodeServer] Resource config changed, recreating container with new settings...'
           );
           await removeContainer();
@@ -237,7 +241,7 @@ class CodeServerService {
       }
 
       if (containerState === 'running') {
-        console.log('[CodeServer] Container already running with multi-mount, reusing...');
+        logger.info('[CodeServer] Container already running with multi-mount, reusing...');
         this.workspaceBasePaths = loadWorkspaceBasePaths();
         const existingPort = await getContainerPort();
         if (!existingPort) {
@@ -245,7 +249,7 @@ class CodeServerService {
         }
         port = existingPort;
       } else if (containerState === 'stopped') {
-        console.log('[CodeServer] Starting existing container with multi-mount...');
+        logger.info('[CodeServer] Starting existing container with multi-mount...');
         this.workspaceBasePaths = loadWorkspaceBasePaths();
         await dockerExec(['start', getContainerName()]);
         const existingPort = await getContainerPort();
@@ -254,7 +258,7 @@ class CodeServerService {
         }
         port = existingPort;
       } else {
-        console.log('[CodeServer] Creating new container with workspace mounts...');
+        logger.info('[CodeServer] Creating new container with workspace mounts...');
         port = await findFreePort();
         await this.createContainer(projectPath, port, userDataDir);
       }
@@ -264,7 +268,7 @@ class CodeServerService {
 
       if (config.autoInstallExtensions.length > 0) {
         installExtensions(config.autoInstallExtensions).catch((err) => {
-          console.error('[CodeServer] Extension auto-install failed:', err);
+          logger.error('[CodeServer] Extension auto-install failed:', err);
         });
       }
 
@@ -354,7 +358,7 @@ class CodeServerService {
     try {
       const state = await getContainerState();
       if (state === 'running') {
-        console.log('[CodeServer] Stopping container (preserving state)...');
+        logger.info('[CodeServer] Stopping container (preserving state)...');
         await dockerExec(['stop', '-t', '5', getContainerName()]);
       }
     } catch {
@@ -384,11 +388,11 @@ class CodeServerService {
 
     if (!this.mountedProjects.has(projectPath)) {
       this.mountedProjects.add(projectPath);
-      console.log(
+      logger.info(
         `[CodeServer] Added workspace: ${projectPath} (${this.mountedProjects.size} projects)`
       );
     } else {
-      console.log(`[CodeServer] Workspace already tracked: ${projectPath}`);
+      logger.info(`[CodeServer] Workspace already tracked: ${projectPath}`);
     }
 
     const containerPath = this.hostToContainerPath(projectPath);
@@ -398,12 +402,12 @@ class CodeServerService {
 
   async removeWorkspace(projectPath: string): Promise<{ shouldStop: boolean }> {
     if (!this.mountedProjects.has(projectPath)) {
-      console.log(`[CodeServer] Workspace not found: ${projectPath}`);
+      logger.info(`[CodeServer] Workspace not found: ${projectPath}`);
       return { shouldStop: this.mountedProjects.size === 0 };
     }
 
     this.mountedProjects.delete(projectPath);
-    console.log(
+    logger.info(
       `[CodeServer] Removed workspace: ${projectPath} (${this.mountedProjects.size} remaining)`
     );
 

@@ -8,6 +8,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Copy, ExternalLink, Check, Layers } from 'lucide-react';
+import { createLogger } from '../../../renderer/utils/logger';
+
+const logger = createLogger('ScriptExecution');
 import { Button } from '../ui/Button';
 import { XTermTerminal } from './XTermTerminal';
 import type { DevScript, TerminalSession, DevScriptTerminal } from '../../../main/ipc/channels';
@@ -136,7 +139,7 @@ export function ScriptExecutionModal({
               await new Promise((resolve) => setTimeout(resolve, 300));
             }
           } catch (error) {
-            console.error(`Failed to spawn terminal ${config.name}:`, error);
+            logger.error(`Failed to spawn terminal ${config.name}:`, error);
             setTerminalSessions((prev) => {
               const newSessions = [...prev];
               newSessions[i] = { ...newSessions[i], status: 'error' };
@@ -181,7 +184,7 @@ export function ScriptExecutionModal({
             ipc.invoke('terminal:write', session.id, `${commandString}\n`);
           }, 100);
         } catch (error) {
-          console.error('Failed to spawn terminal:', error);
+          logger.error('Failed to spawn terminal:', error);
           setTerminalSessions([
             {
               session: null,
@@ -256,7 +259,7 @@ export function ScriptExecutionModal({
         setTimeout(() => setCopied(false), 2000);
       }
     } catch (error) {
-      console.error('Failed to copy output:', error);
+      logger.error('Failed to copy output:', error);
     }
   }, []);
 

@@ -226,16 +226,13 @@ describe('ScriptExecutionModal', () => {
     });
 
     it('should handle terminal spawn error', async () => {
-      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockInvoke.mockImplementation(() => Promise.reject(new Error('Spawn failed')));
 
       render(<ScriptExecutionModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalled();
+        expect(screen.getByText('Failed to start terminal')).toBeInTheDocument();
       });
-
-      consoleError.mockRestore();
     });
   });
 

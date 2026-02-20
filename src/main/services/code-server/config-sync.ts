@@ -11,6 +11,9 @@ import { database } from '../../database/database.service';
 import type { Alias, BashProfileSettings, SSHRemote, TerminalColor } from '../../ipc/channels';
 import { getUserDataDir, toDockerPath } from './path-mapper';
 import { WORKSPACE_MOUNTS } from './types';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('CodeServer');
 
 // ── VS Code Settings Sync ────────────────────────────────────────
 
@@ -334,7 +337,7 @@ export function syncSSHConfig(): void {
       try {
         fs.copyFileSync(remote.keyPath, destKeyPath);
       } catch (err) {
-        console.error(`[CodeServer] Failed to copy SSH key ${remote.keyPath}:`, err);
+        logger.error(`Failed to copy SSH key ${remote.keyPath}:`, err);
       }
     }
 

@@ -18,6 +18,12 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: ['node_modules/', 'tests/', '**/*.d.ts', '**/*.config.*', '**/dist/'],
+      thresholds: {
+        statements: 64,
+        branches: 56,
+        functions: 61,
+        lines: 65,
+      },
     },
   },
   resolve: {
