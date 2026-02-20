@@ -21,6 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Split `channels.ts` (1,241 LOC) into domain-based type modules with barrel re-export (HIGH-003)
+  - `channels/types.ts` — 46 shared interfaces and type aliases
+  - `channels/github.channels.ts` — `GitHubChannels` partial interface (git, github, gitignore channels)
+  - `channels/integrations.channels.ts` — `IntegrationChannels` partial interface (spotify, discord channels)
+  - `channels/core.channels.ts` — `CoreChannels` partial interface (fs, contribution, settings, terminal, etc.)
+  - `channels/events.ts` — `IpcEvents` interface (9 events)
+  - `channels/index.ts` — barrel composing `IpcChannels` via `extends`; original `channels.ts` reduced to 1-line re-export
+  - Zero import changes needed in consuming files (backward-compatible barrel)
+- Extracted `PullRequestDetailModal` types and utilities into `pr-detail/` module (HIGH-003)
+  - `pr-detail/types.ts` — 11 interfaces + `TimelineItem` union type
+  - `pr-detail/utils.tsx` — 6 pure utility functions (`reviewStateBadge`, `statusBadge`, `formatDate`, `formatRelativeTime`, `parseDiffHunkHeader`, `getReviewActionText`)
+  - `pr-detail/index.ts` — barrel re-export
+  - `PullRequestDetailModal.tsx` reduced by ~200 lines
 - Eliminated all 86 unsafe `any` type annotations across 5 API service files (HIGH-001)
   - Created `src/types/spotify-api.types.ts` — 7 interfaces for Spotify REST API response shapes
   - Created `src/types/github-graphql.types.ts` — 7 interfaces for GitHub GraphQL response shapes

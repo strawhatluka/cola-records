@@ -108,13 +108,16 @@ describe('Build Configuration Smoke Tests', () => {
   });
 
   describe('IPC channels', () => {
-    it('has IPC channels file', () => {
+    it('has IPC channels barrel', () => {
       expect(fs.existsSync(path.join(rootDir, 'src', 'main', 'ipc', 'channels.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(rootDir, 'src', 'main', 'ipc', 'channels', 'index.ts'))).toBe(
+        true
+      );
     });
 
     it('IPC channels contain updater channels', () => {
       const content = fs.readFileSync(
-        path.join(rootDir, 'src', 'main', 'ipc', 'channels.ts'),
+        path.join(rootDir, 'src', 'main', 'ipc', 'channels', 'core.channels.ts'),
         'utf-8'
       );
       expect(content).toContain("'updater:check'");
@@ -126,7 +129,7 @@ describe('Build Configuration Smoke Tests', () => {
 
     it('IPC channels contain updater events', () => {
       const content = fs.readFileSync(
-        path.join(rootDir, 'src', 'main', 'ipc', 'channels.ts'),
+        path.join(rootDir, 'src', 'main', 'ipc', 'channels', 'events.ts'),
         'utf-8'
       );
       expect(content).toContain("'updater:checking'");
