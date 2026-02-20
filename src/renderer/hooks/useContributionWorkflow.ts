@@ -4,6 +4,9 @@ import { useContributionsStore } from '../stores/useContributionsStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import type { GitHubIssue, Contribution } from '../../main/ipc/channels';
 import { generateBranchName } from '../utils/branch-naming';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ContributionWorkflow');
 
 type WorkflowStatus =
   | 'idle'
@@ -29,10 +32,13 @@ export function useContributionWorkflow() {
     contribution: null,
   });
 
-  const { createContribution } = useContributionsStore();
+  const { createContribution, deleteContribution } = useContributionsStore();
   const { defaultClonePath } = useSettingsStore();
 
   const startWorkflow = async (issue: GitHubIssue): Promise<Contribution> => {
+    let clonedPath: string | null = null;
+    let savedContributionId: string | null = null;
+
     try {
       // Step 1: Fork repository (25% progress)
       setState({ status: 'forking', progress: 25, error: null, contribution: null });
@@ -52,6 +58,7 @@ export function useContributionWorkflow() {
       }
 
       await ipc.invoke('git:clone', fork?.url || '', localPath);
+      clonedPath = localPath;
 
       // Step 3: Setup remotes (75% progress)
       setState({ status: 'setting_up_remotes', progress: 75, error: null, contribution: null });
@@ -76,6 +83,7 @@ export function useContributionWorkflow() {
         isFork: true,
         remotesValid: true, // We just set them up, so they're valid
       });
+      savedContributionId = contribution.id;
 
       setState({ status: 'complete', progress: 100, error: null, contribution });
       return contribution;
@@ -84,15 +92,32 @@ export function useContributionWorkflow() {
       setState({ status: 'error', progress: 0, error: errorMessage, contribution: null });
 
       // Rollback: Clean up any partial state
-      await rollback();
+      await rollback(clonedPath, savedContributionId);
       throw error;
     }
   };
 
-  const rollback = async () => {
-    // TODO: Implement rollback logic
-    // - Delete partially cloned repository
-    // - Remove database entry if created
+  const rollback = async (
+    clonedPath: string | null,
+    savedContributionId: string | null
+  ): Promise<void> => {
+    if (savedContributionId) {
+      try {
+        await deleteContribution(savedContributionId);
+        logger.info(`Rolled back contribution record: ${savedContributionId}`);
+      } catch (err) {
+        logger.error('Failed to rollback contribution record:', err);
+      }
+    }
+
+    if (clonedPath) {
+      try {
+        await ipc.invoke('fs:delete-directory', clonedPath);
+        logger.info(`Rolled back cloned directory: ${clonedPath}`);
+      } catch (err) {
+        logger.error('Failed to rollback cloned directory:', err);
+      }
+    }
   };
 
   const reset = () => {

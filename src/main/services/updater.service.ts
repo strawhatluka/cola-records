@@ -1,6 +1,9 @@
 import { autoUpdater, UpdateInfo, ProgressInfo, UpdateDownloadedEvent } from 'electron-updater';
 import { BrowserWindow, app } from 'electron';
 import { env } from './environment.service';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Updater');
 
 export type UpdateStatus =
   | 'idle'
@@ -42,7 +45,7 @@ class UpdaterService {
 
     // Only enable updates in production
     if (env.development) {
-      console.log('[Updater] Skipping initialization in development mode');
+      logger.debug('Skipping initialization in development mode');
       return;
     }
 
@@ -63,7 +66,7 @@ class UpdaterService {
     // Check for updates after a short delay (let app initialize first)
     setTimeout(() => {
       this.checkForUpdates().catch((err) => {
-        console.error('[Updater] Initial update check failed:', err);
+        logger.error('Initial update check failed:', err);
       });
     }, 5000);
   }
@@ -171,7 +174,7 @@ class UpdaterService {
    */
   async checkForUpdates(): Promise<UpdateInfo | null> {
     if (env.development) {
-      console.log('[Updater] Skipping update check in development');
+      logger.debug('Skipping update check in development');
       return null;
     }
 
@@ -179,7 +182,7 @@ class UpdaterService {
       const result = await autoUpdater.checkForUpdates();
       return result?.updateInfo ?? null;
     } catch (error) {
-      console.error('[Updater] Check for updates failed:', error);
+      logger.error('Check for updates failed:', error);
       throw error;
     }
   }
@@ -189,7 +192,7 @@ class UpdaterService {
    */
   async downloadUpdate(): Promise<void> {
     if (env.development) {
-      console.log('[Updater] Skipping download in development');
+      logger.debug('Skipping download in development');
       return;
     }
 
@@ -200,7 +203,7 @@ class UpdaterService {
     try {
       await autoUpdater.downloadUpdate();
     } catch (error) {
-      console.error('[Updater] Download failed:', error);
+      logger.error('Download failed:', error);
       throw error;
     }
   }
@@ -210,7 +213,7 @@ class UpdaterService {
    */
   quitAndInstall(): void {
     if (!this.updateDownloaded) {
-      console.warn('[Updater] No update downloaded, cannot install');
+      logger.warn('No update downloaded, cannot install');
       return;
     }
 

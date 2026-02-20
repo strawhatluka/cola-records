@@ -23,7 +23,7 @@ export class GitHubService {
   /**
    * Get cache key for a query
    */
-  private getCacheKey(prefix: string, ...params: any[]): string {
+  private getCacheKey(prefix: string, ...params: unknown[]): string {
     return `${prefix}:${params.join(':')}`;
   }
 

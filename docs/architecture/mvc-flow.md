@@ -70,7 +70,7 @@ sequenceDiagram
 
     User->>React: User Action
     React->>Store: Dispatch Action
-    Store->>IPC: window.api.invoke(channel, data)
+    Store->>IPC: ipc.invoke(channel, ...args)
     IPC->>Handler: ipcMain.handle(channel)
     Handler->>Service: Service Method Call
     Service->>External: API/DB Operation
@@ -151,27 +151,29 @@ graph TD
 
 ## IPC Channel Categories
 
-| Category     | Prefix          | Channels | Purpose                   |
-| ------------ | --------------- | -------- | ------------------------- |
-| File System  | `fs:`           | 8        | Local file operations     |
-| Git          | `git:`          | 17       | Git CLI operations        |
-| GitHub       | `github:`       | 45       | GitHub API interactions   |
-| Contribution | `contribution:` | 7        | Contribution CRUD         |
-| Settings     | `settings:`     | 4        | Application settings      |
-| Spotify      | `spotify:`      | 18       | Music playback            |
-| Discord      | `discord:`      | 29       | Discord messaging         |
-| Terminal     | `terminal:`     | 4        | PTY terminal              |
-| Dev Scripts  | `dev-scripts:`  | 3        | Custom scripts            |
-| Code Server  | `code-server:`  | 6        | VS Code server            |
-| Updater      | `updater:`      | 5        | Auto-update functionality |
-| Project      | `project:`      | 1        | Project scanning          |
-| Gitignore    | `gitignore:`    | 2        | Git ignore operations     |
-| Dialog       | `dialog:`       | 1        | Native dialogs            |
-| Shell        | `shell:`        | 3        | Shell operations          |
+| Category     | Prefix          | Channels | Purpose                      |
+| ------------ | --------------- | -------- | ---------------------------- |
+| File System  | `fs:`           | 8        | Local file operations        |
+| Git          | `git:`          | 17       | Git CLI operations           |
+| GitHub       | `github:`       | 53       | GitHub API interactions      |
+| Contribution | `contribution:` | 7        | Contribution CRUD            |
+| Settings     | `settings:`     | 4        | Application settings         |
+| Spotify      | `spotify:`      | 18       | Music playback               |
+| Discord      | `discord:`      | 29       | Discord messaging            |
+| Terminal     | `terminal:`     | 4        | PTY terminal                 |
+| Dev Scripts  | `dev-scripts:`  | 3        | Custom scripts               |
+| Code Server  | `code-server:`  | 7        | VS Code server               |
+| Updater      | `updater:`      | 5        | Auto-update functionality    |
+| Project      | `project:`      | 1        | Project scanning             |
+| Gitignore    | `gitignore:`    | 2        | Git ignore operations        |
+| Dialog       | `dialog:`       | 1        | Native dialogs               |
+| Shell        | `shell:`        | 3        | Shell operations             |
+| Docs         | `docs:`         | 1        | Documentation file structure |
+| **Total**    |                 | **163**  | **+ 9 event channels**       |
 
 ## Service Layer
 
-The Main Process contains 15 services handling specific domains:
+The Main Process contains 15 top-level services plus 9 domain-split sub-modules handling specific domains:
 
 ```mermaid
 graph TD
@@ -191,12 +193,24 @@ graph TD
         GitHubMain[github.service.ts]
         GitHubREST[github-rest.service.ts]
         GitHubGraphQL[github-graphql.service.ts]
+        subgraph GitHubSplit["Domain-Split Modules (github/)"]
+            GitHubIssues[github-issues.service.ts]
+            GitHubPRs[github-pull-requests.service.ts]
+            GitHubBase[github-rest-base.service.ts]
+            GitHubExtras[github-extras.service.ts]
+        end
     end
 
     subgraph Integrations["Integration Services"]
         Spotify[spotify.service.ts]
         Discord[discord.service.ts]
         CodeServer[code-server.service.ts]
+        subgraph CodeServerSplit["Domain-Split Modules (code-server/)"]
+            PathMapper[path-mapper.ts]
+            ConfigSync[config-sync.ts]
+            DockerOps[docker-ops.ts]
+            CSTypes[types.ts]
+        end
     end
 
     subgraph Utilities["Utility Services"]
@@ -205,6 +219,8 @@ graph TD
         Updater[updater.service.ts]
     end
 ```
+
+> **Note:** The `github/` and `code-server/` subdirectories contain domain-split sub-modules that are re-exported through barrel files. The top-level service files delegate to these sub-modules for specific operations.
 
 ## State Management
 
@@ -221,6 +237,7 @@ Renderer process uses Zustand stores for state management:
 | useDiscordStore              | Discord connection state      |
 | useDevScriptsStore           | Development scripts           |
 | useOpenProjectsStore         | Currently open projects       |
+| useUpdaterStore              | Auto-update state management  |
 
 ---
 
@@ -392,6 +409,162 @@ sequenceDiagram
 autoUpdater.autoDownload = false; // User must approve download
 autoUpdater.autoInstallOnAppQuit = true; // Install on next quit if downloaded
 ```
+
+---
+
+## GitHub Actions Flow
+
+Cola Records integrates with GitHub Actions to display workflow runs, jobs, and logs directly within the development tools panel.
+
+### Data Flow
+
+```mermaid
+graph TD
+    ActionsTool[ActionsTool Component] -->|github:list-workflow-runs| Handler[IPC Handler]
+    Handler --> GitHubREST[GitHubRestService]
+    GitHubREST --> ActionsAPI[GitHub Actions API]
+    ActionsAPI -->|Workflow Runs| GitHubREST
+    GitHubREST -->|Formatted Runs| Handler
+    Handler -->|Run List| ActionsTool
+
+    ActionsTool -->|Select Run| JobsView[Jobs View]
+    JobsView -->|github:list-workflow-run-jobs| Handler
+    Handler -->|Job List with Steps| JobsView
+
+    JobsView -->|Select Job| LogsView[Logs View]
+    LogsView -->|github:get-job-logs| Handler
+    Handler -->|Raw Log Text| LogsView
+```
+
+### IPC Channels
+
+| Channel                         | Direction        | Purpose                       |
+| ------------------------------- | ---------------- | ----------------------------- |
+| `github:list-workflow-runs`     | Renderer -> Main | List workflow runs for a repo |
+| `github:list-workflow-run-jobs` | Renderer -> Main | List jobs for a specific run  |
+| `github:get-job-logs`           | Renderer -> Main | Get raw log output for a job  |
+
+---
+
+## GitHub Releases Flow
+
+The releases management flow enables listing, creating, updating, deleting, and publishing releases directly from the development tools panel.
+
+### Data Flow
+
+```mermaid
+graph TD
+    ReleasesTool[ReleasesTool Component] -->|github:list-releases| Handler[IPC Handler]
+    Handler --> GitHubREST[GitHubRestService]
+    GitHubREST --> ReleasesAPI[GitHub Releases API]
+    ReleasesAPI -->|Release List| GitHubREST
+    GitHubREST -->|Formatted Releases| Handler
+    Handler -->|Releases| ReleasesTool
+
+    ReleasesTool -->|Create| CreateFlow[Create Release]
+    CreateFlow -->|github:create-release| Handler
+
+    ReleasesTool -->|Edit| UpdateFlow[Update Release]
+    UpdateFlow -->|github:update-release| Handler
+
+    ReleasesTool -->|Delete| DeleteFlow[Delete Release]
+    DeleteFlow -->|github:delete-release| Handler
+
+    ReleasesTool -->|Publish Draft| PublishFlow[Publish Release]
+    PublishFlow -->|github:publish-release| Handler
+```
+
+### IPC Channels
+
+| Channel                  | Direction        | Purpose                      |
+| ------------------------ | ---------------- | ---------------------------- |
+| `github:list-releases`   | Renderer -> Main | List all releases for a repo |
+| `github:get-release`     | Renderer -> Main | Get single release details   |
+| `github:create-release`  | Renderer -> Main | Create a new release         |
+| `github:update-release`  | Renderer -> Main | Update release metadata      |
+| `github:delete-release`  | Renderer -> Main | Delete a release             |
+| `github:publish-release` | Renderer -> Main | Publish a draft release      |
+
+---
+
+## Dashboard Data Flow
+
+The DashboardScreen aggregates data from multiple GitHub API channels to populate six independent widgets. Each widget fetches its own data and manages loading, error, and empty states independently through the shared DashboardWidget wrapper.
+
+### Data Flow
+
+```mermaid
+graph TD
+    DashboardScreen[DashboardScreen] --> CSW[ContributionStatusWidget]
+    DashboardScreen --> GPW[GitHubProfileWidget]
+    DashboardScreen --> PRW[PRsNeedingAttentionWidget]
+    DashboardScreen --> OIW[OpenIssuesWidget]
+    DashboardScreen --> RAW[RecentActivityWidget]
+    DashboardScreen --> CICD[CICDStatusWidget]
+
+    CSW -->|github:search-issues-and-prs| IPC[IPC Handlers]
+    GPW -->|github:get-authenticated-user| IPC
+    GPW -->|github:list-user-repos| IPC
+    RAW -->|github:list-user-events| IPC
+    OIW -->|github:search-issues-and-prs| IPC
+    PRW -->|github:search-issues-and-prs| IPC
+    PRW -->|github:list-pr-reviews| IPC
+    PRW -->|github:get-pr-check-status| IPC
+    CICD -->|github:list-user-repos| IPC
+    CICD -->|github:list-workflow-runs| IPC
+
+    IPC --> GitHub[GitHub REST API]
+
+    DashboardScreen -->|onOpenProject| ContribStore[contribution:get-all]
+    ContribStore -->|Match repo| IDE[Open in IDE]
+```
+
+### Widget Data Sources
+
+| Widget                    | IPC Channels Used                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| ContributionStatusWidget  | `github:search-issues-and-prs` (4 queries: open PRs, merged PRs, open issues, closed issues) |
+| GitHubProfileWidget       | `github:get-authenticated-user`, `github:list-user-repos`                                    |
+| RecentActivityWidget      | `github:get-authenticated-user`, `github:list-user-events`                                   |
+| OpenIssuesWidget          | `github:get-authenticated-user`, `github:search-issues-and-prs` (assigned + authored)        |
+| PRsNeedingAttentionWidget | `github:search-issues-and-prs`, `github:list-pr-reviews`, `github:get-pr-check-status`       |
+| CICDStatusWidget          | `github:list-user-repos`, `github:list-workflow-runs`                                        |
+
+---
+
+## Documentation Viewer Flow
+
+The DocumentationScreen provides an in-app markdown documentation viewer with mermaid diagram rendering. It loads the documentation file structure from the main process and renders selected files using ReactMarkdown.
+
+### Data Flow
+
+```mermaid
+graph TD
+    DocScreen[DocumentationScreen] -->|docs:get-structure| Handler[IPC Handler]
+    Handler -->|Scan docs/ directory| FS[FileSystemService]
+    FS -->|Category + File List| Handler
+    Handler -->|DocsCategory Array| DocScreen
+
+    DocScreen --> DocsSidebar[DocsSidebar]
+    DocsSidebar -->|Select File| DocScreen
+
+    DocScreen -->|fs:read-file| ReadHandler[IPC Handler]
+    ReadHandler -->|File Content| DocScreen
+
+    DocScreen --> DocsViewer[DocsViewer]
+    DocsViewer -->|ReactMarkdown| Rendered[Rendered Markdown]
+    DocsViewer -->|Mermaid Code Blocks| MermaidBlock[MermaidBlock]
+    MermaidBlock -->|mermaid.render| SVG[Sanitized SVG via DOMPurify]
+```
+
+### Rendering Pipeline
+
+1. **DocumentationScreen** mounts and invokes `docs:get-structure` to get categorized file list
+2. **DocsSidebar** displays categories with expandable file lists
+3. User selects a file; `fs:read-file` loads the raw markdown content
+4. **DocsViewer** renders markdown via `ReactMarkdown` with `remarkGfm` and `rehypeRaw`
+5. Code blocks with `language-mermaid` are intercepted and rendered by **MermaidBlock**
+6. MermaidBlock uses `mermaid.render()` and sanitizes output SVG with `DOMPurify`
 
 ---
 

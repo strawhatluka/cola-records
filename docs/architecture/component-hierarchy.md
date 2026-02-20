@@ -2,9 +2,9 @@
 
 ## Overview
 
-Cola Records is built with React 19 and contains 87 components organized into screens, layout, UI primitives, and feature-specific components. The UI layer uses Tailwind CSS for styling and Radix UI for accessible primitives.
+Cola Records is built with React 19 and contains 108 components organized into screens, layout, UI primitives, and feature-specific components. The UI layer uses Tailwind CSS for styling and Radix UI for accessible primitives.
 
-**Total Components:** 87
+**Total Components:** 108
 **Framework:** React 19 + TypeScript
 **Styling:** Tailwind CSS
 **UI Primitives:** Radix UI
@@ -28,9 +28,10 @@ graph TD
     MainContent --> ProfessionalProjectsScreen[ProfessionalProjectsScreen]
     MainContent --> DevelopmentScreen[DevelopmentScreen]
     MainContent --> SettingsScreen[SettingsScreen]
+    MainContent --> DocumentationScreen[DocumentationScreen]
 ```
 
-## Screen Components (7)
+## Screen Components (8)
 
 ```mermaid
 graph TD
@@ -42,6 +43,7 @@ graph TD
         ProfProjects[ProfessionalProjectsScreen]
         Development[DevelopmentScreen]
         Settings[SettingsScreen]
+        Documentation[DocumentationScreen]
     end
 ```
 
@@ -54,6 +56,7 @@ graph TD
 | ProfessionalProjectsScreen | `/professional`  | Professional project tracking   |
 | DevelopmentScreen          | `/development`   | Development tools and terminals |
 | SettingsScreen             | `/settings`      | Application configuration       |
+| DocumentationScreen        | `/documentation` | In-app documentation viewer     |
 
 ## Layout Components (3)
 
@@ -295,7 +298,7 @@ Individual tab representing a single open project with status indicator and clos
 - Close button visible on hover (always visible when active)
 - Keyboard accessible (Enter/Space to select)
 
-### Tools (7)
+### Tools (11)
 
 ```mermaid
 graph TD
@@ -303,23 +306,31 @@ graph TD
     ToolsPanel --> TerminalTool[TerminalTool]
     ToolsPanel --> DevScriptsTool[DevScriptsTool]
     ToolsPanel --> MaintenanceTool[MaintenanceTool]
+    ToolsPanel --> ActionsTool[ActionsTool]
+    ToolsPanel --> IssuesTool[IssuesTool]
+    ToolsPanel --> PullRequestsTool[PullRequestsTool]
+    ToolsPanel --> ReleasesTool[ReleasesTool]
 
     TerminalTool --> XTermTerminal[XTermTerminal]
     DevScriptsTool --> ScriptButton[ScriptButton]
     DevScriptsTool --> ScriptExecutionModal[ScriptExecutionModal]
 ```
 
-| Component            | Purpose                         |
-| -------------------- | ------------------------------- |
-| ToolsPanel           | Container for development tools |
-| TerminalTool         | Integrated terminal interface   |
-| DevScriptsTool       | Custom script management        |
-| MaintenanceTool      | Project maintenance actions     |
-| XTermTerminal        | xterm.js terminal emulator      |
-| ScriptButton         | Executable script button        |
-| ScriptExecutionModal | Script execution with output    |
+| Component            | Purpose                              |
+| -------------------- | ------------------------------------ |
+| ToolsPanel           | Container for development tools      |
+| TerminalTool         | Integrated terminal interface        |
+| DevScriptsTool       | Custom script management             |
+| MaintenanceTool      | Project maintenance actions          |
+| XTermTerminal        | xterm.js terminal emulator           |
+| ScriptButton         | Executable script button             |
+| ScriptExecutionModal | Script execution with output         |
+| ActionsTool          | GitHub Actions workflow viewer       |
+| IssuesTool           | Repository issues panel              |
+| PullRequestsTool     | Repository pull requests panel       |
+| ReleasesTool         | Repository releases management panel |
 
-### Settings (4)
+### Settings (5)
 
 ```mermaid
 graph TD
@@ -327,14 +338,16 @@ graph TD
     SettingsScreen --> APITab[APITab]
     SettingsScreen --> SSHRemotesTab[SSHRemotesTab]
     SettingsScreen --> BashProfileTab[BashProfileTab]
+    SettingsScreen --> CodeServerTab[CodeServerTab]
 ```
 
-| Component      | Purpose                      |
-| -------------- | ---------------------------- |
-| GeneralTab     | General application settings |
-| APITab         | API tokens and integrations  |
-| SSHRemotesTab  | SSH remote configurations    |
-| BashProfileTab | Shell profile management     |
+| Component      | Purpose                               |
+| -------------- | ------------------------------------- |
+| GeneralTab     | General application settings          |
+| APITab         | API tokens and integrations           |
+| SSHRemotesTab  | SSH remote configurations             |
+| BashProfileTab | Shell profile management              |
+| CodeServerTab  | Code-server Docker container settings |
 
 ### Spotify (7)
 
@@ -423,6 +436,56 @@ graph TD
 | StickerPicker      | Sticker selector          |
 | CreatePollModal    | Poll creation             |
 
+### Dashboard (7)
+
+```mermaid
+graph TD
+    DashboardScreen[DashboardScreen] --> ContributionStatusWidget[ContributionStatusWidget]
+    DashboardScreen --> GitHubProfileWidget[GitHubProfileWidget]
+    DashboardScreen --> PRsNeedingAttentionWidget[PRsNeedingAttentionWidget]
+    DashboardScreen --> OpenIssuesWidget[OpenIssuesWidget]
+    DashboardScreen --> RecentActivityWidget[RecentActivityWidget]
+    DashboardScreen --> CICDStatusWidget[CICDStatusWidget]
+
+    ContributionStatusWidget --> DashboardWidget[DashboardWidget]
+    GitHubProfileWidget --> DashboardWidget
+    PRsNeedingAttentionWidget --> DashboardWidget
+    OpenIssuesWidget --> DashboardWidget
+    RecentActivityWidget --> DashboardWidget
+    CICDStatusWidget --> DashboardWidget
+```
+
+| Component                 | Purpose                                                      |
+| ------------------------- | ------------------------------------------------------------ |
+| DashboardWidget           | Reusable card wrapper with loading, error, and empty states  |
+| GitHubProfileWidget       | Authenticated user profile with repos, stars, language stats |
+| ContributionStatusWidget  | Open PRs, merged PRs, open/closed issues metrics             |
+| RecentActivityWidget      | Latest GitHub events (push, PR, issue, release, etc.)        |
+| OpenIssuesWidget          | Issues assigned to or authored by the user                   |
+| PRsNeedingAttentionWidget | PRs with review and CI status indicators                     |
+| CICDStatusWidget          | Latest CI/CD pipeline run per repository                     |
+
+### Documentation (3)
+
+```mermaid
+graph TD
+    DocumentationScreen[DocumentationScreen] --> DocsSidebar[DocsSidebar]
+    DocumentationScreen --> DocsViewer[DocsViewer]
+    DocsViewer --> MermaidBlock[MermaidBlock]
+```
+
+| Component    | Purpose                                                  |
+| ------------ | -------------------------------------------------------- |
+| DocsSidebar  | Collapsible category navigation for documentation files  |
+| DocsViewer   | Markdown renderer with ReactMarkdown and mermaid support |
+| MermaidBlock | Renders mermaid diagram code blocks as SVG via DOMPurify |
+
+### Updates (1)
+
+| Component          | Purpose                                                                |
+| ------------------ | ---------------------------------------------------------------------- |
+| UpdateNotification | Dialog for app update lifecycle (available, downloading, ready, error) |
+
 ### Shared (2)
 
 | Component     | Purpose                 |
@@ -434,22 +497,25 @@ graph TD
 
 ## Component Statistics
 
-| Category      | Count  |
-| ------------- | ------ |
-| Screens       | 7      |
-| Layout        | 3      |
-| UI Base       | 22     |
-| Contributions | 4      |
-| Issues        | 9      |
-| Pull Requests | 4      |
-| Branches      | 1      |
-| Projects      | 2      |
-| Tools         | 7      |
-| Settings      | 4      |
-| Spotify       | 7      |
-| Discord       | 19     |
-| Shared        | 2      |
-| **Total**     | **87** |
+| Category      | Count   |
+| ------------- | ------- |
+| Screens       | 8       |
+| Layout        | 3       |
+| UI Base       | 22      |
+| Dashboard     | 7       |
+| Contributions | 4       |
+| Issues        | 9       |
+| Pull Requests | 4       |
+| Branches      | 1       |
+| Projects      | 2       |
+| Tools         | 11      |
+| Settings      | 5       |
+| Spotify       | 7       |
+| Discord       | 19      |
+| Documentation | 3       |
+| Updates       | 1       |
+| Shared        | 2       |
+| **Total**     | **108** |
 
 ---
 

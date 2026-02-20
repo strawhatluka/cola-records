@@ -7,6 +7,113 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Sanitized git error messages to prevent token leakage to renderer (MED-005)
+  - Created `src/main/utils/sanitize-error.ts` with `sanitizeGitError()` stripping `x-access-token` URLs
+  - Applied to all 19 throw statements in `git.service.ts` that interpolate error messages
+- Fixed innerHTML XSS vector in MermaidBlock component (CRIT-001)
+  - Added DOMPurify sanitization of Mermaid SVG output before DOM insertion
+  - DOMPurify config allows SVG profiles and `foreignObject` for Mermaid compatibility
+  - Blocks `<script>` tags, event handler attributes, and other XSS vectors
+  - Added `dompurify` as direct dependency (previously transitive only)
+- Reduced npm vulnerabilities from 75 to 52, eliminating all critical CVEs (HIGH-002)
+  - Removed `electron-icon-builder` (unused — pulled in `phantomjs-prebuilt` chain with 2 critical `form-data` CVEs)
+  - Ran `npm audit fix` for safe transitive dependency patches
+  - Remaining 52 vulnerabilities are dev-only toolchain deps (Electron Forge, ESLint) with zero runtime impact
+
+### Added
+
+- Centralized logging infrastructure with `electron-log` (MED-001)
+  - Created `src/main/utils/logger.ts` (main process) and `src/renderer/utils/logger.ts` (renderer) with tagged `createLogger(tag)` factory
+  - Replaced all 44 `console.log/error/warn` statements across 11 source files with structured, file-rotating logger
+  - Log levels: `debug` for dev-mode guards and config detection, `info` for operational events, `warn` for non-critical guards, `error` for failures
+  - File transport: 10 MB rotation, `info` level; console transport: `debug` level
+- Test coverage baseline and regression thresholds (MED-003)
+  - Configured `vitest.config.ts` coverage thresholds: statements 64%, branches 56%, functions 61%, lines 65%
+  - Baseline measured at: statements 69.59%, branches 61.27%, functions 66.85%, lines 70.48%
+- Contribution workflow rollback logic (MED-006)
+  - Implemented `rollback()` in `useContributionWorkflow` with `clonedPath` and `savedContributionId` state tracking
+  - On failure: deletes partially cloned directory via `fs:delete-directory` and removes DB record via `deleteContribution`
+  - Rollback errors are caught and logged without masking the original error
+
+### Documentation
+
+- Updated all 4 docs/ files to match codebase reality after v1.0.4–v1.0.5 feature additions
+  - `component-hierarchy.md`: 87 → 108 components; added Dashboard (7), Documentation (3), Updates (1) sections with mermaid diagrams; updated Screens 7→8, Tools 7→11, Settings 4→5
+  - `mvc-flow.md`: added GitHub Actions, Releases, Dashboard, and Documentation data flow diagrams; updated IPC channel counts (108→163 invoke + 9 events); added useUpdaterStore to state table; documented domain-split service architecture
+  - `api-development.md`: added 27 new GitHub channels (Actions, Releases, Search, PR operations); added Event Channels and Domain-Split Service Architecture sections; fixed IPC client examples (`window.electron` → `ipc`)
+  - `getting-started.md`: updated component/store/screen counts; added Dashboard and Documentation feature descriptions; fixed contributing guide link
+- Fixed inaccuracies in `CONTRIBUTING.md`
+  - Corrected IPC usage example (`window.electron.invoke` → `ipc.invoke`)
+  - Fixed test file location (co-located → `tests/` directory mirroring `src/`)
+
+### Changed
+
+- Split `channels.ts` (1,241 LOC) into domain-based type modules with barrel re-export (HIGH-003)
+  - `channels/types.ts` — 46 shared interfaces and type aliases
+  - `channels/github.channels.ts` — `GitHubChannels` partial interface (git, github, gitignore channels)
+  - `channels/integrations.channels.ts` — `IntegrationChannels` partial interface (spotify, discord channels)
+  - `channels/core.channels.ts` — `CoreChannels` partial interface (fs, contribution, settings, terminal, etc.)
+  - `channels/events.ts` — `IpcEvents` interface (9 events)
+  - `channels/index.ts` — barrel composing `IpcChannels` via `extends`; original `channels.ts` reduced to 1-line re-export
+  - Zero import changes needed in consuming files (backward-compatible barrel)
+- Extracted `PullRequestDetailModal` types and utilities into `pr-detail/` module (HIGH-003)
+  - `pr-detail/types.ts` — 11 interfaces + `TimelineItem` union type
+  - `pr-detail/utils.tsx` — 6 pure utility functions (`reviewStateBadge`, `statusBadge`, `formatDate`, `formatRelativeTime`, `parseDiffHunkHeader`, `getReviewActionText`)
+  - `pr-detail/index.ts` — barrel re-export
+  - `PullRequestDetailModal.tsx` reduced by ~200 lines
+- Split `github-rest.service.ts` (1,615 LOC, 50 methods) into domain modules with facade pattern (HIGH-003)
+  - `github/github-rest-base.service.ts` — base class with Octokit client init and token resolution
+  - `github/github-issues.service.ts` — 10 standalone functions for issue CRUD, comments, assignees, reactions
+  - `github/github-pull-requests.service.ts` — 16 standalone functions for PR CRUD, reviews, merge, timeline, check status
+  - `github/github-extras.service.ts` — 24 standalone functions for comment reactions, repos, actions, releases, search, events, sub-issues
+  - `github/index.ts` — facade class extending base, delegating all 50 methods to standalone functions
+  - Original `github-rest.service.ts` reduced to 1-line barrel re-export
+- Split `code-server.service.ts` (1,597 LOC) into domain modules with orchestration pattern (HIGH-003)
+  - `code-server/types.ts` — interfaces, defaults, constants (`CodeServerStatus`, `CodeServerStartResult`, `WorkspaceBasePaths`, `CodeServerStats`)
+  - `code-server/path-mapper.ts` — port allocation, Docker path conversion, workspace path mapping, memory string parsing
+  - `code-server/config-sync.ts` — VS Code settings, git config, bashrc, SSH config sync, mount helpers
+  - `code-server/docker-ops.ts` — Docker CLI execution, image management, container lifecycle, health checks, stats
+  - `code-server/index.ts` — orchestration class managing container state and delegating to modules
+  - Original `code-server.service.ts` reduced to 2-line barrel re-export
+- Split `setupIpcHandlers()` (164 handlers, ~1,202 LOC) from `index.ts` into 6 domain handler modules (HIGH-003)
+  - `handlers/github.handlers.ts` — 53 handlers for GitHub REST, GraphQL, reactions, reviews, releases, actions, sub-issues
+  - `handlers/core.handlers.ts` — 33 handlers for echo, fs, git, gitignore, dialog, shell, docs
+  - `handlers/contribution.handlers.ts` — 8 handlers for contribution and project scanning
+  - `handlers/settings.handlers.ts` — 4 handlers for settings CRUD and SSH remotes
+  - `handlers/integrations.handlers.ts` — 47 handlers for Spotify and Discord
+  - `handlers/dev-tools.handlers.ts` — 19 handlers for code-server, terminal, dev-scripts, updater
+  - `handlers/index.ts` — composer calling all 6 domain setup functions
+  - `index.ts` reduced from 1,361 to 153 lines (lifecycle only)
+- Eliminated all 86 unsafe `any` type annotations across 5 API service files (HIGH-001)
+  - Created `src/types/spotify-api.types.ts` — 7 interfaces for Spotify REST API response shapes
+  - Created `src/types/github-graphql.types.ts` — 7 interfaces for GitHub GraphQL response shapes
+  - Created `src/types/discord-api.types.ts` — 22 interfaces for Discord REST API response shapes
+  - `discord.service.ts`: 35 `any` → proper Discord API types
+  - `github-rest.service.ts`: 28 `any` → Octokit inferred types + inline type assertions
+  - `github-graphql.service.ts`: 11 `any` → GraphQL generic response types
+  - `spotify.service.ts`: 7 `any` → Spotify API response types
+  - `github.service.ts`: 1 `any[]` → `unknown[]`
+  - Fixed 3 catch blocks: `catch (error: any)` → `catch (error: unknown)` with proper type narrowing
+
+### Fixed
+
+- Fixed `removeAllIpcHandlers()` missing 22 channels from cleanup list (HIGH-003)
+  - Added all missing channels: code-server workspace management, terminal, dev-scripts, git branch ops, GitHub review comments/threads, releases, actions, PR check status, SSH remotes
+  - Channel list now covers all 164 registered IPC handlers
+
+### Tests
+
+- Git error sanitization tests (MED-005)
+  - `sanitize-error.test.ts`: 9 tests covering token stripping, multiple occurrences, non-token preservation, Error/string/undefined inputs
+- Contribution workflow rollback tests (MED-006)
+  - 4 new tests: directory cleanup on post-clone failure, no cleanup when clone never reached, no DB delete when contribution unsaved, graceful rollback error handling
+- Global `electron-log` test mocks added to `tests/setup.ts` for `electron-log/renderer` and `electron-log/main`
+- MermaidBlock sanitization tests (CRIT-001)
+  - 3 new tests: DOMPurify called with correct config, script tag stripping, event handler stripping
+  - Existing tests updated with DOMPurify mock (passthrough — no behavior change for valid SVG)
+
 ## [1.0.5] - 2026-02-19
 
 ### Added

@@ -20,7 +20,6 @@ import {
 import { MarkdownEditor } from './MarkdownEditor';
 import { CheckStatusIndicator } from './CheckStatusIndicator';
 import { ReactionDisplay } from '../ui/ReactionPicker';
-import type { Reaction, ReactionContent, PRCheckStatus } from '../../../main/ipc/channels';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,208 +30,31 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader } from '../ui/Di
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { ipc } from '../../ipc/client';
-
-interface PullRequestSummary {
-  number: number;
-  title: string;
-  url: string;
-  state: string;
-  merged: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  author: string;
-  headBranch: string;
-}
-
-interface PRDetail {
-  number: number;
-  title: string;
-  body: string;
-  url: string;
-  state: string;
-  merged: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  author: string;
-  headSha: string;
-}
-
-interface PRComment {
-  id: number;
-  body: string;
-  author: string;
-  authorAvatarUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface PRReview {
-  id: number;
-  body: string;
-  state: string;
-  author: string;
-  authorAvatarUrl: string;
-  submittedAt: Date;
-}
-
-interface PRReviewComment {
-  id: number;
-  body: string;
-  author: string;
-  authorAvatarUrl: string;
-  path: string;
-  line: number | null;
-  startLine: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-  inReplyToId: number | null;
-  diffHunk: string | null;
-  htmlUrl: string | null;
-}
-
-/** A thread of review comments on a specific file/line */
-interface ReviewThread {
-  id: number; // ID of the root comment
-  path: string;
-  line: number | null;
-  startLine: number | null;
-  diffHunk: string | null;
-  comments: PRReviewComment[];
-  date: Date; // Date of the first comment (for sorting)
-  graphqlId: string | null; // GraphQL node ID for resolve/unresolve
-  isResolved: boolean;
-}
-
-/** Review thread info from GraphQL */
-interface ReviewThreadInfo {
-  id: string;
-  isResolved: boolean;
-  comments: { databaseId: number }[];
-}
-
-/** Commit on a PR */
-interface PRCommit {
-  sha: string;
-  message: string;
-  author: string;
-  authorAvatarUrl: string;
-  date: Date;
-  url: string;
-}
-
-/** Timeline event (renamed, closed, reopened, merged, labeled, etc.) */
-interface PREvent {
-  id: number;
-  event: string;
-  actor: string;
-  actorAvatarUrl: string;
-  createdAt: Date;
-  rename?: { from: string; to: string };
-  label?: { name: string; color: string };
-  commitId?: string;
-}
-
-type TimelineItem =
-  | { type: 'comment'; date: Date; data: PRComment }
-  | { type: 'review'; date: Date; data: PRReview }
-  | { type: 'review-thread'; date: Date; data: ReviewThread }
-  | { type: 'commit'; date: Date; data: PRCommit }
-  | { type: 'event'; date: Date; data: PREvent };
-
-interface PullRequestDetailModalProps {
-  pr: PullRequestSummary | null;
-  owner: string;
-  repo: string;
-  githubUsername: string;
-  onClose: () => void;
-  onRefresh?: () => void;
-  /** Whether the user has write access to the repository (can merge/close PRs) */
-  canWrite?: boolean;
-  /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
-  inline?: boolean;
-}
-
-export function reviewStateBadge(state: string) {
-  switch (state) {
-    case 'APPROVED':
-      return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Approved</Badge>;
-    case 'CHANGES_REQUESTED':
-      return (
-        <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20">
-          Changes Requested
-        </Badge>
-      );
-    case 'COMMENTED':
-      return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Commented</Badge>;
-    case 'DISMISSED':
-      return <Badge className="bg-muted text-muted-foreground border-border">Dismissed</Badge>;
-    default:
-      return <Badge variant="outline">{state}</Badge>;
-  }
-}
-
-export function statusBadge(state: string, merged: boolean) {
-  if (merged) {
-    return <Badge className="bg-primary/10 text-primary border-primary/20">Merged</Badge>;
-  }
-  if (state === 'open') {
-    return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Open</Badge>;
-  }
-  return <Badge className="bg-muted text-muted-foreground border-border">Closed</Badge>;
-}
-
-export function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-export function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diff = now.getTime() - new Date(date).getTime();
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  return 'just now';
-}
-
-/** Parse diff hunk header to extract line numbers */
-function parseDiffHunkHeader(diffHunk: string): { oldStart: number; newStart: number } | null {
-  // Match @@ -oldStart,count +newStart,count @@ pattern
-  const match = diffHunk.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
-  if (match) {
-    return {
-      oldStart: parseInt(match[1], 10),
-      newStart: parseInt(match[2], 10),
-    };
-  }
-  return null;
-}
-
-/** Get review action text based on state */
-function getReviewActionText(state: string): string {
-  switch (state) {
-    case 'APPROVED':
-      return 'approved these changes';
-    case 'CHANGES_REQUESTED':
-      return 'requested changes';
-    case 'COMMENTED':
-      return 'reviewed';
-    case 'DISMISSED':
-      return 'had their review dismissed';
-    default:
-      return 'reviewed';
-  }
-}
+import type {
+  PRDetail,
+  PRComment,
+  PRReview,
+  PRReviewComment,
+  ReviewThread,
+  ReviewThreadInfo,
+  PRCommit,
+  PREvent,
+  TimelineItem,
+  PullRequestDetailModalProps,
+  Reaction,
+  ReactionContent,
+  PRCheckStatus,
+} from './pr-detail';
+import {
+  reviewStateBadge,
+  statusBadge,
+  formatDate,
+  formatRelativeTime,
+  parseDiffHunkHeader,
+  getReviewActionText,
+} from './pr-detail';
+export { reviewStateBadge, statusBadge, formatDate, formatRelativeTime } from './pr-detail';
+export type { PullRequestSummary } from './pr-detail';
 
 export function PullRequestDetailModal({
   pr,

@@ -16,6 +16,9 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
+import { createLogger } from '../../../renderer/utils/logger';
+
+const logger = createLogger('Terminal');
 
 interface XTermTerminalProps {
   terminalId: string;
@@ -46,7 +49,7 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
         onDataRef.current(text);
       }
     } catch (err) {
-      console.error('[Terminal] Clipboard read failed:', err);
+      logger.error('Clipboard read failed:', err);
     }
   }, []);
 
@@ -166,7 +169,7 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
             }
           })
           .catch((err) => {
-            console.error('[Terminal] Clipboard read failed:', err);
+            logger.error('Clipboard read failed:', err);
           });
         return false; // Prevent xterm from processing this key
       }
@@ -181,7 +184,7 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
               terminal.clearSelection();
             })
             .catch((err) => {
-              console.error('[Terminal] Clipboard write failed:', err);
+              logger.error('Clipboard write failed:', err);
             });
           return false; // Prevent xterm from processing (don't send ^C)
         }

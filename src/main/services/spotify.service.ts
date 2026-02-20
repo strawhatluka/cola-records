@@ -1,10 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Spotify API responses are dynamically typed */
 import { shell } from 'electron';
 import * as http from 'http';
 import * as crypto from 'crypto';
 import { secureStorage } from './secure-storage.service';
 import { database } from '../database';
 import type { SpotifyPlaybackState, SpotifyPlaylist, SpotifyTrack } from '../ipc/channels';
+import type {
+  SpotifyTokenResponse,
+  SpotifyPlaybackStateResponse,
+  SpotifyAPITrack,
+  SpotifyAPIPlaylistItem,
+  SpotifyAPIImage,
+  SpotifyPlaylistsResponse,
+  SpotifySearchResponse,
+} from '../../types/spotify-api.types';
 
 const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
@@ -73,7 +81,7 @@ export class SpotifyService {
 
   async getPlaybackState(): Promise<SpotifyPlaybackState | null> {
     try {
-      const data = await this.apiGet('/me/player');
+      const data = (await this.apiGet('/me/player')) as SpotifyPlaybackStateResponse | null;
       if (!data || !data.item) return null;
 
       return {
@@ -125,15 +133,15 @@ export class SpotifyService {
   }
 
   async getPlaylists(): Promise<SpotifyPlaylist[]> {
-    const data = await this.apiGet('/me/playlists?limit=50');
+    const data = (await this.apiGet('/me/playlists?limit=50')) as SpotifyPlaylistsResponse | null;
     if (!data?.items) return [];
 
-    return data.items.map((item: any) => ({
+    return data.items.map((item: SpotifyAPIPlaylistItem) => ({
       id: item.id,
       name: item.name,
       uri: item.uri,
       trackCount: item.tracks?.total || 0,
-      images: (item.images || []).map((img: any) => ({
+      images: (item.images || []).map((img: SpotifyAPIImage) => ({
         url: img.url,
         width: img.width || 0,
         height: img.height || 0,
@@ -147,9 +155,11 @@ export class SpotifyService {
 
   async search(query: string): Promise<{ tracks: SpotifyTrack[] }> {
     const params = new URLSearchParams({ q: query, type: 'track', limit: '20' });
-    const data = await this.apiGet(`/search?${params.toString()}`);
+    const data = (await this.apiGet(
+      `/search?${params.toString()}`
+    )) as SpotifySearchResponse | null;
 
-    const tracks = (data?.tracks?.items || []).map((item: any) => this.mapTrack(item));
+    const tracks = (data?.tracks?.items || []).map((item: SpotifyAPITrack) => this.mapTrack(item));
     return { tracks };
   }
 
@@ -166,7 +176,7 @@ export class SpotifyService {
   }
 
   async isTrackSaved(trackId: string): Promise<boolean> {
-    const data = await this.apiGet(`/me/tracks/contains?ids=${trackId}`);
+    const data = (await this.apiGet(`/me/tracks/contains?ids=${trackId}`)) as boolean[];
     return Array.isArray(data) && data[0] === true;
   }
 
@@ -179,15 +189,15 @@ export class SpotifyService {
 
   // --- Private helpers ---
 
-  private mapTrack(item: any): SpotifyTrack {
+  private mapTrack(item: SpotifyAPITrack): SpotifyTrack {
     return {
       id: item.id,
       name: item.name,
       uri: item.uri,
-      artists: (item.artists || []).map((a: any) => ({ name: a.name })),
+      artists: (item.artists || []).map((a: { name: string }) => ({ name: a.name })),
       album: {
         name: item.album?.name || '',
-        images: (item.album?.images || []).map((img: any) => ({
+        images: (item.album?.images || []).map((img: SpotifyAPIImage) => ({
           url: img.url,
           width: img.width || 0,
           height: img.height || 0,
@@ -243,7 +253,7 @@ export class SpotifyService {
     return data.access_token;
   }
 
-  private async storeTokens(data: any): Promise<void> {
+  private async storeTokens(data: SpotifyTokenResponse): Promise<void> {
     await secureStorage.setItem(STORAGE_KEYS.accessToken, data.access_token);
     if (data.refresh_token) {
       await secureStorage.setItem(STORAGE_KEYS.refreshToken, data.refresh_token);
@@ -279,7 +289,7 @@ export class SpotifyService {
     return response;
   }
 
-  private async apiGet(path: string): Promise<any> {
+  private async apiGet(path: string): Promise<unknown> {
     const response = await this.apiRequest('GET', path);
     if (response.status === 204) return null;
     if (!response.ok) {
@@ -295,7 +305,7 @@ export class SpotifyService {
     }
   }
 
-  private async apiPost(path: string, body?: unknown): Promise<any> {
+  private async apiPost(path: string, body?: unknown): Promise<unknown> {
     const response = await this.apiRequest('POST', path, body);
     if (response.status === 204) return null;
     if (!response.ok) {

@@ -182,7 +182,7 @@ export const useContributionsStore = create<ContributionsState>((set) => ({
   fetchContributions: async () => {
     set({ isLoading: true });
     try {
-      const contributions = await window.electron.invoke('contribution:get-all');
+      const contributions = await ipc.invoke('contribution:get-all');
       set({ contributions, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
@@ -352,13 +352,15 @@ describe('ContributionCard', () => {
 
 ### Test File Location
 
-Place test files next to the code they test:
+Tests live in the `tests/` directory, mirroring the `src/` structure:
 
 ```
-components/
-  contributions/
-    ContributionCard.tsx
-    ContributionCard.test.tsx
+tests/
+  setup.ts
+  main/                    # Main process tests
+  renderer/
+    components/            # Component tests
+    stores/                # Store tests
 ```
 
 ## Documentation
