@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- GitHub REST API responses use Octokit's generic types */
 import type { GitHubRepository } from '../ipc/channels';
 import { Octokit } from '@octokit/rest';
 import { env } from './environment.service';
@@ -63,7 +62,7 @@ export class GitHubRestService {
         body: response.data.body || '',
         url: response.data.html_url,
         state: response.data.state,
-        labels: response.data.labels.map((label: any) =>
+        labels: response.data.labels.map((label) =>
           typeof label === 'string' ? label : label.name
         ),
         createdAt: new Date(response.data.created_at),
@@ -170,16 +169,14 @@ export class GitHubRestService {
 
       // Filter out pull requests (GitHub includes PRs in the issues endpoint)
       return response.data
-        .filter((item: any) => !item.pull_request)
-        .map((issue: any) => ({
+        .filter((item) => !item.pull_request)
+        .map((issue) => ({
           number: issue.number,
           title: issue.title,
           body: issue.body || '',
           url: issue.html_url,
           state: issue.state,
-          labels: issue.labels.map((label: any) =>
-            typeof label === 'string' ? label : label.name
-          ),
+          labels: issue.labels.map((label) => (typeof label === 'string' ? label : label.name)),
           createdAt: new Date(issue.created_at),
           updatedAt: new Date(issue.updated_at),
           author: issue.user?.login || 'unknown',
@@ -225,7 +222,7 @@ export class GitHubRestService {
         per_page: 100,
       });
 
-      return response.data.map((comment: any) => ({
+      return response.data.map((comment) => ({
         id: comment.id,
         body: comment.body || '',
         author: comment.user?.login || 'unknown',
@@ -309,7 +306,7 @@ export class GitHubRestService {
       });
 
       if (Array.isArray(response.data)) {
-        return response.data.map((item: any) => ({
+        return response.data.map((item) => ({
           name: item.name,
           path: item.path,
           type: item.type,
@@ -334,7 +331,7 @@ export class GitHubRestService {
         ? await client.repos.listForUser({ username, per_page: 100 })
         : await client.repos.listForAuthenticatedUser({ per_page: 100 });
 
-      return response.data.map((repo: any) => ({
+      return response.data.map((repo) => ({
         id: repo.id.toString(),
         name: repo.name,
         fullName: repo.full_name,
@@ -362,8 +359,13 @@ export class GitHubRestService {
         repo,
       });
       return true;
-    } catch (error: any) {
-      if (error.status === 404) {
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        (error as { status: number }).status === 404
+      ) {
         return false;
       }
       throw error;
@@ -501,7 +503,7 @@ export class GitHubRestService {
         per_page: 100,
       });
 
-      return response.data.map((pr: any) => ({
+      return response.data.map((pr) => ({
         number: pr.number,
         title: pr.title,
         url: pr.html_url,
@@ -558,7 +560,7 @@ export class GitHubRestService {
         per_page: 100,
       });
 
-      return response.data.map((comment: any) => ({
+      return response.data.map((comment) => ({
         id: comment.id,
         body: comment.body || '',
         author: comment.user?.login || 'unknown',
@@ -584,7 +586,7 @@ export class GitHubRestService {
         per_page: 100,
       });
 
-      return response.data.map((review: any) => ({
+      return response.data.map((review) => ({
         id: review.id,
         body: review.body || '',
         state: review.state,
@@ -610,7 +612,7 @@ export class GitHubRestService {
         per_page: 100,
       });
 
-      return response.data.map((comment: any) => ({
+      return response.data.map((comment) => ({
         id: comment.id,
         body: comment.body || '',
         author: comment.user?.login || 'unknown',
@@ -681,7 +683,7 @@ export class GitHubRestService {
         per_page: 100,
       });
 
-      return response.data.map((r: any) => ({
+      return response.data.map((r) => ({
         id: r.id,
         content: r.content,
         user: r.user?.login || 'unknown',
@@ -752,7 +754,7 @@ export class GitHubRestService {
         per_page: 100,
       });
 
-      return response.data.map((r: any) => ({
+      return response.data.map((r) => ({
         id: r.id,
         content: r.content,
         user: r.user?.login || 'unknown',
@@ -816,7 +818,7 @@ export class GitHubRestService {
         per_page: 100,
       });
 
-      return response.data.map((r: any) => ({
+      return response.data.map((r) => ({
         id: r.id,
         content: r.content,
         user: r.user?.login || 'unknown',
@@ -885,16 +887,28 @@ export class GitHubRestService {
         }
       );
 
-      return (response.data as any[]).map((item: any) => ({
+      return (
+        response.data as {
+          id: number;
+          number: number;
+          title: string;
+          state: string;
+          html_url: string;
+        }[]
+      ).map((item) => ({
         id: item.id,
         number: item.number,
         title: item.title,
         state: item.state,
         url: item.html_url,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Sub-issues API may not be available for all repos
-      if (error.status === 404 || error.status === 403) {
+      const status =
+        error && typeof error === 'object' && 'status' in error
+          ? (error as { status: number }).status
+          : undefined;
+      if (status === 404 || status === 403) {
         return [];
       }
       throw new Error(`Failed to list sub-issues for ${owner}/${repo}#${issueNumber}: ${error}`);
@@ -985,9 +999,12 @@ export class GitHubRestService {
         merged: response.data.merged,
         message: response.data.message,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // GitHub returns specific error messages for merge failures
-      const message = error?.response?.data?.message || error?.message || String(error);
+      const err = error as Record<string, unknown> | undefined;
+      const response = err?.response as Record<string, unknown> | undefined;
+      const data = response?.data as Record<string, unknown> | undefined;
+      const message = (data?.message as string) || (err?.message as string) || String(error);
       throw new Error(`Failed to merge PR #${prNumber}: ${message}`);
     }
   }
@@ -1029,7 +1046,7 @@ export class GitHubRestService {
         per_page: 30,
       });
 
-      return response.data.workflow_runs.map((run: any) => ({
+      return response.data.workflow_runs.map((run) => ({
         id: run.id,
         name: run.name || '',
         displayTitle: run.display_title || run.name || '',
@@ -1063,7 +1080,7 @@ export class GitHubRestService {
         filter: 'latest',
       });
 
-      return response.data.jobs.map((job: any) => ({
+      return response.data.jobs.map((job) => ({
         id: job.id,
         name: job.name || '',
         status: job.status || '',
@@ -1073,7 +1090,7 @@ export class GitHubRestService {
         htmlUrl: job.html_url,
         runnerName: job.runner_name || null,
         labels: job.labels || [],
-        steps: (job.steps || []).map((step: any) => ({
+        steps: (job.steps || []).map((step) => ({
           name: step.name || '',
           status: step.status || '',
           conclusion: step.conclusion || null,
@@ -1119,7 +1136,7 @@ export class GitHubRestService {
 
       // Infer isLatest: first non-draft, non-prerelease entry
       let foundLatest = false;
-      return response.data.map((release: any) => {
+      return response.data.map((release) => {
         let isLatest = false;
         if (!foundLatest && !release.draft && !release.prerelease) {
           isLatest = true;
@@ -1373,16 +1390,22 @@ export class GitHubRestService {
 
       return response.data
         .filter((event) => relevantEvents.includes(event.event))
-        .map((event: any) => ({
-          id: event.id,
-          event: event.event,
-          actor: event.actor?.login || 'unknown',
-          actorAvatarUrl: event.actor?.avatar_url || '',
-          createdAt: new Date(event.created_at),
-          rename: event.rename ? { from: event.rename.from, to: event.rename.to } : undefined,
-          label: event.label ? { name: event.label.name, color: event.label.color } : undefined,
-          commitId: event.commit_id || undefined,
-        }));
+        .map((event) => {
+          const evt = event as typeof event & {
+            rename?: { from: string; to: string };
+            label?: { name: string; color: string };
+          };
+          return {
+            id: evt.id,
+            event: evt.event,
+            actor: evt.actor?.login || 'unknown',
+            actorAvatarUrl: evt.actor?.avatar_url || '',
+            createdAt: new Date(evt.created_at),
+            rename: evt.rename ? { from: evt.rename.from, to: evt.rename.to } : undefined,
+            label: evt.label ? { name: evt.label.name, color: evt.label.color } : undefined,
+            commitId: evt.commit_id || undefined,
+          };
+        });
     } catch (error) {
       throw new Error(`Failed to list events for PR #${prNumber}: ${error}`);
     }
@@ -1404,7 +1427,7 @@ export class GitHubRestService {
       });
       return {
         totalCount: data.total_count,
-        items: data.items.map((item: any) => ({
+        items: data.items.map((item) => ({
           id: item.id,
           number: item.number,
           title: item.title,
@@ -1413,11 +1436,13 @@ export class GitHubRestService {
           createdAt: item.created_at,
           updatedAt: item.updated_at,
           closedAt: item.closed_at,
-          labels: item.labels.map((l: any) => (typeof l === 'string' ? l : l.name || '')),
+          labels: item.labels?.map((l) => (typeof l === 'string' ? l : l.name || '')) || [],
           repoFullName: item.repository_url.replace('https://api.github.com/repos/', ''),
           isPullRequest: !!item.pull_request,
           author: item.user?.login || '',
-          pullRequest: item.pull_request ? { mergedAt: item.pull_request.merged_at } : undefined,
+          pullRequest: item.pull_request
+            ? { mergedAt: item.pull_request.merged_at ?? null }
+            : undefined,
         })),
       };
     } catch (error) {
@@ -1437,20 +1462,32 @@ export class GitHubRestService {
         username,
         per_page: perPage,
       });
-      return data.map((event: any) => ({
-        id: event.id,
-        type: event.type || '',
-        repoName: event.repo?.name || '',
-        createdAt: event.created_at || '',
-        action: event.payload?.action || '',
-        refType: event.payload?.ref_type || '',
-        ref: event.payload?.ref || '',
-        commitCount: event.payload?.size || 0,
-        prNumber: event.payload?.pull_request?.number || null,
-        prTitle: event.payload?.pull_request?.title || '',
-        issueNumber: event.payload?.issue?.number || null,
-        issueTitle: event.payload?.issue?.title || '',
-      }));
+      return data.map((event) => {
+        const payload = event.payload as
+          | {
+              action?: string;
+              ref_type?: string;
+              ref?: string;
+              size?: number;
+              pull_request?: { number?: number; title?: string };
+              issue?: { number?: number; title?: string };
+            }
+          | undefined;
+        return {
+          id: event.id,
+          type: event.type || '',
+          repoName: event.repo?.name || '',
+          createdAt: event.created_at || '',
+          action: payload?.action || '',
+          refType: payload?.ref_type || '',
+          ref: payload?.ref || '',
+          commitCount: payload?.size || 0,
+          prNumber: payload?.pull_request?.number || null,
+          prTitle: payload?.pull_request?.title || '',
+          issueNumber: payload?.issue?.number || null,
+          issueTitle: payload?.issue?.title || '',
+        };
+      });
     } catch (error) {
       throw new Error(`Failed to list user events: ${error}`);
     }
@@ -1487,11 +1524,9 @@ export class GitHubRestService {
 
       // If we have statuses from the combined API, use them
       if (statuses.length > 0) {
-        const passed = statuses.filter((s: any) => s.state === 'success').length;
-        const failed = statuses.filter(
-          (s: any) => s.state === 'failure' || s.state === 'error'
-        ).length;
-        const pending = statuses.filter((s: any) => s.state === 'pending').length;
+        const passed = statuses.filter((s) => s.state === 'success').length;
+        const failed = statuses.filter((s) => s.state === 'failure' || s.state === 'error').length;
+        const pending = statuses.filter((s) => s.state === 'pending').length;
 
         let state: 'pending' | 'success' | 'failure' | 'unknown' = 'unknown';
         if (failed > 0) {
@@ -1532,18 +1567,18 @@ export class GitHubRestService {
 
       // Aggregate check suite conclusions
       const passed = suites.filter(
-        (s: any) =>
+        (s) =>
           s.conclusion === 'success' || s.conclusion === 'skipped' || s.conclusion === 'neutral'
       ).length;
       const failed = suites.filter(
-        (s: any) =>
+        (s) =>
           s.conclusion === 'failure' ||
           s.conclusion === 'action_required' ||
           s.conclusion === 'timed_out' ||
           s.conclusion === 'cancelled'
       ).length;
       const pending = suites.filter(
-        (s: any) => s.status === 'in_progress' || s.status === 'queued' || s.conclusion === null
+        (s) => s.status === 'in_progress' || s.status === 'queued' || s.conclusion === null
       ).length;
 
       let state: 'pending' | 'success' | 'failure' | 'unknown' = 'unknown';

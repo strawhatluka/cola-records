@@ -1,8 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- GitHub GraphQL API responses are dynamically typed */
 import { graphql } from '@octokit/graphql';
 import type { GitHubIssue } from '../ipc/channels';
 import { env } from './environment.service';
 import { database } from '../database';
+import type {
+  GQLSearchIssuesResponse,
+  GQLRepositoryResponse,
+  GQLViewerResponse,
+  GQLSearchRepositoriesResponse,
+  GQLRepositoryTreeResponse,
+  GQLRepositoryTreeEntry,
+  GQLPRReviewThreadsResponse,
+} from '../../types/github-graphql.types';
 
 /**
  * GitHub GraphQL Service
@@ -58,7 +66,7 @@ export class GitHubGraphQLService {
       const labelQuery = labels.map((label) => `label:"${label}"`).join(' ');
       const searchQuery = `${query} ${labelQuery} is:issue is:open sort:updated-desc`;
 
-      const response: any = await client(
+      const response = await client<GQLSearchIssuesResponse>(
         `
         query searchIssues($searchQuery: String!, $first: Int!) {
           search(query: $searchQuery, type: ISSUE, first: $first) {
@@ -93,20 +101,22 @@ export class GitHubGraphQLService {
         }
       );
 
-      return response.search.edges.map((edge: any) => {
-        const issue = edge.node;
-        return {
-          id: issue.id,
-          number: issue.number,
-          title: issue.title,
-          body: issue.body || '',
-          url: issue.url,
-          repository: issue.repository.nameWithOwner,
-          labels: issue.labels.nodes.map((label: any) => label.name),
-          createdAt: new Date(issue.createdAt),
-          updatedAt: new Date(issue.updatedAt),
-        };
-      });
+      return response.search.edges.map(
+        (edge: GQLSearchIssuesResponse['search']['edges'][number]) => {
+          const issue = edge.node;
+          return {
+            id: issue.id,
+            number: issue.number,
+            title: issue.title,
+            body: issue.body || '',
+            url: issue.url,
+            repository: issue.repository.nameWithOwner,
+            labels: issue.labels.nodes.map((label: { name: string }) => label.name),
+            createdAt: new Date(issue.createdAt),
+            updatedAt: new Date(issue.updatedAt),
+          };
+        }
+      );
     } catch (error) {
       throw new Error(`Failed to search GitHub issues: ${error}`);
     }
@@ -115,11 +125,25 @@ export class GitHubGraphQLService {
   /**
    * Get repository information
    */
-  async getRepository(owner: string, repo: string): Promise<any> {
+  async getRepository(
+    owner: string,
+    repo: string
+  ): Promise<{
+    id: string;
+    name: string;
+    fullName: string;
+    description: string;
+    url: string;
+    language: string;
+    stars: number;
+    forks: number;
+    openIssues: number;
+    defaultBranch: string;
+  }> {
     try {
       const client = this.getClient();
 
-      const response: any = await client(
+      const response = await client<GQLRepositoryResponse>(
         `
         query getRepository($owner: String!, $name: String!) {
           repository(owner: $owner, name: $name) {
@@ -211,7 +235,7 @@ export class GitHubGraphQLService {
     try {
       const client = this.getClient();
 
-      const response: any = await client(
+      const response = await client<GQLViewerResponse>(
         `
         query {
           viewer {
@@ -250,11 +274,25 @@ export class GitHubGraphQLService {
   /**
    * Search repositories by topic
    */
-  async searchRepositoriesByTopic(topic: string, limit = 20): Promise<any[]> {
+  async searchRepositoriesByTopic(
+    topic: string,
+    limit = 20
+  ): Promise<
+    {
+      id: string;
+      name: string;
+      fullName: string;
+      description: string;
+      url: string;
+      language: string;
+      stars: number;
+      forks: number;
+    }[]
+  > {
     try {
       const client = this.getClient();
 
-      const response: any = await client(
+      const response = await client<GQLSearchRepositoriesResponse>(
         `
         query searchRepos($query: String!, $first: Int!) {
           search(query: $query, type: REPOSITORY, first: $first) {
@@ -283,19 +321,21 @@ export class GitHubGraphQLService {
         }
       );
 
-      return response.search.edges.map((edge: any) => {
-        const repo = edge.node;
-        return {
-          id: repo.id,
-          name: repo.name,
-          fullName: repo.nameWithOwner,
-          description: repo.description || '',
-          url: repo.url,
-          language: repo.primaryLanguage?.name || 'Unknown',
-          stars: repo.stargazerCount,
-          forks: repo.forkCount,
-        };
-      });
+      return response.search.edges.map(
+        (edge: GQLSearchRepositoriesResponse['search']['edges'][number]) => {
+          const repo = edge.node;
+          return {
+            id: repo.id,
+            name: repo.name,
+            fullName: repo.nameWithOwner,
+            description: repo.description || '',
+            url: repo.url,
+            language: repo.primaryLanguage?.name || 'Unknown',
+            stars: repo.stargazerCount,
+            forks: repo.forkCount,
+          };
+        }
+      );
     } catch (error) {
       throw new Error(`Failed to search repositories: ${error}`);
     }
@@ -306,7 +346,11 @@ export class GitHubGraphQLService {
   /**
    * Get repository file tree
    */
-  async getRepositoryTree(owner: string, repo: string, branch: string = 'main'): Promise<any> {
+  async getRepositoryTree(
+    owner: string,
+    repo: string,
+    branch: string = 'main'
+  ): Promise<GQLRepositoryTreeEntry[]> {
     try {
       const client = this.getClient();
 
@@ -337,7 +381,7 @@ export class GitHubGraphQLService {
         }
       `;
 
-      const result: any = await client(query, {
+      const result = await client<GQLRepositoryTreeResponse>(query, {
         owner,
         repo,
         expression: `${branch}:`,
@@ -415,7 +459,7 @@ export class GitHubGraphQLService {
     try {
       const client = this.getClient();
 
-      const response: any = await client(
+      const response = await client<GQLPRReviewThreadsResponse>(
         `
         query getPRReviewThreads($owner: String!, $repo: String!, $prNumber: Int!) {
           repository(owner: $owner, name: $repo) {
@@ -443,11 +487,21 @@ export class GitHubGraphQLService {
       );
 
       const threads = response.repository?.pullRequest?.reviewThreads?.nodes || [];
-      return threads.map((thread: any) => ({
-        id: thread.id,
-        isResolved: thread.isResolved,
-        comments: thread.comments.nodes.map((c: any) => ({ databaseId: c.databaseId })),
-      }));
+      return threads.map(
+        (
+          thread: GQLPRReviewThreadsResponse['repository']['pullRequest'] extends infer PR
+            ? NonNullable<PR> extends { reviewThreads: { nodes: (infer T)[] } }
+              ? T
+              : never
+            : never
+        ) => ({
+          id: thread.id,
+          isResolved: thread.isResolved,
+          comments: thread.comments.nodes.map((c: { databaseId: number }) => ({
+            databaseId: c.databaseId,
+          })),
+        })
+      );
     } catch (error) {
       throw new Error(`Failed to get review threads for ${owner}/${repo}#${prNumber}: ${error}`);
     }

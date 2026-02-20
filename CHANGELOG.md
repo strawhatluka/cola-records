@@ -14,6 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - DOMPurify config allows SVG profiles and `foreignObject` for Mermaid compatibility
   - Blocks `<script>` tags, event handler attributes, and other XSS vectors
   - Added `dompurify` as direct dependency (previously transitive only)
+- Reduced npm vulnerabilities from 75 to 52, eliminating all critical CVEs (HIGH-002)
+  - Removed `electron-icon-builder` (unused — pulled in `phantomjs-prebuilt` chain with 2 critical `form-data` CVEs)
+  - Ran `npm audit fix` for safe transitive dependency patches
+  - Remaining 52 vulnerabilities are dev-only toolchain deps (Electron Forge, ESLint) with zero runtime impact
+
+### Changed
+
+- Eliminated all 86 unsafe `any` type annotations across 5 API service files (HIGH-001)
+  - Created `src/types/spotify-api.types.ts` — 7 interfaces for Spotify REST API response shapes
+  - Created `src/types/github-graphql.types.ts` — 7 interfaces for GitHub GraphQL response shapes
+  - Created `src/types/discord-api.types.ts` — 22 interfaces for Discord REST API response shapes
+  - `discord.service.ts`: 35 `any` → proper Discord API types
+  - `github-rest.service.ts`: 28 `any` → Octokit inferred types + inline type assertions
+  - `github-graphql.service.ts`: 11 `any` → GraphQL generic response types
+  - `spotify.service.ts`: 7 `any` → Spotify API response types
+  - `github.service.ts`: 1 `any[]` → `unknown[]`
+  - Fixed 3 catch blocks: `catch (error: any)` → `catch (error: unknown)` with proper type narrowing
 
 ### Tests
 

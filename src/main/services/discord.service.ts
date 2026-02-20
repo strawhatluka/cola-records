@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Discord API responses are untyped */
 import { secureStorage } from './secure-storage.service';
 import { database } from '../database';
 import type {
@@ -16,6 +15,28 @@ import type {
   DiscordPoll,
   DiscordThread,
 } from '../ipc/channels';
+import type {
+  DiscordAPIUser,
+  DiscordAPIGuild,
+  DiscordAPIChannel,
+  DiscordAPIChannelTag,
+  DiscordAPIMessage,
+  DiscordAPIEmoji,
+  DiscordAPIAttachment,
+  DiscordAPIEmbed,
+  DiscordAPIReaction,
+  DiscordAPISticker,
+  DiscordAPIStickerPack,
+  DiscordAPIPoll,
+  DiscordAPIPollAnswer,
+  DiscordAPIPollAnswerCount,
+  DiscordAPIThread,
+  DiscordAPIStickerItem,
+  DiscordAPIStickerPacksResponse,
+  DiscordAPIGif,
+  DiscordAPIThreadSearchResponse,
+  DiscordAPIActiveThreadsResponse,
+} from '../../types/discord-api.types';
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
 const STORAGE_KEY = 'discord_token';
@@ -50,7 +71,7 @@ export class DiscordService {
     }
 
     // Validate token by calling /users/@me
-    const user = await this.apiGetWithToken('/users/@me', token);
+    const user = (await this.apiGetWithToken('/users/@me', token)) as DiscordAPIUser;
     // Token is valid — store it in SecureStorage
     await secureStorage.setItem(STORAGE_KEY, token);
     return this.mapUser(user);
@@ -62,7 +83,7 @@ export class DiscordService {
 
   async getUser(): Promise<DiscordUser | null> {
     try {
-      const data = await this.apiGet('/users/@me');
+      const data = (await this.apiGet('/users/@me')) as DiscordAPIUser;
       return this.mapUser(data);
     } catch {
       return null;
@@ -70,8 +91,8 @@ export class DiscordService {
   }
 
   async getGuilds(): Promise<DiscordGuild[]> {
-    const data = await this.apiGet('/users/@me/guilds');
-    return (data || []).map((g: any) => ({
+    const data = (await this.apiGet('/users/@me/guilds')) as DiscordAPIGuild[];
+    return (data || []).map((g: DiscordAPIGuild) => ({
       id: g.id,
       name: g.name,
       icon: g.icon,
@@ -81,13 +102,13 @@ export class DiscordService {
   }
 
   async getGuildChannels(guildId: string): Promise<DiscordChannel[]> {
-    const data = await this.apiGet(`/guilds/${guildId}/channels`);
-    return (data || []).map((ch: any) => this.mapChannel(ch));
+    const data = (await this.apiGet(`/guilds/${guildId}/channels`)) as DiscordAPIChannel[];
+    return (data || []).map((ch: DiscordAPIChannel) => this.mapChannel(ch));
   }
 
   async getGuildEmojis(guildId: string): Promise<DiscordEmoji[]> {
-    const data = await this.apiGet(`/guilds/${guildId}/emojis`);
-    return (data || []).map((e: any) => ({
+    const data = (await this.apiGet(`/guilds/${guildId}/emojis`)) as DiscordAPIEmoji[];
+    return (data || []).map((e: DiscordAPIEmoji) => ({
       id: e.id,
       name: e.name,
       animated: e.animated || false,
@@ -96,11 +117,11 @@ export class DiscordService {
   }
 
   async getDMChannels(): Promise<DiscordDMChannel[]> {
-    const data = await this.apiGet('/users/@me/channels');
-    return (data || []).map((ch: any) => ({
+    const data = (await this.apiGet('/users/@me/channels')) as DiscordAPIChannel[];
+    return (data || []).map((ch: DiscordAPIChannel) => ({
       id: ch.id,
       type: ch.type,
-      recipients: (ch.recipients || []).map((r: any) => this.mapUser(r)),
+      recipients: (ch.recipients || []).map((r: DiscordAPIUser) => this.mapUser(r)),
       lastMessageId: ch.last_message_id || null,
     }));
   }
@@ -108,8 +129,10 @@ export class DiscordService {
   async getMessages(channelId: string, before?: string, limit = 50): Promise<DiscordMessage[]> {
     const params = new URLSearchParams({ limit: String(limit) });
     if (before) params.set('before', before);
-    const data = await this.apiGet(`/channels/${channelId}/messages?${params.toString()}`);
-    return (data || []).map((m: any) => this.mapMessage(m));
+    const data = (await this.apiGet(
+      `/channels/${channelId}/messages?${params.toString()}`
+    )) as DiscordAPIMessage[];
+    return (data || []).map((m: DiscordAPIMessage) => this.mapMessage(m));
   }
 
   async sendMessage(
@@ -121,7 +144,7 @@ export class DiscordService {
     if (replyToId) {
       body.message_reference = { message_id: replyToId };
     }
-    const data = await this.apiPost(`/channels/${channelId}/messages`, body);
+    const data = (await this.apiPost(`/channels/${channelId}/messages`, body)) as DiscordAPIMessage;
     return this.mapMessage(data);
   }
 
@@ -130,7 +153,9 @@ export class DiscordService {
     messageId: string,
     content: string
   ): Promise<DiscordMessage> {
-    const data = await this.apiPatch(`/channels/${channelId}/messages/${messageId}`, { content });
+    const data = (await this.apiPatch(`/channels/${channelId}/messages/${messageId}`, {
+      content,
+    })) as DiscordAPIMessage;
     return this.mapMessage(data);
   }
 
@@ -151,7 +176,7 @@ export class DiscordService {
   }
 
   async getChannel(channelId: string): Promise<DiscordChannel> {
-    const data = await this.apiGet(`/channels/${channelId}`);
+    const data = (await this.apiGet(`/channels/${channelId}`)) as DiscordAPIChannel;
     return this.mapChannel(data);
   }
 
@@ -160,16 +185,18 @@ export class DiscordService {
   }
 
   async getPinnedMessages(channelId: string): Promise<DiscordMessage[]> {
-    const data = await this.apiGet(`/channels/${channelId}/pins`);
-    return (data || []).map((m: any) => this.mapMessage(m));
+    const data = (await this.apiGet(`/channels/${channelId}/pins`)) as DiscordAPIMessage[];
+    return (data || []).map((m: DiscordAPIMessage) => this.mapMessage(m));
   }
 
   async createDM(userId: string): Promise<DiscordDMChannel> {
-    const data = await this.apiPost('/users/@me/channels', { recipient_id: userId });
+    const data = (await this.apiPost('/users/@me/channels', {
+      recipient_id: userId,
+    })) as DiscordAPIChannel;
     return {
       id: data.id,
       type: data.type,
-      recipients: (data.recipients || []).map((r: any) => this.mapUser(r)),
+      recipients: (data.recipients || []).map((r: DiscordAPIUser) => this.mapUser(r)),
       lastMessageId: data.last_message_id || null,
     };
   }
@@ -212,7 +239,7 @@ export class DiscordService {
       throw new Error(`Discord API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as DiscordAPIMessage;
     return this.mapMessage(data);
   }
 
@@ -231,8 +258,8 @@ export class DiscordService {
       headers: { Authorization: token },
     });
     if (!response.ok) return [];
-    const data = await response.json();
-    return (data || []).map((g: any) => ({
+    const data = (await response.json()) as DiscordAPIGif[];
+    return (data || []).map((g: DiscordAPIGif) => ({
       url: g.url,
       preview: g.preview || g.gif_src || g.url,
       width: g.width || 200,
@@ -249,8 +276,8 @@ export class DiscordService {
       headers: { Authorization: token },
     });
     if (!response.ok) return [];
-    const data = await response.json();
-    return (data || []).map((g: any) => ({
+    const data = (await response.json()) as DiscordAPIGif[];
+    return (data || []).map((g: DiscordAPIGif) => ({
       url: g.url,
       preview: g.preview || g.gif_src || g.url,
       width: g.width || 200,
@@ -259,25 +286,25 @@ export class DiscordService {
   }
 
   async getStickerPacks(): Promise<DiscordStickerPack[]> {
-    const data = await this.apiGet('/sticker-packs');
-    return (data?.sticker_packs || []).map((pack: any) => ({
+    const data = (await this.apiGet('/sticker-packs')) as DiscordAPIStickerPacksResponse;
+    return (data?.sticker_packs || []).map((pack: DiscordAPIStickerPack) => ({
       id: pack.id,
       name: pack.name,
       description: pack.description || '',
       bannerAssetId: pack.banner_asset_id || null,
-      stickers: (pack.stickers || []).map((s: any) => this.mapSticker(s)),
+      stickers: (pack.stickers || []).map((s: DiscordAPISticker) => this.mapSticker(s)),
     }));
   }
 
   async getGuildStickers(guildId: string): Promise<DiscordSticker[]> {
-    const data = await this.apiGet(`/guilds/${guildId}/stickers`);
-    return (data || []).map((s: any) => this.mapSticker(s));
+    const data = (await this.apiGet(`/guilds/${guildId}/stickers`)) as DiscordAPISticker[];
+    return (data || []).map((s: DiscordAPISticker) => this.mapSticker(s));
   }
 
   async sendSticker(channelId: string, stickerId: string): Promise<DiscordMessage> {
-    const data = await this.apiPost(`/channels/${channelId}/messages`, {
+    const data = (await this.apiPost(`/channels/${channelId}/messages`, {
       sticker_ids: [stickerId],
-    });
+    })) as DiscordAPIMessage;
     return this.mapMessage(data);
   }
 
@@ -288,7 +315,7 @@ export class DiscordService {
     duration: number,
     allowMultiselect: boolean
   ): Promise<DiscordMessage> {
-    const data = await this.apiPost(`/channels/${channelId}/messages`, {
+    const data = (await this.apiPost(`/channels/${channelId}/messages`, {
       poll: {
         question: { text: question },
         answers: answers.map((text) => ({
@@ -298,7 +325,7 @@ export class DiscordService {
         allow_multiselect: allowMultiselect,
         layout_type: 1,
       },
-    });
+    })) as DiscordAPIMessage;
     return this.mapMessage(data);
   }
 
@@ -322,8 +349,10 @@ export class DiscordService {
     }
 
     try {
-      const data = await this.apiGet(`/channels/${channelId}/threads/search?${params.toString()}`);
-      const threads = (data?.threads || []).map((t: any) => this.mapThread(t));
+      const data = (await this.apiGet(
+        `/channels/${channelId}/threads/search?${params.toString()}`
+      )) as DiscordAPIThreadSearchResponse;
+      const threads = (data?.threads || []).map((t: DiscordAPIThread) => this.mapThread(t));
       return {
         threads,
         hasMore: data?.has_more || false,
@@ -332,10 +361,12 @@ export class DiscordService {
     } catch {
       // Fallback: try the guild active threads endpoint
       try {
-        const active = await this.apiGet(`/guilds/${_guildId}/threads/active`);
+        const active = (await this.apiGet(
+          `/guilds/${_guildId}/threads/active`
+        )) as DiscordAPIActiveThreadsResponse;
         const threads = (active?.threads || [])
-          .filter((t: any) => t.parent_id === channelId)
-          .map((t: any) => this.mapThread(t));
+          .filter((t: DiscordAPIThread) => t.parent_id === channelId)
+          .map((t: DiscordAPIThread) => this.mapThread(t));
         return { threads, hasMore: false, totalResults: threads.length };
       } catch {
         return { threads: [], hasMore: false, totalResults: 0 };
@@ -349,14 +380,14 @@ export class DiscordService {
     content: string,
     appliedTags?: string[]
   ): Promise<DiscordThread> {
-    const body: any = {
+    const body: Record<string, unknown> = {
       name,
       message: { content },
     };
     if (appliedTags && appliedTags.length > 0) {
       body.applied_tags = appliedTags;
     }
-    const data = await this.apiPost(`/channels/${channelId}/threads`, body);
+    const data = (await this.apiPost(`/channels/${channelId}/threads`, body)) as DiscordAPIThread;
     return this.mapThread(data);
   }
 
@@ -380,7 +411,7 @@ export class DiscordService {
 
   // --- Private helpers ---
 
-  private mapUser(u: any): DiscordUser {
+  private mapUser(u: DiscordAPIUser): DiscordUser {
     return {
       id: u.id,
       username: u.username,
@@ -390,7 +421,7 @@ export class DiscordService {
     };
   }
 
-  private mapChannel(ch: any): DiscordChannel {
+  private mapChannel(ch: DiscordAPIChannel): DiscordChannel {
     return {
       id: ch.id,
       name: ch.name || '',
@@ -398,7 +429,7 @@ export class DiscordService {
       parentId: ch.parent_id || null,
       position: ch.position || 0,
       topic: ch.topic || null,
-      availableTags: (ch.available_tags || []).map((t: any) => ({
+      availableTags: (ch.available_tags || []).map((t: DiscordAPIChannelTag) => ({
         id: t.id,
         name: t.name,
         moderated: t.moderated || false,
@@ -408,7 +439,7 @@ export class DiscordService {
     };
   }
 
-  private mapThread(t: any): DiscordThread {
+  private mapThread(t: DiscordAPIThread): DiscordThread {
     return {
       id: t.id,
       name: t.name || '',
@@ -424,22 +455,22 @@ export class DiscordService {
     };
   }
 
-  private mapMessage(m: any): DiscordMessage {
+  private mapMessage(m: DiscordAPIMessage): DiscordMessage {
     return {
       id: m.id,
       content: m.content || '',
       author: this.mapUser(m.author),
       timestamp: m.timestamp,
       editedTimestamp: m.edited_timestamp || null,
-      attachments: (m.attachments || []).map((a: any) => this.mapAttachment(a)),
-      embeds: (m.embeds || []).map((e: any) => this.mapEmbed(e)),
-      reactions: (m.reactions || []).map((r: any) => this.mapReaction(r)),
+      attachments: (m.attachments || []).map((a: DiscordAPIAttachment) => this.mapAttachment(a)),
+      embeds: (m.embeds || []).map((e: DiscordAPIEmbed) => this.mapEmbed(e)),
+      reactions: (m.reactions || []).map((r: DiscordAPIReaction) => this.mapReaction(r)),
       referencedMessage: m.referenced_message ? this.mapMessage(m.referenced_message) : null,
       mentionEveryone: m.mention_everyone || false,
-      mentions: (m.mentions || []).map((u: any) => this.mapUser(u)),
+      mentions: (m.mentions || []).map((u: DiscordAPIUser) => this.mapUser(u)),
       pinned: m.pinned || false,
       type: m.type || 0,
-      stickerItems: (m.sticker_items || []).map((s: any) => ({
+      stickerItems: (m.sticker_items || []).map((s: DiscordAPIStickerItem) => ({
         id: s.id,
         name: s.name,
         formatType: s.format_type || 1,
@@ -448,7 +479,7 @@ export class DiscordService {
     };
   }
 
-  private mapAttachment(a: any): DiscordAttachment {
+  private mapAttachment(a: DiscordAPIAttachment): DiscordAttachment {
     return {
       id: a.id,
       filename: a.filename,
@@ -461,7 +492,7 @@ export class DiscordService {
     };
   }
 
-  private mapEmbed(e: any): DiscordEmbed {
+  private mapEmbed(e: DiscordAPIEmbed): DiscordEmbed {
     return {
       title: e.title || null,
       description: e.description || null,
@@ -476,7 +507,7 @@ export class DiscordService {
         : null,
       video: e.video
         ? {
-            url: e.video.url || e.video.proxy_url,
+            url: e.video.url || e.video.proxy_url || '',
             width: e.video.width || 0,
             height: e.video.height || 0,
           }
@@ -487,7 +518,7 @@ export class DiscordService {
       footer: e.footer ? { text: e.footer.text, iconUrl: e.footer.icon_url || null } : null,
       timestamp: e.timestamp || null,
       provider: e.provider ? { name: e.provider.name, url: e.provider.url || null } : null,
-      fields: (e.fields || []).map((f: any) => ({
+      fields: (e.fields || []).map((f: { name: string; value: string; inline?: boolean }) => ({
         name: f.name,
         value: f.value,
         inline: f.inline || false,
@@ -495,7 +526,7 @@ export class DiscordService {
     };
   }
 
-  private mapReaction(r: any): DiscordReaction {
+  private mapReaction(r: DiscordAPIReaction): DiscordReaction {
     return {
       emoji: { id: r.emoji?.id || null, name: r.emoji?.name || '' },
       count: r.count || 0,
@@ -503,7 +534,7 @@ export class DiscordService {
     };
   }
 
-  private mapSticker(s: any): DiscordSticker {
+  private mapSticker(s: DiscordAPISticker): DiscordSticker {
     return {
       id: s.id,
       name: s.name,
@@ -515,10 +546,10 @@ export class DiscordService {
     };
   }
 
-  private mapPoll(p: any): DiscordPoll {
+  private mapPoll(p: DiscordAPIPoll): DiscordPoll {
     return {
       question: { text: p.question?.text || '' },
-      answers: (p.answers || []).map((a: any) => ({
+      answers: (p.answers || []).map((a: DiscordAPIPollAnswer) => ({
         answerId: a.answer_id,
         pollMedia: {
           text: a.poll_media?.text || '',
@@ -533,7 +564,7 @@ export class DiscordService {
       results: p.results
         ? {
             isFinalized: p.results.is_finalized || false,
-            answerCounts: (p.results.answer_counts || []).map((ac: any) => ({
+            answerCounts: (p.results.answer_counts || []).map((ac: DiscordAPIPollAnswerCount) => ({
               id: ac.id,
               count: ac.count || 0,
               meVoted: ac.me_voted || false,
@@ -593,7 +624,7 @@ export class DiscordService {
     return response;
   }
 
-  private async apiGetWithToken(path: string, token: string): Promise<any> {
+  private async apiGetWithToken(path: string, token: string): Promise<unknown> {
     const response = await this.apiRequestWithToken('GET', path, token);
     if (!response.ok) {
       throw new Error(`Discord API error: ${response.status} ${response.statusText}`);
@@ -601,7 +632,7 @@ export class DiscordService {
     return response.json();
   }
 
-  private async apiGet(path: string): Promise<any> {
+  private async apiGet(path: string): Promise<unknown> {
     const response = await this.apiRequest('GET', path);
     if (response.status === 204) return null;
     if (!response.ok) {
@@ -610,7 +641,7 @@ export class DiscordService {
     return response.json();
   }
 
-  private async apiPost(path: string, body?: unknown): Promise<any> {
+  private async apiPost(path: string, body?: unknown): Promise<unknown> {
     const response = await this.apiRequest('POST', path, body);
     if (response.status === 204) return null;
     if (!response.ok) {
@@ -627,7 +658,7 @@ export class DiscordService {
     }
   }
 
-  private async apiPatch(path: string, body?: unknown): Promise<any> {
+  private async apiPatch(path: string, body?: unknown): Promise<unknown> {
     const response = await this.apiRequest('PATCH', path, body);
     if (!response.ok) {
       throw new Error(`Discord API error: ${response.status} ${response.statusText}`);
