@@ -53,29 +53,29 @@ describe('MermaidBlock', () => {
   });
 
   it('strips script tags from SVG', async () => {
-    const maliciousSvg = '<svg><script>alert("xss")</script><rect/></svg>';
+    const maliciousSvg = '<svg><script>alert("xss")</script><rect></rect></svg>';
     mockRender.mockResolvedValue({ svg: maliciousSvg });
-    mockSanitize.mockReturnValue('<svg><rect/></svg>');
+    mockSanitize.mockReturnValue('<svg><rect></rect></svg>');
 
     render(<MermaidBlock content="graph TD; A-->B;" />);
 
     await waitFor(() => {
       const container = document.querySelector('[data-testid="mermaid-diagram"]');
-      expect(container?.innerHTML).toBe('<svg><rect/></svg>');
+      expect(container?.innerHTML).toBe('<svg><rect></rect></svg>');
       expect(container?.innerHTML).not.toContain('<script>');
     });
   });
 
   it('strips event handler attributes from SVG', async () => {
-    const maliciousSvg = '<svg onload="alert(\'xss\')"><rect/></svg>';
+    const maliciousSvg = '<svg onload="alert(\'xss\')"><rect></rect></svg>';
     mockRender.mockResolvedValue({ svg: maliciousSvg });
-    mockSanitize.mockReturnValue('<svg><rect/></svg>');
+    mockSanitize.mockReturnValue('<svg><rect></rect></svg>');
 
     render(<MermaidBlock content="graph TD; A-->B;" />);
 
     await waitFor(() => {
       const container = document.querySelector('[data-testid="mermaid-diagram"]');
-      expect(container?.innerHTML).toBe('<svg><rect/></svg>');
+      expect(container?.innerHTML).toBe('<svg><rect></rect></svg>');
       expect(container?.innerHTML).not.toContain('onload');
     });
   });
