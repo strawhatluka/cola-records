@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import { app } from 'electron';
 import { CREATE_TABLES, SCHEMA_VERSION, MIGRATIONS } from './schema';
-import type { Contribution, DevScript, DevScriptTerminal } from '../ipc/channels';
+import type { Contribution, DevScript, DevScriptTerminal, DevScriptToggle } from '../ipc/channels';
 
 /** Database row type for contributions table */
 interface ContributionRow {
@@ -393,6 +393,7 @@ export class DatabaseService {
       command: string;
       commands: string | null;
       terminals: string | null;
+      toggle: string | null;
       created_at: number;
       updated_at: number;
     }[];
@@ -420,6 +421,16 @@ export class DatabaseService {
         }
       }
 
+      // Parse toggle object if present
+      let toggle: DevScriptToggle | undefined;
+      if (row.toggle) {
+        try {
+          toggle = JSON.parse(row.toggle);
+        } catch {
+          toggle = undefined;
+        }
+      }
+
       return {
         id: row.id,
         projectPath: row.project_path,
@@ -427,6 +438,7 @@ export class DatabaseService {
         command: commands[0] || row.command, // Keep first command for backwards compatibility
         commands,
         terminals,
+        toggle,
         createdAt: new Date(row.created_at).toISOString(),
         updatedAt: new Date(row.updated_at).toISOString(),
       };
@@ -445,6 +457,8 @@ export class DatabaseService {
     // Serialize terminals array to JSON (null if undefined or empty)
     const terminalsJson =
       script.terminals && script.terminals.length > 0 ? JSON.stringify(script.terminals) : null;
+    // Serialize toggle object to JSON (null if undefined)
+    const toggleJson = script.toggle ? JSON.stringify(script.toggle) : null;
     // Keep first command in command column for backwards compatibility
     const firstCommand = script.commands[0] || script.command;
 
@@ -457,15 +471,15 @@ export class DatabaseService {
       // Update existing script
       const stmt = db.prepare(`
         UPDATE dev_scripts
-        SET name = ?, command = ?, commands = ?, terminals = ?, updated_at = ?
+        SET name = ?, command = ?, commands = ?, terminals = ?, toggle = ?, updated_at = ?
         WHERE id = ?
       `);
-      stmt.run(script.name, firstCommand, commandsJson, terminalsJson, now, script.id);
+      stmt.run(script.name, firstCommand, commandsJson, terminalsJson, toggleJson, now, script.id);
     } else {
       // Insert new script
       const stmt = db.prepare(`
-        INSERT INTO dev_scripts (id, project_path, name, command, commands, terminals, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO dev_scripts (id, project_path, name, command, commands, terminals, toggle, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         script.id,
@@ -474,6 +488,7 @@ export class DatabaseService {
         firstCommand,
         commandsJson,
         terminalsJson,
+        toggleJson,
         now,
         now
       );

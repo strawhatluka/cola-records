@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Toggle mode for dev scripts — alternating start/stop commands with visual state feedback ([#34](https://github.com/lukadfagundes/cola-records/issues/34))
+  - New `DevScriptToggle` interface with first/second press name and command pairs
+  - SQLite schema v7 migration adding `toggle` column to `dev_scripts` table
+  - 3-way mode selector in script form (Single / Multi / Toggle)
+  - Toggle scripts execute directly via PTY (spawn/write/kill) without modal
+  - Ephemeral toggle state tracked in Zustand store (resets on app restart)
+  - Power icon and "Toggle" badge distinguish toggle scripts visually
+
+### Tests
+
+- Toggle dev script tests covering database, store, ScriptButton, DevScriptsTool form, and DevelopmentScreen integration ([#34](https://github.com/lukadfagundes/cola-records/issues/34))
+
 ## [1.0.6] - 2026-02-20
 
 ### Security

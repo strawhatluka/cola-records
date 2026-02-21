@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { createMockDevScript } from '../../../mocks/dev-scripts.mock';
+import { createMockDevScript, createMockToggleScript } from '../../../mocks/dev-scripts.mock';
 
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -157,5 +157,75 @@ describe('ScriptButton', () => {
     fireEvent.click(button);
 
     expect(mockOnClick).toHaveBeenCalledTimes(3);
+  });
+
+  // ── Toggle Mode Tests ──────────────────────────────────────────
+
+  describe('toggle mode', () => {
+    const mockToggleExecute = vi.fn();
+    const toggleScript = createMockToggleScript({ id: 'toggle_1' });
+
+    const toggleProps = {
+      script: toggleScript,
+      onClick: mockOnClick,
+      isToggle: true,
+      toggleState: false,
+      onToggleExecute: mockToggleExecute,
+    };
+
+    it('should render first press name when toggleState is false', () => {
+      render(<ScriptButton {...toggleProps} />);
+      expect(screen.getByText('Start DB')).toBeDefined();
+    });
+
+    it('should render second press name when toggleState is true', () => {
+      render(<ScriptButton {...toggleProps} toggleState={true} />);
+      expect(screen.getByText('Stop DB')).toBeDefined();
+    });
+
+    it('should show first press command as title when toggleState is false', () => {
+      render(<ScriptButton {...toggleProps} />);
+      expect(screen.getByRole('button').getAttribute('title')).toBe('docker compose up -d');
+    });
+
+    it('should show second press command as title when toggleState is true', () => {
+      render(<ScriptButton {...toggleProps} toggleState={true} />);
+      expect(screen.getByRole('button').getAttribute('title')).toBe('docker compose down');
+    });
+
+    it('should call onToggleExecute with first press command', () => {
+      render(<ScriptButton {...toggleProps} />);
+      fireEvent.click(screen.getByRole('button'));
+      expect(mockToggleExecute).toHaveBeenCalledWith('docker compose up -d');
+    });
+
+    it('should call onToggleExecute with second press command', () => {
+      render(<ScriptButton {...toggleProps} toggleState={true} />);
+      fireEvent.click(screen.getByRole('button'));
+      expect(mockToggleExecute).toHaveBeenCalledWith('docker compose down');
+    });
+
+    it('should not call onClick in toggle mode', () => {
+      render(<ScriptButton {...toggleProps} />);
+      fireEvent.click(screen.getByRole('button'));
+      expect(mockOnClick).not.toHaveBeenCalled();
+    });
+
+    it('should render Power icon in toggle mode', () => {
+      const { container } = render(<ScriptButton {...toggleProps} />);
+      expect(container.querySelector('[data-testid="icon-power"]')).not.toBeNull();
+    });
+
+    it('should render Play icon in non-toggle mode', () => {
+      const { container } = render(<ScriptButton {...defaultProps} />);
+      expect(container.querySelector('[data-testid="icon-play"]')).not.toBeNull();
+    });
+
+    it('should fall back to non-toggle mode when script has no toggle config', () => {
+      const nonToggleScript = createMockDevScript({ id: 'no_toggle', name: 'Build' });
+      render(<ScriptButton script={nonToggleScript} onClick={mockOnClick} isToggle={true} />);
+      // Should render script name (non-toggle fallback)
+      expect(screen.getByText('Build')).toBeDefined();
+    });
   });
 });

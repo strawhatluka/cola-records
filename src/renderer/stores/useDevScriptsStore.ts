@@ -8,6 +8,8 @@ interface DevScriptsState {
   error: string | null;
   executingScriptId: string | null;
   activeTerminalSession: string | null;
+  /** Ephemeral toggle state: false = first press next, true = second press next */
+  toggleStates: Record<string, boolean>;
 
   // Actions
   loadScripts: (projectPath: string) => Promise<void>;
@@ -15,6 +17,8 @@ interface DevScriptsState {
   deleteScript: (id: string) => Promise<void>;
   setExecutingScript: (id: string | null) => void;
   setActiveTerminalSession: (sessionId: string | null) => void;
+  flipToggleState: (scriptId: string) => void;
+  resetToggleStates: () => void;
 }
 
 export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
@@ -23,9 +27,10 @@ export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
   error: null,
   executingScriptId: null,
   activeTerminalSession: null,
+  toggleStates: {},
 
   loadScripts: async (projectPath: string) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, toggleStates: {} });
     try {
       const loaded = await ipc.invoke('dev-scripts:get-all', projectPath);
       set((state) => ({
@@ -79,6 +84,19 @@ export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
 
   setActiveTerminalSession: (sessionId: string | null) => {
     set({ activeTerminalSession: sessionId });
+  },
+
+  flipToggleState: (scriptId: string) => {
+    set((state) => ({
+      toggleStates: {
+        ...state.toggleStates,
+        [scriptId]: !state.toggleStates[scriptId],
+      },
+    }));
+  },
+
+  resetToggleStates: () => {
+    set({ toggleStates: {} });
   },
 }));
 

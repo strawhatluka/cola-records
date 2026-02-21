@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { CREATE_TABLES, MIGRATIONS } from '../../../src/main/database/schema';
-import { createMockDevScript } from '../../mocks/dev-scripts.mock';
+import { createMockDevScript, createMockToggleScript } from '../../mocks/dev-scripts.mock';
 
 // Mock electron before importing DatabaseService
 vi.mock('electron', () => ({
@@ -461,6 +461,142 @@ describe('DevScripts Database Operations', () => {
       expect(result.map((s: any) => s.id)).toContain('script_1');
       expect(result.map((s: any) => s.id)).toContain('script_3');
       expect(result.map((s: any) => s.id)).not.toContain('script_2');
+    });
+  });
+
+  // ── Toggle Support Tests (v7 migration) ──────────────────────────────────────────
+
+  describe('Toggle Support', () => {
+    it('should have toggle column after migrations', () => {
+      const columns = db.prepare("PRAGMA table_info('dev_scripts')").all() as {
+        name: string;
+        type: string;
+      }[];
+      const columnNames = columns.map((c) => c.name);
+      expect(columnNames).toContain('toggle');
+    });
+
+    it('should save and retrieve scripts with toggle configuration', () => {
+      const projectPath = '/test/project';
+      const toggleScript = createMockToggleScript({
+        id: 'script_toggle',
+        projectPath,
+        name: 'Start DB',
+      });
+
+      dbService.saveDevScript(toggleScript);
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      expect(result[0].toggle).toEqual({
+        firstPressName: 'Start DB',
+        firstPressCommand: 'docker compose up -d',
+        secondPressName: 'Stop DB',
+        secondPressCommand: 'docker compose down',
+      });
+    });
+
+    it('should return undefined toggle for scripts without toggle', () => {
+      const projectPath = '/test/project';
+
+      dbService.saveDevScript(
+        createMockDevScript({
+          id: 'script_no_toggle',
+          projectPath,
+          name: 'Build',
+          command: 'npm run build',
+        })
+      );
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      expect(result[0].toggle).toBeUndefined();
+    });
+
+    it('should handle malformed toggle JSON gracefully', () => {
+      const projectPath = '/test/project';
+
+      db.prepare(
+        'INSERT INTO dev_scripts (id, project_path, name, command, commands, toggle, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(
+        'script_malformed_toggle',
+        projectPath,
+        'Bad Toggle',
+        'echo test',
+        JSON.stringify(['echo test']),
+        'not valid json{',
+        Date.now(),
+        Date.now()
+      );
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      expect(result[0].toggle).toBeUndefined();
+    });
+
+    it('should preserve toggle configuration on script update', async () => {
+      const projectPath = '/test/project';
+      const scriptId = 'script_update_toggle';
+
+      const originalToggle = {
+        firstPressName: 'Start',
+        firstPressCommand: 'docker start',
+        secondPressName: 'Stop',
+        secondPressCommand: 'docker stop',
+      };
+
+      dbService.saveDevScript(
+        createMockToggleScript({
+          id: scriptId,
+          projectPath,
+          name: 'Start',
+          toggle: originalToggle,
+        })
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const updatedToggle = {
+        firstPressName: 'Start All',
+        firstPressCommand: 'docker compose up -d',
+        secondPressName: 'Stop All',
+        secondPressCommand: 'docker compose down --remove-orphans',
+      };
+
+      dbService.saveDevScript(
+        createMockToggleScript({
+          id: scriptId,
+          projectPath,
+          name: 'Start All',
+          toggle: updatedToggle,
+        })
+      );
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result).toHaveLength(1);
+      expect(result[0].toggle).toEqual(updatedToggle);
+    });
+
+    it('should round-trip toggle JSON correctly', () => {
+      const projectPath = '/test/project';
+      const toggle = {
+        firstPressName: 'Up',
+        firstPressCommand: 'docker compose up -d --build',
+        secondPressName: 'Down',
+        secondPressCommand: 'docker compose down -v',
+      };
+
+      dbService.saveDevScript(
+        createMockToggleScript({
+          id: 'script_roundtrip',
+          projectPath,
+          name: 'Up',
+          toggle,
+        })
+      );
+
+      const result = dbService.getDevScripts(projectPath);
+      expect(result[0].toggle).toStrictEqual(toggle);
     });
   });
 

@@ -28,6 +28,7 @@ describe('useDevScriptsStore', () => {
       error: null,
       executingScriptId: null,
       activeTerminalSession: null,
+      toggleStates: {},
     });
     mockInvoke.mockReset();
   });
@@ -401,6 +402,71 @@ describe('useDevScriptsStore', () => {
 
       expect(useDevScriptsStore.getState().executingScriptId).toBe('script_1');
       expect(useDevScriptsStore.getState().activeTerminalSession).toBe('session_2');
+    });
+  });
+
+  // ── TT-Toggle: Toggle State Tests ──────────────────────────────────────────
+
+  describe('toggle state', () => {
+    it('should have empty toggleStates initially', () => {
+      const state = useDevScriptsStore.getState();
+      expect(state.toggleStates).toEqual({});
+    });
+
+    it('should flip toggle state from false to true', () => {
+      act(() => {
+        useDevScriptsStore.getState().flipToggleState('script_1');
+      });
+
+      expect(useDevScriptsStore.getState().toggleStates['script_1']).toBe(true);
+    });
+
+    it('should flip toggle state from true to false', () => {
+      useDevScriptsStore.setState({ toggleStates: { script_1: true } });
+
+      act(() => {
+        useDevScriptsStore.getState().flipToggleState('script_1');
+      });
+
+      expect(useDevScriptsStore.getState().toggleStates['script_1']).toBe(false);
+    });
+
+    it('should track toggle states independently for different scripts', () => {
+      act(() => {
+        useDevScriptsStore.getState().flipToggleState('script_a');
+        useDevScriptsStore.getState().flipToggleState('script_b');
+        useDevScriptsStore.getState().flipToggleState('script_b');
+      });
+
+      const { toggleStates } = useDevScriptsStore.getState();
+      expect(toggleStates['script_a']).toBe(true);
+      expect(toggleStates['script_b']).toBe(false);
+    });
+
+    it('should reset all toggle states', () => {
+      useDevScriptsStore.setState({
+        toggleStates: { script_1: true, script_2: false, script_3: true },
+      });
+
+      act(() => {
+        useDevScriptsStore.getState().resetToggleStates();
+      });
+
+      expect(useDevScriptsStore.getState().toggleStates).toEqual({});
+    });
+
+    it('should reset toggle states when loading scripts', async () => {
+      useDevScriptsStore.setState({
+        toggleStates: { script_1: true, script_2: false },
+      });
+
+      mockInvoke.mockResolvedValueOnce([]);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      expect(useDevScriptsStore.getState().toggleStates).toEqual({});
     });
   });
 
