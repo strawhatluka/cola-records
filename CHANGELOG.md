@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-02-20
+
 ### Added
 
 - Toggle mode for dev scripts — alternating start/stop commands with visual state feedback ([#34](https://github.com/lukadfagundes/cola-records/issues/34))
