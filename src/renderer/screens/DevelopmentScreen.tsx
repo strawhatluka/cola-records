@@ -123,7 +123,12 @@ export function DevelopmentScreen({
   );
 
   // Dev scripts store
-  const { scripts: allScripts, loadScripts: loadDevScripts } = useDevScriptsStore();
+  const {
+    scripts: allScripts,
+    loadScripts: loadDevScripts,
+    toggleStates,
+    flipToggleState,
+  } = useDevScriptsStore();
   const devScripts = useMemo(
     () => selectScriptsForProject(allScripts, contribution.localPath),
     [allScripts, contribution.localPath]
@@ -166,6 +171,25 @@ export function DevelopmentScreen({
       window.removeEventListener('execute-dev-script', handleExecuteScript);
     };
   }, [contribution.localPath]);
+
+  // Toggle script execution: open modal with the current toggle command, then flip state on close
+  const handleToggleExecute = useCallback(
+    (scriptId: string, command: string) => {
+      const script = devScripts.find((s) => s.id === scriptId);
+      if (!script) return;
+      // Create a transient script with the toggle command so the modal runs it
+      const toggleExecScript: DevScript = {
+        ...script,
+        command,
+        commands: [command],
+        terminals: undefined,
+        toggle: undefined,
+      };
+      setExecutingScript(toggleExecScript);
+      flipToggleState(scriptId);
+    },
+    [devScripts, flipToggleState]
+  );
 
   // Fetch authenticated user on mount
   useEffect(() => {
@@ -360,6 +384,9 @@ export function DevelopmentScreen({
                   key={script.id}
                   script={script}
                   onClick={() => setExecutingScript(script)}
+                  isToggle={!!script.toggle}
+                  toggleState={toggleStates[script.id]}
+                  onToggleExecute={(command) => handleToggleExecute(script.id, command)}
                 />
               ))}
             </div>

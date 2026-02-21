@@ -419,6 +419,17 @@ export interface DevScriptTerminal {
   commands: string[];
 }
 
+/**
+ * Configuration for a toggle-mode script that alternates between two states.
+ * Each press cycles the button between first-press and second-press.
+ */
+export interface DevScriptToggle {
+  firstPressName: string;
+  firstPressCommand: string;
+  secondPressName: string;
+  secondPressCommand: string;
+}
+
 export interface DevScript {
   id: string;
   projectPath: string;
@@ -429,6 +440,8 @@ export interface DevScript {
   commands: string[];
   /** Array of terminal configurations for multi-terminal mode */
   terminals?: DevScriptTerminal[];
+  /** Toggle configuration for toggle-mode scripts */
+  toggle?: DevScriptToggle;
   createdAt?: string;
   updatedAt?: string;
 }

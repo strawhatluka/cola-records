@@ -3,6 +3,7 @@
  *
  * Script management panel for creating, editing, and deleting custom dev scripts.
  * Scripts appear as buttons in the Development screen header for quick execution.
+ * Supports three modes: Single Terminal, Multi-Terminal, and Toggle.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -18,6 +19,7 @@ import {
   ChevronRight,
   Terminal,
   Layers,
+  Power,
 } from 'lucide-react';
 import { createLogger } from '../../../renderer/utils/logger';
 
@@ -26,6 +28,8 @@ import { Button } from '../ui/Button';
 import { useDevScriptsStore, selectScriptsForProject } from '../../stores/useDevScriptsStore';
 import type { DevScript, DevScriptTerminal } from '../../../main/ipc/channels';
 import { cn } from '../../lib/utils';
+
+type ScriptMode = 'single' | 'multi' | 'toggle';
 
 interface DevScriptsToolProps {
   workingDirectory: string;
@@ -51,10 +55,18 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
   const [commands, setCommands] = useState<string[]>(['']);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Mode state (replaces isMultiTerminalMode)
+  const [scriptMode, setScriptMode] = useState<ScriptMode>('single');
+
   // Multi-terminal mode state
-  const [isMultiTerminalMode, setIsMultiTerminalMode] = useState(false);
   const [terminals, setTerminals] = useState<DevScriptTerminal[]>([]);
   const [expandedTerminals, setExpandedTerminals] = useState<Set<number>>(new Set([0]));
+
+  // Toggle mode state
+  const [firstPressName, setFirstPressName] = useState('');
+  const [firstPressCommand, setFirstPressCommand] = useState('');
+  const [secondPressName, setSecondPressName] = useState('');
+  const [secondPressCommand, setSecondPressCommand] = useState('');
 
   // Delete confirmation state
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -70,8 +82,12 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
     setName('');
     setCommands(['']);
     setTerminals([]);
-    setIsMultiTerminalMode(false);
+    setScriptMode('single');
     setExpandedTerminals(new Set([0]));
+    setFirstPressName('');
+    setFirstPressCommand('');
+    setSecondPressName('');
+    setSecondPressCommand('');
     setEditingScript(null);
     setFormError(null);
     setIsFormOpen(false);
@@ -86,16 +102,32 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
     setEditingScript(script);
     setName(script.name);
 
-    // Check if script has terminals (multi-terminal mode)
-    if (script.terminals && script.terminals.length > 0) {
-      setIsMultiTerminalMode(true);
+    // Detect mode from script data
+    if (script.toggle) {
+      setScriptMode('toggle');
+      setFirstPressName(script.toggle.firstPressName);
+      setFirstPressCommand(script.toggle.firstPressCommand);
+      setSecondPressName(script.toggle.secondPressName);
+      setSecondPressCommand(script.toggle.secondPressCommand);
+      setCommands(['']);
+      setTerminals([]);
+    } else if (script.terminals && script.terminals.length > 0) {
+      setScriptMode('multi');
       setTerminals(script.terminals.map((t) => ({ ...t, commands: [...t.commands] })));
-      setCommands(['']); // Reset single-mode commands
+      setCommands(['']);
       setExpandedTerminals(new Set([0]));
+      setFirstPressName('');
+      setFirstPressCommand('');
+      setSecondPressName('');
+      setSecondPressCommand('');
     } else {
-      setIsMultiTerminalMode(false);
+      setScriptMode('single');
       setTerminals([]);
       setCommands(script.commands.length > 0 ? script.commands : [script.command]);
+      setFirstPressName('');
+      setFirstPressCommand('');
+      setSecondPressName('');
+      setSecondPressCommand('');
     }
 
     setFormError(null);
@@ -103,7 +135,63 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    // Validate name
+    // Toggle mode: name is auto-set from firstPressName, skip name validation for toggle
+    if (scriptMode === 'toggle') {
+      // Toggle validation: all 4 fields required
+      if (!firstPressName.trim()) {
+        setFormError('First press name is required');
+        return;
+      }
+      if (!firstPressCommand.trim()) {
+        setFormError('First press command is required');
+        return;
+      }
+      if (!secondPressName.trim()) {
+        setFormError('Second press name is required');
+        return;
+      }
+      if (!secondPressCommand.trim()) {
+        setFormError('Second press command is required');
+        return;
+      }
+
+      const toggleName = firstPressName.trim();
+
+      // Check for duplicate names (excluding current if editing)
+      const duplicate = scripts.find(
+        (s) => s.name.toLowerCase() === toggleName.toLowerCase() && s.id !== editingScript?.id
+      );
+      if (duplicate) {
+        setFormError('A script with this name already exists');
+        return;
+      }
+
+      try {
+        const scriptData: DevScript = {
+          id:
+            editingScript?.id || `script_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          projectPath: workingDirectory,
+          name: toggleName,
+          command: firstPressCommand.trim(),
+          commands: [firstPressCommand.trim()],
+          terminals: undefined,
+          toggle: {
+            firstPressName: firstPressName.trim(),
+            firstPressCommand: firstPressCommand.trim(),
+            secondPressName: secondPressName.trim(),
+            secondPressCommand: secondPressCommand.trim(),
+          },
+        };
+
+        await saveScript(scriptData);
+        resetForm();
+      } catch (error) {
+        setFormError(String(error));
+      }
+      return;
+    }
+
+    // Validate name for single/multi modes
     if (!name.trim()) {
       setFormError('Name is required');
       return;
@@ -119,7 +207,7 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
     }
 
     // Validate based on mode
-    if (isMultiTerminalMode) {
+    if (scriptMode === 'multi') {
       // Multi-terminal validation
       if (terminals.length === 0) {
         setFormError('At least one terminal is required');
@@ -199,7 +287,11 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
     name,
     commands,
     terminals,
-    isMultiTerminalMode,
+    scriptMode,
+    firstPressName,
+    firstPressCommand,
+    secondPressName,
+    secondPressCommand,
     scripts,
     editingScript,
     workingDirectory,
@@ -306,10 +398,10 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
     });
   }, []);
 
-  const handleModeToggle = useCallback(
-    (multiTerminal: boolean) => {
-      setIsMultiTerminalMode(multiTerminal);
-      if (multiTerminal && terminals.length === 0) {
+  const handleModeChange = useCallback(
+    (mode: ScriptMode) => {
+      setScriptMode(mode);
+      if (mode === 'multi' && terminals.length === 0) {
         // Initialize with one terminal using current commands
         const validCommands = commands.filter((c) => c.trim().length > 0);
         setTerminals([
@@ -374,58 +466,75 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
             </h4>
 
             <div className="space-y-3">
-              {/* Script Name */}
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Build, Test, Dev"
-                  className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
+              {/* Script Name (hidden in toggle mode — auto-set from firstPressName) */}
+              {scriptMode !== 'toggle' && (
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., Build, Test, Dev"
+                    className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              )}
 
-              {/* Mode Toggle */}
+              {/* Mode Selector (3 buttons) */}
               <div>
                 <label className="text-xs text-muted-foreground block mb-2">Mode</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => handleModeToggle(false)}
+                    onClick={() => handleModeChange('single')}
                     className={cn(
                       'flex items-center gap-2 px-3 py-2 text-sm rounded-md border transition-colors',
-                      !isMultiTerminalMode
+                      scriptMode === 'single'
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-background border-input hover:border-primary/50'
                     )}
                   >
                     <Terminal className="h-4 w-4" />
-                    Single Terminal
+                    Single
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleModeToggle(true)}
+                    onClick={() => handleModeChange('multi')}
                     className={cn(
                       'flex items-center gap-2 px-3 py-2 text-sm rounded-md border transition-colors',
-                      isMultiTerminalMode
+                      scriptMode === 'multi'
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-background border-input hover:border-primary/50'
                     )}
                   >
                     <Layers className="h-4 w-4" />
-                    Multi-Terminal
+                    Multi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('toggle')}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 text-sm rounded-md border transition-colors',
+                      scriptMode === 'toggle'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background border-input hover:border-primary/50'
+                    )}
+                  >
+                    <Power className="h-4 w-4" />
+                    Toggle
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {isMultiTerminalMode
+                  {scriptMode === 'multi'
                     ? 'Launch multiple terminals in parallel (e.g., frontend + backend)'
-                    : 'Run commands sequentially in a single terminal'}
+                    : scriptMode === 'toggle'
+                      ? 'Alternate between two commands (e.g., start / stop)'
+                      : 'Run commands sequentially in a single terminal'}
                 </p>
               </div>
 
               {/* Single Terminal Mode - Commands */}
-              {!isMultiTerminalMode && (
+              {scriptMode === 'single' && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-muted-foreground">
@@ -478,7 +587,7 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
               )}
 
               {/* Multi-Terminal Mode - Terminal Cards */}
-              {isMultiTerminalMode && (
+              {scriptMode === 'multi' && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs text-muted-foreground">
@@ -603,6 +712,60 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
                 </div>
               )}
 
+              {/* Toggle Mode - Two-state form */}
+              {scriptMode === 'toggle' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">
+                      First Press — Name
+                    </label>
+                    <input
+                      type="text"
+                      value={firstPressName}
+                      onChange={(e) => setFirstPressName(e.target.value)}
+                      placeholder="e.g., Start DB"
+                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">
+                      First Press — Command
+                    </label>
+                    <input
+                      type="text"
+                      value={firstPressCommand}
+                      onChange={(e) => setFirstPressCommand(e.target.value)}
+                      placeholder="e.g., docker compose up -d"
+                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">
+                      Second Press — Name
+                    </label>
+                    <input
+                      type="text"
+                      value={secondPressName}
+                      onChange={(e) => setSecondPressName(e.target.value)}
+                      placeholder="e.g., Stop DB"
+                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">
+                      Second Press — Command
+                    </label>
+                    <input
+                      type="text"
+                      value={secondPressCommand}
+                      onChange={(e) => setSecondPressCommand(e.target.value)}
+                      placeholder="e.g., docker compose down"
+                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+
               {formError && <p className="text-xs text-destructive">{formError}</p>}
 
               <div className="flex gap-2">
@@ -641,7 +804,12 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{script.name}</span>
-                    {script.terminals && script.terminals.length > 0 ? (
+                    {script.toggle ? (
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <Power className="h-3 w-3" />
+                        Toggle
+                      </span>
+                    ) : script.terminals && script.terminals.length > 0 ? (
                       <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
                         <Layers className="h-3 w-3" />
                         {script.terminals.length} terminals
@@ -655,11 +823,13 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground font-mono truncate mt-1">
-                    {script.terminals && script.terminals.length > 0
-                      ? script.terminals.map((t) => t.name).join(', ')
-                      : script.commands.length > 1
-                        ? script.commands.join(' && ')
-                        : script.command}
+                    {script.toggle
+                      ? `${script.toggle.firstPressName} / ${script.toggle.secondPressName}`
+                      : script.terminals && script.terminals.length > 0
+                        ? script.terminals.map((t) => t.name).join(', ')
+                        : script.commands.length > 1
+                          ? script.commands.join(' && ')
+                          : script.command}
                   </p>
                 </div>
 

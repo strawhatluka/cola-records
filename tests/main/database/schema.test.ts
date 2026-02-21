@@ -8,8 +8,8 @@ describe('Database Schema', () => {
       expect(Number.isInteger(SCHEMA_VERSION)).toBe(true);
     });
 
-    it('is currently version 6', () => {
-      expect(SCHEMA_VERSION).toBe(6);
+    it('is currently version 7', () => {
+      expect(SCHEMA_VERSION).toBe(7);
     });
   });
 
@@ -111,6 +111,12 @@ describe('Database Schema', () => {
     it('version 6 adds terminals column to dev_scripts for multi-terminal support', () => {
       const migration = MIGRATIONS[6];
       expect(migration).toContain('terminals');
+      expect(migration).toContain('ALTER TABLE dev_scripts');
+    });
+
+    it('version 7 adds toggle column to dev_scripts for toggle-mode scripts', () => {
+      const migration = MIGRATIONS[7];
+      expect(migration).toContain('toggle');
       expect(migration).toContain('ALTER TABLE dev_scripts');
     });
   });

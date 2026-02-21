@@ -69,6 +69,19 @@ export const mockDevScripts = {
       { name: 'Backend', commands: ['npm run dev:backend'] },
     ],
   }),
+  // Toggle script for start/stop scenarios
+  toggleDb: createMockDevScript({
+    id: 'script_toggle_db',
+    name: 'Start DB',
+    command: 'docker compose up -d',
+    commands: ['docker compose up -d'],
+    toggle: {
+      firstPressName: 'Start DB',
+      firstPressCommand: 'docker compose up -d',
+      secondPressName: 'Stop DB',
+      secondPressCommand: 'docker compose down',
+    },
+  }),
   // Multi-terminal with multiple commands per terminal
   complexSetup: createMockDevScript({
     id: 'script_complex_setup',
@@ -89,6 +102,23 @@ export function createMockDevScriptsList(): DevScript[] {
 
 export function createMockMultiTerminalScriptsList(): DevScript[] {
   return [mockDevScripts.fullStack, mockDevScripts.complexSetup];
+}
+
+// ── Toggle Script Factory ──────────────────────────────────────────────
+
+export function createMockToggleScript(overrides?: Partial<DevScript>): DevScript {
+  return createMockDevScript({
+    name: 'Start DB',
+    command: 'docker compose up -d',
+    commands: ['docker compose up -d'],
+    toggle: {
+      firstPressName: 'Start DB',
+      firstPressCommand: 'docker compose up -d',
+      secondPressName: 'Stop DB',
+      secondPressCommand: 'docker compose down',
+    },
+    ...overrides,
+  });
 }
 
 // ── DevScriptTerminal Factory ──────────────────────────────────────────────

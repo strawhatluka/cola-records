@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMockDevScript } from '../../../mocks/dev-scripts.mock';
+import { createMockDevScript, createMockToggleScript } from '../../../mocks/dev-scripts.mock';
 
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -528,6 +528,219 @@ describe('DevScriptsTool', () => {
 
       await waitFor(() => {
         expect(screen.getByText('A script with this name already exists')).toBeDefined();
+      });
+    });
+  });
+
+  describe('toggle mode', () => {
+    it('should show Toggle badge for toggle scripts in the list', () => {
+      mockStoreState.scripts = [
+        createMockToggleScript({
+          id: 'toggle_1',
+          projectPath: '/test/project/path',
+        }),
+      ];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.getByText('Toggle')).toBeDefined();
+    });
+
+    it('should show toggle description in script list', () => {
+      mockStoreState.scripts = [
+        createMockToggleScript({
+          id: 'toggle_1',
+          projectPath: '/test/project/path',
+        }),
+      ];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.getByText('Start DB / Stop DB')).toBeDefined();
+    });
+
+    it('should show 3 mode buttons when form is open', async () => {
+      render(<DevScriptsTool {...defaultProps} />);
+
+      const addButton = screen.getByText('Add Script');
+      await act(async () => {
+        fireEvent.click(addButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Single')).toBeDefined();
+        expect(screen.getByText('Multi')).toBeDefined();
+        expect(screen.getByText('Toggle')).toBeDefined();
+      });
+    });
+
+    it('should show toggle form fields when toggle mode selected', async () => {
+      const user = userEvent.setup();
+      render(<DevScriptsTool {...defaultProps} />);
+
+      await user.click(screen.getByText('Add Script'));
+
+      // Click Toggle mode button
+      await waitFor(() => {
+        expect(screen.getByText('Toggle')).toBeDefined();
+      });
+      await user.click(screen.getByText('Toggle'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('e.g., Start DB')).toBeDefined();
+        expect(screen.getByPlaceholderText('e.g., docker compose up -d')).toBeDefined();
+        expect(screen.getByPlaceholderText('e.g., Stop DB')).toBeDefined();
+        expect(screen.getByPlaceholderText('e.g., docker compose down')).toBeDefined();
+      });
+    });
+
+    it('should validate first press name is required', async () => {
+      const user = userEvent.setup();
+      render(<DevScriptsTool {...defaultProps} />);
+
+      await user.click(screen.getByText('Add Script'));
+
+      // Switch to toggle mode
+      await waitFor(() => {
+        expect(screen.getByText('Toggle')).toBeDefined();
+      });
+      await user.click(screen.getByText('Toggle'));
+
+      // Submit with all fields empty
+      const buttons = screen.getAllByRole('button');
+      for (const btn of buttons) {
+        if (btn.textContent === 'Add Script') {
+          const parent = btn.parentElement;
+          if (parent?.classList.contains('flex') && parent?.classList.contains('gap-2')) {
+            await user.click(btn);
+            break;
+          }
+        }
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText('First press name is required')).toBeDefined();
+      });
+    });
+
+    it('should validate first press command is required', async () => {
+      const user = userEvent.setup();
+      render(<DevScriptsTool {...defaultProps} />);
+
+      await user.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Toggle')).toBeDefined();
+      });
+      await user.click(screen.getByText('Toggle'));
+
+      // Fill only first press name
+      const firstPressName = await screen.findByPlaceholderText('e.g., Start DB');
+      await user.type(firstPressName, 'Start');
+
+      // Submit
+      const buttons = screen.getAllByRole('button');
+      for (const btn of buttons) {
+        if (btn.textContent === 'Add Script') {
+          const parent = btn.parentElement;
+          if (parent?.classList.contains('flex') && parent?.classList.contains('gap-2')) {
+            await user.click(btn);
+            break;
+          }
+        }
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText('First press command is required')).toBeDefined();
+      });
+    });
+
+    it('should save toggle script on submit', async () => {
+      mockSaveScript.mockResolvedValueOnce(undefined);
+
+      render(<DevScriptsTool {...defaultProps} />);
+
+      // Open form
+      await act(async () => {
+        fireEvent.click(screen.getByText('Add Script'));
+      });
+
+      // Switch to toggle mode
+      await waitFor(() => {
+        expect(screen.getByText('Toggle')).toBeDefined();
+      });
+      fireEvent.click(screen.getByText('Toggle'));
+
+      // Fill all fields using fireEvent.change (faster than userEvent.type for long strings)
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('e.g., Start DB')).toBeDefined();
+      });
+      fireEvent.change(screen.getByPlaceholderText('e.g., Start DB'), {
+        target: { value: 'Start DB' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('e.g., docker compose up -d'), {
+        target: { value: 'docker compose up -d' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('e.g., Stop DB'), {
+        target: { value: 'Stop DB' },
+      });
+      fireEvent.change(screen.getByPlaceholderText('e.g., docker compose down'), {
+        target: { value: 'docker compose down' },
+      });
+
+      // Submit
+      const buttons = screen.getAllByRole('button');
+      for (const btn of buttons) {
+        if (btn.textContent === 'Add Script') {
+          const parent = btn.parentElement;
+          if (parent?.classList.contains('flex') && parent?.classList.contains('gap-2')) {
+            fireEvent.click(btn);
+            break;
+          }
+        }
+      }
+
+      await waitFor(() => {
+        expect(mockSaveScript).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'Start DB',
+            toggle: {
+              firstPressName: 'Start DB',
+              firstPressCommand: 'docker compose up -d',
+              secondPressName: 'Stop DB',
+              secondPressCommand: 'docker compose down',
+            },
+            projectPath: '/test/project/path',
+          })
+        );
+      });
+    });
+
+    it('should populate toggle form when editing a toggle script', async () => {
+      mockStoreState.scripts = [
+        createMockToggleScript({
+          id: 'toggle_edit',
+          projectPath: '/test/project/path',
+        }),
+      ];
+
+      const { container } = render(<DevScriptsTool {...defaultProps} />);
+
+      const editButton = container.querySelector('button[title="Edit script"]');
+      fireEvent.click(editButton!);
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Script')).toBeDefined();
+        const firstPressName = screen.getByPlaceholderText('e.g., Start DB') as HTMLInputElement;
+        expect(firstPressName.value).toBe('Start DB');
+        const firstPressCommand = screen.getByPlaceholderText(
+          'e.g., docker compose up -d'
+        ) as HTMLInputElement;
+        expect(firstPressCommand.value).toBe('docker compose up -d');
+        const secondPressName = screen.getByPlaceholderText('e.g., Stop DB') as HTMLInputElement;
+        expect(secondPressName.value).toBe('Stop DB');
+        const secondPressCommand = screen.getByPlaceholderText(
+          'e.g., docker compose down'
+        ) as HTMLInputElement;
+        expect(secondPressCommand.value).toBe('docker compose down');
       });
     });
   });
