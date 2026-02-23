@@ -292,6 +292,9 @@ export function ActionsTool({ contribution }: ActionsToolProps) {
             </div>
             <div className="text-xs text-muted-foreground space-y-0.5">
               <div>
+                Workflow: <span className="text-foreground">{selectedRun.name}</span>
+              </div>
+              <div>
                 Branch: <span className="text-foreground">{selectedRun.headBranch}</span>
               </div>
               <div>
@@ -423,6 +426,7 @@ export function ActionsTool({ contribution }: ActionsToolProps) {
                   {getStatusLabel(run.status, run.conclusion)}
                 </span>
                 <div className="min-w-0 flex-1">
+                  <div className="text-[11px] text-muted-foreground truncate">{run.name}</div>
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium text-sm truncate">{run.displayTitle}</span>
                     <span className="text-muted-foreground shrink-0">#{run.runNumber}</span>
