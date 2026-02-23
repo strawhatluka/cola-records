@@ -131,6 +131,17 @@ describe('ActionsTool', () => {
       });
     });
 
+    it('shows workflow name for each run', async () => {
+      setupMocks();
+      render(<ActionsTool {...defaultProps} />);
+
+      await waitFor(() => {
+        const ciLabels = screen.getAllByText('CI');
+        expect(ciLabels.length).toBe(2); // Two runs with workflow name "CI"
+        expect(screen.getByText('Deploy')).toBeDefined();
+      });
+    });
+
     it('shows run count after loading', async () => {
       setupMocks();
       render(<ActionsTool {...defaultProps} />);
@@ -259,6 +270,22 @@ describe('ActionsTool', () => {
       await waitFor(() => {
         expect(screen.getByText('abc123d')).toBeDefined(); // truncated sha
         expect(screen.getByText('#42')).toBeDefined();
+      });
+    });
+
+    it('shows workflow name in run summary', async () => {
+      const user = userEvent.setup();
+      setupMocks();
+      render(<ActionsTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Fix tests')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Fix tests'));
+
+      await waitFor(() => {
+        expect(screen.getByText('CI')).toBeDefined(); // Workflow name in summary
       });
     });
 

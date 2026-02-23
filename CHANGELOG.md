@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Actions tool now displays the workflow name for each run in the list view and run detail summary ([#36](https://github.com/lukadfagundes/cola-records/issues/36))
+
+### Tests
+
+- Added tests for workflow name visibility in Actions tool list view and run detail view ([#36](https://github.com/lukadfagundes/cola-records/issues/36))
+
 ## [1.0.7] - 2026-02-20
 
 ### Added
