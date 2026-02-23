@@ -79,6 +79,7 @@ export interface CoreChannels {
   'terminal:write': (terminalId: string, data: string) => void;
   'terminal:resize': (terminalId: string, cols: number, rows: number) => void;
   'terminal:kill': (terminalId: string) => void;
+  'terminal:get-buffer': (terminalId: string) => string | null;
 
   // Dev Scripts Channels
   'dev-scripts:get-all': (projectPath: string) => DevScript[];

@@ -505,6 +505,80 @@ describe('ScriptExecutionModal', () => {
     });
   });
 
+  describe('multi-terminal rendering', () => {
+    const multiTerminalScript = createMockDevScript({
+      id: 'script_multi',
+      name: 'Full Stack',
+      command: 'npm run dev',
+      commands: ['npm run dev'],
+      terminals: [
+        { name: 'Frontend', commands: ['npm run dev:frontend'] },
+        { name: 'Backend', commands: ['npm run dev:backend'] },
+      ],
+    });
+
+    it('renders all terminal sessions, not just the active one', async () => {
+      let spawnCount = 0;
+      mockInvoke.mockImplementation((channel: string) => {
+        if (channel === 'terminal:spawn') {
+          spawnCount++;
+          return Promise.resolve(createMockTerminalSession({ id: `multi_session_${spawnCount}` }));
+        }
+        return Promise.resolve(undefined);
+      });
+
+      render(<ScriptExecutionModal {...defaultProps} script={multiTerminalScript} />);
+
+      await waitFor(() => {
+        const terminals = screen.getAllByTestId('xterm-terminal');
+        expect(terminals.length).toBe(2);
+      });
+    });
+
+    it('hides inactive terminals with visibility:hidden', async () => {
+      let spawnCount = 0;
+      mockInvoke.mockImplementation((channel: string) => {
+        if (channel === 'terminal:spawn') {
+          spawnCount++;
+          return Promise.resolve(createMockTerminalSession({ id: `multi_session_${spawnCount}` }));
+        }
+        return Promise.resolve(undefined);
+      });
+
+      render(<ScriptExecutionModal {...defaultProps} script={multiTerminalScript} />);
+
+      await waitFor(() => {
+        const terminals = screen.getAllByTestId('xterm-terminal');
+        expect(terminals.length).toBe(2);
+      });
+
+      // First tab is active (visible), second is hidden (visibility: hidden)
+      const terminals = screen.getAllByTestId('xterm-terminal');
+      const firstContainer = terminals[0].closest('.absolute.inset-0') as HTMLElement;
+      const secondContainer = terminals[1].closest('.absolute.inset-0') as HTMLElement;
+      expect(firstContainer?.style.visibility).toBe('visible');
+      expect(secondContainer?.style.visibility).toBe('hidden');
+    });
+
+    it('shows tab bar for multi-terminal scripts', async () => {
+      let spawnCount = 0;
+      mockInvoke.mockImplementation((channel: string) => {
+        if (channel === 'terminal:spawn') {
+          spawnCount++;
+          return Promise.resolve(createMockTerminalSession({ id: `multi_session_${spawnCount}` }));
+        }
+        return Promise.resolve(undefined);
+      });
+
+      render(<ScriptExecutionModal {...defaultProps} script={multiTerminalScript} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Frontend')).toBeDefined();
+        expect(screen.getByText('Backend')).toBeDefined();
+      });
+    });
+  });
+
   describe('cleanup', () => {
     it('should kill terminal on unmount when session exists', async () => {
       const mockSession = createMockTerminalSession({ id: 'session_cleanup' });

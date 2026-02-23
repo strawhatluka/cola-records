@@ -75,9 +75,10 @@ vi.mock('@xterm/xterm/css/xterm.css', () => ({}));
 const mockElectronAPIOn = vi.fn((_channel: string, _handler: (...args: unknown[]) => void) =>
   vi.fn()
 );
+const mockElectronAPIInvoke = vi.fn().mockResolvedValue(null);
 Object.defineProperty(window, 'electronAPI', {
   value: {
-    invoke: vi.fn(),
+    invoke: mockElectronAPIInvoke,
     on: mockElectronAPIOn,
     send: vi.fn(),
   },
@@ -112,6 +113,7 @@ describe('XTermTerminal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockElectronAPIOn.mockClear();
+    mockElectronAPIInvoke.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -246,6 +248,63 @@ describe('XTermTerminal', () => {
 
     const container = document.querySelector('.w-full.h-full') as HTMLElement;
     expect(container?.style.backgroundColor).toBe('rgb(30, 30, 30)');
+  });
+
+  // ── Output Buffer Replay Tests ──────────────────────────────────
+
+  describe('Output Buffer Replay', () => {
+    it('fetches buffer via terminal:get-buffer on mount and writes it', async () => {
+      mockElectronAPIInvoke.mockResolvedValue('buffered output data');
+
+      render(<XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />);
+
+      await vi.waitFor(() => {
+        expect(mockElectronAPIInvoke).toHaveBeenCalledWith('terminal:get-buffer', terminalId);
+      });
+
+      const { mockWrite } = (Terminal as any).getMocks();
+      await vi.waitFor(() => {
+        expect(mockWrite).toHaveBeenCalledWith('buffered output data');
+      });
+    });
+
+    it('does not fetch buffer when initialOutput is provided', () => {
+      mockElectronAPIInvoke.mockResolvedValue('should not be used');
+
+      render(
+        <XTermTerminal
+          terminalId={terminalId}
+          onData={mockOnData}
+          onResize={mockOnResize}
+          initialOutput="adopted session output"
+        />
+      );
+
+      const { mockWrite } = (Terminal as any).getMocks();
+      // Should write the initialOutput
+      expect(mockWrite).toHaveBeenCalledWith('adopted session output');
+
+      // Should NOT call terminal:get-buffer
+      const bufferCalls = mockElectronAPIInvoke.mock.calls.filter(
+        (call: unknown[]) => call[0] === 'terminal:get-buffer'
+      );
+      expect(bufferCalls).toHaveLength(0);
+    });
+
+    it('handles null buffer gracefully', async () => {
+      mockElectronAPIInvoke.mockResolvedValue(null);
+
+      render(<XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />);
+
+      await vi.waitFor(() => {
+        expect(mockElectronAPIInvoke).toHaveBeenCalledWith('terminal:get-buffer', terminalId);
+      });
+
+      // Should not write null to terminal
+      const { mockWrite } = (Terminal as any).getMocks();
+      const nullWrites = mockWrite.mock.calls.filter((call: unknown[]) => call[0] === null);
+      expect(nullWrites).toHaveLength(0);
+    });
   });
 
   // ── Init Effect Stability Tests ───────────────────────────────────

@@ -14,9 +14,13 @@ import { v4 as uuidv4 } from 'uuid';
 import type { ShellType, TerminalSession } from '../ipc/channels';
 import { gitAskPassService } from './git-askpass.service';
 
+/** Maximum output buffer size per session (500 KB). */
+const MAX_BUFFER_SIZE = 512 * 1024;
+
 interface PtySession {
   pty: pty.IPty;
   shellType: ShellType;
+  outputBuffer: string;
 }
 
 class TerminalService {
@@ -103,10 +107,18 @@ class TerminalService {
     this.sessions.set(id, {
       pty: ptyProcess,
       shellType,
+      outputBuffer: '',
     });
 
-    // Forward data to renderer
+    // Forward data to renderer and buffer output
     ptyProcess.onData((data: string) => {
+      const session = this.sessions.get(id);
+      if (session) {
+        session.outputBuffer += data;
+        if (session.outputBuffer.length > MAX_BUFFER_SIZE) {
+          session.outputBuffer = session.outputBuffer.slice(-MAX_BUFFER_SIZE);
+        }
+      }
       const win = BrowserWindow.getAllWindows()[0];
       if (win) {
         win.webContents.send('terminal:data', id, data);
@@ -168,6 +180,15 @@ class TerminalService {
       }
       this.sessions.delete(id);
     }
+  }
+
+  /**
+   * Get buffered output for a terminal session.
+   * Returns null if the session does not exist.
+   */
+  getOutputBuffer(terminalId: string): string | null {
+    const session = this.sessions.get(terminalId);
+    return session ? session.outputBuffer : null;
   }
 
   /**

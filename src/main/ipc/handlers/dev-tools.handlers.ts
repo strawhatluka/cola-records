@@ -63,6 +63,10 @@ export function setupDevToolsHandlers(): void {
     terminalService.kill(terminalId);
   });
 
+  handleIpc('terminal:get-buffer', async (_event, terminalId) => {
+    return terminalService.getOutputBuffer(terminalId);
+  });
+
   // Dev Scripts handlers
   handleIpc('dev-scripts:get-all', async (_event, projectPath) => {
     return database.getDevScripts(projectPath);

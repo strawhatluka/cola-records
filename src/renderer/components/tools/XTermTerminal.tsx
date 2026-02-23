@@ -153,9 +153,20 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
 
     terminal.open(containerRef.current);
 
-    // Write initial output if provided (for adopted sessions from ScriptExecutionModal)
+    // Replay output: use initialOutput (adopted sessions) or fetch buffer from main process
     if (initialOutput) {
       terminal.write(initialOutput);
+    } else {
+      window.electronAPI
+        .invoke('terminal:get-buffer', terminalId)
+        .then((buffer: string | null) => {
+          if (buffer && terminalRef.current) {
+            terminalRef.current.write(buffer);
+          }
+        })
+        .catch(() => {
+          // Ignore buffer fetch errors
+        });
     }
 
     // Handle clipboard operations (Ctrl+V paste, Ctrl+C copy with selection)
