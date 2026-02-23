@@ -55,6 +55,20 @@ describe('ContributionCard', () => {
     expect(screen.getByText('my-repo')).toBeDefined();
   });
 
+  it('decodes URL-encoded repo names with spaces', () => {
+    const contribution = createMockContribution({
+      repositoryUrl: 'https://github.com/org/my%20repo.git',
+    });
+    render(
+      <ContributionCard
+        contribution={contribution}
+        onDelete={mockOnDelete}
+        onOpenProject={mockOnOpenProject}
+      />
+    );
+    expect(screen.getByText('my repo')).toBeDefined();
+  });
+
   it('shows status badge', () => {
     const contribution = createMockContribution({ status: 'in_progress' });
     render(

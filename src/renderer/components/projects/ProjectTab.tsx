@@ -15,8 +15,10 @@ export const ProjectTab: React.FC<ProjectTabProps> = ({ project, isActive, onCli
 
   // Extract project name from contribution
   const projectName = contribution.repositoryUrl
-    ? new URL(contribution.repositoryUrl).pathname.split('/').pop()?.replace('.git', '') ||
-      'Unknown'
+    ? decodeURIComponent(
+        new URL(contribution.repositoryUrl).pathname.split('/').pop()?.replace('.git', '') ||
+          'Unknown'
+      )
     : 'Unknown Project';
 
   const handleClose = (e: React.MouseEvent) => {
