@@ -7,12 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- GIT_ASKPASS credential helper for Tool Box Terminal — Git operations (`push`, `pull`, `fetch`) now authenticate automatically using the app's stored GitHub token ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
+  - Platform-specific askpass script (`.sh` on Unix, `.bat` on Windows) using the `x-access-token` pattern
+  - Token stored in separate file with 0o600 permissions — script contains no secrets
+  - Token file updates immediately when GitHub token changes in Settings
+  - Automatic cleanup of askpass files on app quit
+
 ### Fixed
 
 - Actions tool now displays the workflow name for each run in the list view and run detail summary ([#36](https://github.com/lukadfagundes/cola-records/issues/36))
 
 ### Tests
 
+- GIT_ASKPASS service tests covering initialization, platform script generation, token file management, env var injection, and cleanup ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
+- Terminal service tests for GIT_ASKPASS env var injection into PTY spawn ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
 - Added tests for workflow name visibility in Actions tool list view and run detail view ([#36](https://github.com/lukadfagundes/cola-records/issues/36))
 
 ## [1.0.7] - 2026-02-20

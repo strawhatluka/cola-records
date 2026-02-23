@@ -12,6 +12,7 @@ import * as path from 'path';
 import { BrowserWindow } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import type { ShellType, TerminalSession } from '../ipc/channels';
+import { gitAskPassService } from './git-askpass.service';
 
 interface PtySession {
   pty: pty.IPty;
@@ -93,6 +94,7 @@ class TerminalService {
       cwd: workingDirectory,
       env: {
         ...process.env,
+        ...gitAskPassService.getAskPassEnv(),
         TERM: 'xterm-256color',
       },
     });

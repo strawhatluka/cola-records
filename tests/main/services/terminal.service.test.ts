@@ -20,6 +20,14 @@ vi.mock('os', () => ({
   homedir: () => '/mock/home',
 }));
 
+// Mock git-askpass service
+const mockGetAskPassEnv = vi.fn();
+vi.mock('../../../src/main/services/git-askpass.service', () => ({
+  gitAskPassService: {
+    getAskPassEnv: () => mockGetAskPassEnv(),
+  },
+}));
+
 // Mock node-pty
 const mockWrite = vi.fn();
 const mockResize = vi.fn();
@@ -52,6 +60,12 @@ describe('TerminalService', () => {
 
     // Setup default window mock
     mockGetAllWindows.mockReturnValue([{ webContents: { send: mockSend } }]);
+
+    // Default askpass env
+    mockGetAskPassEnv.mockReturnValue({
+      GIT_ASKPASS: '/mock/path/git-askpass.sh',
+      GIT_TERMINAL_PROMPT: '0',
+    });
   });
 
   afterEach(() => {
@@ -160,6 +174,62 @@ describe('TerminalService', () => {
         [],
         expect.objectContaining({ cwd: '/test/dir' })
       );
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
+    it('includes GIT_ASKPASS env vars in PTY spawn', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+
+      terminalService.cleanup();
+      vi.mocked(pty.spawn).mockClear();
+
+      terminalService.spawn('git-bash', '/test/dir');
+
+      const spawnCall = vi.mocked(pty.spawn).mock.calls[0];
+      const env = spawnCall[2]?.env as Record<string, string>;
+      expect(env.GIT_ASKPASS).toBe('/mock/path/git-askpass.sh');
+      expect(env.GIT_TERMINAL_PROMPT).toBe('0');
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
+    it('preserves existing env vars alongside askpass env', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+
+      terminalService.cleanup();
+      vi.mocked(pty.spawn).mockClear();
+
+      terminalService.spawn('git-bash', '/test/dir');
+
+      const spawnCall = vi.mocked(pty.spawn).mock.calls[0];
+      const env = spawnCall[2]?.env as Record<string, string>;
+      // TERM should still be set
+      expect(env.TERM).toBe('xterm-256color');
+      // process.env vars should be present too
+      expect(env.PATH).toBeDefined();
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
+    it('works without askpass env when no token configured', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+
+      mockGetAskPassEnv.mockReturnValue({});
+
+      terminalService.cleanup();
+      vi.mocked(pty.spawn).mockClear();
+
+      terminalService.spawn('git-bash', '/test/dir');
+
+      const spawnCall = vi.mocked(pty.spawn).mock.calls[0];
+      const env = spawnCall[2]?.env as Record<string, string>;
+      expect(env.GIT_ASKPASS).toBeUndefined();
+      expect(env.GIT_TERMINAL_PROMPT).toBeUndefined();
+      expect(env.TERM).toBe('xterm-256color');
 
       Object.defineProperty(process, 'platform', { value: originalPlatform });
     });
