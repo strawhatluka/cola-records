@@ -117,6 +117,9 @@ export function setupSettingsHandlers(): void {
       // Sync token to ~/.git-credentials for code-server authentication
       const { gitService } = await import('../../services');
       gitService.syncTokenToGitCredentials(updates.githubToken || null);
+      // Update askpass token file for terminal Git authentication
+      const { gitAskPassService } = await import('../../services/git-askpass.service');
+      gitAskPassService.updateToken(updates.githubToken || null);
     }
     if (updates.theme !== undefined) {
       database.setSetting('theme', updates.theme);
