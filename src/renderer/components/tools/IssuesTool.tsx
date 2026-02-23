@@ -47,6 +47,10 @@ export function IssuesTool({
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<IssuesView>('list');
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [parentIssueContext, setParentIssueContext] = useState<{
+    number: number;
+    title: string;
+  } | null>(null);
   const isMounted = useRef(true);
 
   const targetUrl = contribution.upstreamUrl || contribution.repositoryUrl;
@@ -85,16 +89,46 @@ export function IssuesTool({
 
   const handleIssueClick = (issue: Issue) => {
     setSelectedIssue(issue);
+    setParentIssueContext(null);
+    setView('detail');
+  };
+
+  const handleNavigateToIssue = (
+    issueNumber: number,
+    parentContext?: { number: number; title: string }
+  ) => {
+    // Check if the issue is already in our list
+    const found = issues.find((i) => i.number === issueNumber);
+    if (found) {
+      setSelectedIssue(found);
+    } else {
+      // Create a stub issue object for navigation — the detail modal fetches full data
+      setSelectedIssue({
+        number: issueNumber,
+        title: '',
+        body: '',
+        url: '',
+        state: 'open',
+        labels: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        author: '',
+        authorAvatarUrl: '',
+      });
+    }
+    setParentIssueContext(parentContext ?? null);
     setView('detail');
   };
 
   const handleBack = () => {
     setSelectedIssue(null);
+    setParentIssueContext(null);
     setView('list');
   };
 
   const handleDetailClose = () => {
     setSelectedIssue(null);
+    setParentIssueContext(null);
     setView('list');
     fetchIssues();
     onRefreshBranches?.();
@@ -134,6 +168,8 @@ export function IssuesTool({
             githubUsername={githubUsername}
             onClose={handleDetailClose}
             inline
+            onNavigateToIssue={handleNavigateToIssue}
+            parentIssue={parentIssueContext ?? undefined}
           />
         </div>
       </div>

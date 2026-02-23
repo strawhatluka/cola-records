@@ -229,7 +229,7 @@ export function DevelopmentScreen({
       ipc
         .invoke('git:get-current-branch', contribution.localPath)
         .then((result) => {
-          if (isMounted.current) setCurrentBranch(result);
+          if (isMounted.current) setCurrentBranch((prev) => (prev === result ? prev : result));
         })
         .catch(() => {
           // Branch fetch is best-effort

@@ -216,8 +216,8 @@ describe('XTermTerminal', () => {
 
     render(<XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />);
 
-    const container = document.querySelector('.w-full.h-full');
-    await user.click(container!);
+    const container = document.querySelector('.w-full.h-full') as HTMLElement;
+    await user.click(container);
 
     const { mockFocus } = (Terminal as any).getMocks();
     expect(mockFocus).toHaveBeenCalled();
@@ -246,6 +246,74 @@ describe('XTermTerminal', () => {
 
     const container = document.querySelector('.w-full.h-full') as HTMLElement;
     expect(container?.style.backgroundColor).toBe('rgb(30, 30, 30)');
+  });
+
+  // ── Init Effect Stability Tests ───────────────────────────────────
+
+  describe('Init Effect Stability', () => {
+    it('does NOT re-initialize terminal when onData callback reference changes', () => {
+      const { mockDispose, mockOpen } = (Terminal as any).getMocks();
+
+      const onData1 = vi.fn();
+      const onData2 = vi.fn();
+
+      const { rerender } = render(
+        <XTermTerminal terminalId={terminalId} onData={onData1} onResize={mockOnResize} />
+      );
+
+      expect(mockOpen).toHaveBeenCalledTimes(1);
+      mockDispose.mockClear();
+      mockOpen.mockClear();
+
+      // Re-render with a new onData reference — terminal should NOT be disposed/recreated
+      rerender(<XTermTerminal terminalId={terminalId} onData={onData2} onResize={mockOnResize} />);
+
+      expect(mockDispose).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
+    });
+
+    it('does NOT re-initialize terminal when onResize callback reference changes', () => {
+      const { mockDispose, mockOpen } = (Terminal as any).getMocks();
+
+      const onResize1 = vi.fn();
+      const onResize2 = vi.fn();
+
+      const { rerender } = render(
+        <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={onResize1} />
+      );
+
+      expect(mockOpen).toHaveBeenCalledTimes(1);
+      mockDispose.mockClear();
+      mockOpen.mockClear();
+
+      // Re-render with a new onResize reference — terminal should NOT be disposed/recreated
+      rerender(<XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={onResize2} />);
+
+      expect(mockDispose).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
+    });
+
+    it('uses latest onData callback via ref even after re-render', () => {
+      const { mockOnData: terminalMockOnData } = (Terminal as any).getMocks();
+
+      const onData1 = vi.fn();
+      const onData2 = vi.fn();
+
+      const { rerender } = render(
+        <XTermTerminal terminalId={terminalId} onData={onData1} onResize={mockOnResize} />
+      );
+
+      // Re-render with new callback
+      rerender(<XTermTerminal terminalId={terminalId} onData={onData2} onResize={mockOnResize} />);
+
+      // Get the onData handler registered with xterm and call it
+      const handler = terminalMockOnData.mock.calls[0][0];
+      handler('test input');
+
+      // Should call the LATEST callback (onData2), not the original (onData1)
+      expect(onData2).toHaveBeenCalledWith('test input');
+      expect(onData1).not.toHaveBeenCalled();
+    });
   });
 
   // ── Clipboard Operations Tests ────────────────────────────────────

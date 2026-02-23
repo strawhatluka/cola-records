@@ -191,6 +191,10 @@ describe('GitAskPassService', () => {
       expect(env).toHaveProperty('GIT_ASKPASS');
       expect(env).toHaveProperty('GIT_TERMINAL_PROMPT', '0');
       expect(env.GIT_ASKPASS).toContain('git-askpass');
+      // Should override credential.helper to prevent GCM from intercepting
+      expect(env).toHaveProperty('GIT_CONFIG_COUNT', '1');
+      expect(env).toHaveProperty('GIT_CONFIG_KEY_0', 'credential.helper');
+      expect(env).toHaveProperty('GIT_CONFIG_VALUE_0', '');
     });
 
     it('returns empty object when not initialized', () => {

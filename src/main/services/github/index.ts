@@ -340,6 +340,10 @@ export class GitHubRestService extends GitHubRestServiceBase {
     return extras.listSubIssues(this.getClient(), owner, repo, issueNumber);
   }
 
+  async getParentIssue(owner: string, repo: string, issueNumber: number) {
+    return extras.getParentIssue(this.getClient(), owner, repo, issueNumber);
+  }
+
   async createSubIssue(
     owner: string,
     repo: string,

@@ -1243,6 +1243,56 @@ describe('GitHubRestService', () => {
     });
   });
 
+  describe('getParentIssue', () => {
+    it('returns parent issue when API responds with data', async () => {
+      mockRequest.mockResolvedValue({
+        data: {
+          id: 50,
+          number: 3,
+          title: 'Parent Issue',
+          state: 'open',
+          html_url: 'https://github.com/org/repo/issues/3',
+        },
+      });
+
+      const parent = await service.getParentIssue('org', 'repo', 43);
+      expect(parent).toEqual({
+        id: 50,
+        number: 3,
+        title: 'Parent Issue',
+        state: 'open',
+        url: 'https://github.com/org/repo/issues/3',
+      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        'GET /repos/{owner}/{repo}/issues/{issue_number}/parent',
+        expect.objectContaining({
+          owner: 'org',
+          repo: 'repo',
+          issue_number: 43,
+        })
+      );
+    });
+
+    it('returns null on 404 (not a sub-issue)', async () => {
+      mockRequest.mockRejectedValue({ status: 404 });
+      const parent = await service.getParentIssue('org', 'repo', 43);
+      expect(parent).toBeNull();
+    });
+
+    it('returns null on 403', async () => {
+      mockRequest.mockRejectedValue({ status: 403 });
+      const parent = await service.getParentIssue('org', 'repo', 43);
+      expect(parent).toBeNull();
+    });
+
+    it('throws on other errors', async () => {
+      mockRequest.mockRejectedValue({ status: 500 });
+      await expect(service.getParentIssue('org', 'repo', 43)).rejects.toThrow(
+        'Failed to get parent issue'
+      );
+    });
+  });
+
   // ─── Merge and Close PRs ─────────────────────────────────────────
 
   describe('mergePullRequest', () => {

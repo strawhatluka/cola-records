@@ -12,6 +12,7 @@ import {
   GitBranch,
   Plus,
   Link2,
+  ArrowLeft,
 } from 'lucide-react';
 import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
 import { ReactionDisplay } from '../ui/ReactionPicker';
@@ -59,6 +60,11 @@ interface IssueComment {
   updatedAt: Date;
 }
 
+interface ParentIssueContext {
+  number: number;
+  title: string;
+}
+
 interface DevelopmentIssueDetailModalProps {
   issue: IssueSummary | null;
   owner: string;
@@ -69,6 +75,10 @@ interface DevelopmentIssueDetailModalProps {
   onClose: () => void;
   /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
   inline?: boolean;
+  /** Callback to navigate to another issue (used for sub-issue clicks) */
+  onNavigateToIssue?: (issueNumber: number, parentContext?: ParentIssueContext) => void;
+  /** Parent issue info when viewing a sub-issue */
+  parentIssue?: ParentIssueContext;
 }
 
 export function issueStatusBadge(state: string) {
@@ -97,6 +107,8 @@ export function DevelopmentIssueDetailModal({
   githubUsername,
   onClose,
   inline,
+  onNavigateToIssue,
+  parentIssue,
 }: DevelopmentIssueDetailModalProps) {
   const [issueDetail, setIssueDetail] = useState<IssueDetail | null>(null);
   const [comments, setComments] = useState<IssueComment[]>([]);
@@ -120,6 +132,8 @@ export function DevelopmentIssueDetailModal({
   const [subIssueMenuOpen, setSubIssueMenuOpen] = useState(false);
   const [showCreateSubIssue, setShowCreateSubIssue] = useState(false);
   const [showAddExistingSubIssue, setShowAddExistingSubIssue] = useState(false);
+  // Auto-detected parent issue (when not provided via prop)
+  const [detectedParent, setDetectedParent] = useState<ParentIssueContext | null>(null);
   const isMounted = useRef(true);
   const closeMenuRef = useRef<HTMLDivElement>(null);
   const subIssueMenuRef = useRef<HTMLDivElement>(null);
@@ -157,6 +171,19 @@ export function DevelopmentIssueDetailModal({
     }
   };
 
+  const fetchParentIssue = async (issueNumber: number) => {
+    if (parentIssue) return; // Skip if parent context already provided via prop
+    try {
+      const parent = await ipc.invoke('github:get-parent-issue', owner, repo, issueNumber);
+      if (isMounted.current) {
+        setDetectedParent(parent ? { number: parent.number, title: parent.title } : null);
+      }
+    } catch {
+      // Parent issue API may not be available
+      if (isMounted.current) setDetectedParent(null);
+    }
+  };
+
   const fetchData = async (issueNumber: number) => {
     setLoading(true);
     setError(null);
@@ -172,9 +199,10 @@ export function DevelopmentIssueDetailModal({
         setComments(cmts);
       }
 
-      // Fetch reactions and sub-issues in background (non-blocking)
+      // Fetch reactions, sub-issues, and parent issue in background (non-blocking)
       fetchReactions(issueNumber, cmts);
       fetchSubIssues(issueNumber);
+      fetchParentIssue(issueNumber);
     } catch (err) {
       if (isMounted.current) {
         setError(err instanceof Error ? err.message : String(err));
@@ -186,6 +214,7 @@ export function DevelopmentIssueDetailModal({
 
   useEffect(() => {
     isMounted.current = true;
+    setDetectedParent(null);
     if (issue) {
       fetchData(issue.number);
     }
@@ -376,20 +405,33 @@ export function DevelopmentIssueDetailModal({
 
   if (!issue) return null;
 
+  const resolvedParent = parentIssue ?? detectedParent;
+
   const header = (
-    <div className="flex items-start justify-between">
-      <div className="flex-1">
-        <h2 className="text-xl font-semibold">
-          {issueDetail?.title || issue.title}
-          <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
-        </h2>
-        <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
-          {issueStatusBadge(issueState)}
-          {isBranched && (
-            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">branched</Badge>
-          )}
-          <span>{issue.author}</span>
-          <span>opened this issue</span>
+    <div className="flex flex-col gap-1">
+      {resolvedParent && onNavigateToIssue && (
+        <button
+          onClick={() => onNavigateToIssue(resolvedParent.number)}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          Sub-issue of #{resolvedParent.number} {resolvedParent.title}
+        </button>
+      )}
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <h2 className="text-xl font-semibold">
+            {issueDetail?.title || issue.title}
+            <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
+          </h2>
+          <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
+            {issueStatusBadge(issueState)}
+            {isBranched && (
+              <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">branched</Badge>
+            )}
+            <span>{issue.author}</span>
+            <span>opened this issue</span>
+          </div>
         </div>
       </div>
     </div>
@@ -497,9 +539,15 @@ export function DevelopmentIssueDetailModal({
               <h3 className="text-sm font-medium">Sub-issues ({subIssues.length})</h3>
               <div className="space-y-1">
                 {subIssues.map((sub) => (
-                  <div
+                  <button
                     key={sub.id}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm"
+                    onClick={() =>
+                      onNavigateToIssue?.(sub.number, {
+                        number: issue.number,
+                        title: issueDetail?.title || issue.title,
+                      })
+                    }
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm hover:bg-accent/50 cursor-pointer transition-colors text-left"
                   >
                     <span
                       className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -512,7 +560,7 @@ export function DevelopmentIssueDetailModal({
                     </span>
                     <span className="truncate flex-1">{sub.title}</span>
                     <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
