@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Removed `credential.helper` override from GIT_ASKPASS env injection — blanking the system credential helper caused "Invalid username or token" errors when the app token differed from the system credential ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
+- Fixed Windows batch askpass script using delayed expansion (`!TOKEN!`) so the token is actually read at execution time instead of parse time ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
+- Moved git-credentials file from host `~/.git-credentials` to app-private `userData/git-credentials` — prevents Cola Records from overriding the system Git credential helper in VS Code, Git Bash, and other terminals ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
+- Added one-time migration to remove `x-access-token` entries Cola Records previously wrote to host `~/.git-credentials` ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
 
 ## [1.0.8] - 2026-02-23
 

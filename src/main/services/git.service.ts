@@ -2,6 +2,7 @@ import simpleGit, { SimpleGit, StatusResult, LogResult } from 'simple-git';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { app } from 'electron';
 import type { GitStatus, GitCommit, BranchComparison, BranchInfo } from '../ipc/channels';
 import { database } from '../database';
 import { env } from './environment.service';
@@ -14,8 +15,9 @@ import { sanitizeGitError } from '../utils/sanitize-error';
  * Uses stored GitHub token for authentication on push/pull/fetch operations.
  * Authentication is done by temporarily rewriting remote URLs to include the token.
  *
- * For code-server (Docker container), the token is also written to ~/.git-credentials
- * so that Git operations inside the container can authenticate using credential.helper = store.
+ * For code-server (Docker container), the token is written to an app-private
+ * git-credentials file (in userData), which Docker mounts read-only.
+ * The host ~/.git-credentials is never modified.
  */
 export class GitService {
   /**
@@ -27,16 +29,24 @@ export class GitService {
   }
 
   /**
-   * Sync GitHub token to ~/.git-credentials file.
-   * This enables Git authentication inside the code-server Docker container,
-   * which mounts this file and uses credential.helper = store.
+   * Get the path to the app-private git-credentials file.
+   * Stored in app.getPath('userData') so it never touches the host ~/.git-credentials.
+   */
+  getCredentialsPath(): string {
+    return path.join(app.getPath('userData'), 'git-credentials');
+  }
+
+  /**
+   * Sync GitHub token to the app-private git-credentials file.
+   * This file is mounted read-only into the code-server Docker container,
+   * which uses credential.helper = store to read it.
    *
    * Format: https://x-access-token:{token}@github.com
    *
    * If token is empty/null, removes the GitHub entry from the file.
    */
   syncTokenToGitCredentials(token: string | null): void {
-    const credentialsPath = path.join(os.homedir(), '.git-credentials');
+    const credentialsPath = this.getCredentialsPath();
     const githubEntry = token ? `https://x-access-token:${token}@github.com` : null;
 
     try {
@@ -63,6 +73,39 @@ export class GitService {
     } catch {
       // Best-effort - if we can't write the file, Git operations through
       // the Electron UI will still work (using URL rewriting)
+    }
+  }
+
+  /**
+   * One-time migration: remove any x-access-token entry that Cola Records
+   * previously wrote to the host ~/.git-credentials.
+   * Preserves non-GitHub entries the user may have added.
+   */
+  migrateFromHostCredentials(): void {
+    const hostPath = path.join(os.homedir(), '.git-credentials');
+
+    try {
+      if (!fs.existsSync(hostPath)) return;
+
+      const content = fs.readFileSync(hostPath, 'utf-8');
+      const lines = content.split('\n').filter((line) => line.trim() !== '');
+
+      // Only remove lines that match our x-access-token pattern
+      const cleaned = lines.filter(
+        (line) => !(line.includes('github.com') && line.includes('x-access-token'))
+      );
+
+      // If nothing changed, skip the write
+      if (cleaned.length === lines.length) return;
+
+      if (cleaned.length > 0) {
+        fs.writeFileSync(hostPath, cleaned.join('\n') + '\n', { mode: 0o600 });
+      } else {
+        // File is now empty — remove it entirely
+        fs.unlinkSync(hostPath);
+      }
+    } catch {
+      // Best-effort cleanup — don't crash the app
     }
   }
 
