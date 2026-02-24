@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-02-23
+
 ### Added
 
 - GIT_ASKPASS credential helper for Tool Box Terminal — Git operations (`push`, `pull`, `fetch`) now authenticate automatically using the app's stored GitHub token ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
