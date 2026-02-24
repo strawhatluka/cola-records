@@ -82,7 +82,8 @@ export function APITab({ settings, onUpdate }: APITabProps) {
               <code className="bg-muted px-1">Contents: Read/Write</code>,{' '}
               <code className="bg-muted px-1">Pull Requests: Read/Write</code>,{' '}
               <code className="bg-muted px-1">Issues: Read/Write</code>,{' '}
-              <code className="bg-muted px-1">Administration: Read/Write</code>
+              <code className="bg-muted px-1">Administration: Read/Write</code>,{' '}
+              <code className="bg-muted px-1">Workflows: Read/Write</code>
             </p>
             {tokenValid === false && (
               <p className="text-xs text-destructive mt-1">

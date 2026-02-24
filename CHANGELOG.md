@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added server-side output buffer (512 KB cap) per PTY session — `XTermTerminal` replays the buffer on mount
   - `ScriptExecutionModal` now renders all terminal instances simultaneously (CSS `visibility:hidden` for inactive tabs) so every terminal receives live data and initializes with proper dimensions
 - Project names with spaces now display correctly in open project tabs and contribution cards — URL-encoded `%20` characters are properly decoded ([#43](https://github.com/lukadfagundes/cola-records/issues/43))
+- Added `Workflows: Read/Write` to the required GitHub token scopes listed in Settings API tab
 
 ### Tests
 
