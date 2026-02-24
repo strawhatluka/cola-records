@@ -60,10 +60,15 @@ class GitAskPassService {
       const token = this.getCurrentToken();
       if (token) {
         this.writeTokenFile(token);
+        logger.info(`Token written (length=${token.length}, prefix=${token.substring(0, 10)}...)`);
+      } else {
+        logger.info('No token found — askpass script will have no token to provide');
       }
 
       this.initialized = true;
       logger.info('Initialized askpass helper', this.askpassDir);
+      logger.info(`Script path: ${this.scriptPath}`);
+      logger.info(`Token path: ${this.tokenPath}`);
     } catch (error) {
       logger.warn('Failed to initialize askpass helper', error);
     }
@@ -75,17 +80,16 @@ class GitAskPassService {
    */
   getAskPassEnv(): Record<string, string> {
     if (!this.initialized || !fs.existsSync(this.tokenPath)) {
+      logger.debug(
+        `getAskPassEnv returning empty (initialized=${this.initialized}, tokenExists=${this.initialized && fs.existsSync(this.tokenPath)})`
+      );
       return {};
     }
 
+    logger.debug(`getAskPassEnv returning GIT_ASKPASS=${this.scriptPath}`);
     return {
       GIT_ASKPASS: this.scriptPath,
       GIT_TERMINAL_PROMPT: '0',
-      // Override any system/global credential.helper (e.g. Git Credential Manager)
-      // so Git falls through to GIT_ASKPASS instead of opening a browser OAuth flow.
-      GIT_CONFIG_COUNT: '1',
-      GIT_CONFIG_KEY_0: 'credential.helper',
-      GIT_CONFIG_VALUE_0: '',
     };
   }
 
@@ -148,18 +152,23 @@ class GitAskPassService {
   private getWindowsScript(tokenFilePath: string): string {
     // Normalize to Windows backslashes for the batch file
     const winTokenPath = tokenFilePath.replace(/\//g, '\\');
+    const logPath = path.join(this.askpassDir, 'askpass-debug.log').replace(/\//g, '\\');
     return [
       '@echo off',
-      'setlocal',
-      'echo %1 | findstr /i "username" >nul',
+      'setlocal enabledelayedexpansion',
+      `echo [%date% %time%] askpass called with: "%~1" >> "${logPath}"`,
+      'echo %~1 | findstr /i "username" >nul',
       'if %errorlevel% equ 0 (',
+      `  echo [%date% %time%] responding with: x-access-token >> "${logPath}"`,
       '  echo x-access-token',
       '  exit /b 0',
       ')',
       `if exist "${winTokenPath}" (`,
       `  set /p TOKEN=<"${winTokenPath}"`,
-      '  echo %TOKEN%',
+      `  echo [%date% %time%] responding with token (first4=!TOKEN:~0,4!...) >> "${logPath}" 2>nul`,
+      '  echo !TOKEN!',
       ') else (',
+      `  echo [%date% %time%] token file not found >> "${logPath}"`,
       '  echo.',
       ')',
       '',

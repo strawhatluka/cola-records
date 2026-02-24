@@ -220,6 +220,13 @@ describe('TerminalService', () => {
 
       mockGetAskPassEnv.mockReturnValue({});
 
+      // Save and clear any GIT_ASKPASS that may exist in process.env
+      // (e.g. set by the real singleton during other test files in the same run)
+      const savedAskPass = process.env.GIT_ASKPASS;
+      const savedTermPrompt = process.env.GIT_TERMINAL_PROMPT;
+      delete process.env.GIT_ASKPASS;
+      delete process.env.GIT_TERMINAL_PROMPT;
+
       terminalService.cleanup();
       vi.mocked(pty.spawn).mockClear();
 
@@ -231,6 +238,9 @@ describe('TerminalService', () => {
       expect(env.GIT_TERMINAL_PROMPT).toBeUndefined();
       expect(env.TERM).toBe('xterm-256color');
 
+      // Restore
+      if (savedAskPass !== undefined) process.env.GIT_ASKPASS = savedAskPass;
+      if (savedTermPrompt !== undefined) process.env.GIT_TERMINAL_PROMPT = savedTermPrompt;
       Object.defineProperty(process, 'platform', { value: originalPlatform });
     });
 
