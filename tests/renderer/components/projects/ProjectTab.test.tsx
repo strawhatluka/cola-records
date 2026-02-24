@@ -122,6 +122,17 @@ describe('ProjectTab', () => {
     expect(screen.getByText('Unknown Project')).toBeDefined();
   });
 
+  it('decodes URL-encoded project names with spaces', () => {
+    const project = createMockProject({
+      contribution: {
+        ...createMockProject().contribution,
+        repositoryUrl: 'https://github.com/owner/my%20project.git',
+      },
+    });
+    render(<ProjectTab {...defaultProps} project={project} />);
+    expect(screen.getByText('my project')).toBeDefined();
+  });
+
   it('truncates long project names', () => {
     const project = createMockProject({
       contribution: {

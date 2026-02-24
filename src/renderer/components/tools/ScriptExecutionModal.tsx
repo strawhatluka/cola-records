@@ -298,13 +298,6 @@ export function ScriptExecutionModal({
   terminalSessionsRef.current = terminalSessions;
   activeTabIndexRef.current = activeTabIndex;
 
-  const handleTerminalData = useCallback((data: string) => {
-    const activeSession = terminalSessionsRef.current[activeTabIndexRef.current];
-    if (activeSession?.session) {
-      ipc.invoke('terminal:write', activeSession.session.id, data);
-    }
-  }, []);
-
   const handleTerminalResize = useCallback((cols: number, rows: number) => {
     // Resize all terminals to maintain consistency
     terminalSessionsRef.current.forEach((ts) => {
@@ -318,7 +311,6 @@ export function ScriptExecutionModal({
     return null;
   }
 
-  const activeSession = terminalSessions[activeTabIndex];
   const hasMultipleTabs = terminalSessions.length > 1;
 
   return (
@@ -408,22 +400,34 @@ export function ScriptExecutionModal({
           </div>
         )}
 
-        {/* Terminal */}
-        <div className="flex-1 overflow-hidden">
-          {activeSession?.session ? (
-            <XTermTerminal
-              key={activeSession.session.id}
-              terminalId={activeSession.session.id}
-              onData={handleTerminalData}
-              onResize={handleTerminalResize}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              {activeSession?.status === 'error'
-                ? 'Failed to start terminal'
-                : 'Starting terminal...'}
+        {/* Terminals — all sessions stay mounted to receive live data; inactive ones hidden via visibility */}
+        <div className="flex-1 overflow-hidden relative">
+          {terminalSessions.map((ts, index) => (
+            <div
+              key={ts.session?.id ?? `pending-${index}`}
+              className="absolute inset-0"
+              style={{
+                visibility: index === activeTabIndex ? 'visible' : 'hidden',
+                zIndex: index === activeTabIndex ? 1 : 0,
+              }}
+            >
+              {ts.session ? (
+                <XTermTerminal
+                  terminalId={ts.session.id}
+                  onData={(data) => {
+                    if (ts.session) {
+                      ipc.invoke('terminal:write', ts.session.id, data);
+                    }
+                  }}
+                  onResize={handleTerminalResize}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  {ts.status === 'error' ? 'Failed to start terminal' : 'Starting terminal...'}
+                </div>
+              )}
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>

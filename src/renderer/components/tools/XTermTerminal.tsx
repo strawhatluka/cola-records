@@ -33,9 +33,11 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
-  // Store onData in a ref to avoid stale closures in event handlers
+  // Store callbacks in refs to avoid stale closures and prevent init effect re-runs
   const onDataRef = useRef(onData);
   onDataRef.current = onData;
+  const onResizeRef = useRef(onResize);
+  onResizeRef.current = onResize;
 
   /**
    * Handle right-click to paste from clipboard.
@@ -93,18 +95,19 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
     };
   }, [terminalId]);
 
-  // Fit terminal to container
-  const fitTerminal = useCallback(() => {
+  // Fit terminal to container — uses onResizeRef to avoid re-creating on prop change
+  const fitTerminalRef = useRef<(() => void) | null>(null);
+  fitTerminalRef.current = () => {
     if (fitAddonRef.current && terminalRef.current) {
       try {
         fitAddonRef.current.fit();
         const { cols, rows } = terminalRef.current;
-        onResize(cols, rows);
+        onResizeRef.current(cols, rows);
       } catch {
         // Ignore fit errors (can happen during unmount)
       }
     }
-  }, [onResize]);
+  };
 
   // Initialize terminal
   useEffect(() => {
@@ -150,9 +153,20 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
 
     terminal.open(containerRef.current);
 
-    // Write initial output if provided (for adopted sessions from ScriptExecutionModal)
+    // Replay output: use initialOutput (adopted sessions) or fetch buffer from main process
     if (initialOutput) {
       terminal.write(initialOutput);
+    } else {
+      window.electronAPI
+        .invoke('terminal:get-buffer', terminalId)
+        .then((buffer: string | null) => {
+          if (buffer && terminalRef.current) {
+            terminalRef.current.write(buffer);
+          }
+        })
+        .catch(() => {
+          // Ignore buffer fetch errors
+        });
     }
 
     // Handle clipboard operations (Ctrl+V paste, Ctrl+C copy with selection)
@@ -196,9 +210,9 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
       return true;
     });
 
-    // Handle user input
+    // Handle user input — use ref to avoid stale closure
     terminal.onData((data) => {
-      onData(data);
+      onDataRef.current(data);
     });
 
     terminalRef.current = terminal;
@@ -206,12 +220,12 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
 
     // Initial fit after a short delay to ensure container is sized
     requestAnimationFrame(() => {
-      fitTerminal();
+      fitTerminalRef.current?.();
     });
 
     // Set up resize observer
     const resizeObserver = new ResizeObserver(() => {
-      fitTerminal();
+      fitTerminalRef.current?.();
     });
     resizeObserver.observe(containerRef.current);
 
@@ -221,8 +235,9 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
       terminalRef.current = null;
       fitAddonRef.current = null;
     };
-    // initialOutput intentionally excluded - only used on initial mount
-  }, [onData, fitTerminal]);
+    // Runs once on mount — callbacks accessed via refs to avoid re-init on prop changes.
+    // The parent's key={activeTab.id} handles remounting when the tab changes.
+  }, []);
 
   // Focus terminal on click
   const handleClick = useCallback(() => {

@@ -21,15 +21,43 @@ vi.mock('../../../../src/renderer/components/issues/DevelopmentIssueDetailModal'
   DevelopmentIssueDetailModal: ({
     issue,
     onClose,
+    onNavigateToIssue,
+    parentIssue,
   }: {
     issue: { number: number; title: string };
     onClose: () => void;
+    onNavigateToIssue?: (
+      issueNumber: number,
+      parentContext?: { number: number; title: string }
+    ) => void;
+    parentIssue?: { number: number; title: string };
   }) => (
     <div data-testid="issue-detail-modal">
       <span>
         Issue #{issue.number}: {issue.title}
       </span>
+      {parentIssue && (
+        <span data-testid="parent-breadcrumb">
+          Sub-issue of #{parentIssue.number} {parentIssue.title}
+        </span>
+      )}
       <button onClick={onClose}>Close Detail</button>
+      {onNavigateToIssue && (
+        <button
+          data-testid="navigate-to-sub-issue"
+          onClick={() => onNavigateToIssue(99, { number: issue.number, title: issue.title })}
+        >
+          Navigate to sub-issue
+        </button>
+      )}
+      {onNavigateToIssue && parentIssue && (
+        <button
+          data-testid="navigate-to-parent"
+          onClick={() => onNavigateToIssue(parentIssue.number)}
+        >
+          Back to parent
+        </button>
+      )}
     </div>
   ),
 }));
@@ -271,6 +299,79 @@ describe('IssuesTool', () => {
 
       await waitFor(() => {
         expect(screen.queryByTestId('create-issue-modal')).toBeNull();
+      });
+    });
+  });
+
+  describe('Sub-issue navigation', () => {
+    it('navigates to sub-issue and sets parent context', async () => {
+      setupMocks();
+      const user = userEvent.setup();
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Fix login bug')).toBeDefined();
+      });
+
+      // Click issue to go to detail
+      await user.click(screen.getByText('Fix login bug'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('issue-detail-modal')).toBeDefined();
+      });
+
+      // Click "Navigate to sub-issue" button exposed by mock
+      await user.click(screen.getByTestId('navigate-to-sub-issue'));
+
+      // Should now show the sub-issue detail with parent breadcrumb
+      await waitFor(() => {
+        expect(screen.getByTestId('parent-breadcrumb')).toBeDefined();
+        expect(screen.getByText(/Sub-issue of #10 Fix login bug/)).toBeDefined();
+      });
+    });
+
+    it('navigates back to parent issue and clears parent context', async () => {
+      setupMocks();
+      const user = userEvent.setup();
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Fix login bug')).toBeDefined();
+      });
+
+      // Click issue to go to detail
+      await user.click(screen.getByText('Fix login bug'));
+      await waitFor(() => {
+        expect(screen.getByTestId('issue-detail-modal')).toBeDefined();
+      });
+
+      // Navigate to sub-issue
+      await user.click(screen.getByTestId('navigate-to-sub-issue'));
+      await waitFor(() => {
+        expect(screen.getByTestId('parent-breadcrumb')).toBeDefined();
+      });
+
+      // Navigate back to parent
+      await user.click(screen.getByTestId('navigate-to-parent'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('parent-breadcrumb')).toBeNull();
+      });
+    });
+
+    it('clears parent context when selecting an issue from the list', async () => {
+      setupMocks();
+      const user = userEvent.setup();
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Fix login bug')).toBeDefined();
+      });
+
+      // Click an issue from the list — should not have parent context
+      await user.click(screen.getByText('Fix login bug'));
+      await waitFor(() => {
+        expect(screen.getByTestId('issue-detail-modal')).toBeDefined();
+        expect(screen.queryByTestId('parent-breadcrumb')).toBeNull();
       });
     });
   });

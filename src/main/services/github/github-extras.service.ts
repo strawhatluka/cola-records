@@ -615,6 +615,49 @@ export async function listSubIssues(
   }
 }
 
+export async function getParentIssue(
+  client: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number
+): Promise<{ id: number; number: number; title: string; state: string; url: string } | null> {
+  try {
+    const response = await client.request(
+      'GET /repos/{owner}/{repo}/issues/{issue_number}/parent',
+      {
+        owner,
+        repo,
+        issue_number: issueNumber,
+      }
+    );
+
+    const item = response.data as {
+      id: number;
+      number: number;
+      title: string;
+      state: string;
+      html_url: string;
+    };
+
+    return {
+      id: item.id,
+      number: item.number,
+      title: item.title,
+      state: item.state,
+      url: item.html_url,
+    };
+  } catch (error: unknown) {
+    const status =
+      error && typeof error === 'object' && 'status' in error
+        ? (error as { status: number }).status
+        : undefined;
+    if (status === 404 || status === 403) {
+      return null;
+    }
+    throw new Error(`Failed to get parent issue for ${owner}/${repo}#${issueNumber}: ${error}`);
+  }
+}
+
 export async function createSubIssue(
   client: Octokit,
   owner: string,

@@ -308,6 +308,11 @@ export function setupGitHubHandlers(): void {
     return await gitHubRestService.listSubIssues(owner, repo, issueNumber);
   });
 
+  handleIpc('github:get-parent-issue', async (_event, owner, repo, issueNumber) => {
+    const { gitHubRestService } = await import('../../services/github-rest.service');
+    return await gitHubRestService.getParentIssue(owner, repo, issueNumber);
+  });
+
   handleIpc(
     'github:create-sub-issue',
     async (_event, owner, repo, parentIssueNumber, title, body, labels) => {

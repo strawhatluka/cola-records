@@ -17,13 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Sub-issues are now clickable — clicking a sub-issue navigates to its detail view with a parent issue breadcrumb for easy back-navigation ([#41](https://github.com/lukadfagundes/cola-records/issues/41))
+  - Sub-issues opened from the issues list auto-detect their parent via the GitHub parent issue API
 - Actions tool now displays the workflow name for each run in the list view and run detail summary ([#36](https://github.com/lukadfagundes/cola-records/issues/36))
+- Fixed terminal cursor/focus loss when switching branches — branch polling triggered unnecessary re-renders that destroyed and recreated the xterm.js terminal every 5 seconds ([#39](https://github.com/lukadfagundes/cola-records/issues/39))
+  - Stabilized `XTermTerminal` init effect by using refs for callbacks (empty dependency array — runs once on mount)
+  - Guarded `setCurrentBranch` polling to skip no-op state updates when the branch hasn't changed
+- Dev Scripts panel now uses `styled-scroll` for consistent scrollbar styling
+- Multi-terminal dev scripts now retain full output across tab switches ([#42](https://github.com/lukadfagundes/cola-records/issues/42))
+  - Added server-side output buffer (512 KB cap) per PTY session — `XTermTerminal` replays the buffer on mount
+  - `ScriptExecutionModal` now renders all terminal instances simultaneously (CSS `visibility:hidden` for inactive tabs) so every terminal receives live data and initializes with proper dimensions
+- Project names with spaces now display correctly in open project tabs and contribution cards — URL-encoded `%20` characters are properly decoded ([#43](https://github.com/lukadfagundes/cola-records/issues/43))
+- Added `Workflows: Read/Write` to the required GitHub token scopes listed in Settings API tab
 
 ### Tests
 
 - GIT_ASKPASS service tests covering initialization, platform script generation, token file management, env var injection, and cleanup ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
 - Terminal service tests for GIT_ASKPASS env var injection into PTY spawn ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
 - Added tests for workflow name visibility in Actions tool list view and run detail view ([#36](https://github.com/lukadfagundes/cola-records/issues/36))
+- XTermTerminal init stability tests — verifies terminal is not re-initialized when callback references change, and latest callback is used via ref ([#39](https://github.com/lukadfagundes/cola-records/issues/39))
+- Sub-issue navigation tests for clickable rows, parent breadcrumb rendering, parent/child navigation, and auto-detection via getParentIssue API in DevelopmentIssueDetailModal and IssuesTool ([#41](https://github.com/lukadfagundes/cola-records/issues/41))
+- `getParentIssue` service tests for parent lookup, 404/403 handling, and error propagation ([#41](https://github.com/lukadfagundes/cola-records/issues/41))
+- Terminal output buffer tests covering accumulation, size cap, and cleanup on kill ([#42](https://github.com/lukadfagundes/cola-records/issues/42))
+- `XTermTerminal` buffer replay tests for mount-time fetch, `initialOutput` skip, and null handling ([#42](https://github.com/lukadfagundes/cola-records/issues/42))
+- `ScriptExecutionModal` multi-terminal rendering tests verifying all tabs mount simultaneously with CSS visibility toggling ([#42](https://github.com/lukadfagundes/cola-records/issues/42))
 
 ## [1.0.7] - 2026-02-20
 

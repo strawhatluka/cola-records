@@ -457,7 +457,7 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto styled-scroll p-4">
         {/* Add/Edit Form */}
         {isFormOpen && (
           <div className="mb-4 p-4 bg-muted/30 rounded-lg border border-border">

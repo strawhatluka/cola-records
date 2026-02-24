@@ -353,6 +353,7 @@ export interface GitHubChannels {
 
   // Sub-Issue Channels
   'github:list-sub-issues': (owner: string, repo: string, issueNumber: number) => SubIssue[];
+  'github:get-parent-issue': (owner: string, repo: string, issueNumber: number) => SubIssue | null;
   'github:create-sub-issue': (
     owner: string,
     repo: string,

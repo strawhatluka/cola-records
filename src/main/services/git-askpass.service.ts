@@ -81,6 +81,11 @@ class GitAskPassService {
     return {
       GIT_ASKPASS: this.scriptPath,
       GIT_TERMINAL_PROMPT: '0',
+      // Override any system/global credential.helper (e.g. Git Credential Manager)
+      // so Git falls through to GIT_ASKPASS instead of opening a browser OAuth flow.
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'credential.helper',
+      GIT_CONFIG_VALUE_0: '',
     };
   }
 

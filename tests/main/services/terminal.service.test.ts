@@ -397,6 +397,66 @@ describe('TerminalService', () => {
     });
   });
 
+  describe('getOutputBuffer', () => {
+    it('accumulates data from PTY onData callbacks', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+
+      terminalService.cleanup();
+      const session = terminalService.spawn('git-bash', '/test/dir');
+
+      const onDataCallback = mockOnData.mock.calls[0][0];
+      onDataCallback('first chunk');
+      onDataCallback(' second chunk');
+
+      expect(terminalService.getOutputBuffer(session.id)).toBe('first chunk second chunk');
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
+    it('returns null for unknown terminal ID', () => {
+      expect(terminalService.getOutputBuffer('non-existent-id')).toBeNull();
+    });
+
+    it('clears buffer when terminal is killed', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+
+      terminalService.cleanup();
+      const session = terminalService.spawn('git-bash', '/test/dir');
+
+      const onDataCallback = mockOnData.mock.calls[0][0];
+      onDataCallback('some output');
+
+      terminalService.kill(session.id);
+
+      expect(terminalService.getOutputBuffer(session.id)).toBeNull();
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
+    it('caps buffer size at 512KB', () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+
+      terminalService.cleanup();
+      const session = terminalService.spawn('git-bash', '/test/dir');
+
+      const onDataCallback = mockOnData.mock.calls[0][0];
+      // Write 600KB of data in chunks
+      const chunk = 'x'.repeat(100 * 1024);
+      for (let i = 0; i < 6; i++) {
+        onDataCallback(chunk);
+      }
+
+      const buffer = terminalService.getOutputBuffer(session.id);
+      expect(buffer).not.toBeNull();
+      expect(buffer!.length).toBeLessThanOrEqual(512 * 1024);
+
+      Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+  });
+
   describe('getSessionCount', () => {
     it('returns zero after cleanup', () => {
       terminalService.cleanup();

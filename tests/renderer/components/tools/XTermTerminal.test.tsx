@@ -75,9 +75,10 @@ vi.mock('@xterm/xterm/css/xterm.css', () => ({}));
 const mockElectronAPIOn = vi.fn((_channel: string, _handler: (...args: unknown[]) => void) =>
   vi.fn()
 );
+const mockElectronAPIInvoke = vi.fn().mockResolvedValue(null);
 Object.defineProperty(window, 'electronAPI', {
   value: {
-    invoke: vi.fn(),
+    invoke: mockElectronAPIInvoke,
     on: mockElectronAPIOn,
     send: vi.fn(),
   },
@@ -112,6 +113,7 @@ describe('XTermTerminal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockElectronAPIOn.mockClear();
+    mockElectronAPIInvoke.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -216,8 +218,8 @@ describe('XTermTerminal', () => {
 
     render(<XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />);
 
-    const container = document.querySelector('.w-full.h-full');
-    await user.click(container!);
+    const container = document.querySelector('.w-full.h-full') as HTMLElement;
+    await user.click(container);
 
     const { mockFocus } = (Terminal as any).getMocks();
     expect(mockFocus).toHaveBeenCalled();
@@ -246,6 +248,131 @@ describe('XTermTerminal', () => {
 
     const container = document.querySelector('.w-full.h-full') as HTMLElement;
     expect(container?.style.backgroundColor).toBe('rgb(30, 30, 30)');
+  });
+
+  // ── Output Buffer Replay Tests ──────────────────────────────────
+
+  describe('Output Buffer Replay', () => {
+    it('fetches buffer via terminal:get-buffer on mount and writes it', async () => {
+      mockElectronAPIInvoke.mockResolvedValue('buffered output data');
+
+      render(<XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />);
+
+      await vi.waitFor(() => {
+        expect(mockElectronAPIInvoke).toHaveBeenCalledWith('terminal:get-buffer', terminalId);
+      });
+
+      const { mockWrite } = (Terminal as any).getMocks();
+      await vi.waitFor(() => {
+        expect(mockWrite).toHaveBeenCalledWith('buffered output data');
+      });
+    });
+
+    it('does not fetch buffer when initialOutput is provided', () => {
+      mockElectronAPIInvoke.mockResolvedValue('should not be used');
+
+      render(
+        <XTermTerminal
+          terminalId={terminalId}
+          onData={mockOnData}
+          onResize={mockOnResize}
+          initialOutput="adopted session output"
+        />
+      );
+
+      const { mockWrite } = (Terminal as any).getMocks();
+      // Should write the initialOutput
+      expect(mockWrite).toHaveBeenCalledWith('adopted session output');
+
+      // Should NOT call terminal:get-buffer
+      const bufferCalls = mockElectronAPIInvoke.mock.calls.filter(
+        (call: unknown[]) => call[0] === 'terminal:get-buffer'
+      );
+      expect(bufferCalls).toHaveLength(0);
+    });
+
+    it('handles null buffer gracefully', async () => {
+      mockElectronAPIInvoke.mockResolvedValue(null);
+
+      render(<XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={mockOnResize} />);
+
+      await vi.waitFor(() => {
+        expect(mockElectronAPIInvoke).toHaveBeenCalledWith('terminal:get-buffer', terminalId);
+      });
+
+      // Should not write null to terminal
+      const { mockWrite } = (Terminal as any).getMocks();
+      const nullWrites = mockWrite.mock.calls.filter((call: unknown[]) => call[0] === null);
+      expect(nullWrites).toHaveLength(0);
+    });
+  });
+
+  // ── Init Effect Stability Tests ───────────────────────────────────
+
+  describe('Init Effect Stability', () => {
+    it('does NOT re-initialize terminal when onData callback reference changes', () => {
+      const { mockDispose, mockOpen } = (Terminal as any).getMocks();
+
+      const onData1 = vi.fn();
+      const onData2 = vi.fn();
+
+      const { rerender } = render(
+        <XTermTerminal terminalId={terminalId} onData={onData1} onResize={mockOnResize} />
+      );
+
+      expect(mockOpen).toHaveBeenCalledTimes(1);
+      mockDispose.mockClear();
+      mockOpen.mockClear();
+
+      // Re-render with a new onData reference — terminal should NOT be disposed/recreated
+      rerender(<XTermTerminal terminalId={terminalId} onData={onData2} onResize={mockOnResize} />);
+
+      expect(mockDispose).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
+    });
+
+    it('does NOT re-initialize terminal when onResize callback reference changes', () => {
+      const { mockDispose, mockOpen } = (Terminal as any).getMocks();
+
+      const onResize1 = vi.fn();
+      const onResize2 = vi.fn();
+
+      const { rerender } = render(
+        <XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={onResize1} />
+      );
+
+      expect(mockOpen).toHaveBeenCalledTimes(1);
+      mockDispose.mockClear();
+      mockOpen.mockClear();
+
+      // Re-render with a new onResize reference — terminal should NOT be disposed/recreated
+      rerender(<XTermTerminal terminalId={terminalId} onData={mockOnData} onResize={onResize2} />);
+
+      expect(mockDispose).not.toHaveBeenCalled();
+      expect(mockOpen).not.toHaveBeenCalled();
+    });
+
+    it('uses latest onData callback via ref even after re-render', () => {
+      const { mockOnData: terminalMockOnData } = (Terminal as any).getMocks();
+
+      const onData1 = vi.fn();
+      const onData2 = vi.fn();
+
+      const { rerender } = render(
+        <XTermTerminal terminalId={terminalId} onData={onData1} onResize={mockOnResize} />
+      );
+
+      // Re-render with new callback
+      rerender(<XTermTerminal terminalId={terminalId} onData={onData2} onResize={mockOnResize} />);
+
+      // Get the onData handler registered with xterm and call it
+      const handler = terminalMockOnData.mock.calls[0][0];
+      handler('test input');
+
+      // Should call the LATEST callback (onData2), not the original (onData1)
+      expect(onData2).toHaveBeenCalledWith('test input');
+      expect(onData1).not.toHaveBeenCalled();
+    });
   });
 
   // ── Clipboard Operations Tests ────────────────────────────────────

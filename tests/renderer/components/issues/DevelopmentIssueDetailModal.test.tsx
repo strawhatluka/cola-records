@@ -62,6 +62,7 @@ function setupMockIPC(
     detail?: any;
     comments?: any[];
     error?: boolean;
+    parentIssue?: any;
   } = {}
 ) {
   if (overrides.error) {
@@ -83,6 +84,8 @@ function setupMockIPC(
         return [];
       case 'github:list-sub-issues':
         return [];
+      case 'github:get-parent-issue':
+        return overrides.parentIssue ?? null;
       case 'shell:open-external':
         return undefined;
       default:
@@ -580,6 +583,190 @@ describe('DevelopmentIssueDetailModal', () => {
         expect(openCalls.length).toBe(1);
         expect(openCalls[0][1]).toBe('https://github.com/org/repo/issues/10');
       });
+    });
+  });
+
+  describe('sub-issue navigation', () => {
+    const mockSubIssues = [
+      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '' },
+      { id: 202, number: 21, title: 'Sub issue B', state: 'closed', url: '' },
+    ];
+
+    it('renders sub-issue rows as clickable buttons', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:get-issue') return baseIssueDetail;
+        if (channel === 'github:list-issue-comments') return [];
+        if (channel === 'github:list-sub-issues') return mockSubIssues;
+        return [];
+      });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Sub issue A')).toBeDefined();
+      });
+      // Sub-issue rows should be buttons
+      const btnA = screen.getByText('Sub issue A').closest('button');
+      expect(btnA).not.toBeNull();
+      const btnB = screen.getByText('Sub issue B').closest('button');
+      expect(btnB).not.toBeNull();
+    });
+
+    it('calls onNavigateToIssue with sub-issue number and parent context on click', async () => {
+      const onNavigate = vi.fn();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:get-issue') return baseIssueDetail;
+        if (channel === 'github:list-issue-comments') return [];
+        if (channel === 'github:list-sub-issues') return mockSubIssues;
+        return [];
+      });
+      const user = userEvent.setup();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={onNavigate}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Sub issue A')).toBeDefined();
+      });
+      await user.click(screen.getByText('Sub issue A').closest('button')!);
+      expect(onNavigate).toHaveBeenCalledWith(20, { number: 10, title: 'Detailed Issue Title' });
+    });
+
+    it('renders parent issue breadcrumb when parentIssue is provided', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={vi.fn()}
+          parentIssue={{ number: 5, title: 'Parent Feature' }}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText(/Sub-issue of #5 Parent Feature/)).toBeDefined();
+      });
+    });
+
+    it('does NOT render parent breadcrumb when parentIssue is not provided', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+      expect(screen.queryByText(/Sub-issue of/)).toBeNull();
+    });
+
+    it('clicking parent breadcrumb navigates to parent issue', async () => {
+      setupMockIPC();
+      const onNavigate = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={onNavigate}
+          parentIssue={{ number: 5, title: 'Parent Feature' }}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText(/Sub-issue of #5 Parent Feature/)).toBeDefined();
+      });
+      await user.click(screen.getByText(/Sub-issue of #5 Parent Feature/));
+      expect(onNavigate).toHaveBeenCalledWith(5);
+    });
+
+    it('auto-detects parent issue via API when parentIssue prop is not provided', async () => {
+      setupMockIPC({
+        parentIssue: { id: 50, number: 3, title: 'Auto Parent', state: 'open', url: '' },
+      });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText(/Sub-issue of #3 Auto Parent/)).toBeDefined();
+      });
+    });
+
+    it('does not call get-parent-issue when parentIssue prop is provided', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={vi.fn()}
+          parentIssue={{ number: 5, title: 'Prop Parent' }}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText(/Sub-issue of #5 Prop Parent/)).toBeDefined();
+      });
+      const parentCalls = mockInvoke.mock.calls.filter(
+        (c: unknown[]) => c[0] === 'github:get-parent-issue'
+      );
+      expect(parentCalls).toHaveLength(0);
+    });
+
+    it('shows no breadcrumb when get-parent-issue returns null', async () => {
+      setupMockIPC({ parentIssue: null });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+      expect(screen.queryByText(/Sub-issue of/)).toBeNull();
     });
   });
 
