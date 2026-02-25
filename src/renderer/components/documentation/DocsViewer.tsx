@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -8,9 +9,40 @@ interface DocsViewerProps {
   content: string | null;
   title: string;
   loading: boolean;
+  activeFilePath?: string | null;
+  onLinkNavigate?: (resolvedPath: string) => void;
 }
 
-export function DocsViewer({ content, title, loading }: DocsViewerProps) {
+function resolvePath(from: string, relative: string): string {
+  // Normalize to forward slashes for cross-platform support (Windows paths use backslashes)
+  const normalized = from.replace(/\\/g, '/');
+  const dir = normalized.substring(0, normalized.lastIndexOf('/'));
+  const parts = dir.split('/');
+  for (const segment of relative.split('/')) {
+    if (segment === '..') parts.pop();
+    else if (segment !== '.' && segment !== '') parts.push(segment);
+  }
+  return parts.join('/');
+}
+
+export function DocsViewer({
+  content,
+  title,
+  loading,
+  activeFilePath,
+  onLinkNavigate,
+}: DocsViewerProps) {
+  const handleLinkClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      if (!activeFilePath || !onLinkNavigate) return;
+      if (href.startsWith('http://') || href.startsWith('https://')) return;
+      if (!href.endsWith('.md')) return;
+      e.preventDefault();
+      onLinkNavigate(resolvePath(activeFilePath, href));
+    },
+    [activeFilePath, onLinkNavigate]
+  );
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center text-muted-foreground">
@@ -37,6 +69,19 @@ export function DocsViewer({ content, title, loading }: DocsViewerProps) {
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw]}
           components={{
+            a({ href, children, ...props }) {
+              const isInternal = href && !href.startsWith('http') && href.endsWith('.md');
+              return (
+                <a
+                  href={href}
+                  onClick={isInternal ? (e) => handleLinkClick(e, href!) : undefined}
+                  className={isInternal ? 'cursor-pointer' : undefined}
+                  {...props}
+                >
+                  {children}
+                </a>
+              );
+            },
             code({ className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '');
               if (match && match[1] === 'mermaid') {
