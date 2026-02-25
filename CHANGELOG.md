@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Inherited sub-issues sorted alongside directly-branched issues in the list
   - Detail modal receives `branches` prop to show branched/Secondary badges on sub-issue row items
   - Graceful degradation: API errors per-call caught with empty fallback, zero additional calls when no issues are branched
+- "Project" documentation category showing root-level files (README, CHANGELOG, CONTRIBUTING, LICENSE) in the Documentation screen ([#48](https://github.com/lukadfagundes/cola-records/issues/48))
+
+### Fixed
+
+- Documentation screen showing "No documentation found" in packaged builds — `docs/` directory was not included in `extraResource` and path resolution used incorrect APIs ([#48](https://github.com/lukadfagundes/cola-records/issues/48))
+- Clicking relative `.md` links in documentation now navigates to the linked document within the docs viewer instead of doing nothing ([#48](https://github.com/lukadfagundes/cola-records/issues/48))
 
 ### Tests
 

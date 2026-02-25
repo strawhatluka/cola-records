@@ -51,6 +51,20 @@ export function DocumentationScreen() {
     };
   }, [loadFileContent]);
 
+  const handleLinkNavigate = useCallback(
+    (resolvedPath: string) => {
+      for (const cat of categories) {
+        // Compare with normalized slashes — resolved path uses '/' but file.path may use '\\' on Windows
+        const file = cat.files.find((f) => f.path.replace(/\\/g, '/') === resolvedPath);
+        if (file) {
+          loadFileContent(file.path, file.displayName);
+          return;
+        }
+      }
+    },
+    [categories, loadFileContent]
+  );
+
   return (
     <div className="flex h-full">
       <DocsSidebar
@@ -58,7 +72,13 @@ export function DocumentationScreen() {
         activeFilePath={activeFilePath}
         onSelectFile={loadFileContent}
       />
-      <DocsViewer content={activeFileContent} title={activeFileTitle} loading={loading} />
+      <DocsViewer
+        content={activeFileContent}
+        title={activeFileTitle}
+        loading={loading}
+        activeFilePath={activeFilePath}
+        onLinkNavigate={handleLinkNavigate}
+      />
     </div>
   );
 }
