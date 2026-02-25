@@ -66,4 +66,6 @@ BASH-ALIASES.md
 icons.md
 BRANCH_NAMING.md
 
-temp/
+# Trinity Method SDK
+.claude/
+*CLAUDE.md
