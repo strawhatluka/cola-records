@@ -70,7 +70,7 @@ interface DevelopmentIssueDetailModalProps {
   owner: string;
   repo: string;
   localPath: string;
-  isBranched?: boolean;
+  branchBadge?: 'Primary' | 'Secondary' | 'branched';
   githubUsername: string;
   onClose: () => void;
   /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
@@ -79,6 +79,8 @@ interface DevelopmentIssueDetailModalProps {
   onNavigateToIssue?: (issueNumber: number, parentContext?: ParentIssueContext) => void;
   /** Parent issue info when viewing a sub-issue */
   parentIssue?: ParentIssueContext;
+  /** Local branch names — used to detect branched sub-issues */
+  branches?: string[];
 }
 
 export function issueStatusBadge(state: string) {
@@ -103,12 +105,13 @@ export function DevelopmentIssueDetailModal({
   owner,
   repo,
   localPath,
-  isBranched,
+  branchBadge,
   githubUsername,
   onClose,
   inline,
   onNavigateToIssue,
   parentIssue,
+  branches = [],
 }: DevelopmentIssueDetailModalProps) {
   const [issueDetail, setIssueDetail] = useState<IssueDetail | null>(null);
   const [comments, setComments] = useState<IssueComment[]>([]);
@@ -426,8 +429,18 @@ export function DevelopmentIssueDetailModal({
           </h2>
           <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
             {issueStatusBadge(issueState)}
-            {isBranched && (
-              <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">branched</Badge>
+            {branchBadge && (
+              <Badge
+                className={
+                  branchBadge === 'Primary'
+                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                    : branchBadge === 'Secondary'
+                      ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                      : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                }
+              >
+                {branchBadge}
+              </Badge>
             )}
             <span>{issue.author}</span>
             <span>opened this issue</span>
@@ -559,6 +572,20 @@ export function DevelopmentIssueDetailModal({
                       {sub.state}
                     </span>
                     <span className="truncate flex-1">{sub.title}</span>
+                    {(branchBadge ||
+                      branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))) && (
+                      <span
+                        className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))
+                            ? 'bg-blue-500/10 text-blue-500'
+                            : 'bg-yellow-500/10 text-yellow-400'
+                        }`}
+                      >
+                        {branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))
+                          ? 'branched'
+                          : 'Secondary'}
+                      </span>
+                    )}
                     <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
                   </button>
                 ))}
@@ -687,7 +714,7 @@ export function DevelopmentIssueDetailModal({
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View on GitHub
                 </Button>
-                {issueState === 'open' && !isBranched && (
+                {issueState === 'open' && !branchBadge && (
                   <Button size="sm" onClick={handleFixIssue} disabled={creatingBranch}>
                     <GitBranch className="h-4 w-4 mr-2" />
                     {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
