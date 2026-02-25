@@ -23,11 +23,21 @@ vi.mock('../../../src/main/services/environment.service', () => ({
   },
 }));
 
+// Mock os module for migrateFromHostCredentials
+vi.mock('os', () => ({
+  homedir: vi.fn(() => '/mock/home'),
+}));
+
 // Mock fs module for syncTokenToGitCredentials
+const mockExistsSync = vi.fn((_p: string) => false);
+const mockReadFileSync = vi.fn((_p: string, _enc?: string) => '');
+const mockWriteFileSync = vi.fn((_p: string, _data: string, _opts?: object) => {});
+const mockUnlinkSync = vi.fn((_p: string) => {});
 vi.mock('fs', () => ({
-  existsSync: vi.fn(() => false),
-  readFileSync: vi.fn(() => ''),
-  writeFileSync: vi.fn(),
+  existsSync: (p: string) => mockExistsSync(p),
+  readFileSync: (p: string, enc?: string) => mockReadFileSync(p, enc),
+  writeFileSync: (p: string, data: string, opts?: object) => mockWriteFileSync(p, data, opts),
+  unlinkSync: (p: string) => mockUnlinkSync(p),
 }));
 
 // Mock simple-git
@@ -78,7 +88,12 @@ vi.mock('simple-git', () => ({
   default: vi.fn(() => mockGitInstance),
 }));
 
+import path from 'path';
 import { GitService } from '../../../src/main/services/git.service';
+
+// Expected paths (cross-platform via path.join)
+const APP_CRED_PATH = path.join('/mock/user/data', 'git-credentials');
+const HOST_CRED_PATH = path.join('/mock/home', '.git-credentials');
 
 describe('GitService', () => {
   let service: GitService;
@@ -564,6 +579,135 @@ describe('GitService', () => {
       await expect(service.getBranchInfo('/repo', 'feature')).rejects.toThrow(
         'Failed to get branch info'
       );
+    });
+  });
+
+  describe('getCredentialsPath', () => {
+    it('returns path inside app userData directory', () => {
+      const credPath = service.getCredentialsPath();
+      expect(credPath).toBe(APP_CRED_PATH);
+    });
+  });
+
+  describe('syncTokenToGitCredentials', () => {
+    it('writes token to app userData git-credentials file', () => {
+      mockExistsSync.mockReturnValue(false);
+
+      service.syncTokenToGitCredentials('ghp_test123');
+
+      expect(mockWriteFileSync).toHaveBeenCalledWith(
+        APP_CRED_PATH,
+        'https://x-access-token:ghp_test123@github.com\n',
+        { mode: 0o600 }
+      );
+    });
+
+    it('does not write to host ~/.git-credentials', () => {
+      mockExistsSync.mockReturnValue(false);
+
+      service.syncTokenToGitCredentials('ghp_test123');
+
+      const writePath = mockWriteFileSync.mock.calls[0][0] as string;
+      expect(writePath).not.toContain('home');
+      expect(writePath).toContain('user');
+    });
+
+    it('removes github entry when null token passed', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        'https://x-access-token:old@github.com\nhttps://gitlab.com/token\n'
+      );
+
+      service.syncTokenToGitCredentials(null);
+
+      expect(mockWriteFileSync).toHaveBeenCalledWith(APP_CRED_PATH, 'https://gitlab.com/token\n', {
+        mode: 0o600,
+      });
+    });
+
+    it('preserves non-github entries in existing file', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        'https://x-access-token:old@github.com\nhttps://bitbucket.org/token\n'
+      );
+
+      service.syncTokenToGitCredentials('ghp_new');
+
+      expect(mockWriteFileSync).toHaveBeenCalledWith(
+        APP_CRED_PATH,
+        'https://bitbucket.org/token\nhttps://x-access-token:ghp_new@github.com\n',
+        { mode: 0o600 }
+      );
+    });
+  });
+
+  describe('migrateFromHostCredentials', () => {
+    it('removes x-access-token github.com line from host ~/.git-credentials', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        'https://x-access-token:ghp_abc@github.com\nhttps://bitbucket.org/cred\n'
+      );
+
+      service.migrateFromHostCredentials();
+
+      expect(mockWriteFileSync).toHaveBeenCalledWith(
+        HOST_CRED_PATH,
+        'https://bitbucket.org/cred\n',
+        { mode: 0o600 }
+      );
+    });
+
+    it('deletes host file when only entry was x-access-token', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('https://x-access-token:ghp_abc@github.com\n');
+
+      service.migrateFromHostCredentials();
+
+      expect(mockUnlinkSync).toHaveBeenCalledWith(HOST_CRED_PATH);
+      expect(mockWriteFileSync).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when host file does not exist', () => {
+      mockExistsSync.mockReturnValue(false);
+
+      service.migrateFromHostCredentials();
+
+      expect(mockReadFileSync).not.toHaveBeenCalled();
+      expect(mockWriteFileSync).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when no x-access-token line present', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue('https://user:pass@github.com\n');
+
+      service.migrateFromHostCredentials();
+
+      expect(mockWriteFileSync).not.toHaveBeenCalled();
+      expect(mockUnlinkSync).not.toHaveBeenCalled();
+    });
+
+    it('preserves non-x-access-token github entries', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(
+        'https://user:pat@github.com\nhttps://x-access-token:ghp_abc@github.com\n'
+      );
+
+      service.migrateFromHostCredentials();
+
+      expect(mockWriteFileSync).toHaveBeenCalledWith(
+        HOST_CRED_PATH,
+        'https://user:pat@github.com\n',
+        { mode: 0o600 }
+      );
+    });
+
+    it('does not throw on fs errors', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      expect(() => service.migrateFromHostCredentials()).not.toThrow();
     });
   });
 });

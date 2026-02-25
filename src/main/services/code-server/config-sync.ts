@@ -361,7 +361,7 @@ export function syncSSHConfig(): void {
 
 export function getGitMounts(): string[] {
   const mounts: string[] = [];
-  const gitCredentials = path.join(os.homedir(), '.git-credentials');
+  const gitCredentials = path.join(getUserDataDir(), 'git-credentials');
 
   if (fs.existsSync(gitCredentials)) {
     mounts.push('-v', `${toDockerPath(gitCredentials)}:/config/.git-credentials:ro`);

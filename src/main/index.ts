@@ -11,6 +11,7 @@ import { discordService } from './services/discord.service';
 import { scannerPool } from './workers/scanner-pool';
 import { updaterService } from './services/updater.service';
 import { gitAskPassService } from './services/git-askpass.service';
+import { gitService } from './services';
 
 // Use separate user data directory in development to avoid cache conflicts with production
 if (!app.isPackaged) {
@@ -98,6 +99,7 @@ app.on('web-contents-created', (_event, contents) => {
 // This method will be called when Electron has finished initialization
 app.on('ready', async () => {
   await initializeServices();
+  gitService.migrateFromHostCredentials();
   gitAskPassService.initialize();
   setupIpcHandlers();
   createWindow();
