@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-02-24
+
 ### Added
 
 - Sub-issue branch inheritance with three-tier badge hierarchy in Issues tool ([#49](https://github.com/lukadfagundes/cola-records/issues/49))
