@@ -16,7 +16,14 @@ const config: ForgeConfig = {
     appCopyright: 'Copyright 2026 Luka Fagundes',
     appCategoryType: 'public.app-category.developer-tools',
     appBundleId: 'com.sunnystack.colarecords',
-    extraResource: ['./docker'],
+    extraResource: [
+      './docker',
+      './docs',
+      './README.md',
+      './CHANGELOG.md',
+      './CONTRIBUTING.md',
+      './LICENSE',
+    ],
     win32metadata: {
       CompanyName: 'Sunny Stack',
       FileDescription: 'Cola Records - GitHub Contribution Tracker',

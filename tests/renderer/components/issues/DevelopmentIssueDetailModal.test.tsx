@@ -370,14 +370,14 @@ describe('DevelopmentIssueDetailModal', () => {
     });
   });
 
-  it('shows branched badge when isBranched is true', async () => {
+  it('shows branched badge when branchBadge is "branched"', async () => {
     setupMockIPC();
     render(
       <DevelopmentIssueDetailModal
         issue={baseIssue}
         owner="org"
         repo="repo"
-        isBranched={true}
+        branchBadge="branched"
         localPath="/mock/path"
         githubUsername="testuser"
         onClose={vi.fn()}
@@ -388,14 +388,13 @@ describe('DevelopmentIssueDetailModal', () => {
     });
   });
 
-  it('does not show branched badge when isBranched is false', async () => {
+  it('does not show branched badge when branchBadge is undefined', async () => {
     setupMockIPC();
     render(
       <DevelopmentIssueDetailModal
         issue={baseIssue}
         owner="org"
         repo="repo"
-        isBranched={false}
         localPath="/mock/path"
         githubUsername="testuser"
         onClose={vi.fn()}
@@ -405,6 +404,8 @@ describe('DevelopmentIssueDetailModal', () => {
       expect(screen.getByText('Open')).toBeDefined();
     });
     expect(screen.queryByText('branched')).toBeNull();
+    expect(screen.queryByText('Primary')).toBeNull();
+    expect(screen.queryByText('Secondary')).toBeNull();
   });
 
   describe('close/reopen error feedback', () => {
@@ -770,6 +771,64 @@ describe('DevelopmentIssueDetailModal', () => {
     });
   });
 
+  describe('sub-issue branched badges', () => {
+    const mockSubIssues = [
+      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '' },
+      { id: 202, number: 21, title: 'Sub issue B', state: 'closed', url: '' },
+    ];
+
+    it('shows "Secondary" badge on sub-issue rows when parent has branchBadge', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:get-issue') return baseIssueDetail;
+        if (channel === 'github:list-issue-comments') return [];
+        if (channel === 'github:list-sub-issues') return mockSubIssues;
+        return [];
+      });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          branchBadge="Primary"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Sub issue A')).toBeDefined();
+      });
+      const badges = screen.getAllByText('Secondary');
+      expect(badges.length).toBe(2);
+    });
+
+    it('does not show branched badge on sub-issue rows when parent has no branchBadge', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:get-issue') return baseIssueDetail;
+        if (channel === 'github:list-issue-comments') return [];
+        if (channel === 'github:list-sub-issues') return mockSubIssues;
+        return [];
+      });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          onNavigateToIssue={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Sub issue A')).toBeDefined();
+      });
+      expect(screen.queryByText('Secondary')).toBeNull();
+      expect(screen.queryByText('branched')).toBeNull();
+    });
+  });
+
   describe('Fix Issue auto-assign', () => {
     it('assigns the issue to the authenticated user after branch creation', async () => {
       setupMockIPC();
@@ -782,7 +841,7 @@ describe('DevelopmentIssueDetailModal', () => {
           issue={baseIssue}
           owner="org"
           repo="repo"
-          isBranched={false}
+          branchBadge={undefined}
           localPath="/mock/path"
           githubUsername="testuser"
           onClose={onClose}
@@ -833,7 +892,7 @@ describe('DevelopmentIssueDetailModal', () => {
           issue={baseIssue}
           owner="org"
           repo="repo"
-          isBranched={false}
+          branchBadge={undefined}
           localPath="/mock/path"
           githubUsername="testuser"
           onClose={onClose}

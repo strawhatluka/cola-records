@@ -55,42 +55,59 @@ export function setupCoreHandlers(): void {
   // Documentation handler
   handleIpc('docs:get-structure', async () => {
     const fs = await import('fs');
-    const docsPath = app.isPackaged
-      ? path.join(path.dirname(app.getPath('exe')), 'docs')
-      : path.join(process.cwd(), 'docs');
-
-    if (!fs.existsSync(docsPath)) {
-      return [];
-    }
-
-    const entries = fs.readdirSync(docsPath, { withFileTypes: true });
+    const rootPath = app.isPackaged ? process.resourcesPath : app.getAppPath();
+    const docsPath = path.join(rootPath, 'docs');
     const categories: import('../channels').DocsCategory[] = [];
 
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const categoryPath = path.join(docsPath, entry.name);
-      const files = fs.readdirSync(categoryPath, { withFileTypes: true });
-      const mdFiles = files
-        .filter((f) => f.isFile() && f.name.endsWith('.md'))
-        .map((f) => ({
-          name: f.name,
-          path: path.join(categoryPath, f.name),
-          displayName: f.name
-            .replace(/\.md$/, '')
-            .replace(/[-_]/g, ' ')
-            .replace(/\b\w/g, (c) => c.toUpperCase()),
-        }))
-        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    // Scan docs/ subdirectories for categorized documentation
+    if (fs.existsSync(docsPath)) {
+      const entries = fs.readdirSync(docsPath, { withFileTypes: true });
 
-      if (mdFiles.length > 0) {
-        categories.push({
-          name: entry.name.replace(/\b\w/g, (c) => c.toUpperCase()),
-          files: mdFiles,
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const categoryPath = path.join(docsPath, entry.name);
+        const files = fs.readdirSync(categoryPath, { withFileTypes: true });
+        const mdFiles = files
+          .filter((f) => f.isFile() && f.name.endsWith('.md'))
+          .map((f) => ({
+            name: f.name,
+            path: path.join(categoryPath, f.name),
+            displayName: f.name
+              .replace(/\.md$/, '')
+              .replace(/[-_]/g, ' ')
+              .replace(/\b\w/g, (c) => c.toUpperCase()),
+          }))
+          .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+        if (mdFiles.length > 0) {
+          categories.push({
+            name: entry.name.replace(/\b\w/g, (c) => c.toUpperCase()),
+            files: mdFiles,
+          });
+        }
+      }
+    }
+
+    // Add root-level project documentation files as "Cola Records" category (always first)
+    const rootDocFiles = ['README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE'];
+    const projectFiles: import('../channels').DocsFile[] = [];
+    for (const fileName of rootDocFiles) {
+      const filePath = path.join(rootPath, fileName);
+      if (fs.existsSync(filePath)) {
+        projectFiles.push({
+          name: fileName,
+          path: filePath,
+          displayName: fileName.replace(/\.md$/, ''),
         });
       }
     }
 
-    return categories.sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = categories.sort((a, b) => a.name.localeCompare(b.name));
+    if (projectFiles.length > 0) {
+      sorted.unshift({ name: 'Cola Records', files: projectFiles });
+    }
+
+    return sorted;
   });
 
   // Git handlers

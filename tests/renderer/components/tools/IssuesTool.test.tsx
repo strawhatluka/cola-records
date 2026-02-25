@@ -20,11 +20,13 @@ vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 vi.mock('../../../../src/renderer/components/issues/DevelopmentIssueDetailModal', () => ({
   DevelopmentIssueDetailModal: ({
     issue,
+    branchBadge,
     onClose,
     onNavigateToIssue,
     parentIssue,
   }: {
     issue: { number: number; title: string };
+    branchBadge?: 'Primary' | 'Secondary' | 'branched';
     onClose: () => void;
     onNavigateToIssue?: (
       issueNumber: number,
@@ -36,6 +38,7 @@ vi.mock('../../../../src/renderer/components/issues/DevelopmentIssueDetailModal'
       <span>
         Issue #{issue.number}: {issue.title}
       </span>
+      {branchBadge && <span data-testid="detail-branched-badge">{branchBadge}</span>}
       {parentIssue && (
         <span data-testid="parent-breadcrumb">
           Sub-issue of #{parentIssue.number} {parentIssue.title}
@@ -118,9 +121,19 @@ const defaultProps = {
   githubUsername: 'testuser',
 };
 
-function setupMocks(issues = mockIssues) {
-  mockInvoke.mockImplementation(async (channel: string) => {
+function setupMocks(
+  issues = mockIssues,
+  subIssueMap: Record<
+    number,
+    { id: number; number: number; title: string; state: string; url: string }[]
+  > = {}
+) {
+  mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
     if (channel === 'github:list-issues') return issues;
+    if (channel === 'github:list-sub-issues') {
+      const issueNumber = args[2] as number;
+      return subIssueMap[issueNumber] ?? [];
+    }
     return undefined;
   });
 }
@@ -388,6 +401,97 @@ describe('IssuesTool', () => {
       // The refresh button exists (it's the RefreshCw icon button)
       const buttons = screen.getAllByRole('button');
       expect(buttons.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('Inherited branched badges', () => {
+    const issuesWithSubIssue = [
+      ...mockIssues,
+      {
+        number: 15,
+        title: 'Sub task of login bug',
+        body: 'Sub task',
+        url: 'https://github.com/upstream/repo/issues/15',
+        state: 'open',
+        labels: [],
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-02'),
+        author: 'dev',
+        authorAvatarUrl: '',
+      },
+    ];
+
+    it('shows "Secondary" badge for sub-issues of branched parents', async () => {
+      setupMocks(issuesWithSubIssue, {
+        10: [{ id: 150, number: 15, title: 'Sub task of login bug', state: 'open', url: '' }],
+      });
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Secondary')).toBeDefined();
+      });
+    });
+
+    it('sorts sub-issues of branched parents alongside branched issues', async () => {
+      setupMocks(issuesWithSubIssue, {
+        10: [{ id: 150, number: 15, title: 'Sub task of login bug', state: 'open', url: '' }],
+      });
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Secondary')).toBeDefined();
+      });
+
+      // Branched (#10) and inherited (#15) should appear before non-branched (#5)
+      const titles = screen.getAllByText(/Fix login bug|Sub task of login bug|Add feature/);
+      const titleTexts = titles.map((el) => el.textContent);
+      const addFeatureIdx = titleTexts.indexOf('Add feature');
+      const subTaskIdx = titleTexts.indexOf('Sub task of login bug');
+      expect(subTaskIdx).toBeLessThan(addFeatureIdx);
+    });
+
+    it('does not show inherited badge for issues without branched parents', async () => {
+      setupMocks(issuesWithSubIssue, {
+        10: [], // Issue 10 is branched but has no sub-issues
+      });
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('branched')).toBeDefined();
+      });
+      expect(screen.queryByText('Secondary')).toBeNull();
+    });
+
+    it('shows "Primary" badge for branched issues that have sub-issues', async () => {
+      setupMocks(issuesWithSubIssue, {
+        10: [{ id: 150, number: 15, title: 'Sub task of login bug', state: 'open', url: '' }],
+      });
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Primary')).toBeDefined();
+      });
+    });
+
+    it('passes branchBadge="Secondary" to detail modal for sub-issues of branched parents', async () => {
+      setupMocks(issuesWithSubIssue, {
+        10: [{ id: 150, number: 15, title: 'Sub task of login bug', state: 'open', url: '' }],
+      });
+      const user = userEvent.setup();
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Secondary')).toBeDefined();
+      });
+
+      // Click the sub-issue to go to detail view
+      await user.click(screen.getByText('Sub task of login bug'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('issue-detail-modal')).toBeDefined();
+        expect(screen.getByTestId('detail-branched-badge')).toBeDefined();
+        expect(screen.getByTestId('detail-branched-badge').textContent).toBe('Secondary');
+      });
     });
   });
 });
