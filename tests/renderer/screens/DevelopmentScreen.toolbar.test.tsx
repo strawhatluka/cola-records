@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-
-// Type alias for the IPC mock implementation function
-type IpcMockFn = (channel: string, ...args: unknown[]) => Promise<unknown>;
 
 // Mock IPC
 const mockInvoke = vi.fn();
@@ -200,109 +196,11 @@ describe('DevelopmentScreen Toolbar Buttons', () => {
     mockInvoke.mockReset();
   });
 
-  describe('Remotes button styling', () => {
-    it('has default styling when not a fork', async () => {
-      await renderInRunningState({ isFork: false, remotesValid: false });
-      const remotesBtn = screen.getByText('Remotes');
-      expect(remotesBtn.className).toContain('border-border');
-    });
-
-    it('has primary styling when fork with valid remotes', async () => {
-      await renderInRunningState({ isFork: true, remotesValid: true });
-      const remotesBtn = screen.getByText('Remotes');
-      expect(remotesBtn.className).toContain('bg-primary');
-      expect(remotesBtn.className).toContain('text-primary-foreground');
-    });
-
-    it('has default styling when fork with invalid remotes', async () => {
-      await renderInRunningState({ isFork: true, remotesValid: false });
-      const remotesBtn = screen.getByText('Remotes');
-      expect(remotesBtn.className).toContain('border-border');
-    });
-  });
-
-  describe('Remotes dropdown', () => {
-    it('shows remotes after clicking button', async () => {
-      await renderInRunningState();
-      const user = userEvent.setup();
-
-      await user.click(screen.getByText('Remotes'));
-
-      await waitFor(() => {
-        // 'origin' appears twice: as remote name and as badge label
-        expect(screen.getAllByText('origin').length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByText('upstream').length).toBeGreaterThanOrEqual(1);
-      });
-    });
-
-    it('shows "No remotes configured" when empty', async () => {
-      setupRunningState();
-      const originalImpl = mockInvoke.getMockImplementation()!;
-      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
-        if (channel === 'git:get-remotes') return [];
-        return (originalImpl as IpcMockFn)(channel, ...args);
-      });
-
-      render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
-      await waitFor(() => {
-        expect(screen.getByText('Stop & Back')).toBeDefined();
-      });
-
-      const user = userEvent.setup();
-      await user.click(screen.getByText('Remotes'));
-
-      await waitFor(() => {
-        expect(screen.getByText('No remotes configured')).toBeDefined();
-      });
-    });
-
-    it('shows "No remotes configured" on fetch error', async () => {
-      setupRunningState();
-      const originalImpl = mockInvoke.getMockImplementation()!;
-      mockInvoke.mockImplementation(async (channel: string, ...args: unknown[]) => {
-        if (channel === 'git:get-remotes') throw new Error('git error');
-        return (originalImpl as IpcMockFn)(channel, ...args);
-      });
-
-      render(<DevelopmentScreen contribution={baseContribution} onNavigateBack={vi.fn()} />);
-      await waitFor(() => {
-        expect(screen.getByText('Stop & Back')).toBeDefined();
-      });
-
-      const user = userEvent.setup();
-      await user.click(screen.getByText('Remotes'));
-
-      await waitFor(() => {
-        expect(screen.getByText('No remotes configured')).toBeDefined();
-      });
-    });
-  });
-
-  describe('Dropdown interactions', () => {
-    it('closes dropdown on re-click', async () => {
-      await renderInRunningState();
-      const user = userEvent.setup();
-
-      // Use getByRole to target the button specifically (dropdown header also says "Remotes")
-      const remotesButton = screen.getByRole('button', { name: 'Remotes' });
-      await user.click(remotesButton);
-      await waitFor(() => {
-        expect(screen.getAllByText('origin').length).toBeGreaterThanOrEqual(1);
-      });
-
-      await user.click(remotesButton);
-      await waitFor(() => {
-        expect(screen.queryAllByText('origin')).toHaveLength(0);
-      });
-    });
-  });
-
   describe('Toolbar button position', () => {
     it('all toolbar buttons are visible', async () => {
       await renderInRunningState();
 
       expect(screen.getByText('feature-branch')).toBeDefined();
-      expect(screen.getByText('Remotes')).toBeDefined();
       expect(screen.getByText('Tool Box')).toBeDefined();
       expect(screen.getByText('Stop & Back')).toBeDefined();
     });

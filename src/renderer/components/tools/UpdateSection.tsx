@@ -81,7 +81,8 @@ export function UpdateSection({ commands, workingDirectory, onRunCommand }: Upda
     if (commands.clean) {
       onRunCommand(commands.clean);
     } else {
-      const paths = cleanTargets.map((t) => `"${t.path}"`).join(' ');
+      // Normalize to forward slashes so rm -rf works in Git Bash on Windows
+      const paths = cleanTargets.map((t) => `"${t.path.replace(/\\/g, '/')}"`).join(' ');
       if (paths) {
         onRunCommand(`rm -rf ${paths}`);
       }

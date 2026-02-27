@@ -149,6 +149,8 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     }
   }, [workingDirectory, onRunCommand, setButtonLoading]);
 
+  const hasProject = projectInfo != null && projectInfo.ecosystem !== 'unknown';
+
   const buttons: SetUpButton[] = projectInfo
     ? [
         {
@@ -223,7 +225,7 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         <div className="rounded-lg border border-border p-3 min-h-[48px]">
           {detecting ? (
             <p className="text-xs text-muted-foreground">Detecting project...</p>
-          ) : projectInfo ? (
+          ) : hasProject ? (
             <div className="flex flex-wrap gap-2">
               {buttons.map((btn) => {
                 const Icon = btn.icon;
@@ -262,9 +264,9 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         <div className="rounded-lg border border-border p-3 min-h-[48px]">
           {detecting ? (
             <p className="text-xs text-muted-foreground">Detecting project...</p>
-          ) : projectInfo ? (
+          ) : hasProject ? (
             <div className="flex flex-wrap gap-2">
-              <WorkflowButtons commands={projectInfo.commands} onRunCommand={onRunCommand} />
+              <WorkflowButtons commands={projectInfo!.commands} onRunCommand={onRunCommand} />
               <button
                 onClick={() => setBranchDialogOpen(true)}
                 className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent min-w-[64px] transition-colors"
@@ -296,9 +298,9 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         <div className="rounded-lg border border-border p-3 min-h-[48px]">
           {detecting ? (
             <p className="text-xs text-muted-foreground">Detecting project...</p>
-          ) : projectInfo ? (
+          ) : hasProject ? (
             <UpdateSection
-              commands={projectInfo.commands}
+              commands={projectInfo!.commands}
               workingDirectory={workingDirectory}
               onRunCommand={onRunCommand}
             />

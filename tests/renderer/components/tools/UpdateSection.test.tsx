@@ -47,8 +47,8 @@ const defaultProps = {
 };
 
 const mockCleanTargets: CleanTarget[] = [
-  { name: 'dist/', path: '/test/project/dist/', sizeBytes: 1048576 },
-  { name: 'node_modules/.cache/', path: '/test/project/node_modules/.cache/', sizeBytes: 5242880 },
+  { name: 'dist', path: '/test/project/dist', sizeBytes: 1048576 },
+  { name: 'node_modules/.cache', path: '/test/project/node_modules/.cache', sizeBytes: 5242880 },
 ];
 
 describe('UpdateSection', () => {
@@ -222,9 +222,9 @@ describe('UpdateSection', () => {
     const btn = screen.getByText('Clean').closest('button')!;
     await user.click(btn);
     await waitFor(() => {
-      expect(screen.getByText('dist/')).toBeDefined();
+      expect(screen.getByText('dist')).toBeDefined();
     });
-    expect(screen.getByText('node_modules/.cache/')).toBeDefined();
+    expect(screen.getByText('node_modules/.cache')).toBeDefined();
     expect(screen.getByText('1.0 MB')).toBeDefined();
     expect(screen.getByText('5.0 MB')).toBeDefined();
   });
@@ -272,7 +272,7 @@ describe('UpdateSection', () => {
     const confirmBtn = screen.getByText('Confirm').closest('button')!;
     await user.click(confirmBtn);
     expect(onRunCommand).toHaveBeenCalledWith(
-      'rm -rf "/test/project/dist/" "/test/project/node_modules/.cache/"'
+      'rm -rf "/test/project/dist" "/test/project/node_modules/.cache"'
     );
   });
 

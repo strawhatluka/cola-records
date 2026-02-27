@@ -182,4 +182,39 @@ describe('MaintenanceTool', () => {
       expect(mockInvoke).toHaveBeenCalledWith('dev-tools:detect-project', '/test/project');
     });
   });
+
+  it('shows "Could not detect project" for unknown ecosystem', async () => {
+    const unknownProject: ProjectInfo = {
+      ...mockProjectInfo,
+      ecosystem: 'unknown',
+      packageManager: 'unknown',
+      scripts: [],
+      commands: {
+        install: null,
+        lint: null,
+        format: null,
+        test: null,
+        coverage: null,
+        build: null,
+        typecheck: null,
+        outdated: null,
+        audit: null,
+        clean: null,
+      },
+    };
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(unknownProject);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      const errorElements = screen.getAllByText('Could not detect project');
+      expect(errorElements.length).toBe(3);
+    });
+    // Info section should still render its buttons
+    expect(screen.getByText('Status')).toBeDefined();
+    expect(screen.getByText('Disk Usage')).toBeDefined();
+  });
 });

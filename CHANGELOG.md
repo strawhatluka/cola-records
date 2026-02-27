@@ -40,8 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Only one inline panel visible at a time; toggle on re-click; close button dismisses
   - All 4 git buttons always enabled — no detection dependency
 
+### Removed
+
+- Remotes dropdown button from Development screen header — redundant now that Dev Tools Info section has a Remotes button running `git remote -v` in the terminal (remotes data fetching preserved for fork-aware PR creation)
+
 ### Fixed
 
+- Clean button failing on Windows — trailing slashes in `CLEAN_TARGETS` patterns caused backslash-escaped quotes in `rm -rf` commands, and Windows `path.join` produced backslash paths incompatible with Git Bash; paths now normalized to POSIX forward slashes
+- MaintenanceTool crash when project detection returns `undefined` — strengthened null check to handle both `null` and `undefined` states
 - Removed non-null assertion in `DocsViewer.tsx` link click handler (ESLint warning cleanup)
 
 ## [1.0.10] - 2026-02-24

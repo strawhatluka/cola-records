@@ -125,13 +125,13 @@ const AUDIT_COMMANDS: Record<PackageManager, string | null> = {
 
 /** Clean target patterns per ecosystem */
 const CLEAN_TARGETS: Record<Ecosystem, string[]> = {
-  node: ['dist/', 'node_modules/.cache/', '.next/', '.turbo/', '.nuxt/'],
-  python: ['__pycache__/', '.pytest_cache/', 'dist/', 'build/', '.mypy_cache/'],
+  node: ['dist', 'node_modules/.cache', '.next', '.turbo', '.nuxt'],
+  python: ['__pycache__', '.pytest_cache', 'dist', 'build', '.mypy_cache'],
   rust: [],
   go: [],
-  ruby: ['tmp/', 'log/'],
-  php: ['vendor/cache/'],
-  java: ['target/', 'build/'],
+  ruby: ['tmp', 'log'],
+  php: ['vendor/cache'],
+  java: ['target', 'build'],
   unknown: [],
 };
 
@@ -306,6 +306,8 @@ async function detectHookTool(
 
 async function detectTypeChecker(directory: string, ecosystem: Ecosystem): Promise<string | null> {
   if (await fileExists(path.join(directory, 'tsconfig.json'))) return 'tsc';
+  // Node requires tsconfig.json — don't assume TypeScript is present
+  if (ecosystem === 'node') return null;
   return TYPECHECK_COMMANDS[ecosystem] ? ecosystem : null;
 }
 
@@ -377,7 +379,9 @@ class ProjectDetectionService {
         const stat = await fs.stat(targetPath);
         if (stat.isDirectory()) {
           const size = await this.getDirectorySize(targetPath);
-          targets.push({ name: pattern, path: targetPath, sizeBytes: size });
+          // Normalize to POSIX paths so rm -rf works in Git Bash on Windows
+          const posixPath = targetPath.split(path.sep).join('/');
+          targets.push({ name: pattern, path: posixPath, sizeBytes: size });
         }
       } catch {
         // Target doesn't exist — skip

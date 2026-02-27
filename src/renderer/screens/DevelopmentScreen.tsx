@@ -27,7 +27,7 @@ interface DevelopmentScreenProps {
   projectError?: string | null;
 }
 
-type ToolDropdown = 'branches' | 'remotes' | null;
+type ToolDropdown = 'branches' | null;
 
 interface GitRemote {
   name: string;
@@ -59,7 +59,6 @@ export function DevelopmentScreen({
   const error = projectError || localError;
   const [activeDropdown, setActiveDropdown] = useState<ToolDropdown>(null);
   const [remotes, setRemotes] = useState<GitRemote[]>([]);
-  const [remotesLoading, setRemotesLoading] = useState(false);
   const [branches, setBranches] = useState<string[]>([]);
   const [currentBranch, setCurrentBranch] = useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
@@ -137,7 +136,6 @@ export function DevelopmentScreen({
   // Fetch remotes on mount (needed for PR creation fork detection)
   useEffect(() => {
     if (!contribution.localPath) return;
-    setRemotesLoading(true);
     ipc
       .invoke('git:get-remotes', contribution.localPath)
       .then((result) => {
@@ -145,9 +143,6 @@ export function DevelopmentScreen({
       })
       .catch(() => {
         if (isMounted.current) setRemotes([]);
-      })
-      .finally(() => {
-        if (isMounted.current) setRemotesLoading(false);
       });
   }, [contribution.localPath]);
 
@@ -393,104 +388,56 @@ export function DevelopmentScreen({
           )}
         </div>
         <div className="flex gap-2" ref={dropdownRef}>
-          {/* Dropdown buttons: Branches, Remotes */}
-          {(['branches', 'remotes'] as const).map((name) => (
-            <div key={name} className="relative">
-              <button
-                onClick={() => toggleDropdown(name)}
-                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                  name === 'remotes' && contribution.remotesValid
-                    ? activeDropdown === name
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-primary bg-primary text-primary-foreground hover:bg-primary/80'
-                    : activeDropdown === name
-                      ? 'border-primary bg-accent'
-                      : 'border-border hover:bg-accent'
-                }`}
-              >
-                {name === 'branches' && currentBranch
-                  ? currentBranch
-                  : name.charAt(0).toUpperCase() + name.slice(1)}
-              </button>
-              {activeDropdown === name && name === 'remotes' && (
-                <div className="absolute right-0 top-full mt-1 w-80 rounded-md border border-border bg-popover p-4 shadow-lg z-50">
-                  <p className="text-sm font-medium mb-3">Remotes</p>
-                  {remotesLoading ? (
-                    <p className="text-xs text-muted-foreground">Loading...</p>
-                  ) : remotes.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No remotes configured</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {remotes.map((remote) => (
-                        <div key={remote.name} className="text-xs">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-sm">{remote.name}</span>
-                            {remote.name === 'origin' && (
-                              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">
-                                origin
-                              </span>
-                            )}
-                            {remote.name === 'upstream' && (
-                              <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-medium">
-                                upstream
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-muted-foreground break-all pl-2">
-                            <span className="text-muted-foreground/60">fetch:</span>{' '}
-                            {remote.fetchUrl}
-                          </div>
-                          {remote.pushUrl && remote.pushUrl !== remote.fetchUrl && (
-                            <div className="text-muted-foreground break-all pl-2">
-                              <span className="text-muted-foreground/60">push:</span>{' '}
-                              {remote.pushUrl}
-                            </div>
+          {/* Branches dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => toggleDropdown('branches')}
+              className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                activeDropdown === 'branches'
+                  ? 'border-primary bg-accent'
+                  : 'border-border hover:bg-accent'
+              }`}
+            >
+              {currentBranch ?? 'Branches'}
+            </button>
+            {activeDropdown === 'branches' && (
+              <div className="absolute right-0 top-full mt-1 w-72 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto styled-scroll">
+                <p className="text-sm font-medium mb-3">Branches</p>
+                {branches.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No branches found</p>
+                ) : (
+                  <div className="space-y-1">
+                    {branches.map((branch) => {
+                      const isCurrent = branch === currentBranch;
+                      return (
+                        <div
+                          key={branch}
+                          onClick={() => {
+                            setSelectedBranch(branch);
+                            setActiveDropdown(null);
+                          }}
+                          className={`flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs ${
+                            isCurrent ? 'bg-primary/10' : ''
+                          }`}
+                        >
+                          <span
+                            className={`font-mono truncate flex-1 ${isCurrent ? 'font-semibold text-primary' : ''}`}
+                          >
+                            {branch}
+                          </span>
+                          {isCurrent && (
+                            <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">
+                              current
+                            </span>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {activeDropdown === name && name === 'branches' && (
-                <div className="absolute right-0 top-full mt-1 w-72 rounded-md border border-border bg-popover p-4 shadow-lg z-50 max-h-80 overflow-y-auto styled-scroll">
-                  <p className="text-sm font-medium mb-3">Branches</p>
-                  {branches.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No branches found</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {branches.map((branch) => {
-                        const isCurrent = branch === currentBranch;
-                        return (
-                          <div
-                            key={branch}
-                            onClick={() => {
-                              setSelectedBranch(branch);
-                              setActiveDropdown(null);
-                            }}
-                            className={`flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 cursor-pointer text-xs ${
-                              isCurrent ? 'bg-primary/10' : ''
-                            }`}
-                          >
-                            <span
-                              className={`font-mono truncate flex-1 ${isCurrent ? 'font-semibold text-primary' : ''}`}
-                            >
-                              {branch}
-                            </span>
-                            {isCurrent && (
-                              <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">
-                                current
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setToolsPanelOpen(!toolsPanelOpen)}
             className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
