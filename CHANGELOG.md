@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Buttons disabled when no command is detected for that action (e.g., no `format` script in `package.json`)
   - **NewBranchDialog** (`NewBranchDialog.tsx`): branch creation dialog with 7 conventional prefixes (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`, `test/`, `hotfix/`), auto-slugified name input, live preview, and Enter key support
   - New Branch calls existing `git:create-branch` IPC to create and checkout in one step
+- Dev Tools — Update category with 5 action buttons for keeping projects current
+  - **UpdateSection** (`UpdateSection.tsx`): Update Deps, Audit, Pull Latest, Sync Fork, Clean buttons
+  - `ProjectCommands` extended with `outdated`, `audit`, `clean` fields; commands resolved per ecosystem (e.g., `npm outdated` vs `cargo outdated` vs `pip list --outdated`)
+  - New `CleanTarget` type and `dev-tools:get-clean-targets` IPC channel for scanning build artifacts with sizes
+  - **Pull Latest** always enabled — runs `git pull`
+  - **Sync Fork** auto-detects `upstream` remote via existing `git:get-remotes` IPC; disabled with explanatory tooltip when no upstream found
+  - **Clean** opens inline confirmation dialog showing target paths, individual sizes, total size, and warning text before executing `rm -rf` (or ecosystem-specific clean command like `cargo clean`)
+  - Update Deps and Audit disabled when their command is unavailable for the detected ecosystem
 
 ### Fixed
 

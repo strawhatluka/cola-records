@@ -14,6 +14,7 @@ import type {
   ProjectScript,
   ProjectCommands,
   ProjectInfo,
+  CleanTarget,
 } from '../ipc/channels/types';
 
 const logger = createLogger('project-detection');
@@ -84,6 +85,60 @@ const TYPECHECK_COMMANDS: Record<Ecosystem, string | null> = {
   php: null,
   java: null,
   unknown: null,
+};
+
+/** Outdated commands per package manager */
+const OUTDATED_COMMANDS: Record<PackageManager, string | null> = {
+  npm: 'npm outdated',
+  yarn: 'yarn outdated',
+  pnpm: 'pnpm outdated',
+  bun: 'bun outdated',
+  pip: 'pip list --outdated',
+  poetry: 'poetry show --outdated',
+  uv: 'uv pip list --outdated',
+  cargo: 'cargo outdated',
+  go: 'go list -u -m all',
+  bundler: 'bundle outdated',
+  composer: 'composer outdated',
+  maven: null,
+  gradle: null,
+  unknown: null,
+};
+
+/** Audit commands per package manager */
+const AUDIT_COMMANDS: Record<PackageManager, string | null> = {
+  npm: 'npm audit',
+  yarn: 'yarn audit',
+  pnpm: 'pnpm audit',
+  bun: null,
+  pip: 'pip-audit',
+  poetry: null,
+  uv: null,
+  cargo: 'cargo audit',
+  go: 'govulncheck ./...',
+  bundler: 'bundle audit',
+  composer: 'composer audit',
+  maven: null,
+  gradle: null,
+  unknown: null,
+};
+
+/** Clean target patterns per ecosystem */
+const CLEAN_TARGETS: Record<Ecosystem, string[]> = {
+  node: ['dist/', 'node_modules/.cache/', '.next/', '.turbo/', '.nuxt/'],
+  python: ['__pycache__/', '.pytest_cache/', 'dist/', 'build/', '.mypy_cache/'],
+  rust: [],
+  go: [],
+  ruby: ['tmp/', 'log/'],
+  php: ['vendor/cache/'],
+  java: ['target/', 'build/'],
+  unknown: [],
+};
+
+/** Ecosystems that use a clean command instead of directory removal */
+const CLEAN_COMMANDS: Partial<Record<Ecosystem, string>> = {
+  rust: 'cargo clean',
+  go: 'go clean -cache',
 };
 
 /** Hook tool install commands */
@@ -172,11 +227,17 @@ function resolveNodeCommands(pm: PackageManager, scripts: ProjectScript[]): Proj
       : scriptNames.has('type-check')
         ? `${run} type-check`
         : null,
+    outdated: OUTDATED_COMMANDS[pm],
+    audit: AUDIT_COMMANDS[pm],
+    clean: null,
   };
 }
 
 function resolveStaticCommands(ecosystem: Ecosystem, pm: PackageManager): ProjectCommands {
   const install = INSTALL_COMMANDS[pm];
+  const outdated = OUTDATED_COMMANDS[pm];
+  const audit = AUDIT_COMMANDS[pm];
+  const clean = CLEAN_COMMANDS[ecosystem] ?? null;
 
   switch (ecosystem) {
     case 'python':
@@ -188,6 +249,9 @@ function resolveStaticCommands(ecosystem: Ecosystem, pm: PackageManager): Projec
         coverage: 'pytest --cov',
         build: null,
         typecheck: TYPECHECK_COMMANDS.python,
+        outdated,
+        audit,
+        clean,
       };
     case 'rust':
       return {
@@ -198,6 +262,9 @@ function resolveStaticCommands(ecosystem: Ecosystem, pm: PackageManager): Projec
         coverage: null,
         build: 'cargo build --release',
         typecheck: TYPECHECK_COMMANDS.rust,
+        outdated,
+        audit,
+        clean,
       };
     case 'go':
       return {
@@ -208,6 +275,9 @@ function resolveStaticCommands(ecosystem: Ecosystem, pm: PackageManager): Projec
         coverage: 'go test -coverprofile=coverage.out ./...',
         build: 'go build ./...',
         typecheck: TYPECHECK_COMMANDS.go,
+        outdated,
+        audit,
+        clean,
       };
     default:
       return {
@@ -218,6 +288,9 @@ function resolveStaticCommands(ecosystem: Ecosystem, pm: PackageManager): Projec
         coverage: null,
         build: null,
         typecheck: null,
+        outdated,
+        audit,
+        clean,
       };
   }
 }
@@ -290,6 +363,47 @@ class ProjectDetectionService {
   getHookInstallCommand(hookTool: string | null): string | null {
     if (!hookTool) return null;
     return HOOK_INSTALL_COMMANDS[hookTool] ?? null;
+  }
+
+  async getCleanTargets(directory: string, ecosystem: Ecosystem): Promise<CleanTarget[]> {
+    const patterns = CLEAN_TARGETS[ecosystem];
+    if (patterns.length === 0) return [];
+
+    const targets: CleanTarget[] = [];
+
+    for (const pattern of patterns) {
+      const targetPath = path.join(directory, pattern);
+      try {
+        const stat = await fs.stat(targetPath);
+        if (stat.isDirectory()) {
+          const size = await this.getDirectorySize(targetPath);
+          targets.push({ name: pattern, path: targetPath, sizeBytes: size });
+        }
+      } catch {
+        // Target doesn't exist — skip
+      }
+    }
+
+    return targets;
+  }
+
+  private async getDirectorySize(dirPath: string): Promise<number> {
+    let size = 0;
+    try {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      for (const entry of entries) {
+        const entryPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          size += await this.getDirectorySize(entryPath);
+        } else {
+          const stat = await fs.stat(entryPath);
+          size += stat.size;
+        }
+      }
+    } catch {
+      // Permission error or similar — return partial size
+    }
+    return size;
   }
 }
 

@@ -34,6 +34,9 @@ const mockProjectInfo: ProjectInfo = {
     coverage: null,
     build: 'npm run build',
     typecheck: 'npm run typecheck',
+    outdated: 'npm outdated',
+    audit: 'npm audit',
+    clean: null,
   },
   hasGit: true,
   hasEnv: false,
@@ -51,7 +54,12 @@ const defaultProps = {
 describe('MaintenanceTool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockInvoke.mockResolvedValue(mockProjectInfo);
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
   });
 
   it('renders the Set Up section header', async () => {
@@ -63,9 +71,9 @@ describe('MaintenanceTool', () => {
     // Make the invoke never resolve so we stay in detecting state
     mockInvoke.mockReturnValue(new Promise(() => {}));
     render(<MaintenanceTool {...defaultProps} />);
-    // Both Set Up and Workflows show detecting text
+    // Set Up, Workflows, and Update all show detecting text
     const detectingElements = screen.getAllByText('Detecting project...');
-    expect(detectingElements.length).toBe(2);
+    expect(detectingElements.length).toBe(3);
   });
 
   it('renders 6 Set Up buttons after detection', async () => {
@@ -103,6 +111,8 @@ describe('MaintenanceTool', () => {
     mockInvoke.mockImplementation((channel: string) => {
       if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
       if (channel === 'dev-tools:get-install-command') return Promise.resolve('npm install');
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
       return Promise.resolve(null);
     });
 
@@ -131,25 +141,34 @@ describe('MaintenanceTool', () => {
     expect(screen.getByText('New Branch')).toBeDefined();
   });
 
-  it('renders placeholder sections for Update and Info', async () => {
+  it('renders Update section and Info placeholder', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     expect(screen.getByText('Update')).toBeDefined();
     expect(screen.getByText('Info')).toBeDefined();
   });
 
-  it('shows Coming soon for placeholder sections', async () => {
+  it('renders Update section with buttons after detection', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Update Deps')).toBeDefined();
+    });
+    expect(screen.getByText('Pull Latest')).toBeDefined();
+    expect(screen.getByText('Clean')).toBeDefined();
+  });
+
+  it('shows Coming soon for Info placeholder section', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     const comingSoonElements = screen.getAllByText('Coming soon');
-    expect(comingSoonElements.length).toBe(2);
+    expect(comingSoonElements.length).toBe(1);
   });
 
   it('shows error state when detection fails', async () => {
-    mockInvoke.mockRejectedValue(new Error('Detection failed'));
+    mockInvoke.mockImplementation(() => Promise.reject(new Error('Detection failed')));
     render(<MaintenanceTool {...defaultProps} />);
     await waitFor(() => {
-      // Both Set Up and Workflows show error text
+      // Set Up, Workflows, and Update all show error text
       const errorElements = screen.getAllByText('Could not detect project');
-      expect(errorElements.length).toBe(2);
+      expect(errorElements.length).toBe(3);
     });
   });
 

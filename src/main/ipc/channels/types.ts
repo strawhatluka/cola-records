@@ -478,6 +478,15 @@ export interface ProjectCommands {
   coverage: string | null;
   build: string | null;
   typecheck: string | null;
+  outdated: string | null;
+  audit: string | null;
+  clean: string | null;
+}
+
+export interface CleanTarget {
+  name: string;
+  path: string;
+  sizeBytes: number;
 }
 
 export interface ProjectInfo {

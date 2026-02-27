@@ -4,7 +4,8 @@
  * Vertically stacked sections: Set Up, Workflows, Update, Info.
  * Set Up section contains 6 action buttons that adapt to the detected
  * project ecosystem. Workflows section has 5 command buttons + New Branch dialog.
- * Update and Info sections are placeholders for future WOs.
+ * Update section has 5 buttons: Update Deps, Audit, Pull Latest, Sync Fork, Clean.
+ * Info section is a placeholder for future WOs.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -25,6 +26,7 @@ import { ipc } from '../../ipc/client';
 import type { ProjectInfo, SetUpActionResult } from '../../../main/ipc/channels/types';
 import { WorkflowButtons } from './WorkflowButtons';
 import { NewBranchDialog } from './NewBranchDialog';
+import { UpdateSection } from './UpdateSection';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -41,10 +43,7 @@ interface SetUpButton {
 }
 
 /** Placeholder sections for future work orders */
-const placeholderSections = [
-  { title: 'Update', icon: RefreshCw },
-  { title: 'Info', icon: Info },
-];
+const placeholderSections = [{ title: 'Info', icon: Info }];
 
 export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceToolProps) {
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
@@ -290,7 +289,28 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         workingDirectory={workingDirectory}
       />
 
-      {/* Placeholder sections for Update, Info */}
+      {/* Update Section */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">Update</h3>
+        </div>
+        <div className="rounded-lg border border-border p-3 min-h-[48px]">
+          {detecting ? (
+            <p className="text-xs text-muted-foreground">Detecting project...</p>
+          ) : projectInfo ? (
+            <UpdateSection
+              commands={projectInfo.commands}
+              workingDirectory={workingDirectory}
+              onRunCommand={onRunCommand}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">Could not detect project</p>
+          )}
+        </div>
+      </div>
+
+      {/* Placeholder sections for Info */}
       {placeholderSections.map((section) => {
         const Icon = section.icon;
         return (

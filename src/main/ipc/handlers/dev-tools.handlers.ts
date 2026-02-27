@@ -169,6 +169,11 @@ export function setupDevToolsHandlers(): void {
     }
   });
 
+  handleIpc('dev-tools:get-clean-targets', async (_event, workingDirectory) => {
+    const info = await projectDetectionService.detect(workingDirectory);
+    return await projectDetectionService.getCleanTargets(workingDirectory, info.ecosystem);
+  });
+
   handleIpc('dev-tools:setup-editor-config', async (_event, workingDirectory) => {
     const configPath = path.join(workingDirectory, '.editorconfig');
 

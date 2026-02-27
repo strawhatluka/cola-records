@@ -16,6 +16,7 @@ import type {
   DocsCategory,
   ProjectInfo,
   SetUpActionResult,
+  CleanTarget,
 } from './types';
 
 export interface CoreChannels {
@@ -124,4 +125,5 @@ export interface CoreChannels {
   'dev-tools:get-hooks-command': (workingDirectory: string) => string | null;
   'dev-tools:setup-env-file': (workingDirectory: string) => SetUpActionResult;
   'dev-tools:setup-editor-config': (workingDirectory: string) => SetUpActionResult;
+  'dev-tools:get-clean-targets': (workingDirectory: string) => CleanTarget[];
 }

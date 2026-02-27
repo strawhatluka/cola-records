@@ -123,3 +123,8 @@ export const AlignLeft = createIcon('AlignLeft');
 export const FlaskConical = createIcon('FlaskConical');
 export const PieChart = createIcon('PieChart');
 export const Hammer = createIcon('Hammer');
+
+// Update section icons
+export const ArrowUpCircle = createIcon('ArrowUpCircle');
+export const ShieldAlert = createIcon('ShieldAlert');
+export const ArrowDownToLine = createIcon('ArrowDownToLine');

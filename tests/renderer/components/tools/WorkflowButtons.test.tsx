@@ -16,6 +16,9 @@ const allCommands: ProjectCommands = {
   coverage: 'npm run test:coverage',
   build: 'npm run build',
   typecheck: 'npm run typecheck',
+  outdated: 'npm outdated',
+  audit: 'npm audit',
+  clean: null,
 };
 
 const noCommands: ProjectCommands = {
@@ -26,6 +29,9 @@ const noCommands: ProjectCommands = {
   coverage: null,
   build: null,
   typecheck: null,
+  outdated: null,
+  audit: null,
+  clean: null,
 };
 
 describe('WorkflowButtons', () => {
