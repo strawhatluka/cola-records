@@ -520,6 +520,42 @@ export interface SetUpActionResult {
   message: string;
 }
 
+// Env Scanner Types
+export interface EnvSourceLocation {
+  file: string;
+  line: number;
+}
+
+export interface EnvVariable {
+  name: string;
+  sourceFile: string;
+  lineNumber: number;
+  sourceFiles: EnvSourceLocation[];
+  category: 'credential' | 'url' | 'network' | 'config' | 'general';
+  service: string;
+  comment: string;
+}
+
+export interface EnvScanResult {
+  variables: EnvVariable[];
+  filesScanned: number;
+  scanDurationMs: number;
+}
+
+export interface EnvFileInfo {
+  name: string;
+  relativePath: string;
+  absolutePath: string;
+  content: string;
+  isExample: boolean;
+}
+
+export interface EnvSyncResult {
+  newVariablesFound: number;
+  filesUpdated: string[];
+  message: string;
+}
+
 export interface EnvVar {
   key: string;
   value: string;

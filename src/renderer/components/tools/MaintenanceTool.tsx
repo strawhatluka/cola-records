@@ -1,9 +1,11 @@
 /**
  * MaintenanceTool (Dev Tools)
  *
- * Vertically stacked sections: Set Up, Workflows, Update, Info.
+ * Vertically stacked sections: Info, Update, Workflows, Set Up.
  * Set Up section contains 6 action buttons that adapt to the detected
- * project ecosystem. Workflows section has 5 command buttons + New Branch dialog.
+ * project ecosystem. Env File button opens an inline panel with 6 env
+ * management actions. Edit Example opens a full-size env file editor.
+ * Workflows section has 5 command buttons + New Branch dialog.
  * Update section has 5 buttons: Update Deps, Audit, Pull Latest, Sync Fork, Clean.
  * Info section has 6 read-only buttons: Status, Log, Branches, Remotes, Disk Usage, Project Info.
  */
@@ -23,11 +25,13 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ipc } from '../../ipc/client';
-import type { ProjectInfo, SetUpActionResult } from '../../../main/ipc/channels/types';
+import type { ProjectInfo } from '../../../main/ipc/channels/types';
 import { WorkflowButtons } from './WorkflowButtons';
 import { NewBranchDialog } from './NewBranchDialog';
 import { UpdateSection } from './UpdateSection';
 import { InfoSection } from './InfoSection';
+import { EnvPanel } from './EnvPanel';
+import { EnvEditor } from './EnvEditor';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -50,6 +54,8 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     Record<string, { loading: boolean; status: string | null }>
   >({});
   const [branchDialogOpen, setBranchDialogOpen] = useState(false);
+  const [envPanelOpen, setEnvPanelOpen] = useState(false);
+  const [envEditorOpen, setEnvEditorOpen] = useState(false);
 
   // Detect project on mount and when workingDirectory changes
   useEffect(() => {
@@ -93,18 +99,9 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     }
   }, [workingDirectory, onRunCommand, setButtonLoading]);
 
-  const handleEnvFile = useCallback(async () => {
-    setButtonLoading('env-file', true);
-    try {
-      const result: SetUpActionResult = await ipc.invoke(
-        'dev-tools:setup-env-file',
-        workingDirectory
-      );
-      setButtonLoading('env-file', false, result.message);
-    } catch {
-      setButtonLoading('env-file', false, 'Failed');
-    }
-  }, [workingDirectory, setButtonLoading]);
+  const handleEnvFile = useCallback(() => {
+    setEnvPanelOpen((prev) => !prev);
+  }, []);
 
   const handleGitInit = useCallback(async () => {
     setButtonLoading('git-init', true);
@@ -129,10 +126,7 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
   const handleEditorConfig = useCallback(async () => {
     setButtonLoading('editor-config', true);
     try {
-      const result: SetUpActionResult = await ipc.invoke(
-        'dev-tools:setup-editor-config',
-        workingDirectory
-      );
+      const result = await ipc.invoke('dev-tools:setup-editor-config', workingDirectory);
       setButtonLoading('editor-config', false, result.message);
     } catch {
       setButtonLoading('editor-config', false, 'Failed');
@@ -151,6 +145,7 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
 
   const hasProject = projectInfo != null && projectInfo.ecosystem !== 'unknown';
 
+  // Env File button is always enabled (never disabled)
   const buttons: SetUpButton[] = projectInfo
     ? [
         {
@@ -165,7 +160,7 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
           id: 'env-file',
           label: 'Env File',
           icon: FileKey,
-          disabled: projectInfo.hasEnv,
+          disabled: false,
           loading: buttonStates['env-file']?.loading ?? false,
           status: buttonStates['env-file']?.status ?? null,
         },
@@ -213,42 +208,41 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     typecheck: handleTypeCheck,
   };
 
+  // When env editor is open, render it instead of the normal Tool Box
+  if (envEditorOpen) {
+    return (
+      <EnvEditor workingDirectory={workingDirectory} onClose={() => setEnvEditorOpen(false)} />
+    );
+  }
+
   return (
     <div className="flex flex-col h-full p-4 gap-4 overflow-auto styled-scroll">
-      {/* Set Up Section */}
+      {/* Info Section */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <Settings className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Set Up</h3>
-          {detecting && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+          <InfoIcon className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">Info</h3>
+        </div>
+        <div className="rounded-lg border border-border p-3 min-h-[48px]">
+          <InfoSection workingDirectory={workingDirectory} onRunCommand={onRunCommand} />
+        </div>
+      </div>
+
+      {/* Update Section */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">Update</h3>
         </div>
         <div className="rounded-lg border border-border p-3 min-h-[48px]">
           {detecting ? (
             <p className="text-xs text-muted-foreground">Detecting project...</p>
           ) : hasProject ? (
-            <div className="flex flex-wrap gap-2">
-              {buttons.map((btn) => {
-                const Icon = btn.icon;
-                return (
-                  <button
-                    key={btn.id}
-                    disabled={btn.disabled || btn.loading}
-                    onClick={handlers[btn.id]}
-                    className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed min-w-[64px] transition-colors"
-                    title={btn.status ?? btn.label}
-                  >
-                    {btn.loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span className="text-[10px] text-muted-foreground leading-tight">
-                      {btn.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <UpdateSection
+              commands={projectInfo!.commands}
+              workingDirectory={workingDirectory}
+              onRunCommand={onRunCommand}
+            />
           ) : (
             <p className="text-xs text-muted-foreground">Could not detect project</p>
           )}
@@ -289,35 +283,53 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         workingDirectory={workingDirectory}
       />
 
-      {/* Update Section */}
+      {/* Set Up Section */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Update</h3>
+          <Settings className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">Set Up</h3>
+          {detecting && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
         </div>
         <div className="rounded-lg border border-border p-3 min-h-[48px]">
           {detecting ? (
             <p className="text-xs text-muted-foreground">Detecting project...</p>
           ) : hasProject ? (
-            <UpdateSection
-              commands={projectInfo!.commands}
-              workingDirectory={workingDirectory}
-              onRunCommand={onRunCommand}
-            />
+            <>
+              <div className="flex flex-wrap gap-2">
+                {buttons.map((btn) => {
+                  const Icon = btn.icon;
+                  return (
+                    <button
+                      key={btn.id}
+                      disabled={btn.disabled || btn.loading}
+                      onClick={handlers[btn.id]}
+                      className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed min-w-[64px] transition-colors"
+                      title={btn.status ?? btn.label}
+                    >
+                      {btn.loading ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : (
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="text-[10px] text-muted-foreground leading-tight">
+                        {btn.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {envPanelOpen && projectInfo && (
+                <EnvPanel
+                  workingDirectory={workingDirectory}
+                  ecosystem={projectInfo.ecosystem}
+                  onClose={() => setEnvPanelOpen(false)}
+                  onOpenEditor={() => setEnvEditorOpen(true)}
+                />
+              )}
+            </>
           ) : (
             <p className="text-xs text-muted-foreground">Could not detect project</p>
           )}
-        </div>
-      </div>
-
-      {/* Info Section */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <InfoIcon className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Info</h3>
-        </div>
-        <div className="rounded-lg border border-border p-3 min-h-[48px]">
-          <InfoSection workingDirectory={workingDirectory} onRunCommand={onRunCommand} />
         </div>
       </div>
     </div>

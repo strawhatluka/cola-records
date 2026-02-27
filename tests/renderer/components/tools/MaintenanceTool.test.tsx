@@ -183,6 +183,57 @@ describe('MaintenanceTool', () => {
     });
   });
 
+  it('Env File button is never disabled (even when .env exists)', async () => {
+    const projectWithEnv: ProjectInfo = { ...mockProjectInfo, hasEnv: true };
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(projectWithEnv);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Env File')).toBeDefined();
+    });
+    const envButton = screen.getByText('Env File').closest('button');
+    expect(envButton?.disabled).toBe(false);
+  });
+
+  it('opens EnvPanel when Env File clicked', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Env File')).toBeDefined();
+    });
+
+    const envButton = screen.getByText('Env File').closest('button')!;
+    await userEvent.click(envButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Env File Management')).toBeDefined();
+    });
+  });
+
+  it('closes EnvPanel when Env File clicked again (toggle)', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Env File')).toBeDefined();
+    });
+
+    const envButton = screen.getByText('Env File').closest('button')!;
+    await userEvent.click(envButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Env File Management')).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(envButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Env File Management')).toBeNull();
+    });
+  });
+
   it('shows "Could not detect project" for unknown ecosystem', async () => {
     const unknownProject: ProjectInfo = {
       ...mockProjectInfo,

@@ -18,6 +18,10 @@ import type {
   SetUpActionResult,
   CleanTarget,
   DiskUsageResult,
+  Ecosystem,
+  EnvScanResult,
+  EnvFileInfo,
+  EnvSyncResult,
 } from './types';
 
 export interface CoreChannels {
@@ -129,4 +133,16 @@ export interface CoreChannels {
   'dev-tools:get-clean-targets': (workingDirectory: string) => CleanTarget[];
   'dev-tools:disk-usage': (workingDirectory: string) => DiskUsageResult;
   'dev-tools:project-info': (workingDirectory: string) => ProjectInfo;
+
+  // Dev Tools — Env File Management Channels
+  'dev-tools:scan-env-variables': (workingDirectory: string, ecosystem: Ecosystem) => EnvScanResult;
+  'dev-tools:discover-env-files': (workingDirectory: string) => EnvFileInfo[];
+  'dev-tools:create-env-example': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => SetUpActionResult;
+  'dev-tools:create-env-file': (workingDirectory: string, targetName: string) => SetUpActionResult;
+  'dev-tools:read-env-file': (filePath: string) => string;
+  'dev-tools:write-env-file': (filePath: string, content: string) => SetUpActionResult;
+  'dev-tools:sync-env-files': (workingDirectory: string, ecosystem: Ecosystem) => EnvSyncResult;
 }

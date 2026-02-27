@@ -134,3 +134,8 @@ export const Activity = createIcon('Activity');
 export const Globe = createIcon('Globe');
 export const HardDrive = createIcon('HardDrive');
 export const FolderSearch = createIcon('FolderSearch');
+
+// Env panel icons
+export const FilePlus = createIcon('FilePlus');
+export const FileEdit = createIcon('FileEdit');
+export const FileCog = createIcon('FileCog');

@@ -13,6 +13,8 @@ import { database } from '../../database';
 import { updaterService } from '../../services/updater.service';
 import { projectDetectionService } from '../../services/project-detection.service';
 import { diskUsageService } from '../../services/disk-usage.service';
+import { envScannerService } from '../../services/env-scanner.service';
+import { envFileService } from '../../services/env-file.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -181,6 +183,35 @@ export function setupDevToolsHandlers(): void {
 
   handleIpc('dev-tools:project-info', async (_event, workingDirectory) => {
     return await projectDetectionService.detect(workingDirectory);
+  });
+
+  // Dev Tools — Env File Management handlers
+  handleIpc('dev-tools:scan-env-variables', async (_event, workingDirectory, ecosystem) => {
+    return await envScannerService.scan(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:discover-env-files', async (_event, workingDirectory) => {
+    return await envFileService.discoverEnvFiles(workingDirectory);
+  });
+
+  handleIpc('dev-tools:create-env-example', async (_event, workingDirectory, ecosystem) => {
+    return await envFileService.createEnvExample(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:create-env-file', async (_event, workingDirectory, targetName) => {
+    return await envFileService.createEnvFile(workingDirectory, targetName);
+  });
+
+  handleIpc('dev-tools:read-env-file', async (_event, filePath) => {
+    return await envFileService.readEnvFile(filePath);
+  });
+
+  handleIpc('dev-tools:write-env-file', async (_event, filePath, content) => {
+    return await envFileService.writeEnvFile(filePath, content);
+  });
+
+  handleIpc('dev-tools:sync-env-files', async (_event, workingDirectory, ecosystem) => {
+    return await envFileService.syncEnvFiles(workingDirectory, ecosystem);
   });
 
   handleIpc('dev-tools:setup-editor-config', async (_event, workingDirectory) => {

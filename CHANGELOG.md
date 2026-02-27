@@ -39,6 +39,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 2 new IPC channels (`dev-tools:disk-usage`, `dev-tools:project-info`) with `DiskUsageEntry` and `DiskUsageResult` types
   - Only one inline panel visible at a time; toggle on re-click; close button dismisses
   - All 4 git buttons always enabled — no detection dependency
+- Dev Tools — Env File button expanded into full-featured env file management tool ([#56](https://github.com/lukadfagundes/cola-records/issues/56))
+  - **Env File button** always enabled (no longer disabled when `.env` exists); click toggles an inline management panel
+  - **EnvPanel** (`EnvPanel.tsx`): 6 action buttons — Create `.env.example` (scans codebase), Create `.env`, Create `.env.local`, Create `.env.CUSTOM` (inline suffix input), Edit Example, ENV Sync
+  - **EnvEditor** (`EnvEditor.tsx`): full-size multi-tab text editor replacing Tool Box view; file tabs for all discovered `.env` files, Save button, Ctrl+S, per-tab dirty tracking, unsaved changes prompt
+  - **EnvScannerService** (`env-scanner.service.ts`): recursive codebase scanner detecting env variable references across 7 ecosystems (Node, Python, Rust, Go, Ruby, PHP, Java) with ecosystem-specific regex patterns; heuristic categorization (credential, url, network, config, general) and auto-generated comments
+  - **Service provider detection**: variables auto-grouped by service (Discord, GitHub, NextAuth, Stripe, AWS, PostgreSQL, Redis, Sentry, Rollbar, etc.) — 35+ service prefixes recognized; `.env.example` sections organized by service instead of generic category
+  - **Multi-file occurrence tracking**: all source file locations recorded per variable and shown in `.env.example` comments (e.g. `found in auth.ts:17, middleware.ts:42`) instead of only the first occurrence
+  - **Platform-injected variable filtering**: auto-set variables (`VERCEL`, `VERCEL_ENV`, `NODE_ENV`, `CI`, `VERCEL_GIT_COMMIT_SHA`, etc.) automatically excluded from `.env.example` since users don't configure them
+  - **Docker Compose/Dockerfile scanning**: detects `${VAR}` and `${VAR:-default}` references in `docker-compose.yml`, `docker-compose.*.yml`, `Dockerfile`, and `Dockerfile.*` — infrastructure variables (e.g. `POSTGRES_USER`, `POSTGRES_PASSWORD`) now surfaced alongside source code variables
+  - **EnvFileService** (`env-file.service.ts`): discover, create, read, write, and sync `.env` files including nested subdirectories; sync operation rescans codebase → appends new vars to `.env.example` → propagates missing keys to sibling `.env*` files
+  - 7 new IPC channels (`dev-tools:scan-env-variables`, `dev-tools:discover-env-files`, `dev-tools:create-env-example`, `dev-tools:create-env-file`, `dev-tools:read-env-file`, `dev-tools:write-env-file`, `dev-tools:sync-env-files`)
+  - 5 new types (`EnvSourceLocation`, `EnvVariable`, `EnvScanResult`, `EnvFileInfo`, `EnvSyncResult`)
 
 ### Removed
 
