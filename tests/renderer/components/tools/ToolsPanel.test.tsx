@@ -70,9 +70,9 @@ describe('ToolsPanel', () => {
     });
   });
 
-  it('renders with issues tool selected by default', () => {
+  it('renders with dev tools selected by default', () => {
     render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
-    expect(screen.getByText('Issues')).toBeDefined();
+    expect(screen.getByText('Dev Tools')).toBeDefined();
   });
 
   it('renders hamburger menu button', () => {
@@ -111,7 +111,7 @@ describe('ToolsPanel', () => {
     expect(screen.getByText('Actions')).toBeDefined();
     expect(screen.getByText('Releases')).toBeDefined();
     expect(screen.getByText('Dev Scripts')).toBeDefined();
-    expect(screen.getByText('Maintenance')).toBeDefined();
+    expect(screen.getAllByText('Dev Tools').length).toBeGreaterThanOrEqual(1);
   });
 
   it('switches to Dev Scripts tool when selected from menu', async () => {
@@ -131,21 +131,11 @@ describe('ToolsPanel', () => {
     expect(screen.getByText('No scripts yet')).toBeDefined();
   });
 
-  it('switches to Maintenance tool when selected from menu', async () => {
-    const user = userEvent.setup();
+  it('renders Dev Tools content by default', () => {
     render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
 
-    // Open menu
-    const menuButton = screen.getByTestId('icon-menu').closest('button');
-    expect(menuButton).not.toBeNull();
-    await user.click(menuButton as HTMLButtonElement);
-
-    // Select Maintenance
-    const maintenanceOption = screen.getByText('Maintenance');
-    await user.click(maintenanceOption);
-
-    // Should now show Maintenance content
-    expect(screen.getByText('Coming soon')).toBeDefined();
+    // Dev Tools is default, should show Set Up section
+    expect(screen.getByText('Set Up')).toBeDefined();
     // Use getAllByTestId since wrench icon appears in both header and content
     expect(screen.getAllByTestId('icon-wrench').length).toBeGreaterThanOrEqual(1);
   });
@@ -183,12 +173,12 @@ describe('ToolsPanel', () => {
     expect(menuButton).not.toBeNull();
     await user.click(menuButton as HTMLButtonElement);
 
-    // Issues should have bg-accent class (active, it's the default tool)
-    const issuesButtons = screen.getAllByText('Issues');
-    const issuesMenuItem = issuesButtons.find((el) =>
+    // Dev Tools should have bg-accent class (active, it's the default tool)
+    const devToolsButtons = screen.getAllByText('Dev Tools');
+    const devToolsMenuItem = devToolsButtons.find((el) =>
       el.closest('button')?.className.includes('bg-accent')
     );
-    expect(issuesMenuItem).toBeDefined();
+    expect(devToolsMenuItem).toBeDefined();
   });
 
   describe('persistent terminal bar', () => {

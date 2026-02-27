@@ -14,6 +14,8 @@ import type {
   TerminalSession,
   DevScript,
   DocsCategory,
+  ProjectInfo,
+  SetUpActionResult,
 } from './types';
 
 export interface CoreChannels {
@@ -113,4 +115,13 @@ export interface CoreChannels {
     error?: string;
   };
   'updater:get-version': () => string;
+
+  // Dev Tools Channels
+  'dev-tools:detect-project': (workingDirectory: string) => ProjectInfo;
+  'dev-tools:get-install-command': (workingDirectory: string) => string | null;
+  'dev-tools:get-typecheck-command': (workingDirectory: string) => string | null;
+  'dev-tools:get-git-init-command': () => string;
+  'dev-tools:get-hooks-command': (workingDirectory: string) => string | null;
+  'dev-tools:setup-env-file': (workingDirectory: string) => SetUpActionResult;
+  'dev-tools:setup-editor-config': (workingDirectory: string) => SetUpActionResult;
 }

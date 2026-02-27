@@ -218,6 +218,14 @@ export function removeAllIpcHandlers(): void {
     'updater:install',
     'updater:get-status',
     'updater:get-version',
+    // ── Dev Tools ──
+    'dev-tools:detect-project',
+    'dev-tools:get-install-command',
+    'dev-tools:get-typecheck-command',
+    'dev-tools:get-git-init-command',
+    'dev-tools:get-hooks-command',
+    'dev-tools:setup-env-file',
+    'dev-tools:setup-editor-config',
   ];
 
   channels.forEach((channel) => {

@@ -446,6 +446,58 @@ export interface DevScript {
   updatedAt?: string;
 }
 
+// Project Detection Types
+export type Ecosystem = 'node' | 'python' | 'rust' | 'go' | 'ruby' | 'php' | 'java' | 'unknown';
+
+export type PackageManager =
+  | 'npm'
+  | 'yarn'
+  | 'pnpm'
+  | 'bun'
+  | 'pip'
+  | 'poetry'
+  | 'uv'
+  | 'cargo'
+  | 'go'
+  | 'bundler'
+  | 'composer'
+  | 'maven'
+  | 'gradle'
+  | 'unknown';
+
+export interface ProjectScript {
+  name: string;
+  command: string;
+}
+
+export interface ProjectCommands {
+  install: string | null;
+  lint: string | null;
+  format: string | null;
+  test: string | null;
+  coverage: string | null;
+  build: string | null;
+  typecheck: string | null;
+}
+
+export interface ProjectInfo {
+  ecosystem: Ecosystem;
+  packageManager: PackageManager;
+  scripts: ProjectScript[];
+  commands: ProjectCommands;
+  hasGit: boolean;
+  hasEnv: boolean;
+  hasEnvExample: boolean;
+  hasEditorConfig: boolean;
+  hookTool: 'husky' | 'lefthook' | 'pre-commit' | null;
+  typeChecker: string | null;
+}
+
+export interface SetUpActionResult {
+  success: boolean;
+  message: string;
+}
+
 export interface EnvVar {
   key: string;
   value: string;

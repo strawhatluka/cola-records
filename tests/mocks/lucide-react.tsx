@@ -108,3 +108,10 @@ export const Menu = createIcon('Menu');
 export const GripVertical = createIcon('GripVertical');
 export const Layers = createIcon('Layers');
 export const Power = createIcon('Power');
+
+// Dev Tools icons
+export const Package = createIcon('Package');
+export const FileKey = createIcon('FileKey');
+export const Anchor = createIcon('Anchor');
+export const ShieldCheck = createIcon('ShieldCheck');
+export const Info = createIcon('Info');

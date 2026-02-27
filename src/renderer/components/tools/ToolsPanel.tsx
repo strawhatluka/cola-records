@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TerminalTool } from './TerminalTool';
+import type { TerminalToolHandle } from './TerminalTool';
 import { DevScriptsTool } from './DevScriptsTool';
 import { MaintenanceTool } from './MaintenanceTool';
 import { IssuesTool } from './IssuesTool';
@@ -31,7 +32,7 @@ import { ReleasesTool } from './ReleasesTool';
 import { cn } from '../../lib/utils';
 import type { Contribution } from '../../../main/ipc/channels';
 
-type ToolType = 'issues' | 'pull-requests' | 'actions' | 'releases' | 'dev-scripts' | 'maintenance';
+type ToolType = 'issues' | 'pull-requests' | 'actions' | 'releases' | 'dev-scripts' | 'dev-tools';
 
 interface ToolItem {
   id: ToolType;
@@ -40,12 +41,12 @@ interface ToolItem {
 }
 
 const tools: ToolItem[] = [
+  { id: 'dev-tools', label: 'Dev Tools', icon: Wrench },
   { id: 'issues', label: 'Issues', icon: CircleDot },
   { id: 'pull-requests', label: 'Pull Requests', icon: GitPullRequest },
   { id: 'actions', label: 'Actions', icon: Play },
   { id: 'releases', label: 'Releases', icon: Tag },
   { id: 'dev-scripts', label: 'Dev Scripts', icon: Code },
-  { id: 'maintenance', label: 'Maintenance', icon: Wrench },
 ];
 
 interface GitRemote {
@@ -91,7 +92,7 @@ export function ToolsPanel({
   githubUsername = '',
   onRefreshBranches,
 }: ToolsPanelProps) {
-  const [activeTool, setActiveTool] = useState<ToolType>('issues');
+  const [activeTool, setActiveTool] = useState<ToolType>('dev-tools');
   const [menuOpen, setMenuOpen] = useState(false);
   const [terminalExpanded, setTerminalExpanded] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(0);
@@ -100,6 +101,7 @@ export function ToolsPanel({
   // keep it mounted after that to preserve xterm.js state across collapse/expand
   const [terminalMounted, setTerminalMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<TerminalToolHandle>(null);
 
   // Auto-expand terminal when adoptSessions are provided
   const hasSessionsToAdopt = adoptSessions && adoptSessions.length > 0;
@@ -123,6 +125,27 @@ export function ToolsPanel({
     setTerminalExpanded(false);
     setTerminalHeight(0);
   }, []);
+
+  const handleRunCommand = useCallback(
+    (command: string) => {
+      // Expand terminal if collapsed
+      if (!terminalExpanded) {
+        setTerminalExpanded(true);
+        setTerminalMounted(true);
+        if (containerRef.current) {
+          setTerminalHeight(Math.floor(containerRef.current.offsetHeight * 0.5));
+        }
+      }
+      // Send command to terminal via ref (delayed slightly to allow mount)
+      setTimeout(
+        () => {
+          terminalRef.current?.sendCommand(command);
+        },
+        terminalMounted ? 50 : 500
+      );
+    },
+    [terminalExpanded, terminalMounted]
+  );
 
   const handleTerminalResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -182,8 +205,10 @@ export function ToolsPanel({
         return contribution ? <ReleasesTool contribution={contribution} /> : null;
       case 'dev-scripts':
         return <DevScriptsTool workingDirectory={workingDirectory} />;
-      case 'maintenance':
-        return <MaintenanceTool />;
+      case 'dev-tools':
+        return (
+          <MaintenanceTool workingDirectory={workingDirectory} onRunCommand={handleRunCommand} />
+        );
       default:
         return null;
     }
@@ -279,6 +304,7 @@ export function ToolsPanel({
           </div>
           <div className="flex-1 overflow-hidden">
             <TerminalTool
+              ref={terminalRef}
               workingDirectory={workingDirectory}
               adoptSessions={adoptSessions}
               onSessionsAdopted={onSessionsAdopted}

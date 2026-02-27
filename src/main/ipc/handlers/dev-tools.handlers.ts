@@ -2,13 +2,16 @@
  * Dev Tools IPC Handlers
  *
  * Registers handlers for: code-server:*, terminal:*,
- * dev-scripts:*, updater:*
+ * dev-scripts:*, updater:*, dev-tools:*
  */
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { handleIpc } from '../handlers';
 import { codeServerService } from '../../services/code-server.service';
 import { terminalService } from '../../services/terminal.service';
 import { database } from '../../database';
 import { updaterService } from '../../services/updater.service';
+import { projectDetectionService } from '../../services/project-detection.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -110,5 +113,96 @@ export function setupDevToolsHandlers(): void {
 
   handleIpc('updater:get-version', async () => {
     return updaterService.getVersion();
+  });
+
+  // Dev Tools — Project Detection & Set Up handlers
+  handleIpc('dev-tools:detect-project', async (_event, workingDirectory) => {
+    return await projectDetectionService.detect(workingDirectory);
+  });
+
+  handleIpc('dev-tools:get-install-command', async (_event, workingDirectory) => {
+    const info = await projectDetectionService.detect(workingDirectory);
+    return projectDetectionService.getInstallCommand(info.packageManager);
+  });
+
+  handleIpc('dev-tools:get-typecheck-command', async (_event, workingDirectory) => {
+    const info = await projectDetectionService.detect(workingDirectory);
+    return projectDetectionService.getTypecheckCommand(info.ecosystem);
+  });
+
+  handleIpc('dev-tools:get-git-init-command', async () => {
+    return projectDetectionService.getGitInitCommand();
+  });
+
+  handleIpc('dev-tools:get-hooks-command', async (_event, workingDirectory) => {
+    const info = await projectDetectionService.detect(workingDirectory);
+    return projectDetectionService.getHookInstallCommand(info.hookTool);
+  });
+
+  handleIpc('dev-tools:setup-env-file', async (_event, workingDirectory) => {
+    const envPath = path.join(workingDirectory, '.env');
+    const examplePath = path.join(workingDirectory, '.env.example');
+
+    try {
+      const envExists = await fs
+        .access(envPath)
+        .then(() => true)
+        .catch(() => false);
+      if (envExists) {
+        return { success: false, message: '.env file already exists' };
+      }
+
+      const exampleExists = await fs
+        .access(examplePath)
+        .then(() => true)
+        .catch(() => false);
+      if (exampleExists) {
+        await fs.copyFile(examplePath, envPath);
+        return { success: true, message: 'Created .env from .env.example' };
+      }
+
+      await fs.writeFile(envPath, '# Environment Variables\n', 'utf-8');
+      return { success: true, message: 'Created empty .env file' };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, message: `Failed to create .env: ${msg}` };
+    }
+  });
+
+  handleIpc('dev-tools:setup-editor-config', async (_event, workingDirectory) => {
+    const configPath = path.join(workingDirectory, '.editorconfig');
+
+    try {
+      const exists = await fs
+        .access(configPath)
+        .then(() => true)
+        .catch(() => false);
+      if (exists) {
+        return { success: false, message: '.editorconfig already exists' };
+      }
+
+      const template = [
+        '# EditorConfig — https://editorconfig.org',
+        'root = true',
+        '',
+        '[*]',
+        'indent_style = space',
+        'indent_size = 2',
+        'end_of_line = lf',
+        'charset = utf-8',
+        'trim_trailing_whitespace = true',
+        'insert_final_newline = true',
+        '',
+        '[*.md]',
+        'trim_trailing_whitespace = false',
+        '',
+      ].join('\n');
+
+      await fs.writeFile(configPath, template, 'utf-8');
+      return { success: true, message: 'Created .editorconfig' };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, message: `Failed to create .editorconfig: ${msg}` };
+    }
   });
 }

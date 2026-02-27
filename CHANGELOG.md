@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Dev Tools — Set Up category with 6 ecosystem-aware action buttons: Install, Env File, Git Init, Hooks, Editor Config, TypeCheck
+  - **Project Detection Service** (`project-detection.service.ts`): scans working directory to detect ecosystem (Node, Python, Rust, Go, Ruby, PHP, Java), package manager, available scripts, and tooling
+  - 7 new IPC channels (`dev-tools:detect-project`, `dev-tools:get-install-command`, `dev-tools:get-typecheck-command`, `dev-tools:get-git-init-command`, `dev-tools:get-hooks-command`, `dev-tools:setup-env-file`, `dev-tools:setup-editor-config`)
+  - Buttons auto-detect correct commands per ecosystem (e.g., `npm install` vs `pip install -e .` vs `cargo build`)
+  - Git Init disabled when `.git/` exists, Editor Config disabled when `.editorconfig` exists, TypeCheck disabled when no type checker detected
+  - Terminal auto-expands and receives commands on button click via `TerminalTool` imperative handle
+  - Env File creates `.env` from `.env.example` or creates empty `.env`; Editor Config writes standard template
+- `TerminalTool` imperative handle (`sendCommand`) for external command injection via `forwardRef`/`useImperativeHandle`
+
+### Fixed
+
+- Removed non-null assertion in `DocsViewer.tsx` link click handler (ESLint warning cleanup)
+
 ## [1.0.10] - 2026-02-24
 
 ### Added

@@ -5,7 +5,7 @@
  * Supports Git Bash, PowerShell, and CMD on Windows.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { createLogger } from '../../../renderer/utils/logger';
 
@@ -42,6 +42,11 @@ interface AdoptSession {
   name: string;
 }
 
+export interface TerminalToolHandle {
+  /** Send a command string to the active terminal (creates one if none exists) */
+  sendCommand: (command: string) => Promise<void>;
+}
+
 interface TerminalToolProps {
   workingDirectory: string;
   /** Sessions to adopt from ScriptExecutionModal (multi-terminal support) */
@@ -50,15 +55,19 @@ interface TerminalToolProps {
   onSessionsAdopted?: () => void;
 }
 
-export function TerminalTool({
-  workingDirectory,
-  adoptSessions,
-  onSessionsAdopted,
-}: TerminalToolProps) {
+export const TerminalTool = forwardRef<TerminalToolHandle, TerminalToolProps>(function TerminalTool(
+  { workingDirectory, adoptSessions, onSessionsAdopted },
+  ref
+) {
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [selectedShell, setSelectedShell] = useState<ShellType>('git-bash');
   const hasInitialized = useRef(false);
+  // Ref to hold latest tabs/activeTabId for imperative handle
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+  const activeTabIdRef = useRef(activeTabId);
+  activeTabIdRef.current = activeTabId;
 
   // Create a new terminal
   const createTerminal = useCallback(
@@ -82,6 +91,40 @@ export function TerminalTool({
         logger.error('Failed to create terminal:', error);
       }
     },
+    [workingDirectory]
+  );
+
+  // Expose sendCommand to parent via ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      sendCommand: async (command: string) => {
+        let terminalId = activeTabIdRef.current;
+
+        // If no active terminal, create one and wait for it
+        if (!terminalId || tabsRef.current.length === 0) {
+          const session = await window.electronAPI.invoke(
+            'terminal:spawn',
+            'git-bash',
+            workingDirectory
+          );
+          const newTab: TerminalTab = {
+            id: session.id,
+            session,
+            title: shellLabels['git-bash'],
+          };
+          setTabs((prev) => [...prev, newTab]);
+          setActiveTabId(session.id);
+          hasInitialized.current = true;
+          terminalId = session.id;
+          // Small delay to let the terminal initialize
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+
+        // Write the command followed by carriage return
+        window.electronAPI.invoke('terminal:write', terminalId, command + '\r');
+      },
+    }),
     [workingDirectory]
   );
 
@@ -262,4 +305,4 @@ export function TerminalTool({
       </div>
     </div>
   );
-}
+});
