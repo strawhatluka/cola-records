@@ -5,6 +5,10 @@ import userEvent from '@testing-library/user-event';
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
+// Mock Radix UI (used by NewBranchDialog)
+vi.mock('@radix-ui/react-dialog', async () => import('../../../mocks/radix-dialog'));
+vi.mock('@radix-ui/react-select', async () => import('../../../mocks/radix-select'));
+
 // Mock IPC client
 const mockInvoke = vi.fn();
 vi.mock('../../../../src/renderer/ipc/client', () => ({
@@ -59,7 +63,9 @@ describe('MaintenanceTool', () => {
     // Make the invoke never resolve so we stay in detecting state
     mockInvoke.mockReturnValue(new Promise(() => {}));
     render(<MaintenanceTool {...defaultProps} />);
-    expect(screen.getByText('Detecting project...')).toBeDefined();
+    // Both Set Up and Workflows show detecting text
+    const detectingElements = screen.getAllByText('Detecting project...');
+    expect(detectingElements.length).toBe(2);
   });
 
   it('renders 6 Set Up buttons after detection', async () => {
@@ -113,9 +119,20 @@ describe('MaintenanceTool', () => {
     });
   });
 
-  it('renders placeholder sections for Workflows, Update, Info', async () => {
+  it('renders Workflows section with buttons after detection', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     expect(screen.getByText('Workflows')).toBeDefined();
+    // Wait for detection to complete and buttons to render
+    await waitFor(() => {
+      expect(screen.getByText('Lint')).toBeDefined();
+    });
+    expect(screen.getByText('Test')).toBeDefined();
+    expect(screen.getByText('Build')).toBeDefined();
+    expect(screen.getByText('New Branch')).toBeDefined();
+  });
+
+  it('renders placeholder sections for Update and Info', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
     expect(screen.getByText('Update')).toBeDefined();
     expect(screen.getByText('Info')).toBeDefined();
   });
@@ -123,14 +140,16 @@ describe('MaintenanceTool', () => {
   it('shows Coming soon for placeholder sections', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     const comingSoonElements = screen.getAllByText('Coming soon');
-    expect(comingSoonElements.length).toBe(3);
+    expect(comingSoonElements.length).toBe(2);
   });
 
   it('shows error state when detection fails', async () => {
     mockInvoke.mockRejectedValue(new Error('Detection failed'));
     render(<MaintenanceTool {...defaultProps} />);
     await waitFor(() => {
-      expect(screen.getByText('Could not detect project')).toBeDefined();
+      // Both Set Up and Workflows show error text
+      const errorElements = screen.getAllByText('Could not detect project');
+      expect(errorElements.length).toBe(2);
     });
   });
 

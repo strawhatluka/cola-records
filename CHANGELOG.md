@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Terminal auto-expands and receives commands on button click via `TerminalTool` imperative handle
   - Env File creates `.env` from `.env.example` or creates empty `.env`; Editor Config writes standard template
 - `TerminalTool` imperative handle (`sendCommand`) for external command injection via `forwardRef`/`useImperativeHandle`
+- Dev Tools — Workflows category with 5 command buttons and New Branch dialog
+  - **WorkflowButtons** (`WorkflowButtons.tsx`): Lint, Format, Test, Coverage, Build buttons driven by `ProjectCommands` from the detection service
+  - Buttons auto-detect correct commands per ecosystem (e.g., `npm run lint` vs `cargo clippy` vs `ruff check .`)
+  - Buttons disabled when no command is detected for that action (e.g., no `format` script in `package.json`)
+  - **NewBranchDialog** (`NewBranchDialog.tsx`): branch creation dialog with 7 conventional prefixes (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`, `test/`, `hotfix/`), auto-slugified name input, live preview, and Enter key support
+  - New Branch calls existing `git:create-branch` IPC to create and checkout in one step
 
 ### Fixed
 

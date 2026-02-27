@@ -115,3 +115,11 @@ export const FileKey = createIcon('FileKey');
 export const Anchor = createIcon('Anchor');
 export const ShieldCheck = createIcon('ShieldCheck');
 export const Info = createIcon('Info');
+
+// Workflow icons
+export const GitBranchPlus = createIcon('GitBranchPlus');
+export const SearchCheck = createIcon('SearchCheck');
+export const AlignLeft = createIcon('AlignLeft');
+export const FlaskConical = createIcon('FlaskConical');
+export const PieChart = createIcon('PieChart');
+export const Hammer = createIcon('Hammer');
