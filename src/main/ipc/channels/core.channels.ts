@@ -17,6 +17,7 @@ import type {
   ProjectInfo,
   SetUpActionResult,
   CleanTarget,
+  DiskUsageResult,
 } from './types';
 
 export interface CoreChannels {
@@ -126,4 +127,6 @@ export interface CoreChannels {
   'dev-tools:setup-env-file': (workingDirectory: string) => SetUpActionResult;
   'dev-tools:setup-editor-config': (workingDirectory: string) => SetUpActionResult;
   'dev-tools:get-clean-targets': (workingDirectory: string) => CleanTarget[];
+  'dev-tools:disk-usage': (workingDirectory: string) => DiskUsageResult;
+  'dev-tools:project-info': (workingDirectory: string) => ProjectInfo;
 }

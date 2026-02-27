@@ -489,6 +489,19 @@ export interface CleanTarget {
   sizeBytes: number;
 }
 
+export interface DiskUsageEntry {
+  name: string;
+  path: string;
+  sizeBytes: number;
+  exists: boolean;
+}
+
+export interface DiskUsageResult {
+  totalBytes: number;
+  entries: DiskUsageEntry[];
+  scanDurationMs: number;
+}
+
 export interface ProjectInfo {
   ecosystem: Ecosystem;
   packageManager: PackageManager;

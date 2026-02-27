@@ -227,6 +227,8 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:setup-env-file',
     'dev-tools:setup-editor-config',
     'dev-tools:get-clean-targets',
+    'dev-tools:disk-usage',
+    'dev-tools:project-info',
   ];
 
   channels.forEach((channel) => {

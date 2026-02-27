@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Sync Fork** auto-detects `upstream` remote via existing `git:get-remotes` IPC; disabled with explanatory tooltip when no upstream found
   - **Clean** opens inline confirmation dialog showing target paths, individual sizes, total size, and warning text before executing `rm -rf` (or ecosystem-specific clean command like `cargo clean`)
   - Update Deps and Audit disabled when their command is unavailable for the detected ecosystem
+- Dev Tools — Info category with 6 read-only buttons for project insight
+  - **InfoSection** (`InfoSection.tsx`): Status, Log, Branches, Remotes (git terminal commands) + Disk Usage, Project Info (inline data panels)
+  - **DiskUsageService** (`disk-usage.service.ts`): scans 13 well-known artifact directories (`node_modules`, `.git`, `dist`, `build`, `coverage`, `target`, etc.) with recursive size calculation and depth limit
+  - **InfoInlinePanel** (`InfoInlinePanel.tsx`): two display modes — Disk Usage (proportional progress bars with formatted sizes, total, scan duration) and Project Info (key-value metadata, scripts list)
+  - **info-formatters** (`info-formatters.ts`): pure utility functions for `formatBytes`, `calculatePercentage`, `formatDuration`
+  - 2 new IPC channels (`dev-tools:disk-usage`, `dev-tools:project-info`) with `DiskUsageEntry` and `DiskUsageResult` types
+  - Only one inline panel visible at a time; toggle on re-click; close button dismisses
+  - All 4 git buttons always enabled — no detection dependency
 
 ### Fixed
 

@@ -141,7 +141,7 @@ describe('MaintenanceTool', () => {
     expect(screen.getByText('New Branch')).toBeDefined();
   });
 
-  it('renders Update section and Info placeholder', async () => {
+  it('renders Update and Info section headers', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     expect(screen.getByText('Update')).toBeDefined();
     expect(screen.getByText('Info')).toBeDefined();
@@ -156,10 +156,14 @@ describe('MaintenanceTool', () => {
     expect(screen.getByText('Clean')).toBeDefined();
   });
 
-  it('shows Coming soon for Info placeholder section', async () => {
+  it('renders Info section with 6 buttons', async () => {
     render(<MaintenanceTool {...defaultProps} />);
-    const comingSoonElements = screen.getAllByText('Coming soon');
-    expect(comingSoonElements.length).toBe(1);
+    expect(screen.getByText('Status')).toBeDefined();
+    expect(screen.getByText('Log')).toBeDefined();
+    expect(screen.getByText('Branches')).toBeDefined();
+    expect(screen.getByText('Remotes')).toBeDefined();
+    expect(screen.getByText('Disk Usage')).toBeDefined();
+    expect(screen.getByText('Project Info')).toBeDefined();
   });
 
   it('shows error state when detection fails', async () => {

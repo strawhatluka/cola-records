@@ -12,6 +12,7 @@ import { terminalService } from '../../services/terminal.service';
 import { database } from '../../database';
 import { updaterService } from '../../services/updater.service';
 import { projectDetectionService } from '../../services/project-detection.service';
+import { diskUsageService } from '../../services/disk-usage.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -172,6 +173,14 @@ export function setupDevToolsHandlers(): void {
   handleIpc('dev-tools:get-clean-targets', async (_event, workingDirectory) => {
     const info = await projectDetectionService.detect(workingDirectory);
     return await projectDetectionService.getCleanTargets(workingDirectory, info.ecosystem);
+  });
+
+  handleIpc('dev-tools:disk-usage', async (_event, workingDirectory) => {
+    return await diskUsageService.scan(workingDirectory);
+  });
+
+  handleIpc('dev-tools:project-info', async (_event, workingDirectory) => {
+    return await projectDetectionService.detect(workingDirectory);
   });
 
   handleIpc('dev-tools:setup-editor-config', async (_event, workingDirectory) => {

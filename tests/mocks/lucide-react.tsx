@@ -128,3 +128,9 @@ export const Hammer = createIcon('Hammer');
 export const ArrowUpCircle = createIcon('ArrowUpCircle');
 export const ShieldAlert = createIcon('ShieldAlert');
 export const ArrowDownToLine = createIcon('ArrowDownToLine');
+
+// Info section icons
+export const Activity = createIcon('Activity');
+export const Globe = createIcon('Globe');
+export const HardDrive = createIcon('HardDrive');
+export const FolderSearch = createIcon('FolderSearch');

@@ -5,7 +5,7 @@
  * Set Up section contains 6 action buttons that adapt to the detected
  * project ecosystem. Workflows section has 5 command buttons + New Branch dialog.
  * Update section has 5 buttons: Update Deps, Audit, Pull Latest, Sync Fork, Clean.
- * Info section is a placeholder for future WOs.
+ * Info section has 6 read-only buttons: Status, Log, Branches, Remotes, Disk Usage, Project Info.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -14,7 +14,7 @@ import {
   GitBranch,
   GitBranchPlus,
   RefreshCw,
-  Info,
+  Info as InfoIcon,
   Package,
   FileKey,
   Anchor,
@@ -27,6 +27,7 @@ import type { ProjectInfo, SetUpActionResult } from '../../../main/ipc/channels/
 import { WorkflowButtons } from './WorkflowButtons';
 import { NewBranchDialog } from './NewBranchDialog';
 import { UpdateSection } from './UpdateSection';
+import { InfoSection } from './InfoSection';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -41,9 +42,6 @@ interface SetUpButton {
   loading: boolean;
   status: string | null;
 }
-
-/** Placeholder sections for future work orders */
-const placeholderSections = [{ title: 'Info', icon: Info }];
 
 export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceToolProps) {
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
@@ -310,21 +308,16 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         </div>
       </div>
 
-      {/* Placeholder sections for Info */}
-      {placeholderSections.map((section) => {
-        const Icon = section.icon;
-        return (
-          <div key={section.title} className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Icon className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold text-foreground">{section.title}</h3>
-            </div>
-            <div className="rounded-lg border border-border p-3 min-h-[48px] text-xs text-muted-foreground">
-              Coming soon
-            </div>
-          </div>
-        );
-      })}
+      {/* Info Section */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <InfoIcon className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">Info</h3>
+        </div>
+        <div className="rounded-lg border border-border p-3 min-h-[48px]">
+          <InfoSection workingDirectory={workingDirectory} onRunCommand={onRunCommand} />
+        </div>
+      </div>
     </div>
   );
 }
