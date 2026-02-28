@@ -225,7 +225,6 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:get-git-init-command',
     'dev-tools:get-hooks-command',
     'dev-tools:setup-env-file',
-    'dev-tools:setup-editor-config',
     'dev-tools:get-clean-targets',
     'dev-tools:disk-usage',
     'dev-tools:project-info',
@@ -244,6 +243,11 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:setup-lint-staged',
     'dev-tools:get-hook-presets',
     'dev-tools:get-lint-staged-presets',
+    'dev-tools:read-editorconfig',
+    'dev-tools:write-editorconfig',
+    'dev-tools:create-editorconfig',
+    'dev-tools:delete-editorconfig',
+    'dev-tools:get-editorconfig-presets',
   ];
 
   channels.forEach((channel) => {

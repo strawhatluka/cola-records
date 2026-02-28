@@ -605,6 +605,28 @@ export interface EnvSyncResult {
   message: string;
 }
 
+// EditorConfig Types
+export interface EditorConfigProperties {
+  indent_style?: 'tab' | 'space';
+  indent_size?: number;
+  tab_width?: number;
+  end_of_line?: 'lf' | 'cr' | 'crlf';
+  charset?: 'utf-8' | 'utf-8-bom' | 'latin1' | 'utf-16be' | 'utf-16le';
+  trim_trailing_whitespace?: boolean;
+  insert_final_newline?: boolean;
+  max_line_length?: number | 'off';
+}
+
+export interface EditorConfigSection {
+  glob: string;
+  properties: EditorConfigProperties;
+}
+
+export interface EditorConfigFile {
+  root: boolean;
+  sections: EditorConfigSection[];
+}
+
 export interface EnvVar {
   key: string;
   value: string;

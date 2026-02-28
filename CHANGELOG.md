@@ -61,6 +61,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **simple-git-hooks support** added to project detection (`.simple-git-hooks.json` or `package.json` key), extending detection from 3 to 4 hook systems
   - 8 new IPC channels (`dev-tools:detect-hooks`, `dev-tools:setup-hook-tool`, `dev-tools:get-hook-install-cmd`, `dev-tools:read-hooks-config`, `dev-tools:write-hooks-config`, `dev-tools:setup-lint-staged`, `dev-tools:get-hook-presets`, `dev-tools:get-lint-staged-presets`)
   - 9 new types (`HookTool`, `GitHookName`, `HookAction`, `LintStagedRule`, `LintStagedConfig`, `HookConfig`, `HookToolRecommendation`, `HooksDetectionResult`, `HooksSetupResult`)
+- Dev Tools — Editor Config button expanded into full-featured `.editorconfig` management GUI ([#58](https://github.com/lukadfagundes/cola-records/issues/58))
+  - **Editor Config button** always enabled (no longer disabled when `.editorconfig` exists); click toggles an inline management panel
+  - **EditorConfigPanel** (`EditorConfigPanel.tsx`): setup mode with ecosystem preset dropdown, live preview, and "Create" button when no config exists; actions mode with Edit Config, Reset to Default (with confirmation), and Delete (with confirmation) when config exists
+  - **EditorConfigEditor** (`EditorConfigEditor.tsx`): full-view section-based property editor replacing Tool Box view; `root = true` toggle, section cards with glob input and 2-column property grid (dropdowns for indent_style/end_of_line/charset, number inputs for indent_size/tab_width, toggles for trim_trailing_whitespace/insert_final_newline, max_line_length with "off" option), add/remove sections, Add Preset button, Save (Ctrl+S), dirty tracking, unsaved changes prompt
+  - **EditorConfigService** (`editorconfig.service.ts`): INI-style parser and serializer for `.editorconfig` format with comment and section handling; read, write, create with ecosystem presets, and delete operations
+  - **Ecosystem-aware presets**: Node.js (space/2 + `*.md` trim_ws override), Python (space/4), Go (tab/4), Rust (space/4), Ruby (space/2), PHP (space/4), Java (space/4) — all with lf, utf-8, trim trailing whitespace, insert final newline
+  - Replaced single `dev-tools:setup-editor-config` channel with 5 new channels (`dev-tools:read-editorconfig`, `dev-tools:write-editorconfig`, `dev-tools:create-editorconfig`, `dev-tools:delete-editorconfig`, `dev-tools:get-editorconfig-presets`)
+  - 3 new types (`EditorConfigProperties`, `EditorConfigSection`, `EditorConfigFile`)
 
 ### Removed
 

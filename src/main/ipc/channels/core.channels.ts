@@ -30,6 +30,8 @@ import type {
   HookAction,
   LintStagedConfig,
   LintStagedRule,
+  EditorConfigFile,
+  EditorConfigSection,
 } from './types';
 
 export interface CoreChannels {
@@ -137,7 +139,6 @@ export interface CoreChannels {
   'dev-tools:get-git-init-command': () => string;
   'dev-tools:get-hooks-command': (workingDirectory: string) => string | null;
   'dev-tools:setup-env-file': (workingDirectory: string) => SetUpActionResult;
-  'dev-tools:setup-editor-config': (workingDirectory: string) => SetUpActionResult;
   'dev-tools:get-clean-targets': (workingDirectory: string) => CleanTarget[];
   'dev-tools:disk-usage': (workingDirectory: string) => DiskUsageResult;
   'dev-tools:project-info': (workingDirectory: string) => ProjectInfo;
@@ -179,4 +180,17 @@ export interface CoreChannels {
     tool: HookTool
   ) => Record<GitHookName, HookAction[]>;
   'dev-tools:get-lint-staged-presets': (ecosystem: Ecosystem) => LintStagedRule[];
+
+  // Dev Tools — EditorConfig Management Channels
+  'dev-tools:read-editorconfig': (workingDirectory: string) => EditorConfigFile;
+  'dev-tools:write-editorconfig': (
+    workingDirectory: string,
+    config: EditorConfigFile
+  ) => SetUpActionResult;
+  'dev-tools:create-editorconfig': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => SetUpActionResult;
+  'dev-tools:delete-editorconfig': (workingDirectory: string) => SetUpActionResult;
+  'dev-tools:get-editorconfig-presets': (ecosystem: Ecosystem) => EditorConfigSection[];
 }

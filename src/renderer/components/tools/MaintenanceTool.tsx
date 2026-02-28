@@ -34,6 +34,8 @@ import { EnvPanel } from './EnvPanel';
 import { EnvEditor } from './EnvEditor';
 import { HooksPanel } from './HooksPanel';
 import { HooksEditor } from './HooksEditor';
+import { EditorConfigPanel } from './EditorConfigPanel';
+import { EditorConfigEditor } from './EditorConfigEditor';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -60,6 +62,8 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
   const [envEditorOpen, setEnvEditorOpen] = useState(false);
   const [hooksPanelOpen, setHooksPanelOpen] = useState(false);
   const [hooksEditorOpen, setHooksEditorOpen] = useState(false);
+  const [editorConfigPanelOpen, setEditorConfigPanelOpen] = useState(false);
+  const [editorConfigEditorOpen, setEditorConfigEditorOpen] = useState(false);
 
   // Detect project on mount and when workingDirectory changes
   useEffect(() => {
@@ -121,15 +125,9 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     setHooksPanelOpen((prev) => !prev);
   }, []);
 
-  const handleEditorConfig = useCallback(async () => {
-    setButtonLoading('editor-config', true);
-    try {
-      const result = await ipc.invoke('dev-tools:setup-editor-config', workingDirectory);
-      setButtonLoading('editor-config', false, result.message);
-    } catch {
-      setButtonLoading('editor-config', false, 'Failed');
-    }
-  }, [workingDirectory, setButtonLoading]);
+  const handleEditorConfig = useCallback(() => {
+    setEditorConfigPanelOpen((prev) => !prev);
+  }, []);
 
   const handleTypeCheck = useCallback(async () => {
     setButtonLoading('typecheck', true);
@@ -182,7 +180,7 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
           id: 'editor-config',
           label: 'Editor Config',
           icon: FileCode,
-          disabled: projectInfo.hasEditorConfig,
+          disabled: false,
           loading: buttonStates['editor-config']?.loading ?? false,
           status: buttonStates['editor-config']?.status ?? null,
         },
@@ -221,6 +219,17 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         hookTool={projectInfo.hookTool}
         ecosystem={projectInfo.ecosystem}
         onClose={() => setHooksEditorOpen(false)}
+      />
+    );
+  }
+
+  // When editor config editor is open, render it instead of the normal Tool Box
+  if (editorConfigEditorOpen && projectInfo) {
+    return (
+      <EditorConfigEditor
+        workingDirectory={workingDirectory}
+        ecosystem={projectInfo.ecosystem}
+        onClose={() => setEditorConfigEditorOpen(false)}
       />
     );
   }
@@ -347,6 +356,21 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
                   onSetupComplete={(tool) => {
                     setProjectInfo((prev) => (prev ? { ...prev, hookTool: tool } : prev));
                     setHooksPanelOpen(false);
+                  }}
+                />
+              )}
+              {editorConfigPanelOpen && projectInfo && (
+                <EditorConfigPanel
+                  workingDirectory={workingDirectory}
+                  ecosystem={projectInfo.ecosystem}
+                  hasEditorConfig={projectInfo.hasEditorConfig}
+                  onClose={() => setEditorConfigPanelOpen(false)}
+                  onOpenEditor={() => setEditorConfigEditorOpen(true)}
+                  onConfigCreated={() => {
+                    setProjectInfo((prev) => (prev ? { ...prev, hasEditorConfig: true } : prev));
+                  }}
+                  onConfigDeleted={() => {
+                    setProjectInfo((prev) => (prev ? { ...prev, hasEditorConfig: false } : prev));
                   }}
                 />
               )}

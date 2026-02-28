@@ -97,13 +97,13 @@ describe('MaintenanceTool', () => {
     expect(gitInitButton?.disabled).toBe(true);
   });
 
-  it('disables Editor Config when .editorconfig exists', async () => {
+  it('Editor Config button is always enabled (even when .editorconfig exists)', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     await waitFor(() => {
       expect(screen.getByText('Editor Config')).toBeDefined();
     });
     const editorConfigButton = screen.getByText('Editor Config').closest('button');
-    expect(editorConfigButton?.disabled).toBe(true);
+    expect(editorConfigButton?.disabled).toBe(false);
   });
 
   it('calls onRunCommand with install command when Install clicked', async () => {
@@ -348,5 +348,81 @@ describe('MaintenanceTool', () => {
     // Info section should still render its buttons
     expect(screen.getByText('Status')).toBeDefined();
     expect(screen.getByText('Disk Usage')).toBeDefined();
+  });
+
+  it('opens EditorConfigPanel when Editor Config clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project')
+        return Promise.resolve({ ...mockProjectInfo, hasEditorConfig: false });
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-editorconfig-presets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Editor Config')).toBeDefined();
+    });
+
+    const editorConfigButton = screen.getByText('Editor Config').closest('button')!;
+    await userEvent.click(editorConfigButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Editor Config Setup')).toBeDefined();
+    });
+  });
+
+  it('closes EditorConfigPanel when Editor Config clicked again (toggle)', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project')
+        return Promise.resolve({ ...mockProjectInfo, hasEditorConfig: false });
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-editorconfig-presets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Editor Config')).toBeDefined();
+    });
+
+    const editorConfigButton = screen.getByText('Editor Config').closest('button')!;
+    await userEvent.click(editorConfigButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Editor Config Setup')).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(editorConfigButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Editor Config Setup')).toBeNull();
+    });
+  });
+
+  it('shows actions mode in EditorConfigPanel when hasEditorConfig is true', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project')
+        return Promise.resolve({ ...mockProjectInfo, hasEditorConfig: true });
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Editor Config')).toBeDefined();
+    });
+
+    const editorConfigButton = screen.getByText('Editor Config').closest('button')!;
+    await userEvent.click(editorConfigButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Config')).toBeDefined();
+      expect(screen.getByText('Reset to Default')).toBeDefined();
+      expect(screen.getByText('Delete')).toBeDefined();
+    });
   });
 });

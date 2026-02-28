@@ -16,6 +16,7 @@ import { diskUsageService } from '../../services/disk-usage.service';
 import { envScannerService } from '../../services/env-scanner.service';
 import { envFileService } from '../../services/env-file.service';
 import { hooksService } from '../../services/hooks.service';
+import { editorconfigService } from '../../services/editorconfig.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -248,40 +249,24 @@ export function setupDevToolsHandlers(): void {
     return hooksService.getLintStagedPresets(ecosystem);
   });
 
-  handleIpc('dev-tools:setup-editor-config', async (_event, workingDirectory) => {
-    const configPath = path.join(workingDirectory, '.editorconfig');
+  // Dev Tools — EditorConfig Management handlers
+  handleIpc('dev-tools:read-editorconfig', async (_event, workingDirectory) => {
+    return await editorconfigService.readConfig(workingDirectory);
+  });
 
-    try {
-      const exists = await fs
-        .access(configPath)
-        .then(() => true)
-        .catch(() => false);
-      if (exists) {
-        return { success: false, message: '.editorconfig already exists' };
-      }
+  handleIpc('dev-tools:write-editorconfig', async (_event, workingDirectory, config) => {
+    return await editorconfigService.writeConfig(workingDirectory, config);
+  });
 
-      const template = [
-        '# EditorConfig — https://editorconfig.org',
-        'root = true',
-        '',
-        '[*]',
-        'indent_style = space',
-        'indent_size = 2',
-        'end_of_line = lf',
-        'charset = utf-8',
-        'trim_trailing_whitespace = true',
-        'insert_final_newline = true',
-        '',
-        '[*.md]',
-        'trim_trailing_whitespace = false',
-        '',
-      ].join('\n');
+  handleIpc('dev-tools:create-editorconfig', async (_event, workingDirectory, ecosystem) => {
+    return await editorconfigService.createDefault(workingDirectory, ecosystem);
+  });
 
-      await fs.writeFile(configPath, template, 'utf-8');
-      return { success: true, message: 'Created .editorconfig' };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      return { success: false, message: `Failed to create .editorconfig: ${msg}` };
-    }
+  handleIpc('dev-tools:delete-editorconfig', async (_event, workingDirectory) => {
+    return await editorconfigService.deleteConfig(workingDirectory);
+  });
+
+  handleIpc('dev-tools:get-editorconfig-presets', async (_event, ecosystem) => {
+    return editorconfigService.getPresets(ecosystem);
   });
 }
