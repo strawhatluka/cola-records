@@ -17,6 +17,7 @@ import { envScannerService } from '../../services/env-scanner.service';
 import { envFileService } from '../../services/env-file.service';
 import { hooksService } from '../../services/hooks.service';
 import { editorconfigService } from '../../services/editorconfig.service';
+import { formatConfigService } from '../../services/format-config.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -269,4 +270,39 @@ export function setupDevToolsHandlers(): void {
   handleIpc('dev-tools:get-editorconfig-presets', async (_event, ecosystem) => {
     return editorconfigService.getPresets(ecosystem);
   });
+
+  // Dev Tools — Format Config Management handlers
+  handleIpc('dev-tools:detect-formatter', async (_event, workingDirectory, ecosystem) => {
+    return await formatConfigService.detectFormatter(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:read-format-config', async (_event, configPath, formatter) => {
+    return await formatConfigService.readConfig(configPath, formatter);
+  });
+
+  handleIpc(
+    'dev-tools:write-format-config',
+    async (_event, workingDirectory, formatter, config) => {
+      return await formatConfigService.writeConfig(workingDirectory, formatter, config);
+    }
+  );
+
+  handleIpc('dev-tools:get-format-presets', async (_event, ecosystem, formatter) => {
+    return formatConfigService.getPresets(ecosystem, formatter);
+  });
+
+  handleIpc('dev-tools:create-format-ignore', async (_event, workingDirectory, formatter) => {
+    return await formatConfigService.createIgnoreFile(workingDirectory, formatter);
+  });
+
+  handleIpc('dev-tools:read-format-ignore', async (_event, workingDirectory, formatter) => {
+    return await formatConfigService.readIgnoreFile(workingDirectory, formatter);
+  });
+
+  handleIpc(
+    'dev-tools:write-format-ignore',
+    async (_event, workingDirectory, formatter, content) => {
+      return await formatConfigService.writeIgnoreFile(workingDirectory, formatter, content);
+    }
+  );
 }

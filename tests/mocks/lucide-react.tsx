@@ -140,6 +140,9 @@ export const FilePlus = createIcon('FilePlus');
 export const FileEdit = createIcon('FileEdit');
 export const FileCog = createIcon('FileCog');
 
+// Format panel icons
+export const FileX = createIcon('FileX');
+
 // Hooks panel/editor icons
 export const Download = createIcon('Download');
 export const Sparkles = createIcon('Sparkles');

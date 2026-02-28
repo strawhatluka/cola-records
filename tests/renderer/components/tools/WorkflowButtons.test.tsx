@@ -140,4 +140,33 @@ describe('WorkflowButtons', () => {
     expect(screen.getByText('Coverage').closest('button')?.disabled).toBe(true);
     expect(screen.getByText('Build').closest('button')?.disabled).toBe(true);
   });
+
+  it('calls onFormatClick instead of onRunCommand when Format button clicked with onFormatClick prop', async () => {
+    const onRunCommand = vi.fn();
+    const onFormatClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WorkflowButtons
+        commands={allCommands}
+        onRunCommand={onRunCommand}
+        onFormatClick={onFormatClick}
+      />
+    );
+
+    const formatButton = screen.getByText('Format').closest('button')!;
+    await user.click(formatButton);
+
+    expect(onFormatClick).toHaveBeenCalled();
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  it('Format button is enabled when onFormatClick is provided even with null format command', () => {
+    const onFormatClick = vi.fn();
+    render(
+      <WorkflowButtons commands={noCommands} onRunCommand={vi.fn()} onFormatClick={onFormatClick} />
+    );
+
+    const formatButton = screen.getByText('Format').closest('button');
+    expect(formatButton?.disabled).toBe(false);
+  });
 });

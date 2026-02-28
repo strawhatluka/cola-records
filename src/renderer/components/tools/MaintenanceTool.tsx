@@ -36,6 +36,9 @@ import { HooksPanel } from './HooksPanel';
 import { HooksEditor } from './HooksEditor';
 import { EditorConfigPanel } from './EditorConfigPanel';
 import { EditorConfigEditor } from './EditorConfigEditor';
+import { FormatPanel } from './FormatPanel';
+import { FormatEditor } from './FormatEditor';
+import { IgnoreFileEditor } from './IgnoreFileEditor';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -64,6 +67,9 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
   const [hooksEditorOpen, setHooksEditorOpen] = useState(false);
   const [editorConfigPanelOpen, setEditorConfigPanelOpen] = useState(false);
   const [editorConfigEditorOpen, setEditorConfigEditorOpen] = useState(false);
+  const [formatPanelOpen, setFormatPanelOpen] = useState(false);
+  const [formatEditorOpen, setFormatEditorOpen] = useState(false);
+  const [ignoreEditorOpen, setIgnoreEditorOpen] = useState(false);
 
   // Detect project on mount and when workingDirectory changes
   useEffect(() => {
@@ -234,6 +240,28 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     );
   }
 
+  // When format editor is open, render it instead of the normal Tool Box
+  if (formatEditorOpen && projectInfo) {
+    return (
+      <FormatEditor
+        workingDirectory={workingDirectory}
+        ecosystem={projectInfo.ecosystem}
+        onClose={() => setFormatEditorOpen(false)}
+      />
+    );
+  }
+
+  // When ignore file editor is open, render it instead of the normal Tool Box
+  if (ignoreEditorOpen && projectInfo) {
+    return (
+      <IgnoreFileEditor
+        workingDirectory={workingDirectory}
+        ecosystem={projectInfo.ecosystem}
+        onClose={() => setIgnoreEditorOpen(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col h-full p-4 gap-4 overflow-auto styled-scroll">
       {/* Info Section */}
@@ -279,7 +307,11 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
             <p className="text-xs text-muted-foreground">Detecting project...</p>
           ) : hasProject ? (
             <div className="flex flex-wrap gap-2">
-              <WorkflowButtons commands={projectInfo!.commands} onRunCommand={onRunCommand} />
+              <WorkflowButtons
+                commands={projectInfo!.commands}
+                onRunCommand={onRunCommand}
+                onFormatClick={() => setFormatPanelOpen((prev) => !prev)}
+              />
               <button
                 onClick={() => setBranchDialogOpen(true)}
                 className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent min-w-[64px] transition-colors"
@@ -291,6 +323,17 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Could not detect project</p>
+          )}
+          {formatPanelOpen && projectInfo && (
+            <FormatPanel
+              workingDirectory={workingDirectory}
+              ecosystem={projectInfo.ecosystem}
+              formatCommand={projectInfo.commands.format}
+              onClose={() => setFormatPanelOpen(false)}
+              onOpenEditor={() => setFormatEditorOpen(true)}
+              onOpenIgnoreEditor={() => setIgnoreEditorOpen(true)}
+              onRunCommand={onRunCommand}
+            />
           )}
         </div>
       </div>

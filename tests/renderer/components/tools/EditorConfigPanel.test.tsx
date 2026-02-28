@@ -146,7 +146,8 @@ describe('EditorConfigPanel', () => {
   it('calls onConfigDeleted after successful delete', async () => {
     render(<EditorConfigPanel {...defaultProps} hasEditorConfig={true} />);
     await userEvent.click(screen.getByText('Delete'));
-    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    const deleteButtons = screen.getAllByRole('button', { name: 'Delete' });
+    await userEvent.click(deleteButtons[deleteButtons.length - 1]);
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith('dev-tools:delete-editorconfig', '/test/project');

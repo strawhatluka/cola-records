@@ -248,6 +248,13 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:create-editorconfig',
     'dev-tools:delete-editorconfig',
     'dev-tools:get-editorconfig-presets',
+    'dev-tools:detect-formatter',
+    'dev-tools:read-format-config',
+    'dev-tools:write-format-config',
+    'dev-tools:get-format-presets',
+    'dev-tools:create-format-ignore',
+    'dev-tools:read-format-ignore',
+    'dev-tools:write-format-ignore',
   ];
 
   channels.forEach((channel) => {

@@ -627,6 +627,36 @@ export interface EditorConfigFile {
   sections: EditorConfigSection[];
 }
 
+// Format Config Types
+export type FormatterType = 'prettier' | 'ruff' | 'black' | 'rustfmt' | 'gofmt' | 'rubocop';
+
+export interface FormatterInfo {
+  formatter: FormatterType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+}
+
+export interface PrettierConfig {
+  semi?: boolean;
+  trailingComma?: 'none' | 'es5' | 'all';
+  singleQuote?: boolean;
+  printWidth?: number;
+  tabWidth?: number;
+  useTabs?: boolean;
+  arrowParens?: 'avoid' | 'always';
+  endOfLine?: 'lf' | 'crlf' | 'cr' | 'auto';
+  bracketSpacing?: boolean;
+  jsxSingleQuote?: boolean;
+  quoteProps?: 'as-needed' | 'consistent' | 'preserve';
+  proseWrap?: 'always' | 'never' | 'preserve';
+}
+
+export interface FormatterConfig {
+  formatter: FormatterType;
+  config: PrettierConfig | Record<string, unknown>;
+  configPath: string;
+}
+
 export interface EnvVar {
   key: string;
   value: string;

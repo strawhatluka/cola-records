@@ -32,6 +32,10 @@ import type {
   LintStagedRule,
   EditorConfigFile,
   EditorConfigSection,
+  FormatterType,
+  FormatterInfo,
+  FormatterConfig,
+  PrettierConfig,
 } from './types';
 
 export interface CoreChannels {
@@ -193,4 +197,27 @@ export interface CoreChannels {
   ) => SetUpActionResult;
   'dev-tools:delete-editorconfig': (workingDirectory: string) => SetUpActionResult;
   'dev-tools:get-editorconfig-presets': (ecosystem: Ecosystem) => EditorConfigSection[];
+
+  // Dev Tools — Format Config Management Channels
+  'dev-tools:detect-formatter': (workingDirectory: string, ecosystem: Ecosystem) => FormatterInfo;
+  'dev-tools:read-format-config': (configPath: string, formatter: FormatterType) => FormatterConfig;
+  'dev-tools:write-format-config': (
+    workingDirectory: string,
+    formatter: FormatterType,
+    config: PrettierConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-format-presets': (
+    ecosystem: Ecosystem,
+    formatter: FormatterType | null
+  ) => PrettierConfig | Record<string, unknown>;
+  'dev-tools:create-format-ignore': (
+    workingDirectory: string,
+    formatter: FormatterType
+  ) => SetUpActionResult;
+  'dev-tools:read-format-ignore': (workingDirectory: string, formatter: FormatterType) => string;
+  'dev-tools:write-format-ignore': (
+    workingDirectory: string,
+    formatter: FormatterType,
+    content: string
+  ) => SetUpActionResult;
 }

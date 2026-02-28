@@ -402,6 +402,97 @@ describe('MaintenanceTool', () => {
     });
   });
 
+  it('opens FormatPanel when Format button in Workflows clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({ formatter: null, configPath: null, hasConfig: false });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Format')).toBeDefined();
+    });
+
+    const formatButton = screen.getByText('Format').closest('button')!;
+    await userEvent.click(formatButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Format Config')).toBeDefined();
+    });
+  });
+
+  it('closes FormatPanel when Format button clicked again (toggle)', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({ formatter: null, configPath: null, hasConfig: false });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Format')).toBeDefined();
+    });
+
+    const formatButton = screen.getByText('Format').closest('button')!;
+    await userEvent.click(formatButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Format Config')).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(formatButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Format Config')).toBeNull();
+    });
+  });
+
+  it('Format button in Workflows is always enabled (even without format command)', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Format')).toBeDefined();
+    });
+
+    const formatButton = screen.getByText('Format').closest('button');
+    expect(formatButton?.disabled).toBe(false);
+  });
+
+  it('shows Edit Ignore in FormatPanel when ignore file exists', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'prettier',
+          configPath: '/test/.prettierrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('node_modules/\n');
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Format')).toBeDefined();
+    });
+
+    const formatButton = screen.getByText('Format').closest('button')!;
+    await userEvent.click(formatButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Ignore')).toBeDefined();
+    });
+    expect(screen.queryByText('Create Ignore')).toBeNull();
+  });
+
   it('shows actions mode in EditorConfigPanel when hasEditorConfig is true', async () => {
     mockInvoke.mockImplementation((channel: string) => {
       if (channel === 'dev-tools:detect-project')

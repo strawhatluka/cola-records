@@ -12,6 +12,7 @@ import type { ProjectCommands } from '../../../main/ipc/channels/types';
 interface WorkflowButtonsProps {
   commands: ProjectCommands;
   onRunCommand: (command: string) => void;
+  onFormatClick?: () => void;
 }
 
 interface WorkflowButton {
@@ -28,19 +29,26 @@ const buttons: WorkflowButton[] = [
   { id: 'build', label: 'Build', icon: Hammer },
 ];
 
-export function WorkflowButtons({ commands, onRunCommand }: WorkflowButtonsProps) {
+export function WorkflowButtons({ commands, onRunCommand, onFormatClick }: WorkflowButtonsProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {buttons.map((btn) => {
         const Icon = btn.icon;
         const command = commands[btn.id];
-        const disabled = !command;
+        const isFormat = btn.id === 'format';
+        const disabled = isFormat && onFormatClick ? false : !command;
 
         return (
           <button
             key={btn.id}
             disabled={disabled}
-            onClick={() => command && onRunCommand(command)}
+            onClick={() => {
+              if (isFormat && onFormatClick) {
+                onFormatClick();
+              } else if (command) {
+                onRunCommand(command);
+              }
+            }}
             className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed min-w-[64px] transition-colors"
             title={command ?? `No ${btn.label.toLowerCase()} command detected`}
           >
