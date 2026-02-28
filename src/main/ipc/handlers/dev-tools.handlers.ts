@@ -15,6 +15,7 @@ import { projectDetectionService } from '../../services/project-detection.servic
 import { diskUsageService } from '../../services/disk-usage.service';
 import { envScannerService } from '../../services/env-scanner.service';
 import { envFileService } from '../../services/env-file.service';
+import { hooksService } from '../../services/hooks.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -212,6 +213,39 @@ export function setupDevToolsHandlers(): void {
 
   handleIpc('dev-tools:sync-env-files', async (_event, workingDirectory, ecosystem) => {
     return await envFileService.syncEnvFiles(workingDirectory, ecosystem);
+  });
+
+  // Dev Tools — Hooks Management handlers
+  handleIpc('dev-tools:detect-hooks', async (_event, workingDirectory, ecosystem) => {
+    return await hooksService.detect(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:setup-hook-tool', async (_event, workingDirectory, tool, ecosystem) => {
+    return await hooksService.setupHookTool(workingDirectory, tool, ecosystem);
+  });
+
+  handleIpc('dev-tools:get-hook-install-cmd', async (_event, tool) => {
+    return hooksService.getInstallCommand(tool);
+  });
+
+  handleIpc('dev-tools:read-hooks-config', async (_event, workingDirectory, tool) => {
+    return await hooksService.readConfig(workingDirectory, tool);
+  });
+
+  handleIpc('dev-tools:write-hooks-config', async (_event, workingDirectory, config) => {
+    return await hooksService.writeConfig(workingDirectory, config);
+  });
+
+  handleIpc('dev-tools:setup-lint-staged', async (_event, workingDirectory, config) => {
+    return await hooksService.setupLintStaged(workingDirectory, config);
+  });
+
+  handleIpc('dev-tools:get-hook-presets', async (_event, ecosystem, tool) => {
+    return hooksService.getPresetActions(ecosystem, tool);
+  });
+
+  handleIpc('dev-tools:get-lint-staged-presets', async (_event, ecosystem) => {
+    return hooksService.getLintStagedPresets(ecosystem);
   });
 
   handleIpc('dev-tools:setup-editor-config', async (_event, workingDirectory) => {

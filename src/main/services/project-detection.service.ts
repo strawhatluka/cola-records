@@ -15,6 +15,7 @@ import type {
   ProjectCommands,
   ProjectInfo,
   CleanTarget,
+  HookTool,
 } from '../ipc/channels/types';
 
 const logger = createLogger('project-detection');
@@ -142,10 +143,11 @@ const CLEAN_COMMANDS: Partial<Record<Ecosystem, string>> = {
 };
 
 /** Hook tool install commands */
-const HOOK_INSTALL_COMMANDS: Record<string, string> = {
+const HOOK_INSTALL_COMMANDS: Record<HookTool, string> = {
   husky: 'npx husky init',
   lefthook: 'npx lefthook install',
   'pre-commit': 'pre-commit install',
+  'simple-git-hooks': 'npx simple-git-hooks',
 };
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -295,12 +297,22 @@ function resolveStaticCommands(ecosystem: Ecosystem, pm: PackageManager): Projec
   }
 }
 
-async function detectHookTool(
-  directory: string
-): Promise<'husky' | 'lefthook' | 'pre-commit' | null> {
+async function detectHookTool(directory: string): Promise<HookTool | null> {
   if (await fileExists(path.join(directory, '.husky'))) return 'husky';
   if (await fileExists(path.join(directory, 'lefthook.yml'))) return 'lefthook';
   if (await fileExists(path.join(directory, '.pre-commit-config.yaml'))) return 'pre-commit';
+
+  // simple-git-hooks: check for .simple-git-hooks.json or package.json key
+  if (await fileExists(path.join(directory, '.simple-git-hooks.json'))) return 'simple-git-hooks';
+  try {
+    const pkgPath = path.join(directory, 'package.json');
+    const content = await fs.readFile(pkgPath, 'utf-8');
+    const pkg = JSON.parse(content) as Record<string, unknown>;
+    if (pkg['simple-git-hooks']) return 'simple-git-hooks';
+  } catch {
+    // package.json missing or unreadable — skip
+  }
+
   return null;
 }
 
@@ -362,7 +374,7 @@ class ProjectDetectionService {
     return 'git init';
   }
 
-  getHookInstallCommand(hookTool: string | null): string | null {
+  getHookInstallCommand(hookTool: HookTool | null): string | null {
     if (!hookTool) return null;
     return HOOK_INSTALL_COMMANDS[hookTool] ?? null;
   }

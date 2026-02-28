@@ -51,6 +51,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **EnvFileService** (`env-file.service.ts`): discover, create, read, write, and sync `.env` files including nested subdirectories; sync operation rescans codebase → appends new vars to `.env.example` → propagates missing keys to sibling `.env*` files
   - 7 new IPC channels (`dev-tools:scan-env-variables`, `dev-tools:discover-env-files`, `dev-tools:create-env-example`, `dev-tools:create-env-file`, `dev-tools:read-env-file`, `dev-tools:write-env-file`, `dev-tools:sync-env-files`)
   - 5 new types (`EnvSourceLocation`, `EnvVariable`, `EnvScanResult`, `EnvFileInfo`, `EnvSyncResult`)
+- Dev Tools — Hooks button expanded into full-featured Git hooks management tool ([#57](https://github.com/lukadfagundes/cola-records/issues/57))
+  - **Hooks button** always enabled (no longer disabled when no hook tool detected); click toggles an inline management panel
+  - **HooksPanel** (`HooksPanel.tsx`): setup wizard when no hooks detected (tool selection cards with recommendations, lint-staged checkbox, "Set Up" button), action buttons when hooks detected (Install, Edit Config, Add Presets, Lint-Staged, Info)
+  - **HooksEditor** (`HooksEditor.tsx`): full-view tabbed config editor replacing Tool Box view; tabs per git hook stage (pre-commit, commit-msg, pre-push, post-merge, post-checkout), toggleable action rows with enable/disable switches, add custom actions or select from presets, lint-staged sub-panel with glob pattern rules, Save (Ctrl+S), dirty tracking, unsaved changes prompt
+  - **HooksService** (`hooks.service.ts`): detect, read, write, and manage Git hooks for all 4 hook systems — Husky (shell scripts in `.husky/`), pre-commit (`.pre-commit-config.yaml` via line-based templating), Lefthook (`lefthook.yml` via line-based templating), simple-git-hooks (`.simple-git-hooks.json` or `package.json` key)
+  - **Ecosystem-aware presets**: Node.js (lint-staged, npm test, tsc --noEmit, commitlint), Python (ruff check/format), Rust (cargo fmt/clippy/test), Go (go vet/test) with npm script support for pre-commit actions
+  - **lint-staged integration**: read/write `lint-staged` config in `package.json`, preset rules per ecosystem (e.g. `*.{ts,tsx}` → eslint --fix + prettier --write), shown only for Husky/simple-git-hooks
+  - **simple-git-hooks support** added to project detection (`.simple-git-hooks.json` or `package.json` key), extending detection from 3 to 4 hook systems
+  - 8 new IPC channels (`dev-tools:detect-hooks`, `dev-tools:setup-hook-tool`, `dev-tools:get-hook-install-cmd`, `dev-tools:read-hooks-config`, `dev-tools:write-hooks-config`, `dev-tools:setup-lint-staged`, `dev-tools:get-hook-presets`, `dev-tools:get-lint-staged-presets`)
+  - 9 new types (`HookTool`, `GitHookName`, `HookAction`, `LintStagedRule`, `LintStagedConfig`, `HookConfig`, `HookToolRecommendation`, `HooksDetectionResult`, `HooksSetupResult`)
 
 ### Removed
 

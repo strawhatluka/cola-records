@@ -502,6 +502,55 @@ export interface DiskUsageResult {
   scanDurationMs: number;
 }
 
+// Hook Tool Types
+export type HookTool = 'husky' | 'lefthook' | 'pre-commit' | 'simple-git-hooks';
+export type GitHookName = 'pre-commit' | 'commit-msg' | 'pre-push' | 'post-merge' | 'post-checkout';
+
+export interface HookAction {
+  id: string;
+  label: string;
+  command: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface LintStagedRule {
+  id: string;
+  pattern: string;
+  commands: string[];
+  enabled: boolean;
+}
+
+export interface LintStagedConfig {
+  enabled: boolean;
+  rules: LintStagedRule[];
+}
+
+export interface HookConfig {
+  hookTool: HookTool;
+  hooks: Record<GitHookName, HookAction[]>;
+  lintStaged: LintStagedConfig | null;
+}
+
+export interface HookToolRecommendation {
+  tool: HookTool;
+  reason: string;
+  supportsLintStaged: boolean;
+}
+
+export interface HooksDetectionResult {
+  detected: HookTool | null;
+  recommendations: HookToolRecommendation[];
+  ecosystem: Ecosystem;
+  hasLintStaged: boolean;
+  existingConfig: HookConfig | null;
+}
+
+export interface HooksSetupResult {
+  success: boolean;
+  message: string;
+}
+
 export interface ProjectInfo {
   ecosystem: Ecosystem;
   packageManager: PackageManager;
@@ -511,7 +560,7 @@ export interface ProjectInfo {
   hasEnv: boolean;
   hasEnvExample: boolean;
   hasEditorConfig: boolean;
-  hookTool: 'husky' | 'lefthook' | 'pre-commit' | null;
+  hookTool: HookTool | null;
   typeChecker: string | null;
 }
 

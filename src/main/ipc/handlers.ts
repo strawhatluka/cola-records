@@ -236,6 +236,14 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:read-env-file',
     'dev-tools:write-env-file',
     'dev-tools:sync-env-files',
+    'dev-tools:detect-hooks',
+    'dev-tools:setup-hook-tool',
+    'dev-tools:get-hook-install-cmd',
+    'dev-tools:read-hooks-config',
+    'dev-tools:write-hooks-config',
+    'dev-tools:setup-lint-staged',
+    'dev-tools:get-hook-presets',
+    'dev-tools:get-lint-staged-presets',
   ];
 
   channels.forEach((channel) => {

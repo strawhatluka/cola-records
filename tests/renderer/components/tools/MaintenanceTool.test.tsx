@@ -234,6 +234,87 @@ describe('MaintenanceTool', () => {
     });
   });
 
+  it('Hooks button is always enabled (even when hookTool is null)', async () => {
+    const projectNoHooks: ProjectInfo = { ...mockProjectInfo, hookTool: null };
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(projectNoHooks);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Hooks')).toBeDefined();
+    });
+    const hooksButton = screen.getByText('Hooks').closest('button');
+    expect(hooksButton?.disabled).toBe(false);
+  });
+
+  it('opens HooksPanel when Hooks clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-hooks')
+        return Promise.resolve({
+          detected: 'husky',
+          recommendations: [],
+          ecosystem: 'node',
+          hasLintStaged: false,
+          existingConfig: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Hooks')).toBeDefined();
+    });
+
+    const hooksButton = screen.getByText('Hooks').closest('button')!;
+    await userEvent.click(hooksButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Git Hooks')).toBeDefined();
+    });
+  });
+
+  it('closes HooksPanel when Hooks clicked again (toggle)', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-hooks')
+        return Promise.resolve({
+          detected: 'husky',
+          recommendations: [],
+          ecosystem: 'node',
+          hasLintStaged: false,
+          existingConfig: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Hooks')).toBeDefined();
+    });
+
+    const hooksButton = screen.getByText('Hooks').closest('button')!;
+    await userEvent.click(hooksButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Git Hooks')).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(hooksButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Git Hooks')).toBeNull();
+    });
+  });
+
   it('shows "Could not detect project" for unknown ecosystem', async () => {
     const unknownProject: ProjectInfo = {
       ...mockProjectInfo,

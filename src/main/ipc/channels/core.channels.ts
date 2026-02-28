@@ -22,6 +22,14 @@ import type {
   EnvScanResult,
   EnvFileInfo,
   EnvSyncResult,
+  HookTool,
+  HookConfig,
+  HooksDetectionResult,
+  HooksSetupResult,
+  GitHookName,
+  HookAction,
+  LintStagedConfig,
+  LintStagedRule,
 } from './types';
 
 export interface CoreChannels {
@@ -145,4 +153,30 @@ export interface CoreChannels {
   'dev-tools:read-env-file': (filePath: string) => string;
   'dev-tools:write-env-file': (filePath: string, content: string) => SetUpActionResult;
   'dev-tools:sync-env-files': (workingDirectory: string, ecosystem: Ecosystem) => EnvSyncResult;
+
+  // Dev Tools — Hooks Management Channels
+  'dev-tools:detect-hooks': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => HooksDetectionResult;
+  'dev-tools:setup-hook-tool': (
+    workingDirectory: string,
+    tool: HookTool,
+    ecosystem: Ecosystem
+  ) => HooksSetupResult;
+  'dev-tools:get-hook-install-cmd': (tool: HookTool) => string;
+  'dev-tools:read-hooks-config': (workingDirectory: string, tool: HookTool) => HookConfig;
+  'dev-tools:write-hooks-config': (
+    workingDirectory: string,
+    config: HookConfig
+  ) => SetUpActionResult;
+  'dev-tools:setup-lint-staged': (
+    workingDirectory: string,
+    config: LintStagedConfig
+  ) => SetUpActionResult;
+  'dev-tools:get-hook-presets': (
+    ecosystem: Ecosystem,
+    tool: HookTool
+  ) => Record<GitHookName, HookAction[]>;
+  'dev-tools:get-lint-staged-presets': (ecosystem: Ecosystem) => LintStagedRule[];
 }

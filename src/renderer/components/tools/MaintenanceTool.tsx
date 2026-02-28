@@ -32,6 +32,8 @@ import { UpdateSection } from './UpdateSection';
 import { InfoSection } from './InfoSection';
 import { EnvPanel } from './EnvPanel';
 import { EnvEditor } from './EnvEditor';
+import { HooksPanel } from './HooksPanel';
+import { HooksEditor } from './HooksEditor';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -56,6 +58,8 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
   const [branchDialogOpen, setBranchDialogOpen] = useState(false);
   const [envPanelOpen, setEnvPanelOpen] = useState(false);
   const [envEditorOpen, setEnvEditorOpen] = useState(false);
+  const [hooksPanelOpen, setHooksPanelOpen] = useState(false);
+  const [hooksEditorOpen, setHooksEditorOpen] = useState(false);
 
   // Detect project on mount and when workingDirectory changes
   useEffect(() => {
@@ -113,15 +117,9 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     }
   }, [onRunCommand, setButtonLoading]);
 
-  const handleHooks = useCallback(async () => {
-    setButtonLoading('hooks', true);
-    try {
-      const command = await ipc.invoke('dev-tools:get-hooks-command', workingDirectory);
-      if (command) onRunCommand(command);
-    } finally {
-      setButtonLoading('hooks', false);
-    }
-  }, [workingDirectory, onRunCommand, setButtonLoading]);
+  const handleHooks = useCallback(() => {
+    setHooksPanelOpen((prev) => !prev);
+  }, []);
 
   const handleEditorConfig = useCallback(async () => {
     setButtonLoading('editor-config', true);
@@ -176,7 +174,7 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
           id: 'hooks',
           label: 'Hooks',
           icon: ShieldCheck,
-          disabled: !projectInfo.hookTool,
+          disabled: false,
           loading: buttonStates['hooks']?.loading ?? false,
           status: buttonStates['hooks']?.status ?? null,
         },
@@ -212,6 +210,18 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
   if (envEditorOpen) {
     return (
       <EnvEditor workingDirectory={workingDirectory} onClose={() => setEnvEditorOpen(false)} />
+    );
+  }
+
+  // When hooks editor is open, render it instead of the normal Tool Box
+  if (hooksEditorOpen && projectInfo?.hookTool) {
+    return (
+      <HooksEditor
+        workingDirectory={workingDirectory}
+        hookTool={projectInfo.hookTool}
+        ecosystem={projectInfo.ecosystem}
+        onClose={() => setHooksEditorOpen(false)}
+      />
     );
   }
 
@@ -324,6 +334,20 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
                   ecosystem={projectInfo.ecosystem}
                   onClose={() => setEnvPanelOpen(false)}
                   onOpenEditor={() => setEnvEditorOpen(true)}
+                />
+              )}
+              {hooksPanelOpen && projectInfo && (
+                <HooksPanel
+                  workingDirectory={workingDirectory}
+                  ecosystem={projectInfo.ecosystem}
+                  hookTool={projectInfo.hookTool}
+                  onClose={() => setHooksPanelOpen(false)}
+                  onOpenEditor={() => setHooksEditorOpen(true)}
+                  onRunCommand={onRunCommand}
+                  onSetupComplete={(tool) => {
+                    setProjectInfo((prev) => (prev ? { ...prev, hookTool: tool } : prev));
+                    setHooksPanelOpen(false);
+                  }}
                 />
               )}
             </>
