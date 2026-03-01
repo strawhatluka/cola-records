@@ -36,6 +36,11 @@ import type {
   FormatterInfo,
   FormatterConfig,
   PrettierConfig,
+  TestFrameworkType,
+  TestFrameworkInfo,
+  TestFrameworkConfig,
+  VitestConfig,
+  JestConfig,
 } from './types';
 
 export interface CoreChannels {
@@ -220,4 +225,23 @@ export interface CoreChannels {
     formatter: FormatterType,
     content: string
   ) => SetUpActionResult;
+
+  // Dev Tools — Test Config Management Channels
+  'dev-tools:detect-test-framework': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => TestFrameworkInfo;
+  'dev-tools:read-test-config': (
+    configPath: string,
+    framework: TestFrameworkType
+  ) => TestFrameworkConfig;
+  'dev-tools:write-test-config': (
+    workingDirectory: string,
+    framework: TestFrameworkType,
+    config: VitestConfig | JestConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-test-presets': (
+    ecosystem: Ecosystem,
+    framework: TestFrameworkType | null
+  ) => VitestConfig | JestConfig | Record<string, unknown>;
 }

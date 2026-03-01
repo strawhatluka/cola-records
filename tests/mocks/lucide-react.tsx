@@ -143,6 +143,9 @@ export const FileCog = createIcon('FileCog');
 // Format panel icons
 export const FileX = createIcon('FileX');
 
+// Test panel icons
+export const Eye = createIcon('Eye');
+
 // Hooks panel/editor icons
 export const Download = createIcon('Download');
 export const Sparkles = createIcon('Sparkles');

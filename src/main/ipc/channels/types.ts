@@ -657,6 +657,49 @@ export interface FormatterConfig {
   configPath: string;
 }
 
+// Test Config Types
+export type TestFrameworkType =
+  | 'vitest'
+  | 'jest'
+  | 'mocha'
+  | 'pytest'
+  | 'go-test'
+  | 'rspec'
+  | 'phpunit'
+  | 'cargo-test'
+  | 'junit';
+
+export interface TestFrameworkInfo {
+  framework: TestFrameworkType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+  coverageCommand: string | null;
+  watchCommand: string | null;
+}
+
+export interface VitestConfig {
+  environment?: 'jsdom' | 'happy-dom' | 'node' | 'edge-runtime';
+  globals?: boolean;
+  coverageProvider?: 'v8' | 'istanbul';
+  coverageStatements?: number;
+  coverageBranches?: number;
+  coverageFunctions?: number;
+  coverageLines?: number;
+  testTimeout?: number;
+}
+
+export interface JestConfig {
+  testEnvironment?: 'jsdom' | 'node';
+  collectCoverage?: boolean;
+  coverageProvider?: 'v8' | 'babel';
+}
+
+export interface TestFrameworkConfig {
+  framework: TestFrameworkType;
+  config: VitestConfig | JestConfig | Record<string, unknown>;
+  configPath: string;
+}
+
 export interface EnvVar {
   key: string;
   value: string;

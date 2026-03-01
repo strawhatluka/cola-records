@@ -129,16 +129,21 @@ describe('MaintenanceTool', () => {
     });
   });
 
-  it('renders Workflows section with buttons after detection', async () => {
+  it('renders Workflows section with only New Branch after detection', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     expect(screen.getByText('Workflows')).toBeDefined();
-    // Wait for detection to complete and buttons to render
+    await waitFor(() => {
+      expect(screen.getByText('New Branch')).toBeDefined();
+    });
+  });
+
+  it('renders workflow command buttons (Lint, Test, Build) in Set Up section', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
     await waitFor(() => {
       expect(screen.getByText('Lint')).toBeDefined();
     });
     expect(screen.getByText('Test')).toBeDefined();
     expect(screen.getByText('Build')).toBeDefined();
-    expect(screen.getByText('New Branch')).toBeDefined();
   });
 
   it('renders Update and Info section headers', async () => {
@@ -402,7 +407,7 @@ describe('MaintenanceTool', () => {
     });
   });
 
-  it('opens FormatPanel when Format button in Workflows clicked', async () => {
+  it('opens FormatPanel when Format button clicked', async () => {
     mockInvoke.mockImplementation((channel: string) => {
       if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
       if (channel === 'git:get-remotes') return Promise.resolve([]);
@@ -454,7 +459,7 @@ describe('MaintenanceTool', () => {
     });
   });
 
-  it('Format button in Workflows is always enabled (even without format command)', async () => {
+  it('Format button is always enabled (even without format command)', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     await waitFor(() => {
       expect(screen.getByText('Format')).toBeDefined();
@@ -491,6 +496,80 @@ describe('MaintenanceTool', () => {
       expect(screen.getByText('Edit Ignore')).toBeDefined();
     });
     expect(screen.queryByText('Create Ignore')).toBeNull();
+  });
+
+  it('opens TestPanel when Test button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: null,
+          configPath: null,
+          hasConfig: false,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Test')).toBeDefined();
+    });
+
+    const testButton = screen.getByText('Test').closest('button')!;
+    await userEvent.click(testButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Config')).toBeDefined();
+    });
+  });
+
+  it('closes TestPanel when Test button clicked again (toggle)', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: null,
+          configPath: null,
+          hasConfig: false,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Test')).toBeDefined();
+    });
+
+    const testButton = screen.getByText('Test').closest('button')!;
+    await userEvent.click(testButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Config')).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(testButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Test Config')).toBeNull();
+    });
+  });
+
+  it('Test button is always enabled (even without test command)', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Test')).toBeDefined();
+    });
+
+    const testButton = screen.getByText('Test').closest('button');
+    expect(testButton?.disabled).toBe(false);
   });
 
   it('shows actions mode in EditorConfigPanel when hasEditorConfig is true', async () => {

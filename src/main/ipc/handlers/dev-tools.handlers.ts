@@ -18,6 +18,7 @@ import { envFileService } from '../../services/env-file.service';
 import { hooksService } from '../../services/hooks.service';
 import { editorconfigService } from '../../services/editorconfig.service';
 import { formatConfigService } from '../../services/format-config.service';
+import { testConfigService } from '../../services/test-config.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -305,4 +306,21 @@ export function setupDevToolsHandlers(): void {
       return await formatConfigService.writeIgnoreFile(workingDirectory, formatter, content);
     }
   );
+
+  // Dev Tools — Test Config Management handlers
+  handleIpc('dev-tools:detect-test-framework', async (_event, workingDirectory, ecosystem) => {
+    return await testConfigService.detectTestFramework(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:read-test-config', async (_event, configPath, framework) => {
+    return await testConfigService.readConfig(configPath, framework);
+  });
+
+  handleIpc('dev-tools:write-test-config', async (_event, workingDirectory, framework, config) => {
+    return await testConfigService.writeConfig(workingDirectory, framework, config);
+  });
+
+  handleIpc('dev-tools:get-test-presets', async (_event, ecosystem, framework) => {
+    return testConfigService.getPresets(ecosystem, framework);
+  });
 }

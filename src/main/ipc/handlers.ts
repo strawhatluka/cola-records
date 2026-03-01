@@ -255,6 +255,10 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:create-format-ignore',
     'dev-tools:read-format-ignore',
     'dev-tools:write-format-ignore',
+    'dev-tools:detect-test-framework',
+    'dev-tools:read-test-config',
+    'dev-tools:write-test-config',
+    'dev-tools:get-test-presets',
   ];
 
   channels.forEach((channel) => {

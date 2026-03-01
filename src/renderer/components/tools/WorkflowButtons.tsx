@@ -4,6 +4,7 @@
  * Five action buttons for day-to-day development workflow commands:
  * Lint, Format, Test, Coverage, Build.
  * Commands are resolved from ProjectInfo detected by the Set Up section.
+ * Format and Test buttons support click intercepts for opening their panels.
  */
 
 import { SearchCheck, AlignLeft, FlaskConical, PieChart, Hammer } from 'lucide-react';
@@ -13,6 +14,7 @@ interface WorkflowButtonsProps {
   commands: ProjectCommands;
   onRunCommand: (command: string) => void;
   onFormatClick?: () => void;
+  onTestClick?: () => void;
 }
 
 interface WorkflowButton {
@@ -29,14 +31,21 @@ const buttons: WorkflowButton[] = [
   { id: 'build', label: 'Build', icon: Hammer },
 ];
 
-export function WorkflowButtons({ commands, onRunCommand, onFormatClick }: WorkflowButtonsProps) {
+export function WorkflowButtons({
+  commands,
+  onRunCommand,
+  onFormatClick,
+  onTestClick,
+}: WorkflowButtonsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <>
       {buttons.map((btn) => {
         const Icon = btn.icon;
         const command = commands[btn.id];
         const isFormat = btn.id === 'format';
-        const disabled = isFormat && onFormatClick ? false : !command;
+        const isTest = btn.id === 'test';
+        const hasIntercept = (isFormat && onFormatClick) || (isTest && onTestClick);
+        const disabled = hasIntercept ? false : !command;
 
         return (
           <button
@@ -45,6 +54,8 @@ export function WorkflowButtons({ commands, onRunCommand, onFormatClick }: Workf
             onClick={() => {
               if (isFormat && onFormatClick) {
                 onFormatClick();
+              } else if (isTest && onTestClick) {
+                onTestClick();
               } else if (command) {
                 onRunCommand(command);
               }
@@ -57,6 +68,6 @@ export function WorkflowButtons({ commands, onRunCommand, onFormatClick }: Workf
           </button>
         );
       })}
-    </div>
+    </>
   );
 }

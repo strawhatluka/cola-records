@@ -169,4 +169,33 @@ describe('WorkflowButtons', () => {
     const formatButton = screen.getByText('Format').closest('button');
     expect(formatButton?.disabled).toBe(false);
   });
+
+  it('calls onTestClick instead of onRunCommand when Test button clicked with onTestClick prop', async () => {
+    const onRunCommand = vi.fn();
+    const onTestClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WorkflowButtons
+        commands={allCommands}
+        onRunCommand={onRunCommand}
+        onTestClick={onTestClick}
+      />
+    );
+
+    const testButton = screen.getByText('Test').closest('button')!;
+    await user.click(testButton);
+
+    expect(onTestClick).toHaveBeenCalled();
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  it('Test button is enabled when onTestClick is provided even with null test command', () => {
+    const onTestClick = vi.fn();
+    render(
+      <WorkflowButtons commands={noCommands} onRunCommand={vi.fn()} onTestClick={onTestClick} />
+    );
+
+    const testButton = screen.getByText('Test').closest('button');
+    expect(testButton?.disabled).toBe(false);
+  });
 });

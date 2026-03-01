@@ -2,10 +2,11 @@
  * MaintenanceTool (Dev Tools)
  *
  * Vertically stacked sections: Info, Update, Workflows, Set Up.
- * Set Up section contains 6 action buttons that adapt to the detected
- * project ecosystem. Env File button opens an inline panel with 6 env
- * management actions. Edit Example opens a full-size env file editor.
- * Workflows section has 5 command buttons + New Branch dialog.
+ * Set Up section contains 11 buttons in a single flex-wrap grid: workflow
+ * commands (Lint, Format, Test, Coverage, Build) then configuration actions
+ * (Install, Env File, Git Init, Hooks, Editor Config, TypeCheck).
+ * Format button opens FormatPanel. Test button opens TestPanel.
+ * Workflows section has the New Branch dialog.
  * Update section has 5 buttons: Update Deps, Audit, Pull Latest, Sync Fork, Clean.
  * Info section has 6 read-only buttons: Status, Log, Branches, Remotes, Disk Usage, Project Info.
  */
@@ -39,6 +40,8 @@ import { EditorConfigEditor } from './EditorConfigEditor';
 import { FormatPanel } from './FormatPanel';
 import { FormatEditor } from './FormatEditor';
 import { IgnoreFileEditor } from './IgnoreFileEditor';
+import { TestPanel } from './TestPanel';
+import { TestEditor } from './TestEditor';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -70,6 +73,8 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
   const [formatPanelOpen, setFormatPanelOpen] = useState(false);
   const [formatEditorOpen, setFormatEditorOpen] = useState(false);
   const [ignoreEditorOpen, setIgnoreEditorOpen] = useState(false);
+  const [testPanelOpen, setTestPanelOpen] = useState(false);
+  const [testEditorOpen, setTestEditorOpen] = useState(false);
 
   // Detect project on mount and when workingDirectory changes
   useEffect(() => {
@@ -262,6 +267,17 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     );
   }
 
+  // When test editor is open, render it instead of the normal Tool Box
+  if (testEditorOpen && projectInfo) {
+    return (
+      <TestEditor
+        workingDirectory={workingDirectory}
+        ecosystem={projectInfo.ecosystem}
+        onClose={() => setTestEditorOpen(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col h-full p-4 gap-4 overflow-auto styled-scroll">
       {/* Info Section */}
@@ -307,11 +323,6 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
             <p className="text-xs text-muted-foreground">Detecting project...</p>
           ) : hasProject ? (
             <div className="flex flex-wrap gap-2">
-              <WorkflowButtons
-                commands={projectInfo!.commands}
-                onRunCommand={onRunCommand}
-                onFormatClick={() => setFormatPanelOpen((prev) => !prev)}
-              />
               <button
                 onClick={() => setBranchDialogOpen(true)}
                 className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent min-w-[64px] transition-colors"
@@ -323,17 +334,6 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Could not detect project</p>
-          )}
-          {formatPanelOpen && projectInfo && (
-            <FormatPanel
-              workingDirectory={workingDirectory}
-              ecosystem={projectInfo.ecosystem}
-              formatCommand={projectInfo.commands.format}
-              onClose={() => setFormatPanelOpen(false)}
-              onOpenEditor={() => setFormatEditorOpen(true)}
-              onOpenIgnoreEditor={() => setIgnoreEditorOpen(true)}
-              onRunCommand={onRunCommand}
-            />
           )}
         </div>
       </div>
@@ -358,6 +358,12 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
           ) : hasProject ? (
             <>
               <div className="flex flex-wrap gap-2">
+                <WorkflowButtons
+                  commands={projectInfo!.commands}
+                  onRunCommand={onRunCommand}
+                  onFormatClick={() => setFormatPanelOpen((prev) => !prev)}
+                  onTestClick={() => setTestPanelOpen((prev) => !prev)}
+                />
                 {buttons.map((btn) => {
                   const Icon = btn.icon;
                   return (
@@ -380,6 +386,17 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
                   );
                 })}
               </div>
+              {formatPanelOpen && projectInfo && (
+                <FormatPanel
+                  workingDirectory={workingDirectory}
+                  ecosystem={projectInfo.ecosystem}
+                  formatCommand={projectInfo.commands.format}
+                  onClose={() => setFormatPanelOpen(false)}
+                  onOpenEditor={() => setFormatEditorOpen(true)}
+                  onOpenIgnoreEditor={() => setIgnoreEditorOpen(true)}
+                  onRunCommand={onRunCommand}
+                />
+              )}
               {envPanelOpen && projectInfo && (
                 <EnvPanel
                   workingDirectory={workingDirectory}
@@ -415,6 +432,16 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
                   onConfigDeleted={() => {
                     setProjectInfo((prev) => (prev ? { ...prev, hasEditorConfig: false } : prev));
                   }}
+                />
+              )}
+              {testPanelOpen && projectInfo && (
+                <TestPanel
+                  workingDirectory={workingDirectory}
+                  ecosystem={projectInfo.ecosystem}
+                  testCommand={projectInfo.commands.test}
+                  onClose={() => setTestPanelOpen(false)}
+                  onOpenEditor={() => setTestEditorOpen(true)}
+                  onRunCommand={onRunCommand}
                 />
               )}
             </>
