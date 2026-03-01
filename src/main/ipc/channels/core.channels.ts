@@ -45,6 +45,10 @@ import type {
   CoverageProviderInfo,
   CoverageConfig,
   VitestCoverageConfig,
+  BuildToolType,
+  BuildToolInfo,
+  BuildConfig,
+  ViteBuildConfig,
 } from './types';
 
 export interface CoreChannels {
@@ -268,4 +272,17 @@ export interface CoreChannels {
     provider: CoverageProviderType | null
   ) => VitestCoverageConfig | Record<string, unknown>;
   'dev-tools:open-coverage-report': (reportPath: string) => SetUpActionResult;
+
+  // Dev Tools — Build Config Management Channels
+  'dev-tools:detect-build-tool': (workingDirectory: string, ecosystem: Ecosystem) => BuildToolInfo;
+  'dev-tools:read-build-config': (configPath: string, buildTool: BuildToolType) => BuildConfig;
+  'dev-tools:write-build-config': (
+    workingDirectory: string,
+    buildTool: BuildToolType,
+    config: ViteBuildConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-build-presets': (
+    ecosystem: Ecosystem,
+    buildTool: BuildToolType | null
+  ) => ViteBuildConfig | Record<string, unknown>;
 }

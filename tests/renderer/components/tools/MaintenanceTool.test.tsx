@@ -644,6 +644,76 @@ describe('MaintenanceTool', () => {
     expect(coverageButton?.disabled).toBe(false);
   });
 
+  it('opens BuildPanel when Build button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-build-tool')
+        return Promise.resolve({
+          buildTool: null,
+          configPath: null,
+          hasConfig: false,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Build')).toBeDefined();
+    });
+
+    const buildButton = screen.getByText('Build').closest('button')!;
+    await userEvent.click(buildButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Build Config')).toBeDefined();
+    });
+  });
+
+  it('closes BuildPanel when Build button clicked again (toggle)', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-build-tool')
+        return Promise.resolve({
+          buildTool: null,
+          configPath: null,
+          hasConfig: false,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Build')).toBeDefined();
+    });
+
+    const buildButton = screen.getByText('Build').closest('button')!;
+    await userEvent.click(buildButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Build Config')).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(buildButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Build Config')).toBeNull();
+    });
+  });
+
+  it('Build button is always enabled (even without build command)', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Build')).toBeDefined();
+    });
+
+    const buildButton = screen.getByText('Build').closest('button');
+    expect(buildButton?.disabled).toBe(false);
+  });
+
   it('shows actions mode in EditorConfigPanel when hasEditorConfig is true', async () => {
     mockInvoke.mockImplementation((channel: string) => {
       if (channel === 'dev-tools:detect-project')

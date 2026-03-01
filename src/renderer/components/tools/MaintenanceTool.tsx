@@ -5,7 +5,7 @@
  * Set Up section contains 11 buttons in a single flex-wrap grid: workflow
  * commands (Lint, Format, Test, Coverage, Build) then configuration actions
  * (Install, Env File, Git Init, Hooks, Editor Config, TypeCheck).
- * Format button opens FormatPanel. Test button opens TestPanel. Coverage button opens CoveragePanel.
+ * Format button opens FormatPanel. Test button opens TestPanel. Coverage button opens CoveragePanel. Build button opens BuildPanel.
  * Workflows section has the New Branch dialog.
  * Update section has 5 buttons: Update Deps, Audit, Pull Latest, Sync Fork, Clean.
  * Info section has 6 read-only buttons: Status, Log, Branches, Remotes, Disk Usage, Project Info.
@@ -44,6 +44,8 @@ import { TestPanel } from './TestPanel';
 import { TestEditor } from './TestEditor';
 import { CoveragePanel } from './CoveragePanel';
 import { CoverageEditor } from './CoverageEditor';
+import { BuildPanel } from './BuildPanel';
+import { BuildEditor } from './BuildEditor';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -79,6 +81,8 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
   const [testEditorOpen, setTestEditorOpen] = useState(false);
   const [coveragePanelOpen, setCoveragePanelOpen] = useState(false);
   const [coverageEditorOpen, setCoverageEditorOpen] = useState(false);
+  const [buildPanelOpen, setBuildPanelOpen] = useState(false);
+  const [buildEditorOpen, setBuildEditorOpen] = useState(false);
 
   // Detect project on mount and when workingDirectory changes
   useEffect(() => {
@@ -293,6 +297,17 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     );
   }
 
+  // When build editor is open, render it instead of the normal Tool Box
+  if (buildEditorOpen && projectInfo) {
+    return (
+      <BuildEditor
+        workingDirectory={workingDirectory}
+        ecosystem={projectInfo.ecosystem}
+        onClose={() => setBuildEditorOpen(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col h-full p-4 gap-4 overflow-auto styled-scroll">
       {/* Info Section */}
@@ -379,6 +394,7 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
                   onFormatClick={() => setFormatPanelOpen((prev) => !prev)}
                   onTestClick={() => setTestPanelOpen((prev) => !prev)}
                   onCoverageClick={() => setCoveragePanelOpen((prev) => !prev)}
+                  onBuildClick={() => setBuildPanelOpen((prev) => !prev)}
                 />
                 {buttons.map((btn) => {
                   const Icon = btn.icon;
@@ -467,6 +483,16 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
                   coverageCommand={projectInfo.commands.coverage}
                   onClose={() => setCoveragePanelOpen(false)}
                   onOpenEditor={() => setCoverageEditorOpen(true)}
+                  onRunCommand={onRunCommand}
+                />
+              )}
+              {buildPanelOpen && projectInfo && (
+                <BuildPanel
+                  workingDirectory={workingDirectory}
+                  ecosystem={projectInfo.ecosystem}
+                  buildCommand={projectInfo.commands.build}
+                  onClose={() => setBuildPanelOpen(false)}
+                  onOpenEditor={() => setBuildEditorOpen(true)}
                   onRunCommand={onRunCommand}
                 />
               )}

@@ -739,6 +739,47 @@ export interface CoverageConfig {
   configPath: string;
 }
 
+// Build Config Types
+export type BuildToolType =
+  | 'vite'
+  | 'webpack'
+  | 'rollup'
+  | 'esbuild'
+  | 'tsc'
+  | 'parcel'
+  | 'setuptools'
+  | 'poetry-build'
+  | 'go-build'
+  | 'cargo-build'
+  | 'gradle'
+  | 'maven'
+  | 'bundler'
+  | 'composer';
+
+export interface BuildToolInfo {
+  buildTool: BuildToolType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+}
+
+export interface ViteBuildConfig {
+  outDir?: string;
+  target?: string;
+  sourcemap?: boolean | 'inline' | 'hidden';
+  minify?: boolean | 'terser' | 'esbuild';
+  cssMinify?: boolean;
+  manifest?: boolean;
+  emptyOutDir?: boolean;
+  assetsInlineLimit?: number;
+  chunkSizeWarningLimit?: number;
+}
+
+export interface BuildConfig {
+  buildTool: BuildToolType;
+  config: ViteBuildConfig | Record<string, unknown>;
+  configPath: string;
+}
+
 export interface EnvVar {
   key: string;
   value: string;

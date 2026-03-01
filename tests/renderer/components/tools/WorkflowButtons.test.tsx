@@ -231,4 +231,33 @@ describe('WorkflowButtons', () => {
     const coverageButton = screen.getByText('Coverage').closest('button');
     expect(coverageButton?.disabled).toBe(false);
   });
+
+  it('calls onBuildClick instead of onRunCommand when Build button clicked with onBuildClick prop', async () => {
+    const onRunCommand = vi.fn();
+    const onBuildClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WorkflowButtons
+        commands={allCommands}
+        onRunCommand={onRunCommand}
+        onBuildClick={onBuildClick}
+      />
+    );
+
+    const buildButton = screen.getByText('Build').closest('button')!;
+    await user.click(buildButton);
+
+    expect(onBuildClick).toHaveBeenCalled();
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  it('Build button is enabled when onBuildClick is provided even with null build command', () => {
+    const onBuildClick = vi.fn();
+    render(
+      <WorkflowButtons commands={noCommands} onRunCommand={vi.fn()} onBuildClick={onBuildClick} />
+    );
+
+    const buildButton = screen.getByText('Build').closest('button');
+    expect(buildButton?.disabled).toBe(false);
+  });
 });

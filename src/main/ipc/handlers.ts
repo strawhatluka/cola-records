@@ -264,6 +264,10 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:write-coverage-config',
     'dev-tools:get-coverage-presets',
     'dev-tools:open-coverage-report',
+    'dev-tools:detect-build-tool',
+    'dev-tools:read-build-config',
+    'dev-tools:write-build-config',
+    'dev-tools:get-build-presets',
   ];
 
   channels.forEach((channel) => {

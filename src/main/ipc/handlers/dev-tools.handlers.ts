@@ -20,6 +20,7 @@ import { editorconfigService } from '../../services/editorconfig.service';
 import { formatConfigService } from '../../services/format-config.service';
 import { testConfigService } from '../../services/test-config.service';
 import { coverageConfigService } from '../../services/coverage-config.service';
+import { buildConfigService } from '../../services/build-config.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -347,5 +348,22 @@ export function setupDevToolsHandlers(): void {
 
   handleIpc('dev-tools:open-coverage-report', async (_event, reportPath) => {
     return await coverageConfigService.openReport(reportPath);
+  });
+
+  // Dev Tools — Build Config Management handlers
+  handleIpc('dev-tools:detect-build-tool', async (_event, workingDirectory, ecosystem) => {
+    return await buildConfigService.detectBuildTool(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:read-build-config', async (_event, configPath, buildTool) => {
+    return await buildConfigService.readConfig(configPath, buildTool);
+  });
+
+  handleIpc('dev-tools:write-build-config', async (_event, workingDirectory, buildTool, config) => {
+    return await buildConfigService.writeConfig(workingDirectory, buildTool, config);
+  });
+
+  handleIpc('dev-tools:get-build-presets', async (_event, ecosystem, buildTool) => {
+    return buildConfigService.getPresets(ecosystem, buildTool);
   });
 }
