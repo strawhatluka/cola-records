@@ -572,6 +572,78 @@ describe('MaintenanceTool', () => {
     expect(testButton?.disabled).toBe(false);
   });
 
+  it('opens CoveragePanel when Coverage button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-coverage')
+        return Promise.resolve({
+          provider: null,
+          configPath: null,
+          hasConfig: false,
+          reportPath: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Coverage')).toBeDefined();
+    });
+
+    const coverageButton = screen.getByText('Coverage').closest('button')!;
+    await userEvent.click(coverageButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Coverage Config')).toBeDefined();
+    });
+  });
+
+  it('closes CoveragePanel when Coverage button clicked again (toggle)', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-coverage')
+        return Promise.resolve({
+          provider: null,
+          configPath: null,
+          hasConfig: false,
+          reportPath: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Coverage')).toBeDefined();
+    });
+
+    const coverageButton = screen.getByText('Coverage').closest('button')!;
+    await userEvent.click(coverageButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Coverage Config')).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(coverageButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Coverage Config')).toBeNull();
+    });
+  });
+
+  it('Coverage button is always enabled (even without coverage command)', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Coverage')).toBeDefined();
+    });
+
+    const coverageButton = screen.getByText('Coverage').closest('button');
+    expect(coverageButton?.disabled).toBe(false);
+  });
+
   it('shows actions mode in EditorConfigPanel when hasEditorConfig is true', async () => {
     mockInvoke.mockImplementation((channel: string) => {
       if (channel === 'dev-tools:detect-project')

@@ -198,4 +198,37 @@ describe('WorkflowButtons', () => {
     const testButton = screen.getByText('Test').closest('button');
     expect(testButton?.disabled).toBe(false);
   });
+
+  it('calls onCoverageClick instead of onRunCommand when Coverage button clicked with onCoverageClick prop', async () => {
+    const onRunCommand = vi.fn();
+    const onCoverageClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WorkflowButtons
+        commands={allCommands}
+        onRunCommand={onRunCommand}
+        onCoverageClick={onCoverageClick}
+      />
+    );
+
+    const coverageButton = screen.getByText('Coverage').closest('button')!;
+    await user.click(coverageButton);
+
+    expect(onCoverageClick).toHaveBeenCalled();
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  it('Coverage button is enabled when onCoverageClick is provided even with null coverage command', () => {
+    const onCoverageClick = vi.fn();
+    render(
+      <WorkflowButtons
+        commands={noCommands}
+        onRunCommand={vi.fn()}
+        onCoverageClick={onCoverageClick}
+      />
+    );
+
+    const coverageButton = screen.getByText('Coverage').closest('button');
+    expect(coverageButton?.disabled).toBe(false);
+  });
 });

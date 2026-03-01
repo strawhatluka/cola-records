@@ -4,7 +4,7 @@
  * Five action buttons for day-to-day development workflow commands:
  * Lint, Format, Test, Coverage, Build.
  * Commands are resolved from ProjectInfo detected by the Set Up section.
- * Format and Test buttons support click intercepts for opening their panels.
+ * Format, Test, and Coverage buttons support click intercepts for opening their panels.
  */
 
 import { SearchCheck, AlignLeft, FlaskConical, PieChart, Hammer } from 'lucide-react';
@@ -15,6 +15,7 @@ interface WorkflowButtonsProps {
   onRunCommand: (command: string) => void;
   onFormatClick?: () => void;
   onTestClick?: () => void;
+  onCoverageClick?: () => void;
 }
 
 interface WorkflowButton {
@@ -36,6 +37,7 @@ export function WorkflowButtons({
   onRunCommand,
   onFormatClick,
   onTestClick,
+  onCoverageClick,
 }: WorkflowButtonsProps) {
   return (
     <>
@@ -44,7 +46,9 @@ export function WorkflowButtons({
         const command = commands[btn.id];
         const isFormat = btn.id === 'format';
         const isTest = btn.id === 'test';
-        const hasIntercept = (isFormat && onFormatClick) || (isTest && onTestClick);
+        const isCoverage = btn.id === 'coverage';
+        const hasIntercept =
+          (isFormat && onFormatClick) || (isTest && onTestClick) || (isCoverage && onCoverageClick);
         const disabled = hasIntercept ? false : !command;
 
         return (
@@ -56,6 +60,8 @@ export function WorkflowButtons({
                 onFormatClick();
               } else if (isTest && onTestClick) {
                 onTestClick();
+              } else if (isCoverage && onCoverageClick) {
+                onCoverageClick();
               } else if (command) {
                 onRunCommand(command);
               }

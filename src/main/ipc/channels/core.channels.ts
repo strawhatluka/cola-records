@@ -41,6 +41,10 @@ import type {
   TestFrameworkConfig,
   VitestConfig,
   JestConfig,
+  CoverageProviderType,
+  CoverageProviderInfo,
+  CoverageConfig,
+  VitestCoverageConfig,
 } from './types';
 
 export interface CoreChannels {
@@ -244,4 +248,24 @@ export interface CoreChannels {
     ecosystem: Ecosystem,
     framework: TestFrameworkType | null
   ) => VitestConfig | JestConfig | Record<string, unknown>;
+
+  // Dev Tools — Coverage Config Management Channels
+  'dev-tools:detect-coverage': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => CoverageProviderInfo;
+  'dev-tools:read-coverage-config': (
+    configPath: string,
+    provider: CoverageProviderType
+  ) => CoverageConfig;
+  'dev-tools:write-coverage-config': (
+    workingDirectory: string,
+    provider: CoverageProviderType,
+    config: VitestCoverageConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-coverage-presets': (
+    ecosystem: Ecosystem,
+    provider: CoverageProviderType | null
+  ) => VitestCoverageConfig | Record<string, unknown>;
+  'dev-tools:open-coverage-report': (reportPath: string) => SetUpActionResult;
 }

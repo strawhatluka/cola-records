@@ -700,6 +700,45 @@ export interface TestFrameworkConfig {
   configPath: string;
 }
 
+// Coverage Config Types
+export type CoverageProviderType =
+  | 'v8'
+  | 'istanbul'
+  | 'nyc'
+  | 'coverage-py'
+  | 'go-cover'
+  | 'simplecov'
+  | 'phpunit'
+  | 'tarpaulin'
+  | 'jacoco';
+
+export interface CoverageProviderInfo {
+  provider: CoverageProviderType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+  reportPath: string | null;
+}
+
+export interface VitestCoverageConfig {
+  provider?: 'v8' | 'istanbul';
+  statements?: number;
+  branches?: number;
+  functions?: number;
+  lines?: number;
+  include?: string[];
+  exclude?: string[];
+  reporters?: string[];
+  reportsDirectory?: string;
+  all?: boolean;
+  cleanOnRerun?: boolean;
+}
+
+export interface CoverageConfig {
+  provider: CoverageProviderType;
+  config: VitestCoverageConfig | Record<string, unknown>;
+  configPath: string;
+}
+
 export interface EnvVar {
   key: string;
   value: string;

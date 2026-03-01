@@ -19,6 +19,7 @@ import { hooksService } from '../../services/hooks.service';
 import { editorconfigService } from '../../services/editorconfig.service';
 import { formatConfigService } from '../../services/format-config.service';
 import { testConfigService } from '../../services/test-config.service';
+import { coverageConfigService } from '../../services/coverage-config.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -322,5 +323,29 @@ export function setupDevToolsHandlers(): void {
 
   handleIpc('dev-tools:get-test-presets', async (_event, ecosystem, framework) => {
     return testConfigService.getPresets(ecosystem, framework);
+  });
+
+  // Dev Tools — Coverage Config Management handlers
+  handleIpc('dev-tools:detect-coverage', async (_event, workingDirectory, ecosystem) => {
+    return await coverageConfigService.detectCoverage(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:read-coverage-config', async (_event, configPath, provider) => {
+    return await coverageConfigService.readConfig(configPath, provider);
+  });
+
+  handleIpc(
+    'dev-tools:write-coverage-config',
+    async (_event, workingDirectory, provider, config) => {
+      return await coverageConfigService.writeConfig(workingDirectory, provider, config);
+    }
+  );
+
+  handleIpc('dev-tools:get-coverage-presets', async (_event, ecosystem, provider) => {
+    return coverageConfigService.getPresets(ecosystem, provider);
+  });
+
+  handleIpc('dev-tools:open-coverage-report', async (_event, reportPath) => {
+    return await coverageConfigService.openReport(reportPath);
   });
 }
