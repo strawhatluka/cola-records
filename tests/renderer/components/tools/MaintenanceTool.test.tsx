@@ -714,6 +714,76 @@ describe('MaintenanceTool', () => {
     expect(buildButton?.disabled).toBe(false);
   });
 
+  it('opens LintPanel when Lint button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-linter')
+        return Promise.resolve({
+          linter: null,
+          configPath: null,
+          hasConfig: false,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Lint')).toBeDefined();
+    });
+
+    const lintButton = screen.getByText('Lint').closest('button')!;
+    await userEvent.click(lintButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Lint Config')).toBeDefined();
+    });
+  });
+
+  it('closes LintPanel when Lint button clicked again (toggle)', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-linter')
+        return Promise.resolve({
+          linter: null,
+          configPath: null,
+          hasConfig: false,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Lint')).toBeDefined();
+    });
+
+    const lintButton = screen.getByText('Lint').closest('button')!;
+    await userEvent.click(lintButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Lint Config')).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(lintButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Lint Config')).toBeNull();
+    });
+  });
+
+  it('Lint button is always enabled (even without lint command)', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Lint')).toBeDefined();
+    });
+
+    const lintButton = screen.getByText('Lint').closest('button');
+    expect(lintButton?.disabled).toBe(false);
+  });
+
   it('shows actions mode in EditorConfigPanel when hasEditorConfig is true', async () => {
     mockInvoke.mockImplementation((channel: string) => {
       if (channel === 'dev-tools:detect-project')

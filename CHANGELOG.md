@@ -105,6 +105,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Clean Build**: per-tool output directory targets — Vite (`dist`), Webpack (`dist`, `build`), Rollup (`dist`), tsc (`dist`, `build`), cargo build (`target`), Gradle (`build`), Maven (`target`); combines `rm -rf <targets>` with build command in a single terminal execution
   - 4 new IPC channels (`dev-tools:detect-build-tool`, `dev-tools:read-build-config`, `dev-tools:write-build-config`, `dev-tools:get-build-presets`)
   - 4 new types (`BuildToolType`, `BuildToolInfo`, `ViteBuildConfig`, `BuildConfig`)
+- Dev Tools — Lint button expanded into full-featured linter configuration GUI ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
+  - **Lint button** in Workflows section now opens an inline panel instead of running a terminal command directly; always enabled (even when no lint command detected via `onLintClick` callback intercept)
+  - **LintPanel** (`LintPanel.tsx`): detects linter on mount (7 supported: ESLint, Ruff, Clippy, golangci-lint, RuboCop, PHPStan, Checkstyle); no-linter mode with "Create Config" button (Node only, creates `.eslintrc.json` with ecosystem presets); linter-detected mode with up to 3 action buttons — Run Lint (sends command to terminal), Lint Fix (shown only for ESLint/Ruff/RuboCop — runs `--fix` variant), Edit Config (opens LintEditor)
+  - **LintEditor** (`LintEditor.tsx`): full-view config editor replacing Tool Box view; **ESLint mode**: 2-column rich GUI with 7 property sections — Environments (7 common env checkboxes), Extends (string list), Plugins (string list), Parser (text input), Ignore Patterns (string list), Rules (key/value editor with off/warn/error dropdowns); **Generic mode**: textarea editor for JS/TS ESLint configs and non-ESLint linters; Save (Ctrl+S), dirty tracking, unsaved changes prompt with "Save and close" / "Close without saving"
+  - **LintConfigService** (`lint-config.service.ts`): detect linters across 7 ecosystems with config file priority and cross-ecosystem fallback, read/write JSON configs (ESLint structured parsing), ecosystem-aware presets for ESLint and Ruff
+  - **Linter detection**: Node → ESLint (`.eslintrc.json`, `eslint.config.js`, `eslint.config.mjs`, `eslint.config.ts`, `package.json` devDep); Python → Ruff (`ruff.toml`, `pyproject.toml [tool.ruff]`); Rust → Clippy (built-in); Go → golangci-lint (`.golangci.yml`, `.golangci.yaml`); Ruby → RuboCop (`.rubocop.yml`); PHP → PHPStan (`phpstan.neon`, `phpstan.neon.dist`); Java → Checkstyle (`checkstyle.xml`)
+  - 4 new IPC channels (`dev-tools:detect-linter`, `dev-tools:read-lint-config`, `dev-tools:write-lint-config`, `dev-tools:get-lint-presets`)
+  - 4 new types (`LinterType`, `LinterInfo`, `ESLintConfig`, `LintConfig`)
+
+### Changed
+
+- Git hooks pre-push actions now disabled by default for all ecosystem presets (Node, Python, Rust) — users can enable them via the Hooks GUI after installation ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
 
 ### Removed
 

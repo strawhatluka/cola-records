@@ -780,6 +780,38 @@ export interface BuildConfig {
   configPath: string;
 }
 
+// Lint Config Types
+export type LinterType =
+  | 'eslint'
+  | 'ruff'
+  | 'clippy'
+  | 'golangci-lint'
+  | 'rubocop'
+  | 'phpstan'
+  | 'checkstyle';
+
+export interface LinterInfo {
+  linter: LinterType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+}
+
+export interface ESLintConfig {
+  env?: Record<string, boolean>;
+  extends?: string[];
+  rules?: Record<string, unknown>;
+  parser?: string;
+  parserOptions?: Record<string, unknown>;
+  plugins?: string[];
+  ignorePatterns?: string[];
+}
+
+export interface LintConfig {
+  linter: LinterType;
+  config: ESLintConfig | Record<string, unknown>;
+  configPath: string;
+}
+
 export interface EnvVar {
   key: string;
   value: string;

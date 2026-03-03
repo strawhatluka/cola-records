@@ -268,6 +268,10 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:read-build-config',
     'dev-tools:write-build-config',
     'dev-tools:get-build-presets',
+    'dev-tools:detect-linter',
+    'dev-tools:read-lint-config',
+    'dev-tools:write-lint-config',
+    'dev-tools:get-lint-presets',
   ];
 
   channels.forEach((channel) => {

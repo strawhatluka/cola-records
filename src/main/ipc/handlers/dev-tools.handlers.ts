@@ -21,6 +21,7 @@ import { formatConfigService } from '../../services/format-config.service';
 import { testConfigService } from '../../services/test-config.service';
 import { coverageConfigService } from '../../services/coverage-config.service';
 import { buildConfigService } from '../../services/build-config.service';
+import { lintConfigService } from '../../services/lint-config.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -365,5 +366,22 @@ export function setupDevToolsHandlers(): void {
 
   handleIpc('dev-tools:get-build-presets', async (_event, ecosystem, buildTool) => {
     return buildConfigService.getPresets(ecosystem, buildTool);
+  });
+
+  // Dev Tools — Lint Config Management handlers
+  handleIpc('dev-tools:detect-linter', async (_event, workingDirectory, ecosystem) => {
+    return await lintConfigService.detectLinter(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:read-lint-config', async (_event, configPath, linter) => {
+    return await lintConfigService.readConfig(configPath, linter);
+  });
+
+  handleIpc('dev-tools:write-lint-config', async (_event, workingDirectory, linter, config) => {
+    return await lintConfigService.writeConfig(workingDirectory, linter, config);
+  });
+
+  handleIpc('dev-tools:get-lint-presets', async (_event, ecosystem, linter) => {
+    return lintConfigService.getPresets(ecosystem, linter);
   });
 }

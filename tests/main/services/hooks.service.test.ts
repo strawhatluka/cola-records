@@ -345,6 +345,30 @@ describe('HooksService', () => {
       expect(presets['pre-commit'].some((a) => a.command.includes('go vet'))).toBe(true);
     });
 
+    it('returns Node pre-push hooks disabled by default', () => {
+      const presets = hooksService.getPresetActions('node', 'husky');
+      expect(presets['pre-push'].length).toBeGreaterThan(0);
+      for (const action of presets['pre-push']) {
+        expect(action.enabled).toBe(false);
+      }
+    });
+
+    it('returns Python pre-push hooks disabled by default', () => {
+      const presets = hooksService.getPresetActions('python', 'pre-commit');
+      expect(presets['pre-push'].length).toBeGreaterThan(0);
+      for (const action of presets['pre-push']) {
+        expect(action.enabled).toBe(false);
+      }
+    });
+
+    it('returns Rust pre-push hooks disabled by default', () => {
+      const presets = hooksService.getPresetActions('rust', 'lefthook');
+      expect(presets['pre-push'].length).toBeGreaterThan(0);
+      for (const action of presets['pre-push']) {
+        expect(action.enabled).toBe(false);
+      }
+    });
+
     it('returns empty presets for unknown ecosystem', () => {
       const presets = hooksService.getPresetActions('unknown', 'husky');
       for (const hookName of Object.keys(presets) as GitHookName[]) {

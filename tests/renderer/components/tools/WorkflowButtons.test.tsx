@@ -260,4 +260,33 @@ describe('WorkflowButtons', () => {
     const buildButton = screen.getByText('Build').closest('button');
     expect(buildButton?.disabled).toBe(false);
   });
+
+  it('calls onLintClick instead of onRunCommand when Lint button clicked with onLintClick prop', async () => {
+    const onRunCommand = vi.fn();
+    const onLintClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WorkflowButtons
+        commands={allCommands}
+        onRunCommand={onRunCommand}
+        onLintClick={onLintClick}
+      />
+    );
+
+    const lintButton = screen.getByText('Lint').closest('button')!;
+    await user.click(lintButton);
+
+    expect(onLintClick).toHaveBeenCalled();
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  it('Lint button is enabled when onLintClick is provided even with null lint command', () => {
+    const onLintClick = vi.fn();
+    render(
+      <WorkflowButtons commands={noCommands} onRunCommand={vi.fn()} onLintClick={onLintClick} />
+    );
+
+    const lintButton = screen.getByText('Lint').closest('button');
+    expect(lintButton?.disabled).toBe(false);
+  });
 });

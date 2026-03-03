@@ -49,6 +49,10 @@ import type {
   BuildToolInfo,
   BuildConfig,
   ViteBuildConfig,
+  LinterType,
+  LinterInfo,
+  LintConfig,
+  ESLintConfig,
 } from './types';
 
 export interface CoreChannels {
@@ -285,4 +289,17 @@ export interface CoreChannels {
     ecosystem: Ecosystem,
     buildTool: BuildToolType | null
   ) => ViteBuildConfig | Record<string, unknown>;
+
+  // Dev Tools — Lint Config Management Channels
+  'dev-tools:detect-linter': (workingDirectory: string, ecosystem: Ecosystem) => LinterInfo;
+  'dev-tools:read-lint-config': (configPath: string, linter: LinterType) => LintConfig;
+  'dev-tools:write-lint-config': (
+    workingDirectory: string,
+    linter: LinterType,
+    config: ESLintConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-lint-presets': (
+    ecosystem: Ecosystem,
+    linter: LinterType | null
+  ) => ESLintConfig | Record<string, unknown>;
 }
