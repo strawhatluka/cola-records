@@ -330,9 +330,9 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         <div className="rounded-lg border border-border p-3 min-h-[48px]">
           {detecting ? (
             <p className="text-xs text-muted-foreground">Detecting project...</p>
-          ) : hasProject ? (
+          ) : hasProject && projectInfo ? (
             <UpdateSection
-              commands={projectInfo!.commands}
+              commands={projectInfo.commands}
               workingDirectory={workingDirectory}
               onRunCommand={onRunCommand}
             />
@@ -385,11 +385,11 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         <div className="rounded-lg border border-border p-3 min-h-[48px]">
           {detecting ? (
             <p className="text-xs text-muted-foreground">Detecting project...</p>
-          ) : hasProject ? (
+          ) : hasProject && projectInfo ? (
             <>
               <div className="flex flex-wrap gap-2">
                 <WorkflowButtons
-                  commands={projectInfo!.commands}
+                  commands={projectInfo.commands}
                   onRunCommand={onRunCommand}
                   onFormatClick={() => setFormatPanelOpen((prev) => !prev)}
                   onTestClick={() => setTestPanelOpen((prev) => !prev)}

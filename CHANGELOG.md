@@ -115,6 +115,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clean button failing on Windows — trailing slashes in `CLEAN_TARGETS` patterns caused backslash-escaped quotes in `rm -rf` commands, and Windows `path.join` produced backslash paths incompatible with Git Bash; paths now normalized to POSIX forward slashes
 - MaintenanceTool crash when project detection returns `undefined` — strengthened null check to handle both `null` and `undefined` states
 - Removed non-null assertion in `DocsViewer.tsx` link click handler (ESLint warning cleanup)
+- Contribution rescan not updating `repositoryUrl`, `branchName`, or `issueNumber` — projects first scanned without a remote were permanently stuck with `unknown/<dirName>` URL, breaking PR listing, sync, and other GitHub-dependent features; same bug existed in `project:scan-directory` handler
+- Removed non-null assertions in `MaintenanceTool.tsx` — replaced `projectInfo!.commands` with narrowed `projectInfo` access via `&&` guard
 
 ## [1.0.10] - 2026-02-24
 
