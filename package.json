@@ -2,7 +2,7 @@
   "name": "cola-records",
   "version": "1.0.11",
   "productName": "Cola Records",
-  "description": "Cola Records - GitHub contribution tracker with integrated IDE",
+  "description": "Cola Records - Developer Workspace Engine",
   "main": ".vite/build/index.js",
   "scripts": {
     "start": "electron-forge start",
