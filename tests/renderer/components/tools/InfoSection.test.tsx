@@ -59,12 +59,13 @@ describe('InfoSection', () => {
     });
   });
 
-  it('renders all 6 buttons', () => {
+  it('renders all 7 buttons', () => {
     render(<InfoSection {...defaultProps} />);
     expect(screen.getByText('Status')).toBeDefined();
     expect(screen.getByText('Log')).toBeDefined();
     expect(screen.getByText('Branches')).toBeDefined();
     expect(screen.getByText('Remotes')).toBeDefined();
+    expect(screen.getByText('GitHub')).toBeDefined();
     expect(screen.getByText('Disk Usage')).toBeDefined();
     expect(screen.getByText('Project Info')).toBeDefined();
   });
@@ -167,12 +168,39 @@ describe('InfoSection', () => {
     expect(screen.queryByText('Disk Usage — 5.0 MB')).toBeNull();
   });
 
+  it('opens GitHub repo in browser on GitHub click', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'git:get-remotes') {
+        return Promise.resolve([
+          {
+            name: 'origin',
+            fetchUrl: 'https://github.com/user/repo.git',
+            pushUrl: 'https://github.com/user/repo.git',
+          },
+        ]);
+      }
+      if (channel === 'shell:open-external') return Promise.resolve();
+      return Promise.resolve(null);
+    });
+    const user = userEvent.setup();
+    render(<InfoSection {...defaultProps} />);
+    const btn = screen.getByText('GitHub').closest('button')!;
+    await user.click(btn);
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'shell:open-external',
+        'https://github.com/user/repo'
+      );
+    });
+  });
+
   it('shows correct tooltips on git buttons', () => {
     render(<InfoSection {...defaultProps} />);
     expect(screen.getByText('Status').closest('button')?.title).toBe('git status');
     expect(screen.getByText('Log').closest('button')?.title).toBe('git log --oneline --graph -20');
     expect(screen.getByText('Branches').closest('button')?.title).toBe('git branch -a');
     expect(screen.getByText('Remotes').closest('button')?.title).toBe('git remote -v');
+    expect(screen.getByText('GitHub').closest('button')?.title).toBe('Open repository on GitHub');
   });
 
   it('invokes dev-tools:disk-usage with workingDirectory', async () => {

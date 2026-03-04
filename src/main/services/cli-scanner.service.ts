@@ -21,6 +21,13 @@ const ECOSYSTEM_GROUPS: Record<string, string[]> = {
   ruby: ['Ruby', 'System'],
 };
 
+/** Known aliases that should deduplicate to a single tool */
+const KNOWN_ALIASES: Record<string, string> = {
+  nodejs: 'node',
+  python3: 'python',
+  pip3: 'pip',
+};
+
 /** Core system tools always included regardless of ecosystem */
 const CORE_SYSTEM_TOOLS = new Set([
   'git',
@@ -83,8 +90,6 @@ export class CLIScannerService {
       const source = this.classifySource(dir);
 
       for (const entry of entries) {
-        if (seen.has(entry)) continue;
-
         const fullPath = path.join(dir, entry);
         try {
           const stat = fs.statSync(fullPath);
@@ -101,17 +106,20 @@ export class CLIScannerService {
           // Skip hidden files and common non-CLI binaries
           if (entry.startsWith('.') || entry.startsWith('_')) continue;
 
-          seen.add(entry);
-
           const name =
             process.platform === 'win32' ? entry.replace(/\.(exe|cmd|bat|ps1)$/i, '') : entry;
+
+          // Normalize known aliases (python3→python, nodejs→node, pip3→pip)
+          const canonical = KNOWN_ALIASES[name] ?? name;
+          if (seen.has(canonical)) continue;
+          seen.add(canonical);
 
           let groupEntries = groups.get(source);
           if (!groupEntries) {
             groupEntries = [];
             groups.set(source, groupEntries);
           }
-          groupEntries.push({ name, path: fullPath });
+          groupEntries.push({ name: canonical, path: fullPath });
         } catch {
           continue;
         }
@@ -148,32 +156,76 @@ export class CLIScannerService {
   }
 
   getCLIHelp(cliPath: string, subcommand?: string): Promise<CLIHelpResult> {
-    return new Promise((resolve) => {
-      const args = subcommand ? [subcommand, '--help'] : ['--help'];
-      const command = path.basename(cliPath);
+    const command = path.basename(cliPath);
 
-      execFile(cliPath, args, { timeout: HELP_TIMEOUT }, (error, stdout, stderr) => {
+    // For subcommands, use -h (brief help) to avoid opening browser/man pages (e.g. git)
+    // For top-level, try --help first, then fall back to -h if no useful output
+    const argsList = subcommand
+      ? [
+          [subcommand, '-h'],
+          [subcommand, '--help'],
+        ]
+      : [['--help'], ['-h'], ['help']];
+
+    return this.tryHelpArgs(cliPath, command, argsList);
+  }
+
+  private async tryHelpArgs(
+    cliPath: string,
+    command: string,
+    argsList: string[][]
+  ): Promise<CLIHelpResult> {
+    let bestRaw = '';
+
+    for (const args of argsList) {
+      const result = await this.execHelp(cliPath, args);
+      if (result) {
+        // Keep the longest raw output as fallback
+        if (result.length > bestRaw.length) bestRaw = result;
+
+        const parsed: CLIHelpResult = {
+          description: this.parseDescription(result, command),
+          usage: this.parseUsage(result),
+          subcommands: this.parseSubcommands(result),
+          flags: this.parseFlags(result),
+          rawOutput: result.slice(0, 4000),
+        };
+        // Accept if we got any useful parsed data (subcommands or flags)
+        if (parsed.subcommands.length > 0 || parsed.flags.length > 0 || parsed.usage) {
+          return parsed;
+        }
+      }
+    }
+
+    // Nothing structured found — return raw output so the UI can still show something
+    if (bestRaw) {
+      return {
+        description: this.parseDescription(bestRaw, command),
+        usage: this.parseUsage(bestRaw),
+        subcommands: [],
+        flags: [],
+        rawOutput: bestRaw.slice(0, 4000),
+      };
+    }
+
+    return {
+      description: `${command}: no help available`,
+      usage: '',
+      subcommands: [],
+      flags: [],
+      rawOutput: '',
+    };
+  }
+
+  private execHelp(cliPath: string, args: string[]): Promise<string | null> {
+    return new Promise((resolve) => {
+      // shell: true is required on Windows to execute .cmd/.bat wrappers
+      // (Node.js global tools like claude, npm, npx are .cmd scripts on Windows)
+      const opts = { timeout: HELP_TIMEOUT, shell: process.platform === 'win32' };
+      execFile(cliPath, args, opts, (error, stdout, stderr) => {
         // Many CLIs output help to stderr or exit with code 1
         const rawOutput = stdout || stderr || (error?.message ?? '');
-
-        if (!rawOutput) {
-          resolve({
-            description: `${command}: no help available`,
-            usage: '',
-            subcommands: [],
-            flags: [],
-            rawOutput: '',
-          });
-          return;
-        }
-
-        resolve({
-          description: this.parseDescription(rawOutput, command),
-          usage: this.parseUsage(rawOutput),
-          subcommands: this.parseSubcommands(rawOutput),
-          flags: this.parseFlags(rawOutput),
-          rawOutput: rawOutput.slice(0, 4000),
-        });
+        resolve(rawOutput || null);
       });
     });
   }
@@ -181,6 +233,8 @@ export class CLIScannerService {
   private classifySource(dir: string): string {
     const lower = dir.toLowerCase();
 
+    // Code-server paths are duplicates of system tools — classify as System
+    if (lower.includes('code-server')) return 'System';
     if (lower.includes('node_modules/.bin') || lower.includes('npm')) return 'Node.js';
     if (lower.includes('.cargo/bin')) return 'Rust';
     if (lower.includes('pip') || lower.includes('python') || lower.includes('conda'))
@@ -247,8 +301,8 @@ export class CLIScannerService {
       }
 
       if (inSubcommands) {
-        // Match indented subcommand lines: 2+ spaces, name, 2+ spaces, description
-        const match = line.match(/^\s{2,}(\S+)\s{2,}(.+)/);
+        // Match indented subcommand lines: 2+ spaces, name (with optional args), 2+ spaces, description
+        const match = line.match(/^\s{2,}(\S+)(?:\s+(?:<[^>]+>|\[[^\]]+\]|\S+))*\s{2,}(.+)/);
         if (match) {
           // Skip flag-like entries (starting with -)
           if (!match[1].startsWith('-')) {
@@ -284,8 +338,14 @@ export class CLIScannerService {
     const lines = output.split('\n');
 
     for (const line of lines) {
-      // Match patterns like:  -f, --flag  Description  or  --flag=VALUE  Description
-      const match = line.match(/^\s+(--?\S+(?:[=]\S+)?(?:\s*,\s*--?\S+(?:[=]\S+)?)?)\s{2,}(.+)/);
+      // Match patterns like:
+      //   -f, --flag  Description
+      //   --flag=VALUE  Description
+      //   --flag <value>  Description
+      //   -c, --continue  Description
+      const match = line.match(
+        /^\s+(--?\S+(?:[=]\S+)?(?:\s+<[^>]+>|\s+\[[^\]]+\])?(?:\s*,\s*--?\S+(?:[=]\S+)?(?:\s+<[^>]+>|\s+\[[^\]]+\])?)?)\s{2,}(.+)/
+      );
       if (match) {
         flags.push({
           flag: match[1].trim(),

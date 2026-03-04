@@ -343,12 +343,17 @@ REMEMBER: Output ONLY the raw README.md content. No commentary.`;
 
 Generate initial project documentation. Create 2-3 documentation files for this project based on its structure. Each "content" field must contain complete markdown file content ready to write to disk.
 
+IMPORTANT path rules:
+- CONTRIBUTING.md and LICENSE.md must use root paths: "CONTRIBUTING.md", "LICENSE.md"
+- All other documentation files must go into the docs/ directory: "docs/filename.md"
+
 Required JSON format:
 {"updates":[{"path":"docs/filename.md","content":"full file content","action":"create"}],"hasChanges":true}
 
 Suggested files:
 - docs/getting-started.md — Installation, setup, and first steps
 - docs/architecture.md — Project structure and design decisions (if meaningful codebase)
+- CONTRIBUTING.md — Contributing guidelines (root path, not docs/)
 
 PROJECT INFO:
 ${pkg ? `Name: ${(pkg.name as string) ?? 'unknown'}\nDescription: ${(pkg.description as string) ?? ''}\nScripts: ${Object.keys((pkg.scripts as Record<string, string>) ?? {}).join(', ')}\nDependencies: ${Object.keys((pkg.dependencies as Record<string, string>) ?? {}).join(', ')}` : 'No package.json found'}
@@ -399,8 +404,12 @@ Files: ${status.files.map((f) => f.path).join(', ')}`;
 
 Determine if the git diff requires documentation updates. Each "content" field must contain the complete file content ready to be written to disk.
 
+IMPORTANT path rules:
+- CONTRIBUTING.md and LICENSE.md must use root paths: "CONTRIBUTING.md", "LICENSE.md"
+- All other documentation files must go into the docs/ directory: "docs/filename.md"
+
 Required JSON format:
-{"updates":[{"path":"relative/path/to/file.md","content":"full file content","action":"create|update"}],"hasChanges":true}
+{"updates":[{"path":"docs/filename.md","content":"full file content","action":"create|update"}],"hasChanges":true}
 
 If no changes needed:
 {"updates":[],"hasChanges":false}
@@ -625,7 +634,19 @@ ${comparison.rawDiff.slice(0, 16000)}`;
   }
 
   async applyDocsUpdate(repoPath: string, update: DocsUpdateEntry): Promise<void> {
-    const fullPath = path.join(repoPath, update.path);
+    // Enforce path rules: CONTRIBUTING.md and LICENSE.md go to root, everything else to docs/
+    const basename = path.basename(update.path).toUpperCase();
+    const ROOT_FILES = ['CONTRIBUTING.MD', 'LICENSE.MD', 'LICENSE'];
+    let resolvedPath = update.path;
+    if (ROOT_FILES.includes(basename)) {
+      // Ensure root-level placement even if AI returned "docs/CONTRIBUTING.md"
+      resolvedPath = path.basename(update.path);
+    } else if (!update.path.startsWith('docs/') && !update.path.startsWith('docs\\')) {
+      // Ensure non-root files go into docs/
+      resolvedPath = path.join('docs', update.path);
+    }
+
+    const fullPath = path.join(repoPath, resolvedPath);
     const dir = path.dirname(fullPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });

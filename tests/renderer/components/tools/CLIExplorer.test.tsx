@@ -342,6 +342,93 @@ describe('CLIExplorer', () => {
     expect(defaultProps.onRunCommand).toHaveBeenCalledWith('npm --verbose');
   });
 
+  it('should display subcommand usage next to flags header', async () => {
+    mockInvoke.mockImplementation((channel: string, _path?: string, sub?: string) => {
+      if (channel === 'workflow:scan-clis') {
+        return Promise.resolve([
+          {
+            source: 'System',
+            entries: [{ name: 'git', path: '/usr/bin/git' }],
+          },
+        ]);
+      }
+      if (channel === 'workflow:get-cli-help') {
+        if (sub === 'clone') {
+          return Promise.resolve({
+            description: 'Clone a repository',
+            usage: 'git clone [<options>] <repository>',
+            subcommands: [],
+            flags: [{ flag: '--depth', description: 'Shallow clone depth', required: false }],
+            rawOutput: '',
+          });
+        }
+        return Promise.resolve({
+          description: 'Git',
+          usage: 'git <command>',
+          subcommands: [{ name: 'clone', description: 'Clone a repository' }],
+          flags: [],
+          rawOutput: '',
+        });
+      }
+      return Promise.resolve();
+    });
+
+    render(<CLIExplorer {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('git')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('git'));
+
+    await waitFor(() => {
+      expect(screen.getByText('clone')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('clone'));
+
+    await waitFor(() => {
+      // Usage should appear near the flags header
+      expect(screen.getByText('git clone [<options>] <repository>')).toBeDefined();
+    });
+  });
+
+  it('should show raw help output as fallback when no subcommands/flags', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'workflow:scan-clis') {
+        return Promise.resolve([
+          {
+            source: 'System',
+            entries: [{ name: 'sometool', path: '/usr/bin/sometool' }],
+          },
+        ]);
+      }
+      if (channel === 'workflow:get-cli-help') {
+        return Promise.resolve({
+          description: 'Some tool for doing things',
+          usage: '',
+          subcommands: [],
+          flags: [],
+          rawOutput: 'sometool v1.0 - A useful tool\nRun with arguments.',
+        });
+      }
+      return Promise.resolve();
+    });
+
+    render(<CLIExplorer {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('sometool')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('sometool'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Help Output')).toBeDefined();
+      expect(screen.getByText(/sometool v1\.0/)).toBeDefined();
+    });
+  });
+
   it('should show "no tools" when PATH is empty', async () => {
     mockInvoke.mockResolvedValue([]);
 
@@ -373,5 +460,92 @@ describe('CLIExplorer', () => {
 
     await userEvent.click(screen.getByTitle('Back'));
     expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it('should toggle-close inline panel when clicking the same CLI tool again', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'workflow:scan-clis') {
+        return Promise.resolve([
+          {
+            source: 'System',
+            entries: [{ name: 'git', path: '/usr/bin/git' }],
+          },
+        ]);
+      }
+      if (channel === 'workflow:get-cli-help') {
+        return Promise.resolve({
+          description: 'Git',
+          usage: 'git <command>',
+          subcommands: [{ name: 'clone', description: 'Clone a repository' }],
+          flags: [],
+          rawOutput: '',
+        });
+      }
+      return Promise.resolve();
+    });
+
+    render(<CLIExplorer {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('git')).toBeDefined();
+    });
+
+    // Open the help panel
+    await userEvent.click(screen.getByText('git'));
+
+    await waitFor(() => {
+      expect(screen.getByText('clone')).toBeDefined();
+    });
+
+    // Click the same CLI tool again — should close the panel
+    await userEvent.click(screen.getByText('git'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('clone')).toBeNull();
+    });
+  });
+
+  it('should close inline panel when close button is clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'workflow:scan-clis') {
+        return Promise.resolve([
+          {
+            source: 'System',
+            entries: [{ name: 'git', path: '/usr/bin/git' }],
+          },
+        ]);
+      }
+      if (channel === 'workflow:get-cli-help') {
+        return Promise.resolve({
+          description: 'Git',
+          usage: 'git <command>',
+          subcommands: [{ name: 'clone', description: 'Clone a repository' }],
+          flags: [],
+          rawOutput: '',
+        });
+      }
+      return Promise.resolve();
+    });
+
+    render(<CLIExplorer {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('git')).toBeDefined();
+    });
+
+    // Open the help panel
+    await userEvent.click(screen.getByText('git'));
+
+    await waitFor(() => {
+      expect(screen.getByText('clone')).toBeDefined();
+      expect(screen.getByTitle('Close')).toBeDefined();
+    });
+
+    // Click close button
+    await userEvent.click(screen.getByTitle('Close'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('clone')).toBeNull();
+    });
   });
 });

@@ -132,6 +132,7 @@ export const ArrowDownToLine = createIcon('ArrowDownToLine');
 // Info section icons
 export const Activity = createIcon('Activity');
 export const Globe = createIcon('Globe');
+export const Github = createIcon('Github');
 export const HardDrive = createIcon('HardDrive');
 export const FolderSearch = createIcon('FolderSearch');
 

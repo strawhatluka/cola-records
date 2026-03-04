@@ -7,7 +7,16 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Activity, List, GitFork, Globe, HardDrive, FolderSearch, Loader2 } from 'lucide-react';
+import {
+  Activity,
+  List,
+  GitFork,
+  Globe,
+  HardDrive,
+  FolderSearch,
+  Loader2,
+  Github,
+} from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import { InfoInlinePanel } from './InfoInlinePanel';
 import type { DiskUsageResult, ProjectInfo } from '../../../main/ipc/channels/types';
@@ -41,6 +50,26 @@ export function InfoSection({ workingDirectory, onRunCommand }: InfoSectionProps
       setLoading(null);
     }
   }, [workingDirectory, panelMode]);
+
+  const handleGitHub = useCallback(async () => {
+    try {
+      const remotes = await ipc.invoke('git:get-remotes', workingDirectory);
+      const origin = remotes.find((r: { name: string }) => r.name === 'origin');
+      const url = origin?.pushUrl || origin?.fetchUrl;
+      if (!url) return;
+      // Convert git@github.com:user/repo.git or https://github.com/user/repo.git to browser URL
+      const browserUrl = url
+        .replace(/\.git$/, '')
+        .replace(/^git@github\.com:/, 'https://github.com/')
+        .replace(/^ssh:\/\/git@github\.com\//, 'https://github.com/');
+      // Only open if it looks like a valid URL
+      if (browserUrl.startsWith('https://')) {
+        await ipc.invoke('shell:open-external', browserUrl);
+      }
+    } catch {
+      // Silently ignore — no remote or not a GitHub repo
+    }
+  }, [workingDirectory]);
 
   const handleProjectInfo = useCallback(async () => {
     if (panelMode === 'project-info') {
@@ -87,6 +116,13 @@ export function InfoSection({ workingDirectory, onRunCommand }: InfoSectionProps
       icon: Globe,
       title: 'git remote -v',
       onClick: () => onRunCommand('git remote -v'),
+    },
+    {
+      id: 'github',
+      label: 'GitHub',
+      icon: Github,
+      title: 'Open repository on GitHub',
+      onClick: handleGitHub,
     },
     {
       id: 'disk-usage',

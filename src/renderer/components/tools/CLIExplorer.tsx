@@ -17,6 +17,7 @@ import {
   Search,
   Play,
   Copy,
+  X,
 } from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import type { CLIGroup, CLIEntry, CLIHelpResult } from '../../../main/ipc/channels/types';
@@ -73,7 +74,20 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
     });
   };
 
+  const closeCLIPanel = () => {
+    setSelectedCLI(null);
+    setHelpResult(null);
+    setSelectedSubcommand(null);
+    setSelectedFlags(new Set());
+    setSubHelpResult(null);
+  };
+
   const handleSelectCLI = async (entry: CLIEntry) => {
+    // Toggle: clicking the already-selected CLI closes the panel
+    if (selectedCLI?.path === entry.path) {
+      closeCLIPanel();
+      return;
+    }
     setSelectedCLI(entry);
     setHelpResult(null);
     setHelpLoading(true);
@@ -251,7 +265,14 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
 
                             {/* Help detail panel with command builder */}
                             {isSelected && (
-                              <div className="mx-6 mb-2 rounded border border-border bg-background overflow-hidden">
+                              <div className="mx-6 mb-2 rounded border border-border bg-background overflow-hidden relative">
+                                <button
+                                  onClick={closeCLIPanel}
+                                  className="absolute top-1 right-1 p-0.5 rounded hover:bg-accent transition-colors z-10"
+                                  title="Close"
+                                >
+                                  <X className="h-3 w-3 text-muted-foreground" />
+                                </button>
                                 {helpLoading ? (
                                   <div className="flex items-center gap-2 p-3">
                                     <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -331,8 +352,8 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
                                     {/* Flags table */}
                                     {activeFlags.length > 0 && (
                                       <div className="border-b border-border">
-                                        <div className="px-2 py-1.5 bg-muted/30">
-                                          <span className="text-[10px] font-semibold text-foreground">
+                                        <div className="px-2 py-1.5 bg-muted/30 flex items-baseline gap-3">
+                                          <span className="text-[10px] font-semibold text-foreground shrink-0">
                                             Flags ({activeFlags.length})
                                             {selectedSubcommand && (
                                               <span className="font-normal text-muted-foreground">
@@ -341,6 +362,11 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
                                               </span>
                                             )}
                                           </span>
+                                          {selectedSubcommand && subHelpResult?.usage && (
+                                            <span className="text-[10px] font-mono text-muted-foreground truncate">
+                                              {subHelpResult.usage}
+                                            </span>
+                                          )}
                                         </div>
                                         <div className="max-h-40 overflow-auto styled-scroll">
                                           <table className="w-full">
@@ -371,6 +397,22 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
                                         </div>
                                       </div>
                                     )}
+
+                                    {/* Raw output fallback when no subcommands/flags parsed */}
+                                    {helpResult.subcommands.length === 0 &&
+                                      activeFlags.length === 0 &&
+                                      helpResult.rawOutput && (
+                                        <div className="border-b border-border">
+                                          <div className="px-2 py-1.5 bg-muted/30">
+                                            <span className="text-[10px] font-semibold text-foreground">
+                                              Help Output
+                                            </span>
+                                          </div>
+                                          <pre className="px-2 py-1.5 text-[10px] font-mono text-muted-foreground whitespace-pre-wrap max-h-48 overflow-auto styled-scroll">
+                                            {helpResult.rawOutput}
+                                          </pre>
+                                        </div>
+                                      )}
 
                                     {/* Editable command & run */}
                                     <div className="p-2 flex items-center gap-2">

@@ -140,6 +140,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CommitModal popup terminal**: commit flow now spawns a PTY terminal via `terminal:spawn`, runs `git commit -m "..."` with live xterm output, then shows Copy Output and Push buttons in post-commit phase
 - **Push button**: added to both CommitModal (post-commit header) and WorkflowActionButtons (9th button between Commit and Pull Request); auto-detects when `--set-upstream` is needed by checking `git:status` tracking field
 - Docs generation logging: `electron-log` instrumentation throughout `generateDocsUpdate()` for debugging timing issues (start, diff stats, AI response, JSON parse, error paths)
+- **GitHub button** in Info section: opens repository on GitHub by extracting origin remote URL and converting SSH/HTTPS git URLs to browser-friendly URLs via `shell:open-external`
+- **AI service logging**: comprehensive `electron-log` instrumentation in `ai.service.ts` — logs provider/model/maxTokens/prompt preview before each call, elapsed time/response length/tokens after completion, API error status/body for all 4 providers, empty content warnings with finish reasons
+- **Docs path enforcement**: `applyDocsUpdate()` now programmatically enforces `CONTRIBUTING.md` and `LICENSE.md` to root and all other docs to `docs/` directory, regardless of AI-suggested paths
+- **CLI Explorer improvements**: subcommand usage example shown next to "Flags (N) for 'sub command'" header; raw help output fallback when no structured subcommands/flags are parsed (tools like `claude` now show their help text); known alias dedup (`python3`→`python`, `nodejs`→`node`, `pip3`→`pip`); code-server PATH dedup prevents tools appearing twice in host+container environments
+- **CLI help parsing**: flags with angle-bracket arguments (`--flag <value>`) and bracket arguments (`--flag [value]`) now correctly captured; subcommand entries with arguments (`install [options] [target]`) now parsed; multi-strategy help (`-h` first for subcommands, fallback to `--help`) prevents browser launch on `git <sub> --help`
 
 ### Changed
 
@@ -162,10 +167,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - Workflow service tests (`workflow.service.test.ts`): 15 tests covering changelog generation, commit message generation, PR description generation, README update/generation, docs update/generation, issue number extraction from branch names
-- CLI scanner service tests (`cli-scanner.service.test.ts`): 6 tests covering PATH scanning, empty PATH, directory read errors, ecosystem filtering, and unfiltered scanning
+- CLI scanner service tests (`cli-scanner.service.test.ts`): 10 tests covering PATH scanning, empty PATH, directory read errors, ecosystem filtering, unfiltered scanning, alias dedup, code-server dedup, angle-bracket flag parsing, raw output fallback, and timeout handling
 - AI service tests (`ai.service.test.ts`): tests for multi-provider AI abstraction layer (Gemini, Anthropic, OpenAI, Ollama)
 - Version service tests (`version.service.test.ts`): tests for version file detection and version bumping
-- CLIExplorer component tests (`CLIExplorer.test.tsx`): 14 tests covering scanning, group display, entry expansion, help loading, search filtering, command builder with subcommand selection and flag toggling, ecosystem prop passing, error/empty states
+- CLIExplorer component tests (`CLIExplorer.test.tsx`): 16 tests covering scanning, group display, entry expansion, help loading, search filtering, command builder with subcommand selection and flag toggling, ecosystem prop passing, error/empty states, subcommand usage display, and raw help output fallback
 - WorkflowActionButtons tests (`WorkflowActionButtons.test.tsx`): tests for 9 action button rendering and click handlers (including Push)
 - CommitModal tests (`CommitModal.test.tsx`): 8 tests covering AI message generation, editing, terminal spawn on commit, cancel, issue/branch passthrough, closed state, disabled button guard
 - ChangelogResult, ReadmeResult, DocsResult, StageEditor, VersionEditor component tests: inline result panels and full-view editors

@@ -145,6 +145,55 @@ describe('CLIScannerService', () => {
       expect(allEntryNames).toContain('git');
       expect(allEntryNames).toContain('obscure-tool');
     });
+
+    it('should deduplicate known aliases (python3→python, nodejs→node)', () => {
+      vi.stubEnv('PATH', testPath);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      const entries = isWindows
+        ? ['python3.exe', 'python.exe', 'nodejs.exe', 'node.exe']
+        : ['python3', 'python', 'nodejs', 'node'];
+      (vi.mocked(fs.readdirSync) as ReturnType<typeof vi.fn>).mockImplementation((dir: string) => {
+        if (String(dir) === testDir) return entries;
+        return [];
+      });
+      vi.mocked(fs.statSync).mockReturnValue({
+        isFile: () => true,
+        mode: 0o755,
+      } as fs.Stats);
+
+      const groups = cliScannerService.scanCLIs();
+      const allEntryNames = groups.flatMap((g) => g.entries.map((e) => e.name));
+
+      // python3 resolves to 'python', nodejs resolves to 'node'
+      // Only the first occurrence should be kept
+      expect(allEntryNames.filter((n) => n === 'python')).toHaveLength(1);
+      expect(allEntryNames.filter((n) => n === 'node')).toHaveLength(1);
+      expect(allEntryNames).not.toContain('python3');
+      expect(allEntryNames).not.toContain('nodejs');
+    });
+
+    it('should classify code-server paths as System to prevent duplicates', () => {
+      const codeServerDir = '/usr/local/lib/code-server/lib/node_modules/.bin';
+      vi.stubEnv('PATH', `${testDir}${path.delimiter}${codeServerDir}`);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      const systemEntries = isWindows ? ['git.exe'] : ['git'];
+      const codeServerEntries = isWindows ? ['node.exe'] : ['node'];
+      (vi.mocked(fs.readdirSync) as ReturnType<typeof vi.fn>).mockImplementation((dir: string) => {
+        if (String(dir) === testDir) return systemEntries;
+        if (String(dir) === codeServerDir) return codeServerEntries;
+        return [];
+      });
+      vi.mocked(fs.statSync).mockReturnValue({
+        isFile: () => true,
+        mode: 0o755,
+      } as fs.Stats);
+
+      const groups = cliScannerService.scanCLIs();
+      // Code-server dir should be classified as System, not Node.js
+      const sources = groups.map((g) => g.source);
+      expect(sources).not.toContain('Node.js');
+      expect(sources).toContain('System');
+    });
   });
 
   describe('getCLIHelp', () => {
@@ -167,7 +216,7 @@ describe('CLIScannerService', () => {
       expect(result.usage).toBeDefined();
     });
 
-    it('should handle subcommand help', async () => {
+    it('should handle subcommand help with -h flag first', async () => {
       vi.mocked(childProcess.execFile).mockImplementation(
         (_cmd: string, _args: unknown, _opts: unknown, cb: unknown) => {
           const callback = cb as (err: Error | null, stdout: string, stderr: string) => void;
@@ -183,9 +232,12 @@ describe('CLIScannerService', () => {
       const result = await cliScannerService.getCLIHelp('/usr/bin/git', 'clone');
 
       expect(result.rawOutput).toContain('clone');
+      // Should use -h for subcommands (first attempt)
+      const firstCallArgs = vi.mocked(childProcess.execFile).mock.calls[0][1] as string[];
+      expect(firstCallArgs).toContain('-h');
     });
 
-    it('should handle command that fails --help', async () => {
+    it('should return fallback result when all help args fail', async () => {
       vi.mocked(childProcess.execFile).mockImplementation(
         (_cmd: string, _args: unknown, _opts: unknown, cb: unknown) => {
           const callback = cb as (err: Error | null, stdout: string, stderr: string) => void;
@@ -197,12 +249,50 @@ describe('CLIScannerService', () => {
 
       const result = await cliScannerService.getCLIHelp('/usr/bin/unknown');
 
-      // rawOutput falls back to error.message when stdout/stderr are empty
+      // Error message becomes raw fallback
       expect(result.rawOutput).toContain('Command failed');
-      expect(result.description).toBeDefined();
+      expect(result.subcommands).toEqual([]);
+      expect(result.flags).toEqual([]);
     });
 
-    it('should handle timeout', async () => {
+    it('should parse flags with angle-bracket arguments (e.g. --flag <value>)', async () => {
+      vi.mocked(childProcess.execFile).mockImplementation(
+        (_cmd: string, _args: unknown, _opts: unknown, cb: unknown) => {
+          const callback = cb as (err: Error | null, stdout: string, stderr: string) => void;
+          callback(
+            null,
+            'Usage: claude [options] [command] [prompt]\n\nOptions:\n  --model <model>                   Model for the session\n  -p, --print                       Print response and exit\n  --max-budget-usd <amount>         Max dollar amount\n\nCommands:\n  doctor                            Check auto-updater health\n  install [options] [target]        Install native build\n',
+            ''
+          );
+          return {} as ReturnType<typeof childProcess.execFile>;
+        }
+      );
+
+      const result = await cliScannerService.getCLIHelp('/usr/bin/claude');
+
+      expect(result.flags.length).toBeGreaterThanOrEqual(2);
+      expect(result.flags.some((f) => f.flag.includes('--model'))).toBe(true);
+      expect(result.subcommands.length).toBeGreaterThanOrEqual(2);
+      expect(result.subcommands.some((s) => s.name === 'doctor')).toBe(true);
+    });
+
+    it('should return raw output as fallback when no structured data parsed', async () => {
+      vi.mocked(childProcess.execFile).mockImplementation(
+        (_cmd: string, _args: unknown, _opts: unknown, cb: unknown) => {
+          const callback = cb as (err: Error | null, stdout: string, stderr: string) => void;
+          callback(null, 'Some tool v1.0 - A useful tool\nRun with arguments to do things.', '');
+          return {} as ReturnType<typeof childProcess.execFile>;
+        }
+      );
+
+      const result = await cliScannerService.getCLIHelp('/usr/bin/sometool');
+
+      // Even with no structured data, should return raw output
+      expect(result.rawOutput).toContain('Some tool v1.0');
+      expect(result.description).toBeTruthy();
+    });
+
+    it('should return fallback result on timeout for all attempts', async () => {
       vi.mocked(childProcess.execFile).mockImplementation(
         (_cmd: string, _args: unknown, _opts: unknown, cb: unknown) => {
           const callback = cb as (err: Error | null, stdout: string, stderr: string) => void;
@@ -215,8 +305,10 @@ describe('CLIScannerService', () => {
 
       const result = await cliScannerService.getCLIHelp('/usr/bin/slow-cmd');
 
-      // rawOutput falls back to error.message when stdout/stderr are empty
+      // Timeout error becomes raw fallback
       expect(result.rawOutput).toContain('TIMEOUT');
+      expect(result.subcommands).toEqual([]);
+      expect(result.flags).toEqual([]);
     });
   });
 });
