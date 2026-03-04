@@ -7,9 +7,12 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import log from 'electron-log';
 import { gitService } from './git.service';
 import { aiService } from './ai.service';
 import type { DocsUpdateEntry } from '../ipc/channels/types';
+
+const logger = log.create({ logId: 'WorkflowService' }).scope('workflow');
 
 export class WorkflowService {
   /**
@@ -301,8 +304,10 @@ REMEMBER: Output ONLY the raw README.md content. No commentary.`;
   async generateDocsUpdate(
     repoPath: string
   ): Promise<{ updates: DocsUpdateEntry[]; hasChanges: boolean }> {
+    logger.info('generateDocsUpdate: starting for %s', repoPath);
     const diff = await gitService.getDiff(repoPath);
     const status = await gitService.getStatus(repoPath);
+    logger.info('generateDocsUpdate: diff=%d chars, files=%d', diff.length, status.files.length);
 
     // Gather existing docs
     const docsDir = path.join(repoPath, 'docs');
@@ -322,8 +327,15 @@ REMEMBER: Output ONLY the raw README.md content. No commentary.`;
       ? fs.readFileSync(contributingPath, 'utf-8').slice(0, 2000)
       : '';
 
+    logger.info(
+      'generateDocsUpdate: existingDocs=%d, contributingContent=%s',
+      existingDocs.length,
+      contributingContent ? 'yes' : 'no'
+    );
+
     // If no docs exist, generate initial documentation from project info
     if (existingDocs.length === 0 && !contributingContent) {
+      logger.info('generateDocsUpdate: no existing docs — generating initial docs');
       const pkg = this.readPackageJson(repoPath);
       const structure = this.scanProjectStructure(repoPath);
 
@@ -349,22 +361,39 @@ ${diff ? `RECENT CHANGES:\n${diff.slice(0, 6000)}` : ''}
 Files: ${status.files.map((f) => f.path).join(', ')}`;
 
       const response = await aiService.complete({ prompt, maxTokens: 8192 });
+      logger.info(
+        'generateDocsUpdate: initial docs AI response length=%d, tokens=%d',
+        response.content.length,
+        response.tokensUsed
+      );
       try {
         const jsonStr = response.content
           .replace(/```json?\n?/g, '')
           .replace(/```/g, '')
           .trim();
         const parsed = JSON.parse(jsonStr) as { updates: DocsUpdateEntry[]; hasChanges: boolean };
+        logger.info(
+          'generateDocsUpdate: initial docs parsed — updates=%d, hasChanges=%s',
+          parsed.updates.length,
+          parsed.hasChanges
+        );
         return parsed;
-      } catch {
+      } catch (parseErr) {
+        logger.warn(
+          'generateDocsUpdate: JSON parse failed for initial docs — %s',
+          parseErr instanceof Error ? parseErr.message : String(parseErr)
+        );
         return { updates: [], hasChanges: false };
       }
     }
 
     // Existing docs — check if diff warrants updates
     if (!diff && status.files.length === 0) {
+      logger.info('generateDocsUpdate: no diff and no changed files — returning no changes');
       return { updates: [], hasChanges: false };
     }
+
+    logger.info('generateDocsUpdate: existing docs found — checking if diff warrants updates');
 
     const prompt = `OUTPUT ONLY valid JSON. No explanation, no commentary, no code fences, no preamble.
 
@@ -387,6 +416,11 @@ ${diff.slice(0, 12000)}
 Files: ${status.files.map((f) => f.path).join(', ')}`;
 
     const response = await aiService.complete({ prompt, maxTokens: 8192 });
+    logger.info(
+      'generateDocsUpdate: update AI response length=%d, tokens=%d',
+      response.content.length,
+      response.tokensUsed
+    );
 
     try {
       // Extract JSON from response (may be wrapped in markdown code blocks)
@@ -395,8 +429,18 @@ Files: ${status.files.map((f) => f.path).join(', ')}`;
         .replace(/```/g, '')
         .trim();
       const parsed = JSON.parse(jsonStr) as { updates: DocsUpdateEntry[]; hasChanges: boolean };
+      logger.info(
+        'generateDocsUpdate: update parsed — updates=%d, hasChanges=%s',
+        parsed.updates.length,
+        parsed.hasChanges
+      );
       return parsed;
-    } catch {
+    } catch (parseErr) {
+      logger.warn(
+        'generateDocsUpdate: JSON parse failed — %s, raw=%s',
+        parseErr instanceof Error ? parseErr.message : String(parseErr),
+        response.content.slice(0, 200)
+      );
       return { updates: [], hasChanges: false };
     }
   }

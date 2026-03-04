@@ -109,6 +109,8 @@ export function MaintenanceTool({
   const [docsResultOpen, setDocsResultOpen] = useState(false);
   const [versionEditorOpen, setVersionEditorOpen] = useState(false);
   const [cliExplorerOpen, setCliExplorerOpen] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushResult, setPushResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Detect project on mount and when workingDirectory changes
   useEffect(() => {
@@ -183,6 +185,28 @@ export function MaintenanceTool({
       setButtonLoading('typecheck', false);
     }
   }, [workingDirectory, onRunCommand, setButtonLoading]);
+
+  const handlePush = useCallback(async () => {
+    setPushLoading(true);
+    setPushResult(null);
+    try {
+      const status = await ipc.invoke('git:status', workingDirectory);
+      const branch = status.current || contribution?.branchName || 'HEAD';
+      const needsUpstream = !status.tracking;
+      await ipc.invoke('git:push', workingDirectory, 'origin', branch, needsUpstream);
+      setPushResult({
+        success: true,
+        message: `Pushed to origin/${branch}${needsUpstream ? ' (upstream set)' : ''}`,
+      });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Push failed';
+      setPushResult({ success: false, message: msg });
+    } finally {
+      setPushLoading(false);
+      // Auto-clear result after 5 seconds
+      setTimeout(() => setPushResult(null), 5000);
+    }
+  }, [workingDirectory, contribution?.branchName]);
 
   const hasProject = projectInfo != null && projectInfo.ecosystem !== 'unknown';
 
@@ -436,6 +460,7 @@ export function MaintenanceTool({
                   onDocsClick={() => setDocsResultOpen((p) => !p)}
                   onStageClick={() => setStageEditorOpen(true)}
                   onCommitClick={() => setCommitModalOpen(true)}
+                  onPushClick={handlePush}
                   onPullRequestClick={async () => {
                     let prBody: string | undefined;
                     try {
@@ -475,6 +500,20 @@ export function MaintenanceTool({
                   onClose={() => setDocsResultOpen(false)}
                 />
               )}
+              {(pushLoading || pushResult) && (
+                <div
+                  className={`mt-2 px-3 py-2 rounded-md text-xs flex items-center gap-2 ${
+                    pushResult?.success === true
+                      ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                      : pushResult?.success === false
+                        ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                        : 'bg-muted/50 text-muted-foreground'
+                  }`}
+                >
+                  {pushLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {pushLoading ? 'Pushing...' : pushResult?.message}
+                </div>
+              )}
             </>
           ) : (
             <p className="text-xs text-muted-foreground">Could not detect project</p>
@@ -494,7 +533,6 @@ export function MaintenanceTool({
         open={commitModalOpen}
         onOpenChange={setCommitModalOpen}
         workingDirectory={workingDirectory}
-        onRunCommand={onRunCommand}
         issueNumber={contribution?.issueNumber?.toString()}
         branchName={contribution?.branchName}
       />

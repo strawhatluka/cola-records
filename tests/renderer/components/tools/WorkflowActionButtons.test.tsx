@@ -14,12 +14,13 @@ describe('WorkflowActionButtons', () => {
     onDocsClick: vi.fn(),
     onStageClick: vi.fn(),
     onCommitClick: vi.fn(),
+    onPushClick: vi.fn(),
     onPullRequestClick: vi.fn(),
     onVersionClick: vi.fn(),
     onCliClick: vi.fn(),
   };
 
-  it('should render all 8 buttons', () => {
+  it('should render all 9 buttons', () => {
     render(<WorkflowActionButtons {...defaultProps} />);
 
     expect(screen.getByText('Changelog')).toBeDefined();
@@ -27,6 +28,7 @@ describe('WorkflowActionButtons', () => {
     expect(screen.getByText('Docs')).toBeDefined();
     expect(screen.getByText('Stage')).toBeDefined();
     expect(screen.getByText('Commit')).toBeDefined();
+    expect(screen.getByText('Push')).toBeDefined();
     expect(screen.getByText('Pull Request')).toBeDefined();
     expect(screen.getByText('Version')).toBeDefined();
     expect(screen.getByText('CLI')).toBeDefined();
@@ -60,6 +62,12 @@ describe('WorkflowActionButtons', () => {
     render(<WorkflowActionButtons {...defaultProps} />);
     await userEvent.click(screen.getByText('Commit').closest('button')!);
     expect(defaultProps.onCommitClick).toHaveBeenCalledOnce();
+  });
+
+  it('should call onPushClick when Push button is clicked', async () => {
+    render(<WorkflowActionButtons {...defaultProps} />);
+    await userEvent.click(screen.getByText('Push').closest('button')!);
+    expect(defaultProps.onPushClick).toHaveBeenCalledOnce();
   });
 
   it('should call onPullRequestClick when Pull Request button is clicked', async () => {

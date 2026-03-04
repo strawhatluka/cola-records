@@ -14,11 +14,27 @@ vi.mock('../../../../src/renderer/ipc/client', () => ({
   },
 }));
 
+// Mock electronAPI for terminal:data listener
+const mockOn = vi.fn(() => vi.fn());
+Object.defineProperty(window, 'electronAPI', {
+  value: { on: mockOn },
+  writable: true,
+});
+
 // Mock icons
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
-// Mock Radix Dialog
-vi.mock('@radix-ui/react-dialog', async () => import('../../../mocks/radix-dialog'));
+// Mock XTermTerminal to avoid xterm dependency
+vi.mock('../../../../src/renderer/components/tools/XTermTerminal', () => ({
+  XTermTerminal: ({ terminalId }: { terminalId: string }) => (
+    <div data-testid="xterm-terminal">{terminalId}</div>
+  ),
+}));
+
+// Mock stripAnsiCodes
+vi.mock('../../../../src/renderer/components/tools/ScriptExecutionModal', () => ({
+  stripAnsiCodes: (s: string) => s,
+}));
 
 import { CommitModal } from '../../../../src/renderer/components/tools/CommitModal';
 
@@ -27,7 +43,6 @@ describe('CommitModal', () => {
     open: true,
     onOpenChange: vi.fn(),
     workingDirectory: '/test/project',
-    onRunCommand: vi.fn(),
   };
 
   beforeEach(() => {
@@ -40,7 +55,7 @@ describe('CommitModal', () => {
     expect(screen.getByText(/generating/i)).toBeDefined();
   });
 
-  it('should display generated commit message', async () => {
+  it('should display generated commit message in textarea', async () => {
     mockInvoke.mockResolvedValue('feat: add new feature');
 
     render(<CommitModal {...defaultProps} />);
@@ -52,14 +67,13 @@ describe('CommitModal', () => {
     });
   });
 
-  it('should show empty input when AI is not configured', async () => {
-    mockInvoke.mockRejectedValue(new Error('AI is not configured'));
+  it('should show info message when AI is not configured', async () => {
+    mockInvoke.mockRejectedValue(new Error('AI not configured'));
 
     render(<CommitModal {...defaultProps} />);
 
     await waitFor(() => {
-      const textarea = screen.getByRole('textbox');
-      expect((textarea as HTMLTextAreaElement).value).toBe('');
+      expect(screen.getByText(/configure ai/i)).toBeDefined();
     });
   });
 
@@ -79,8 +93,9 @@ describe('CommitModal', () => {
     expect((textarea as HTMLTextAreaElement).value).toBe('fix: corrected message');
   });
 
-  it('should send commit command to terminal on Commit click', async () => {
-    mockInvoke.mockResolvedValue('feat: my commit');
+  it('should spawn terminal and switch to committing phase on Commit click', async () => {
+    mockInvoke.mockResolvedValueOnce('feat: my commit'); // generate message
+    mockInvoke.mockResolvedValueOnce({ id: 'session-123' }); // terminal:spawn
 
     render(<CommitModal {...defaultProps} />);
 
@@ -91,12 +106,10 @@ describe('CommitModal', () => {
     const commitBtn = screen.getByText('Commit');
     await userEvent.click(commitBtn);
 
-    expect(defaultProps.onRunCommand).toHaveBeenCalledWith(
-      expect.stringContaining('git commit -m')
-    );
+    expect(mockInvoke).toHaveBeenCalledWith('terminal:spawn', 'git-bash', '/test/project');
   });
 
-  it('should close modal on Cancel', async () => {
+  it('should close modal on Cancel click', async () => {
     mockInvoke.mockResolvedValue('feat: message');
 
     render(<CommitModal {...defaultProps} />);
@@ -124,5 +137,23 @@ describe('CommitModal', () => {
         'feat/auth'
       );
     });
+  });
+
+  it('should not render when open is false', () => {
+    const { container } = render(<CommitModal {...defaultProps} open={false} />);
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('should disable Commit button when message is empty', async () => {
+    mockInvoke.mockResolvedValue('');
+
+    render(<CommitModal {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeDefined();
+    });
+
+    const commitBtn = screen.getByText('Commit');
+    expect(commitBtn.closest('button')?.disabled).toBe(true);
   });
 });

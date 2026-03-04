@@ -280,14 +280,15 @@ describe('CLIExplorer', () => {
       expect(screen.getByText('commit')).toBeDefined();
     });
 
-    // Command preview should show base command
-    expect(screen.getByText('$ git')).toBeDefined();
+    // Command input should show base command
+    const cmdInput = screen.getByPlaceholderText('Enter command...') as HTMLInputElement;
+    expect(cmdInput.value).toBe('git');
 
     // Click a subcommand
     await userEvent.click(screen.getByText('clone'));
 
     await waitFor(() => {
-      expect(screen.getByText('$ git clone')).toBeDefined();
+      expect(cmdInput.value).toBe('git clone');
     });
   });
 
@@ -332,7 +333,8 @@ describe('CLIExplorer', () => {
     await userEvent.click(screen.getByText('--verbose'));
 
     await waitFor(() => {
-      expect(screen.getByText('$ npm --verbose')).toBeDefined();
+      const cmdInput = screen.getByPlaceholderText('Enter command...') as HTMLInputElement;
+      expect(cmdInput.value).toBe('npm --verbose');
     });
 
     // Click Run to execute

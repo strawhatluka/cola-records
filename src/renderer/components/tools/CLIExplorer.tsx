@@ -42,6 +42,7 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
   const [selectedFlags, setSelectedFlags] = useState<Set<string>>(new Set());
   const [subHelpResult, setSubHelpResult] = useState<CLIHelpResult | null>(null);
   const [subHelpLoading, setSubHelpLoading] = useState(false);
+  const [editableCommand, setEditableCommand] = useState('');
 
   const scanCLIs = useCallback(async () => {
     setLoading(true);
@@ -133,6 +134,11 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
     }
     return parts.join(' ');
   }, [selectedCLI, selectedSubcommand, selectedFlags]);
+
+  // Sync editable command when composed command changes from selection
+  useEffect(() => {
+    setEditableCommand(composedCommand);
+  }, [composedCommand]);
 
   // The flags to display: subcommand-specific if a subcommand is selected, otherwise top-level
   const activeFlags = useMemo(() => {
@@ -366,14 +372,28 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
                                       </div>
                                     )}
 
-                                    {/* Command preview & run */}
+                                    {/* Editable command & run */}
                                     <div className="p-2 flex items-center gap-2">
-                                      <code className="flex-1 text-[10px] font-mono bg-muted/50 rounded px-2 py-1.5 text-foreground truncate">
-                                        $ {composedCommand}
-                                      </code>
+                                      <div className="flex-1 flex items-center bg-muted/50 rounded px-2 py-1 text-foreground">
+                                        <span className="text-[10px] font-mono text-muted-foreground mr-1 shrink-0">
+                                          $
+                                        </span>
+                                        <input
+                                          type="text"
+                                          value={editableCommand}
+                                          onChange={(e) => setEditableCommand(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && editableCommand.trim()) {
+                                              onRunCommand(editableCommand.trim());
+                                            }
+                                          }}
+                                          className="flex-1 text-[10px] font-mono bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground min-w-0"
+                                          placeholder="Enter command..."
+                                        />
+                                      </div>
                                       <button
                                         onClick={() =>
-                                          navigator.clipboard.writeText(composedCommand)
+                                          navigator.clipboard.writeText(editableCommand)
                                         }
                                         className="p-1 rounded hover:bg-accent transition-colors shrink-0"
                                         title="Copy command"
@@ -381,8 +401,9 @@ export function CLIExplorer({ onClose, onRunCommand, ecosystem }: CLIExplorerPro
                                         <Copy className="h-3 w-3 text-muted-foreground" />
                                       </button>
                                       <button
-                                        onClick={() => onRunCommand(composedCommand)}
-                                        className="flex items-center gap-1 px-2 py-1.5 text-[10px] rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
+                                        onClick={() => onRunCommand(editableCommand.trim())}
+                                        disabled={!editableCommand.trim()}
+                                        className="flex items-center gap-1 px-2 py-1.5 text-[10px] rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0"
                                       >
                                         <Play className="h-2.5 w-2.5" />
                                         Run

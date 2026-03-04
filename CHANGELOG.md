@@ -137,10 +137,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 16 new IPC channels (`ai:get-config`, `ai:save-config`, `ai:test-connection`, `ai:get-models`, `workflow:generate-changelog`, `workflow:generate-readme`, `workflow:generate-docs`, `workflow:generate-commit-message`, `workflow:generate-pr-description`, `workflow:apply-changelog`, `workflow:apply-readme`, `workflow:apply-docs-update`, `workflow:detect-versions`, `workflow:bump-version`, `workflow:update-version`, `workflow:scan-clis`, `workflow:get-cli-help`)
   - 10 new types (`AIProvider`, `AIConfig`, `AICompletionRequest`, `AICompletionResult`, `AIConnectionTestResult`, `CLIGroup`, `CLIEntry`, `CLIHelpResult`, `VersionFileInfo`, `DocsUpdateEntry`)
 - Styled scrollbar (`styled-scroll`) added to ChangelogResult, ReadmeResult inline panels and DashboardScreen main scroll area
+- **CommitModal popup terminal**: commit flow now spawns a PTY terminal via `terminal:spawn`, runs `git commit -m "..."` with live xterm output, then shows Copy Output and Push buttons in post-commit phase
+- **Push button**: added to both CommitModal (post-commit header) and WorkflowActionButtons (9th button between Commit and Pull Request); auto-detects when `--set-upstream` is needed by checking `git:status` tracking field
+- Docs generation logging: `electron-log` instrumentation throughout `generateDocsUpdate()` for debugging timing issues (start, diff stats, AI response, JSON parse, error paths)
 
 ### Changed
 
 - Git hooks pre-push actions now disabled by default for all ecosystem presets (Node, Python, Rust) — users can enable them via the Hooks GUI after installation ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
+- CLI Explorer command input now editable — users can type custom arguments directly in the `$` input field, with Enter key support to run
+- CLI `--help` parser improved: `parseSubcommands()` now detects git-style lowercase section headers with indented commands; `parseFlags()` handles `--flag=VALUE` patterns
 
 ### Removed
 
@@ -161,8 +166,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI service tests (`ai.service.test.ts`): tests for multi-provider AI abstraction layer (Gemini, Anthropic, OpenAI, Ollama)
 - Version service tests (`version.service.test.ts`): tests for version file detection and version bumping
 - CLIExplorer component tests (`CLIExplorer.test.tsx`): 14 tests covering scanning, group display, entry expansion, help loading, search filtering, command builder with subcommand selection and flag toggling, ecosystem prop passing, error/empty states
-- WorkflowActionButtons tests (`WorkflowActionButtons.test.tsx`): tests for 8 action button rendering and click handlers
-- ChangelogResult, ReadmeResult, DocsResult, CommitModal, StageEditor, VersionEditor component tests: inline result panels and full-view editors
+- WorkflowActionButtons tests (`WorkflowActionButtons.test.tsx`): tests for 9 action button rendering and click handlers (including Push)
+- CommitModal tests (`CommitModal.test.tsx`): 8 tests covering AI message generation, editing, terminal spawn on commit, cancel, issue/branch passthrough, closed state, disabled button guard
+- ChangelogResult, ReadmeResult, DocsResult, StageEditor, VersionEditor component tests: inline result panels and full-view editors
 - AITab settings component tests (`AITab.test.tsx`): AI provider configuration UI
 
 ## [1.0.10] - 2026-02-24

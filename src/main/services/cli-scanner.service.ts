@@ -226,22 +226,52 @@ export class CLIScannerService {
     const lines = output.split('\n');
 
     let inSubcommands = false;
-    for (const line of lines) {
-      if (/(?:commands|subcommands):?\s*$/i.test(line.trim())) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // Detect section headers containing "commands" or "subcommands" anywhere
+      if (/\bcommands?\b|\bsubcommands?\b/i.test(trimmed) && trimmed.endsWith(':')) {
         inSubcommands = true;
         continue;
       }
 
+      // Git-style: detect lowercase section headers like "start a working area (see also: ...)"
+      // These are non-indented, lowercase lines followed by indented command lines
+      if (!inSubcommands && /^[a-z]/.test(trimmed) && trimmed.length > 0) {
+        const nextLine = lines[i + 1];
+        if (nextLine && /^\s{2,}\S+\s{2,}/.test(nextLine)) {
+          inSubcommands = true;
+          continue;
+        }
+      }
+
       if (inSubcommands) {
-        if (line.trim() === '' || /^[A-Z]/.test(line.trim())) {
-          // End of subcommands section
-          if (subcommands.length > 0) break;
+        // Match indented subcommand lines: 2+ spaces, name, 2+ spaces, description
+        const match = line.match(/^\s{2,}(\S+)\s{2,}(.+)/);
+        if (match) {
+          // Skip flag-like entries (starting with -)
+          if (!match[1].startsWith('-')) {
+            subcommands.push({ name: match[1], description: match[2].trim() });
+          }
           continue;
         }
 
-        const match = line.match(/^\s{2,}(\S+)\s{2,}(.+)/);
-        if (match) {
-          subcommands.push({ name: match[1], description: match[2].trim() });
+        // Empty line or non-indented text — possible section boundary
+        if (trimmed === '') {
+          // Allow gaps between sections (git has blank lines between groups)
+          continue;
+        }
+
+        // Non-indented lowercase text = new section header (git-style grouping)
+        if (/^[a-z]/.test(trimmed)) {
+          continue;
+        }
+
+        // Uppercase or other non-matching line — end of subcommands area
+        if (/^[A-Z]/.test(trimmed) || trimmed.startsWith("'")) {
+          if (subcommands.length > 0) break;
+          inSubcommands = false;
         }
       }
     }
@@ -254,8 +284,8 @@ export class CLIScannerService {
     const lines = output.split('\n');
 
     for (const line of lines) {
-      // Match patterns like:  -f, --flag  Description
-      const match = line.match(/^\s+(--?\S+(?:\s*,\s*--?\S+)?)\s{2,}(.+)/);
+      // Match patterns like:  -f, --flag  Description  or  --flag=VALUE  Description
+      const match = line.match(/^\s+(--?\S+(?:[=]\S+)?(?:\s*,\s*--?\S+(?:[=]\S+)?)?)\s{2,}(.+)/);
       if (match) {
         flags.push({
           flag: match[1].trim(),
