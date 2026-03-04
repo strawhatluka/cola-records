@@ -177,8 +177,9 @@ export function CreatePullRequestModal({
       setBase(defaultBase);
 
       // Get current branch for compare default
+      let currentBranch = '';
       try {
-        const currentBranch = await ipc.invoke('git:get-current-branch', localPath);
+        currentBranch = (await ipc.invoke('git:get-current-branch', localPath)) || '';
         const compareBranch = currentBranch || defaultBranchName || branches[1] || '';
         if (isMounted.current) {
           setCompare(compareBranch);
@@ -196,6 +197,27 @@ export function CreatePullRequestModal({
         }
       }
 
+      // Smart base branch: if current branch is for a sub-issue, default base to parent's branch
+      const issueMatch = currentBranch?.match(/\/(\d+)[-/]/);
+      if (issueMatch) {
+        try {
+          const parent = await ipc.invoke(
+            'github:get-parent-issue',
+            owner,
+            repo,
+            Number(issueMatch[1])
+          );
+          if (parent && isMounted.current) {
+            const parentBranch = branches.find((br) =>
+              new RegExp(`\\b${parent.number}\\b`).test(br)
+            );
+            if (parentBranch) setBase(parentBranch);
+          }
+        } catch {
+          // Parent detection failed — keep default base (main)
+        }
+      }
+
       // Reset other state
       setBody('');
       setError(null);
@@ -209,7 +231,7 @@ export function CreatePullRequestModal({
     return () => {
       isMounted.current = false;
     };
-  }, [open, localPath, branches, defaultBranchName]);
+  }, [open, localPath, branches, defaultBranchName, owner, repo]);
 
   // Fetch comparison when base/compare change (debounced)
   useEffect(() => {

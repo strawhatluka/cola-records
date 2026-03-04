@@ -41,7 +41,9 @@ const defaultProps = {
   onCreated: vi.fn(),
 };
 
-function setupMockIPC(overrides: { currentBranch?: string; error?: boolean } = {}) {
+function setupMockIPC(
+  overrides: { currentBranch?: string; error?: boolean; parentIssue?: any } = {}
+) {
   mockInvoke.mockImplementation(async (channel: string) => {
     switch (channel) {
       case 'git:get-current-branch':
@@ -62,6 +64,8 @@ function setupMockIPC(overrides: { currentBranch?: string; error?: boolean } = {
       case 'github:create-pull-request':
         if (overrides.error) throw new Error('API rate limit exceeded');
         return { number: 1, url: 'https://github.com/org/repo/pull/1', state: 'open' };
+      case 'github:get-parent-issue':
+        return overrides.parentIssue ?? null;
       default:
         return undefined;
     }
@@ -243,5 +247,90 @@ describe('CreatePullRequestModal', () => {
     const formContent = container.querySelector('.space-y-4.min-w-0');
     expect(formContent).not.toBeNull();
     expect(formContent!.classList.contains('overflow-hidden')).toBe(false);
+  });
+
+  describe('smart base branch for sub-issues', () => {
+    it('defaults base to parent branch when current branch is a sub-issue', async () => {
+      setupMockIPC({
+        currentBranch: 'feat/68-test',
+        parentIssue: { id: 100, number: 22, title: 'Parent Feature', state: 'open', url: '' },
+      });
+
+      render(
+        <CreatePullRequestModal
+          {...defaultProps}
+          branches={['main', 'feat/22-maintenance-tools', 'feat/68-test']}
+        />
+      );
+
+      // Base should be set to parent's branch
+      await waitFor(() => {
+        const comboboxes = screen.getAllByRole('combobox');
+        expect(comboboxes[0].textContent).toContain('feat/22-maintenance-tools');
+      });
+    });
+
+    it('keeps base as main when current branch is not a sub-issue', async () => {
+      setupMockIPC({
+        currentBranch: 'feat/22-maintenance-tools',
+        parentIssue: null,
+      });
+
+      render(
+        <CreatePullRequestModal
+          {...defaultProps}
+          branches={['main', 'feat/22-maintenance-tools']}
+        />
+      );
+
+      await waitFor(() => {
+        const comboboxes = screen.getAllByRole('combobox');
+        expect(comboboxes[0].textContent).toContain('main');
+      });
+    });
+
+    it('keeps base as main when parent detection fails', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'git:get-current-branch') return 'feat/68-test';
+        if (channel === 'github:get-parent-issue') throw new Error('API error');
+        if (channel === 'git:compare-branches')
+          return {
+            commits: [],
+            files: [],
+            totalFilesChanged: 0,
+            totalInsertions: 0,
+            totalDeletions: 0,
+            rawDiff: '',
+          };
+        return undefined;
+      });
+
+      render(
+        <CreatePullRequestModal
+          {...defaultProps}
+          branches={['main', 'feat/22-maintenance-tools', 'feat/68-test']}
+        />
+      );
+
+      await waitFor(() => {
+        const comboboxes = screen.getAllByRole('combobox');
+        expect(comboboxes[0].textContent).toContain('main');
+      });
+    });
+
+    it('keeps base as main when parent branch is not in local branches', async () => {
+      setupMockIPC({
+        currentBranch: 'feat/68-test',
+        parentIssue: { id: 100, number: 99, title: 'Unbranched Parent', state: 'open', url: '' },
+      });
+
+      render(<CreatePullRequestModal {...defaultProps} branches={['main', 'feat/68-test']} />);
+
+      // Parent #99 has no matching branch — should stay on main
+      await waitFor(() => {
+        const comboboxes = screen.getAllByRole('combobox');
+        expect(comboboxes[0].textContent).toContain('main');
+      });
+    });
   });
 });

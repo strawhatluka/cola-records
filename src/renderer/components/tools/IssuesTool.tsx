@@ -199,12 +199,12 @@ export function IssuesTool({
   if (view === 'detail' && selectedIssue && parsed) {
     const directBranch = isBranchedByNumber(selectedIssue.number);
     const inherited = inheritedBranchedNumbers.has(selectedIssue.number);
-    const badgeType = directBranch
-      ? primaryIssueNumbers.has(selectedIssue.number)
-        ? ('Primary' as const)
-        : ('branched' as const)
-      : inherited
-        ? ('Secondary' as const)
+    const badgeType = inherited
+      ? ('Secondary' as const)
+      : directBranch
+        ? primaryIssueNumbers.has(selectedIssue.number)
+          ? ('Primary' as const)
+          : ('branched' as const)
         : undefined;
     return (
       <div className="flex flex-col h-full">
@@ -320,8 +320,8 @@ export function IssuesTool({
           <div className="divide-y divide-border">
             {sortedIssues.map((issue) => {
               const directBranch = isBranchedByNumber(issue.number);
-              const isPrimary = directBranch && primaryIssueNumbers.has(issue.number);
-              const inherited = !directBranch && inheritedBranchedNumbers.has(issue.number);
+              const inherited = inheritedBranchedNumbers.has(issue.number);
+              const isPrimary = !inherited && directBranch && primaryIssueNumbers.has(issue.number);
               return (
                 <div
                   key={issue.number}
@@ -341,7 +341,7 @@ export function IssuesTool({
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium text-sm truncate">{issue.title}</span>
                       <span className="text-muted-foreground shrink-0">#{issue.number}</span>
-                      {directBranch && (
+                      {directBranch && !inherited && (
                         <span
                           className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
                             isPrimary

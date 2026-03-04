@@ -348,14 +348,25 @@ export function DevelopmentIssueDetailModal({
     try {
       const branchName = generateBranchName(issue);
       // Determine the default branch (main or master)
-      const branches = await ipc.invoke('git:get-branches', localPath);
-      const defaultBranch = branches.find((b: string) => b === 'main')
+      const localBranches = await ipc.invoke('git:get-branches', localPath);
+      const defaultBranch = localBranches.find((b: string) => b === 'main')
         ? 'main'
-        : branches.find((b: string) => b === 'master')
+        : localBranches.find((b: string) => b === 'master')
           ? 'master'
-          : branches[0];
-      // Checkout the default branch first, then create the fix branch from it
-      await ipc.invoke('git:checkout', localPath, defaultBranch);
+          : localBranches[0];
+
+      // Sub-issues branch from their parent's branch; standalone/primary branch from main
+      const parentContext = parentIssue || detectedParent;
+      let baseBranch = defaultBranch;
+      if (parentContext) {
+        const parentBranch = localBranches.find((br: string) =>
+          new RegExp(`\\b${parentContext.number}\\b`).test(br)
+        );
+        if (parentBranch) baseBranch = parentBranch;
+      }
+
+      // Checkout the base branch first, then create the fix branch from it
+      await ipc.invoke('git:checkout', localPath, baseBranch);
       await ipc.invoke('git:create-branch', localPath, branchName);
       // Best-effort: assign the issue to ourselves so it appears in dashboard
       try {
@@ -714,12 +725,13 @@ export function DevelopmentIssueDetailModal({
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View on GitHub
                 </Button>
-                {issueState === 'open' && !branchBadge && (
-                  <Button size="sm" onClick={handleFixIssue} disabled={creatingBranch}>
-                    <GitBranch className="h-4 w-4 mr-2" />
-                    {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
-                  </Button>
-                )}
+                {issueState === 'open' &&
+                  !branches.some((br) => new RegExp(`\\b${issue?.number}\\b`).test(br)) && (
+                    <Button size="sm" onClick={handleFixIssue} disabled={creatingBranch}>
+                      <GitBranch className="h-4 w-4 mr-2" />
+                      {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
+                    </Button>
+                  )}
               </div>
               <div className="flex items-center gap-2">
                 {issueState === 'open' ? (

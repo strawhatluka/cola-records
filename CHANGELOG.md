@@ -145,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docs path enforcement**: `applyDocsUpdate()` now programmatically enforces `CONTRIBUTING.md` and `LICENSE.md` to root and all other docs to `docs/` directory, regardless of AI-suggested paths
 - **CLI Explorer improvements**: subcommand usage example shown next to "Flags (N) for 'sub command'" header; raw help output fallback when no structured subcommands/flags are parsed (tools like `claude` now show their help text); known alias dedup (`python3`→`python`, `nodejs`→`node`, `pip3`→`pip`); code-server PATH dedup prevents tools appearing twice in host+container environments
 - **CLI help parsing**: flags with angle-bracket arguments (`--flag <value>`) and bracket arguments (`--flag [value]`) now correctly captured; subcommand entries with arguments (`install [options] [target]`) now parsed; multi-strategy help (`-h` first for subcommands, fallback to `--help`) prevents browser launch on `git <sub> --help`
+- **Smart branching for grouped issues**: sub-issues now branch from their parent issue's branch instead of main when clicking Fix Issue; PR base branch auto-defaults to parent's branch when creating a PR from a sub-issue branch; falls back to main when parent is not branched or detection fails
 
 ### Changed
 
@@ -163,6 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed non-null assertion in `DocsViewer.tsx` link click handler (ESLint warning cleanup)
 - Contribution rescan not updating `repositoryUrl`, `branchName`, or `issueNumber` — projects first scanned without a remote were permanently stuck with `unknown/<dirName>` URL, breaking PR listing, sync, and other GitHub-dependent features; same bug existed in `project:scan-directory` handler
 - Removed non-null assertions in `MaintenanceTool.tsx` — replaced `projectInfo!.commands` with narrowed `projectInfo` access via `&&` guard
+- Fix Issue button was hidden for Secondary (sub-issue) issues that had not yet been branched — button visibility now checks direct branch existence instead of badge type
+- Secondary badge was overridden by "branched" badge after creating a sub-issue's branch — Secondary now takes priority over branched/Primary for inherited sub-issues in both list and detail views
 
 ### Tests
 
@@ -175,6 +178,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CommitModal tests (`CommitModal.test.tsx`): 8 tests covering AI message generation, editing, terminal spawn on commit, cancel, issue/branch passthrough, closed state, disabled button guard
 - ChangelogResult, ReadmeResult, DocsResult, StageEditor, VersionEditor component tests: inline result panels and full-view editors
 - AITab settings component tests (`AITab.test.tsx`): AI provider configuration UI
+- Smart branching tests (`DevelopmentIssueDetailModal.test.tsx`): 4 tests for sub-issue parent branching (via prop, via API auto-detection, fallback to main when parent not branched, standalone issue branches from main)
+- Smart base branch tests (`CreatePullRequestModal.test.tsx`): 4 tests for PR base branch auto-detection (sub-issue defaults to parent branch, non-sub-issue stays on main, API error fallback, parent branch not in local branches)
 
 ## [1.0.10] - 2026-02-24
 

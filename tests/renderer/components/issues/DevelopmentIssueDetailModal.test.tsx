@@ -927,4 +927,216 @@ describe('DevelopmentIssueDetailModal', () => {
       });
     });
   });
+
+  describe('Fix Issue smart branching', () => {
+    it('branches from parent issue branch when sub-issue has parentIssue prop', async () => {
+      setupMockIPC();
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          branchBadge={undefined}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+          parentIssue={{ number: 22, title: 'Parent Feature' }}
+          branches={['main', 'feat/22-maintenance-tools', 'dev']}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'feat/22-maintenance-tools', 'dev'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      // Should checkout the parent's branch, not main
+      const checkoutCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'git:checkout');
+      expect(checkoutCalls).toHaveLength(1);
+      expect(checkoutCalls[0][2]).toBe('feat/22-maintenance-tools');
+    });
+
+    it('branches from parent branch when parent is auto-detected via API', async () => {
+      setupMockIPC({
+        parentIssue: { id: 50, number: 22, title: 'Auto Parent', state: 'open', url: '' },
+      });
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          branchBadge={undefined}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+          onNavigateToIssue={vi.fn()}
+          branches={['main', 'feat/22-maintenance-tools']}
+        />
+      );
+
+      // Wait for detail load
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Wait for parent detection to complete (renders breadcrumb)
+      await waitFor(() => {
+        expect(screen.getByText(/Sub-issue of #22 Auto Parent/)).toBeDefined();
+      });
+
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'feat/22-maintenance-tools'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      const checkoutCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'git:checkout');
+      expect(checkoutCalls).toHaveLength(1);
+      expect(checkoutCalls[0][2]).toBe('feat/22-maintenance-tools');
+    });
+
+    it('falls back to main when sub-issue parent branch does not exist', async () => {
+      setupMockIPC();
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          branchBadge={undefined}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+          parentIssue={{ number: 99, title: 'Unbranched Parent' }}
+          branches={['main', 'dev']}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'dev'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      // No parent branch found — should fall back to main
+      const checkoutCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'git:checkout');
+      expect(checkoutCalls).toHaveLength(1);
+      expect(checkoutCalls[0][2]).toBe('main');
+    });
+
+    it('standalone issue (no parent) branches from main', async () => {
+      setupMockIPC();
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          branchBadge={undefined}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+          branches={['main', 'feat/22-maintenance-tools']}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'feat/22-maintenance-tools'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      // No parent — should checkout main
+      const checkoutCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'git:checkout');
+      expect(checkoutCalls).toHaveLength(1);
+      expect(checkoutCalls[0][2]).toBe('main');
+    });
+  });
 });
