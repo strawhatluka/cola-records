@@ -26,7 +26,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ipc } from '../../ipc/client';
-import type { ProjectInfo } from '../../../main/ipc/channels/types';
+import type { ProjectInfo, Contribution } from '../../../main/ipc/channels/types';
 import { WorkflowButtons } from './WorkflowButtons';
 import { NewBranchDialog } from './NewBranchDialog';
 import { UpdateSection } from './UpdateSection';
@@ -48,10 +48,20 @@ import { BuildPanel } from './BuildPanel';
 import { BuildEditor } from './BuildEditor';
 import { LintPanel } from './LintPanel';
 import { LintEditor } from './LintEditor';
+import { WorkflowActionButtons } from './WorkflowActionButtons';
+import { StageEditor } from './StageEditor';
+import { CommitModal } from './CommitModal';
+import { ChangelogResult } from './ChangelogResult';
+import { ReadmeResult } from './ReadmeResult';
+import { DocsResult } from './DocsResult';
+import { VersionEditor } from './VersionEditor';
+import { CLIExplorer } from './CLIExplorer';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
   onRunCommand: (command: string) => void;
+  contribution?: Contribution;
+  onSwitchTool?: (tool: string, data?: { prBody?: string }) => void;
 }
 
 interface SetUpButton {
@@ -63,7 +73,12 @@ interface SetUpButton {
   status: string | null;
 }
 
-export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceToolProps) {
+export function MaintenanceTool({
+  workingDirectory,
+  onRunCommand,
+  contribution,
+  onSwitchTool,
+}: MaintenanceToolProps) {
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
   const [detecting, setDetecting] = useState(true);
   const [buttonStates, setButtonStates] = useState<
@@ -87,6 +102,13 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
   const [buildEditorOpen, setBuildEditorOpen] = useState(false);
   const [lintPanelOpen, setLintPanelOpen] = useState(false);
   const [lintEditorOpen, setLintEditorOpen] = useState(false);
+  const [stageEditorOpen, setStageEditorOpen] = useState(false);
+  const [commitModalOpen, setCommitModalOpen] = useState(false);
+  const [changelogResultOpen, setChangelogResultOpen] = useState(false);
+  const [readmeResultOpen, setReadmeResultOpen] = useState(false);
+  const [docsResultOpen, setDocsResultOpen] = useState(false);
+  const [versionEditorOpen, setVersionEditorOpen] = useState(false);
+  const [cliExplorerOpen, setCliExplorerOpen] = useState(false);
 
   // Detect project on mount and when workingDirectory changes
   useEffect(() => {
@@ -323,6 +345,35 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
     );
   }
 
+  // When version editor is open, render it instead of the normal Tool Box
+  if (versionEditorOpen) {
+    return (
+      <VersionEditor
+        workingDirectory={workingDirectory}
+        onClose={() => setVersionEditorOpen(false)}
+        onRunCommand={onRunCommand}
+      />
+    );
+  }
+
+  // When CLI explorer is open, render it instead of the normal Tool Box
+  if (cliExplorerOpen) {
+    return (
+      <CLIExplorer
+        onClose={() => setCliExplorerOpen(false)}
+        onRunCommand={onRunCommand}
+        ecosystem={projectInfo?.ecosystem}
+      />
+    );
+  }
+
+  // When stage editor is open, render it instead of the normal Tool Box
+  if (stageEditorOpen) {
+    return (
+      <StageEditor workingDirectory={workingDirectory} onClose={() => setStageEditorOpen(false)} />
+    );
+  }
+
   return (
     <div className="flex flex-col h-full p-4 gap-4 overflow-auto styled-scroll">
       {/* Info Section */}
@@ -367,16 +418,64 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
           {detecting ? (
             <p className="text-xs text-muted-foreground">Detecting project...</p>
           ) : hasProject ? (
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setBranchDialogOpen(true)}
-                className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent min-w-[64px] transition-colors"
-                title="Create a new branch"
-              >
-                <GitBranchPlus className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[10px] text-muted-foreground leading-tight">New Branch</span>
-              </button>
-            </div>
+            <>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setBranchDialogOpen(true)}
+                  className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent min-w-[64px] transition-colors"
+                  title="Create a new branch"
+                >
+                  <GitBranchPlus className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground leading-tight">
+                    New Branch
+                  </span>
+                </button>
+                <WorkflowActionButtons
+                  onChangelogClick={() => setChangelogResultOpen((p) => !p)}
+                  onReadmeClick={() => setReadmeResultOpen((p) => !p)}
+                  onDocsClick={() => setDocsResultOpen((p) => !p)}
+                  onStageClick={() => setStageEditorOpen(true)}
+                  onCommitClick={() => setCommitModalOpen(true)}
+                  onPullRequestClick={async () => {
+                    let prBody: string | undefined;
+                    try {
+                      prBody = await ipc.invoke(
+                        'workflow:generate-pr-description',
+                        workingDirectory,
+                        'main',
+                        contribution?.branchName ?? 'HEAD',
+                        contribution?.issueNumber?.toString()
+                      );
+                    } catch {
+                      // AI not configured or failed — switch without body
+                    }
+                    onSwitchTool?.('pull-requests', prBody ? { prBody } : undefined);
+                  }}
+                  onVersionClick={() => setVersionEditorOpen(true)}
+                  onCliClick={() => setCliExplorerOpen(true)}
+                />
+              </div>
+              {changelogResultOpen && (
+                <ChangelogResult
+                  workingDirectory={workingDirectory}
+                  issueNumber={contribution?.issueNumber?.toString()}
+                  branchName={contribution?.branchName}
+                  onClose={() => setChangelogResultOpen(false)}
+                />
+              )}
+              {readmeResultOpen && (
+                <ReadmeResult
+                  workingDirectory={workingDirectory}
+                  onClose={() => setReadmeResultOpen(false)}
+                />
+              )}
+              {docsResultOpen && (
+                <DocsResult
+                  workingDirectory={workingDirectory}
+                  onClose={() => setDocsResultOpen(false)}
+                />
+              )}
+            </>
           ) : (
             <p className="text-xs text-muted-foreground">Could not detect project</p>
           )}
@@ -388,6 +487,16 @@ export function MaintenanceTool({ workingDirectory, onRunCommand }: MaintenanceT
         open={branchDialogOpen}
         onOpenChange={setBranchDialogOpen}
         workingDirectory={workingDirectory}
+      />
+
+      {/* CommitModal */}
+      <CommitModal
+        open={commitModalOpen}
+        onOpenChange={setCommitModalOpen}
+        workingDirectory={workingDirectory}
+        onRunCommand={onRunCommand}
+        issueNumber={contribution?.issueNumber?.toString()}
+        branchName={contribution?.branchName}
       />
 
       {/* Set Up Section */}

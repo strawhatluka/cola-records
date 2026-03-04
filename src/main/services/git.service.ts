@@ -635,6 +635,65 @@ export class GitService {
       throw new Error(`Failed to get branch info for ${branchName}: ${sanitizeGitError(error)}`);
     }
   }
+  /**
+   * Get working tree diff (unstaged changes)
+   */
+  async getDiff(repoPath: string): Promise<string> {
+    try {
+      const git = this.getGit(repoPath);
+      let diff = await git.diff(['--no-color']);
+      // eslint-disable-next-line no-control-regex -- intentionally stripping ANSI escape codes
+      diff = diff.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+      return diff;
+    } catch (error) {
+      throw new Error(`Failed to get diff in ${repoPath}: ${sanitizeGitError(error)}`);
+    }
+  }
+
+  /**
+   * Get staged diff (changes added to index)
+   */
+  async getDiffStaged(repoPath: string): Promise<string> {
+    try {
+      const git = this.getGit(repoPath);
+      let diff = await git.diff(['--cached', '--no-color']);
+      // eslint-disable-next-line no-control-regex -- intentionally stripping ANSI escape codes
+      diff = diff.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+      return diff;
+    } catch (error) {
+      throw new Error(`Failed to get staged diff in ${repoPath}: ${sanitizeGitError(error)}`);
+    }
+  }
+
+  /**
+   * Create a git tag
+   */
+  async tag(repoPath: string, tagName: string, message?: string): Promise<void> {
+    try {
+      const git = this.getGit(repoPath);
+      if (message) {
+        await git.tag(['-a', tagName, '-m', message]);
+      } else {
+        await git.tag([tagName]);
+      }
+    } catch (error) {
+      throw new Error(`Failed to create tag ${tagName} in ${repoPath}: ${sanitizeGitError(error)}`);
+    }
+  }
+
+  /**
+   * Push tags to remote
+   * Uses stored GitHub token for authentication via temporary URL rewriting
+   */
+  async pushTags(repoPath: string, remote = 'origin'): Promise<void> {
+    try {
+      await this.withAuthenticatedRemote(repoPath, remote, async (git) => {
+        await git.pushTags(remote);
+      });
+    } catch (error) {
+      throw new Error(`Failed to push tags in ${repoPath}: ${sanitizeGitError(error)}`);
+    }
+  }
 }
 
 // Export singleton instance

@@ -149,3 +149,12 @@ export const Eye = createIcon('Eye');
 // Hooks panel/editor icons
 export const Download = createIcon('Download');
 export const Sparkles = createIcon('Sparkles');
+
+// Workflow action button icons
+export const GitCommitHorizontal = createIcon('GitCommitHorizontal');
+export const TerminalSquare = createIcon('TerminalSquare');
+export const AlertCircle = createIcon('AlertCircle');
+
+// Stage editor icons
+export const CheckSquare = createIcon('CheckSquare');
+export const Square = createIcon('Square');

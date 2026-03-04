@@ -2,12 +2,18 @@
  * Core IPC channel definitions
  *
  * Covers: echo, fs, contribution, project, settings, dialog, shell,
- * code-server, terminal, dev-scripts, docs, updater
+ * code-server, terminal, dev-scripts, docs, updater, ai, workflow
  */
 import type {
   FileNode,
   FileContent,
   Contribution,
+  AIConfig,
+  AICompletionResponse,
+  DocsUpdateEntry,
+  VersionInfo,
+  CLIGroup,
+  CLIHelpResult,
   AppSettings,
   SSHRemote,
   ShellType,
@@ -302,4 +308,54 @@ export interface CoreChannels {
     ecosystem: Ecosystem,
     linter: LinterType | null
   ) => ESLintConfig | Record<string, unknown>;
+
+  // AI Channels
+  'ai:complete': (prompt: string, maxTokens?: number) => AICompletionResponse;
+  'ai:test-connection': () => { success: boolean; message: string; model: string };
+  'ai:get-config': () => AIConfig | null;
+
+  // Workflow — AI-powered generation
+  'workflow:generate-changelog': (
+    repoPath: string,
+    issueNumber?: string,
+    branchName?: string
+  ) => { entry: string; hasChanges: boolean };
+  'workflow:generate-readme-update': (repoPath: string) => {
+    content: string;
+    hasChanges: boolean;
+    currentReadme: string;
+  };
+  'workflow:generate-docs-update': (repoPath: string) => {
+    updates: DocsUpdateEntry[];
+    hasChanges: boolean;
+  };
+  'workflow:generate-commit-message': (
+    repoPath: string,
+    issueNumber?: string,
+    branchName?: string
+  ) => string;
+  'workflow:generate-pr-description': (
+    repoPath: string,
+    baseBranch: string,
+    headBranch: string,
+    issueNumber?: string
+  ) => string;
+
+  // Workflow — Apply operations
+  'workflow:apply-changelog': (repoPath: string, entry: string) => void;
+  'workflow:apply-readme': (repoPath: string, content: string) => void;
+  'workflow:apply-docs-update': (repoPath: string, update: DocsUpdateEntry) => void;
+
+  // Version management
+  'workflow:detect-versions': (repoPath: string) => VersionInfo[];
+  'workflow:bump-version': (current: string, type: 'major' | 'minor' | 'patch') => string;
+  'workflow:update-version': (
+    repoPath: string,
+    newVersion: string,
+    files: string[]
+  ) => SetUpActionResult;
+
+  // CLI scanning
+  'workflow:scan-clis': (ecosystem?: string) => CLIGroup[];
+  'workflow:get-cli-help': (cliPath: string, subcommand?: string) => CLIHelpResult;
 }

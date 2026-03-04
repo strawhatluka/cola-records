@@ -60,6 +60,10 @@ export function removeAllIpcHandlers(): void {
     'git:get-branch-info',
     'git:add-remote',
     'git:get-remotes',
+    'git:diff',
+    'git:diff-staged',
+    'git:tag',
+    'git:push-tags',
     // ── GitIgnore ──
     'gitignore:is-ignored',
     'gitignore:get-patterns',
@@ -272,6 +276,24 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:read-lint-config',
     'dev-tools:write-lint-config',
     'dev-tools:get-lint-presets',
+    // ── AI ──
+    'ai:complete',
+    'ai:test-connection',
+    'ai:get-config',
+    // ── Workflow ──
+    'workflow:generate-changelog',
+    'workflow:generate-readme-update',
+    'workflow:generate-docs-update',
+    'workflow:generate-commit-message',
+    'workflow:generate-pr-description',
+    'workflow:apply-changelog',
+    'workflow:apply-readme',
+    'workflow:apply-docs-update',
+    'workflow:detect-versions',
+    'workflow:bump-version',
+    'workflow:update-version',
+    'workflow:scan-clis',
+    'workflow:get-cli-help',
   ];
 
   channels.forEach((channel) => {

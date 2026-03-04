@@ -5,12 +5,14 @@ import { APITab } from '../components/settings/APITab';
 import { BashProfileTab } from '../components/settings/BashProfileTab';
 import { SSHRemotesTab } from '../components/settings/SSHRemotesTab';
 import { CodeServerTab } from '../components/settings/CodeServerTab';
+import { AITab } from '../components/settings/AITab';
 
-type SettingsTab = 'general' | 'api' | 'bash-profile' | 'ssh-remotes' | 'code-server';
+type SettingsTab = 'general' | 'api' | 'ai' | 'bash-profile' | 'ssh-remotes' | 'code-server';
 
 const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'general', label: 'General' },
   { id: 'api', label: 'API' },
+  { id: 'ai', label: 'AI' },
   { id: 'bash-profile', label: 'Bash Profile' },
   { id: 'ssh-remotes', label: 'SSH Remotes' },
   { id: 'code-server', label: 'Code Server' },
@@ -51,6 +53,7 @@ export function SettingsScreen() {
       {/* Tab content */}
       {activeTab === 'general' && <GeneralTab settings={settings} onUpdate={updateSettings} />}
       {activeTab === 'api' && <APITab settings={settings} onUpdate={updateSettings} />}
+      {activeTab === 'ai' && <AITab settings={settings} onUpdate={updateSettings} />}
       {activeTab === 'bash-profile' && (
         <BashProfileTab settings={settings} onUpdate={updateSettings} />
       )}

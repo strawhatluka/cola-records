@@ -180,6 +180,23 @@ export function setupCoreHandlers(): void {
     return await gitService.getRemotes(repoPath);
   });
 
+  // Git diff/tag handlers
+  handleIpc('git:diff', async (_event, repoPath) => {
+    return await gitService.getDiff(repoPath);
+  });
+
+  handleIpc('git:diff-staged', async (_event, repoPath) => {
+    return await gitService.getDiffStaged(repoPath);
+  });
+
+  handleIpc('git:tag', async (_event, repoPath, tagName, message) => {
+    await gitService.tag(repoPath, tagName, message);
+  });
+
+  handleIpc('git:push-tags', async (_event, repoPath, remote) => {
+    await gitService.pushTags(repoPath, remote);
+  });
+
   // GitIgnore handlers
   handleIpc('gitignore:is-ignored', async (_event, repoPath, filePath) => {
     return await gitIgnoreService.isIgnored(repoPath, filePath);

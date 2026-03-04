@@ -40,6 +40,8 @@ interface PullRequestsToolProps {
   remotes: GitRemote[];
   githubUsername: string;
   onRefreshBranches?: () => void;
+  initialView?: 'list' | 'create';
+  defaultPRBody?: string;
 }
 
 export function PullRequestsTool({
@@ -48,11 +50,13 @@ export function PullRequestsTool({
   remotes,
   githubUsername,
   onRefreshBranches,
+  initialView = 'list',
+  defaultPRBody,
 }: PullRequestsToolProps) {
   const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<PRView>('list');
+  const [view, setView] = useState<PRView>(initialView);
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
   const isMounted = useRef(true);
 
@@ -163,6 +167,7 @@ export function PullRequestsTool({
             branches={branches}
             remotes={remotes}
             defaultBranchName={contribution.branchName}
+            defaultBody={defaultPRBody}
             onClose={handleCreateClose}
             onCreated={handlePRCreated}
             inline

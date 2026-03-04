@@ -113,6 +113,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Linter detection**: Node → ESLint (`.eslintrc.json`, `eslint.config.js`, `eslint.config.mjs`, `eslint.config.ts`, `package.json` devDep); Python → Ruff (`ruff.toml`, `pyproject.toml [tool.ruff]`); Rust → Clippy (built-in); Go → golangci-lint (`.golangci.yml`, `.golangci.yaml`); Ruby → RuboCop (`.rubocop.yml`); PHP → PHPStan (`phpstan.neon`, `phpstan.neon.dist`); Java → Checkstyle (`checkstyle.xml`)
   - 4 new IPC channels (`dev-tools:detect-linter`, `dev-tools:read-lint-config`, `dev-tools:write-lint-config`, `dev-tools:get-lint-presets`)
   - 4 new types (`LinterType`, `LinterInfo`, `ESLintConfig`, `LintConfig`)
+- Dev Tools — Maintenance section with 8 AI-powered workflow action buttons and multi-provider AI abstraction layer ([#22](https://github.com/lukadfagundes/cola-records/issues/22))
+  - **AI Abstraction Layer** (`ai.service.ts`): multi-provider AI service supporting Gemini (default), Anthropic, OpenAI, and Ollama; single-shot completions via native `fetch` (no npm dependencies); per-provider request/response mapping; connection testing; config stored in SQLite via `database.getSetting('aiConfig')`
+  - **AI Settings Tab** (`AITab.tsx`): new tab in Settings screen for AI provider configuration — provider dropdown (Gemini/Anthropic/OpenAI/Ollama), model selection from curated per-provider lists, API key input (password field), custom base URL for Ollama, Test Connection button with success/failure feedback
+  - **WorkflowService** (`workflow.service.ts`): orchestrates AI-powered code analysis workflows — `generateChangelog` (diff → CHANGELOG entry), `generateReadmeUpdate` (diff → updated README), `generateDocsUpdate` (diff → new/updated doc files as JSON), `generateCommitMessage` (staged diff → conventional commit message), `generatePRDescription` (branch comparison → PR body); each method reads git state, constructs a targeted prompt, and sends a single AI completion
+  - **WorkflowActionButtons** (`WorkflowActionButtons.tsx`): 8 action buttons in Maintenance section — Changelog, Readme, Docs (AI-powered generation with inline result panels), Stage, Commit (git workflow with full-view editors), Pull Request (switches to PR tool with AI-generated description), Version (full-view version manager), CLI (full-view CLI explorer)
+  - **ChangelogResult** (`ChangelogResult.tsx`): inline result panel showing AI-generated CHANGELOG entry with Apply button (writes to `CHANGELOG.md` via `workflow:apply-changelog`)
+  - **ReadmeResult** (`ReadmeResult.tsx`): inline result panel showing AI-generated README update with Apply button (writes to `README.md` via `workflow:apply-readme`)
+  - **DocsResult** (`DocsResult.tsx`): inline result panel showing multiple doc file updates with NEW/UPD badges, individual Apply buttons per file, and Apply All button (writes via `workflow:apply-docs-update`)
+  - **StageEditor** (`StageEditor.tsx`): full-view file staging UI — lists changed files from `git:status`, checkbox selection (pre-selects all), stage/unstage via `git:stage-files`/`git:unstage-files`, file count in confirm button
+  - **CommitModal** (`CommitModal.tsx`): full-view commit UI — AI-generated commit message (editable textarea), Commit button calls `git:commit`, loading state while message generates
+  - **VersionEditor** (`VersionEditor.tsx`): full-view version management — detects version files on mount via `workflow:detect-versions`, displays file/version/package-manager per entry, patch/minor/major bump buttons via `workflow:bump-version`, editable version input, Save (writes via `workflow:update-version`), Save & Push (writes + sends `git add/commit/push` to terminal)
+  - **CLIExplorer** (`CLIExplorer.tsx`): full-view CLI browser — scans PATH on mount via `workflow:scan-clis`, groups executables by source (System, Node.js, Python, Rust, Go, Ruby, Homebrew, Snap), search/filter bar, expandable entries with `workflow:get-cli-help` for subcommands/flags/usage, "Run in Terminal" button
+  - **VersionService** (`version.service.ts`): detect version files (package.json, Cargo.toml, pyproject.toml, build.gradle), bump versions (patch/minor/major), update version strings in files
+  - **CLIScannerService** (`cli-scanner.service.ts`): scan PATH directories for executables, classify by source, parse `--help` output into structured subcommands/flags/usage via `execFile`
+  - **PR integration**: Maintenance "Pull Request" button generates AI PR description asynchronously, then switches to Pull Requests tool with pre-filled body via `onSwitchTool` data parameter threading through `ToolsPanel` → `PullRequestsTool` → `CreatePullRequestModal`
+  - **Ecosystem-based CLI filtering**: `scanCLIs(ecosystem?)` filters PATH scan results to only show tools relevant to the detected project ecosystem (e.g., Node project hides Python/Rust tools); curated `CORE_SYSTEM_TOOLS` allowlist ensures common dev tools (`git`, `docker`, `curl`, etc.) are always visible regardless of ecosystem; `ECOSYSTEM_GROUPS` mapping controls which PATH source categories are included per ecosystem
+  - **CLI Explorer command builder**: subcommand and flag tables with click-to-select highlighting, composed command preview (`$ git clone --depth`), subcommand-specific flag loading via secondary `workflow:get-cli-help` call, Copy and Run buttons for the composed command
+  - **Issue number extraction from branch name**: `extractIssueFromBranch()` parses conventional branch names (e.g., `feat/22-maintenance-tools` → `#22`) using regex; used by `generateCommitMessage`, `generateChangelog`, and `generatePRDescription` as fallback when no explicit issue number is provided
+  - **PR description template**: `generatePRDescription` now outputs Summary (bullet points), Changes (`| File | Change |` table with **New** markers), Test plan (verification steps), and `Closes #N` footer
+  - **README generation**: `generateReadmeUpdate` now generates a new README from scratch when none exists, scanning `package.json` and project structure for context
+  - **Docs generation**: `generateDocsUpdate` now generates initial documentation files when no `docs/` directory exists, using project structure and `package.json` as context
+  - 16 new IPC channels (`ai:get-config`, `ai:save-config`, `ai:test-connection`, `ai:get-models`, `workflow:generate-changelog`, `workflow:generate-readme`, `workflow:generate-docs`, `workflow:generate-commit-message`, `workflow:generate-pr-description`, `workflow:apply-changelog`, `workflow:apply-readme`, `workflow:apply-docs-update`, `workflow:detect-versions`, `workflow:bump-version`, `workflow:update-version`, `workflow:scan-clis`, `workflow:get-cli-help`)
+  - 10 new types (`AIProvider`, `AIConfig`, `AICompletionRequest`, `AICompletionResult`, `AIConnectionTestResult`, `CLIGroup`, `CLIEntry`, `CLIHelpResult`, `VersionFileInfo`, `DocsUpdateEntry`)
+- Styled scrollbar (`styled-scroll`) added to ChangelogResult, ReadmeResult inline panels and DashboardScreen main scroll area
 
 ### Changed
 
@@ -129,6 +153,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed non-null assertion in `DocsViewer.tsx` link click handler (ESLint warning cleanup)
 - Contribution rescan not updating `repositoryUrl`, `branchName`, or `issueNumber` — projects first scanned without a remote were permanently stuck with `unknown/<dirName>` URL, breaking PR listing, sync, and other GitHub-dependent features; same bug existed in `project:scan-directory` handler
 - Removed non-null assertions in `MaintenanceTool.tsx` — replaced `projectInfo!.commands` with narrowed `projectInfo` access via `&&` guard
+
+### Tests
+
+- Workflow service tests (`workflow.service.test.ts`): 15 tests covering changelog generation, commit message generation, PR description generation, README update/generation, docs update/generation, issue number extraction from branch names
+- CLI scanner service tests (`cli-scanner.service.test.ts`): 6 tests covering PATH scanning, empty PATH, directory read errors, ecosystem filtering, and unfiltered scanning
+- AI service tests (`ai.service.test.ts`): tests for multi-provider AI abstraction layer (Gemini, Anthropic, OpenAI, Ollama)
+- Version service tests (`version.service.test.ts`): tests for version file detection and version bumping
+- CLIExplorer component tests (`CLIExplorer.test.tsx`): 14 tests covering scanning, group display, entry expansion, help loading, search filtering, command builder with subcommand selection and flag toggling, ecosystem prop passing, error/empty states
+- WorkflowActionButtons tests (`WorkflowActionButtons.test.tsx`): tests for 8 action button rendering and click handlers
+- ChangelogResult, ReadmeResult, DocsResult, CommitModal, StageEditor, VersionEditor component tests: inline result panels and full-view editors
+- AITab settings component tests (`AITab.test.tsx`): AI provider configuration UI
 
 ## [1.0.10] - 2026-02-24
 

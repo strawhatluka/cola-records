@@ -844,4 +844,73 @@ export interface AppSettings {
   aliases?: Alias[];
   bashProfile?: BashProfileSettings;
   codeServerConfig?: CodeServerConfig;
+  aiConfig?: AIConfig;
+}
+
+// AI Types
+export type AIProvider = 'gemini' | 'anthropic' | 'openai' | 'ollama';
+
+export interface AIConfig {
+  provider: AIProvider;
+  apiKey: string;
+  model: string;
+  baseUrl?: string;
+}
+
+export interface AICompletionRequest {
+  prompt: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface AICompletionResponse {
+  content: string;
+  tokensUsed: number;
+  model: string;
+}
+
+// Version Types
+export interface VersionInfo {
+  file: string;
+  relativePath: string;
+  currentVersion: string;
+  packageManager: string;
+}
+
+// CLI Types
+export interface CLIEntry {
+  name: string;
+  path: string;
+  version?: string;
+}
+
+export interface CLIGroup {
+  source: string;
+  entries: CLIEntry[];
+}
+
+export interface CLISubcommand {
+  name: string;
+  description: string;
+}
+
+export interface CLIFlag {
+  flag: string;
+  description: string;
+  required: boolean;
+}
+
+export interface CLIHelpResult {
+  description: string;
+  usage: string;
+  subcommands: CLISubcommand[];
+  flags: CLIFlag[];
+  rawOutput: string;
+}
+
+// Docs Update Type
+export interface DocsUpdateEntry {
+  path: string;
+  content: string;
+  action: 'create' | 'update';
 }

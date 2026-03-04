@@ -86,6 +86,15 @@ export function setupSettingsHandlers(): void {
       codeServerConfig = undefined;
     }
 
+    let aiConfig: import('../channels').AIConfig | undefined;
+    try {
+      if (settings.aiConfig) {
+        aiConfig = JSON.parse(settings.aiConfig);
+      }
+    } catch {
+      aiConfig = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -98,6 +107,7 @@ export function setupSettingsHandlers(): void {
       aliases,
       bashProfile,
       codeServerConfig,
+      aiConfig,
     };
   });
 
@@ -148,6 +158,9 @@ export function setupSettingsHandlers(): void {
     if (updates.codeServerConfig !== undefined) {
       database.setSetting('codeServerConfig', JSON.stringify(updates.codeServerConfig));
     }
+    if (updates.aiConfig !== undefined) {
+      database.setSetting('aiConfig', JSON.stringify(updates.aiConfig));
+    }
 
     // Return updated settings
     const settings = database.getAllSettings();
@@ -176,6 +189,15 @@ export function setupSettingsHandlers(): void {
       codeServerConfig = undefined;
     }
 
+    let aiConfig: import('../channels').AIConfig | undefined;
+    try {
+      if (settings.aiConfig) {
+        aiConfig = JSON.parse(settings.aiConfig);
+      }
+    } catch {
+      aiConfig = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -188,6 +210,7 @@ export function setupSettingsHandlers(): void {
       aliases,
       bashProfile,
       codeServerConfig,
+      aiConfig,
     };
   });
 

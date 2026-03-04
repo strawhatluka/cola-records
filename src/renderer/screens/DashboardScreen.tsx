@@ -30,7 +30,7 @@ export function DashboardScreen({ onOpenIDE }: DashboardScreenProps) {
         <p className="text-sm text-muted-foreground mt-1">Your contribution activity at a glance</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 pt-4">
+      <div className="flex-1 overflow-y-auto styled-scroll p-6 pt-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Row 1: At-a-Glance Stats */}
           <ContributionStatusWidget />
