@@ -28,20 +28,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install global npm packages
-# - @anthropic-ai/claude-code: Claude Code CLI for AI-assisted development
-# - trinity-method-sdk: Trinity Method development toolkit
-RUN npm install -g @anthropic-ai/claude-code trinity-method-sdk
-
-# Verify installations are accessible
-RUN echo "=== Verification ===" && \
-    echo "Node.js: $(node --version)" && \
-    echo "npm: $(npm --version)" && \
-    echo "npm path: $(which npm)" && \
-    echo "Python: $(python3 --version)" && \
-    echo "Claude Code: $(claude --version 2>/dev/null || echo 'installed')" && \
-    echo "===================="
-
 # Labels for identification
 LABEL org.opencontainers.image.title="Cola Code-Server"
 LABEL org.opencontainers.image.description="Code-server with Node.js, npm, Python, Claude Code CLI pre-installed"

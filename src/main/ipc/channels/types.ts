@@ -113,6 +113,7 @@ export interface SubIssue {
   title: string;
   state: string;
   url: string;
+  labels: string[];
 }
 
 // PR Check Status Types

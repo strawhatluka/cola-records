@@ -172,6 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Sub-issue detail view now hides closed sub-issues and shows actual GitHub labels (Primary/Secondary) as badges instead of a hardcoded fallback — added `labels: string[]` to `SubIssue` type, updated `listSubIssues` and `getParentIssue` service methods to extract labels from API response, filtered sub-issue list to open-only
 - Clean button failing on Windows — trailing slashes in `CLEAN_TARGETS` patterns caused backslash-escaped quotes in `rm -rf` commands, and Windows `path.join` produced backslash paths incompatible with Git Bash; paths now normalized to POSIX forward slashes
 - MaintenanceTool crash when project detection returns `undefined` — strengthened null check to handle both `null` and `undefined` states
 - Removed non-null assertion in `DocsViewer.tsx` link click handler (ESLint warning cleanup)

@@ -557,49 +557,53 @@ export function DevelopmentIssueDetailModal({
             </div>
           )}
 
-          {/* Sub-issues list */}
-          {subIssues.length > 0 && (
+          {/* Sub-issues list (open only) */}
+          {subIssues.filter((s) => s.state === 'open').length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Sub-issues ({subIssues.length})</h3>
+              <h3 className="text-sm font-medium">
+                Sub-issues ({subIssues.filter((s) => s.state === 'open').length})
+              </h3>
               <div className="space-y-1">
-                {subIssues.map((sub) => (
-                  <button
-                    key={sub.id}
-                    onClick={() =>
-                      onNavigateToIssue?.(sub.number, {
-                        number: issue.number,
-                        title: issueDetail?.title || issue.title,
-                      })
-                    }
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm hover:bg-accent/50 cursor-pointer transition-colors text-left"
-                  >
-                    <span
-                      className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                        sub.state === 'open'
-                          ? 'bg-green-500/10 text-green-500'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
+                {subIssues
+                  .filter((s) => s.state === 'open')
+                  .map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() =>
+                        onNavigateToIssue?.(sub.number, {
+                          number: issue.number,
+                          title: issueDetail?.title || issue.title,
+                        })
+                      }
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm hover:bg-accent/50 cursor-pointer transition-colors text-left"
                     >
-                      {sub.state}
-                    </span>
-                    <span className="truncate flex-1">{sub.title}</span>
-                    {(branchBadge ||
-                      branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))) && (
-                      <span
-                        className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))
-                            ? 'bg-blue-500/10 text-blue-500'
-                            : 'bg-yellow-500/10 text-yellow-400'
-                        }`}
-                      >
-                        {branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))
-                          ? 'branched'
-                          : 'Secondary'}
+                      <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/10 text-green-500">
+                        open
                       </span>
-                    )}
-                    <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
-                  </button>
-                ))}
+                      <span className="truncate flex-1">{sub.title}</span>
+                      {(sub.labels ?? []).map((label) => (
+                        <Badge
+                          key={label}
+                          className={
+                            label === 'Primary'
+                              ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                              : label === 'Secondary'
+                                ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                : ''
+                          }
+                          variant="secondary"
+                        >
+                          {label}
+                        </Badge>
+                      ))}
+                      {branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br)) && (
+                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-500">
+                          branched
+                        </span>
+                      )}
+                      <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
+                    </button>
+                  ))}
               </div>
             </div>
           )}
