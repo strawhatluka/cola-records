@@ -951,10 +951,3 @@ export interface NotificationPreferences {
   pollInterval: number;
   categories: Record<NotificationCategory, NotificationCategoryPreference>;
 }
-
-// Docs Update Type
-export interface DocsUpdateEntry {
-  path: string;
-  content: string;
-  action: 'create' | 'update';
-}

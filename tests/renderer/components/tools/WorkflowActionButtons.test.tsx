@@ -10,8 +10,6 @@ import { WorkflowActionButtons } from '../../../../src/renderer/components/tools
 describe('WorkflowActionButtons', () => {
   const defaultProps = {
     onChangelogClick: vi.fn(),
-    onReadmeClick: vi.fn(),
-    onDocsClick: vi.fn(),
     onStageClick: vi.fn(),
     onCommitClick: vi.fn(),
     onPushClick: vi.fn(),
@@ -20,12 +18,10 @@ describe('WorkflowActionButtons', () => {
     onCliClick: vi.fn(),
   };
 
-  it('should render all 9 buttons', () => {
+  it('should render all 7 buttons', () => {
     render(<WorkflowActionButtons {...defaultProps} />);
 
     expect(screen.getByText('Changelog')).toBeDefined();
-    expect(screen.getByText('Readme')).toBeDefined();
-    expect(screen.getByText('Docs')).toBeDefined();
     expect(screen.getByText('Stage')).toBeDefined();
     expect(screen.getByText('Commit')).toBeDefined();
     expect(screen.getByText('Push')).toBeDefined();
@@ -38,18 +34,6 @@ describe('WorkflowActionButtons', () => {
     render(<WorkflowActionButtons {...defaultProps} />);
     await userEvent.click(screen.getByText('Changelog').closest('button')!);
     expect(defaultProps.onChangelogClick).toHaveBeenCalledOnce();
-  });
-
-  it('should call onReadmeClick when Readme button is clicked', async () => {
-    render(<WorkflowActionButtons {...defaultProps} />);
-    await userEvent.click(screen.getByText('Readme').closest('button')!);
-    expect(defaultProps.onReadmeClick).toHaveBeenCalledOnce();
-  });
-
-  it('should call onDocsClick when Docs button is clicked', async () => {
-    render(<WorkflowActionButtons {...defaultProps} />);
-    await userEvent.click(screen.getByText('Docs').closest('button')!);
-    expect(defaultProps.onDocsClick).toHaveBeenCalledOnce();
   });
 
   it('should call onStageClick when Stage button is clicked', async () => {

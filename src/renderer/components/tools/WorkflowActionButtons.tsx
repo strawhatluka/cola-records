@@ -1,15 +1,13 @@
 /**
  * WorkflowActionButtons
  *
- * Nine action buttons for AI-powered and git workflow operations:
- * Changelog, Readme, Docs, Stage, Commit, Push, Pull Request, Version, CLI.
+ * Seven action buttons for AI-powered and git workflow operations:
+ * Changelog, Stage, Commit, Push, Pull Request, Version, CLI.
  * Rendered in the Workflows section of MaintenanceTool.
  */
 
 import {
   FileText,
-  BookOpen,
-  FolderOpen,
   Plus,
   GitCommitHorizontal,
   ArrowUp,
@@ -20,8 +18,6 @@ import {
 
 interface WorkflowActionButtonsProps {
   onChangelogClick: () => void;
-  onReadmeClick: () => void;
-  onDocsClick: () => void;
   onStageClick: () => void;
   onCommitClick: () => void;
   onPushClick: () => void;
@@ -32,8 +28,6 @@ interface WorkflowActionButtonsProps {
 
 const buttons = [
   { id: 'changelog', label: 'Changelog', icon: FileText, handler: 'onChangelogClick' },
-  { id: 'readme', label: 'Readme', icon: BookOpen, handler: 'onReadmeClick' },
-  { id: 'docs', label: 'Docs', icon: FolderOpen, handler: 'onDocsClick' },
   { id: 'stage', label: 'Stage', icon: Plus, handler: 'onStageClick' },
   { id: 'commit', label: 'Commit', icon: GitCommitHorizontal, handler: 'onCommitClick' },
   { id: 'push', label: 'Push', icon: ArrowUp, handler: 'onPushClick' },

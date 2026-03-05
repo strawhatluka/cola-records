@@ -6,7 +6,7 @@
  * Apply button that writes to CHANGELOG.md.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, Check, AlertCircle } from 'lucide-react';
 import { ipc } from '../../ipc/client';
 
@@ -30,28 +30,40 @@ export function ChangelogResult({
   const [applied, setApplied] = useState(false);
   const [applying, setApplying] = useState(false);
 
-  const generate = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await ipc.invoke(
-        'workflow:generate-changelog',
-        workingDirectory,
-        issueNumber,
-        branchName
-      );
-      setEntry(result.entry);
-      setHasChanges(result.hasChanges);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate');
-    } finally {
-      setLoading(false);
-    }
-  }, [workingDirectory, issueNumber, branchName]);
-
   useEffect(() => {
+    let cancelled = false;
+
+    const generate = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await ipc.invoke(
+          'workflow:generate-changelog',
+          workingDirectory,
+          issueNumber,
+          branchName
+        );
+        if (!cancelled) {
+          setEntry(result.entry);
+          setHasChanges(result.hasChanges);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to generate');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
     generate();
-  }, [generate]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workingDirectory, issueNumber, branchName]);
 
   const handleApply = async () => {
     setApplying(true);

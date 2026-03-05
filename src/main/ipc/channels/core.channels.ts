@@ -10,7 +10,6 @@ import type {
   Contribution,
   AIConfig,
   AICompletionResponse,
-  DocsUpdateEntry,
   VersionInfo,
   CLIGroup,
   CLIHelpResult,
@@ -322,31 +321,13 @@ export interface CoreChannels {
     issueNumber?: string,
     branchName?: string
   ) => { entry: string; hasChanges: boolean };
-  'workflow:generate-readme-update': (repoPath: string) => {
-    content: string;
-    hasChanges: boolean;
-    currentReadme: string;
-  };
-  'workflow:generate-docs-update': (repoPath: string) => {
-    updates: DocsUpdateEntry[];
-    hasChanges: boolean;
-  };
   'workflow:generate-commit-message': (
     repoPath: string,
     issueNumber?: string,
     branchName?: string
   ) => string;
-  'workflow:generate-pr-description': (
-    repoPath: string,
-    baseBranch: string,
-    headBranch: string,
-    issueNumber?: string
-  ) => string;
-
   // Workflow — Apply operations
   'workflow:apply-changelog': (repoPath: string, entry: string) => void;
-  'workflow:apply-readme': (repoPath: string, content: string) => void;
-  'workflow:apply-docs-update': (repoPath: string, update: DocsUpdateEntry) => void;
 
   // Version management
   'workflow:detect-versions': (repoPath: string) => VersionInfo[];

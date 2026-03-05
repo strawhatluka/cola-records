@@ -282,13 +282,8 @@ export function removeAllIpcHandlers(): void {
     'ai:get-config',
     // ── Workflow ──
     'workflow:generate-changelog',
-    'workflow:generate-readme-update',
-    'workflow:generate-docs-update',
     'workflow:generate-commit-message',
-    'workflow:generate-pr-description',
     'workflow:apply-changelog',
-    'workflow:apply-readme',
-    'workflow:apply-docs-update',
     'workflow:detect-versions',
     'workflow:bump-version',
     'workflow:update-version',

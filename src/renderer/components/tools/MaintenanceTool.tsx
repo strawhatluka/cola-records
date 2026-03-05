@@ -53,8 +53,6 @@ import { WorkflowActionButtons } from './WorkflowActionButtons';
 import { StageEditor } from './StageEditor';
 import { CommitModal } from './CommitModal';
 import { ChangelogResult } from './ChangelogResult';
-import { ReadmeResult } from './ReadmeResult';
-import { DocsResult } from './DocsResult';
 import { VersionEditor } from './VersionEditor';
 import { CLIExplorer } from './CLIExplorer';
 
@@ -62,7 +60,7 @@ interface MaintenanceToolProps {
   workingDirectory: string;
   onRunCommand: (command: string) => void;
   contribution?: Contribution;
-  onSwitchTool?: (tool: string, data?: { prBody?: string }) => void;
+  onSwitchTool?: (tool: string) => void;
 }
 
 interface SetUpButton {
@@ -106,8 +104,6 @@ export function MaintenanceTool({
   const [stageEditorOpen, setStageEditorOpen] = useState(false);
   const [commitModalOpen, setCommitModalOpen] = useState(false);
   const [changelogResultOpen, setChangelogResultOpen] = useState(false);
-  const [readmeResultOpen, setReadmeResultOpen] = useState(false);
-  const [docsResultOpen, setDocsResultOpen] = useState(false);
   const [versionEditorOpen, setVersionEditorOpen] = useState(false);
   const [cliExplorerOpen, setCliExplorerOpen] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
@@ -471,26 +467,10 @@ export function MaintenanceTool({
                 </button>
                 <WorkflowActionButtons
                   onChangelogClick={() => setChangelogResultOpen((p) => !p)}
-                  onReadmeClick={() => setReadmeResultOpen((p) => !p)}
-                  onDocsClick={() => setDocsResultOpen((p) => !p)}
                   onStageClick={() => setStageEditorOpen(true)}
                   onCommitClick={() => setCommitModalOpen(true)}
                   onPushClick={handlePush}
-                  onPullRequestClick={async () => {
-                    let prBody: string | undefined;
-                    try {
-                      prBody = await ipc.invoke(
-                        'workflow:generate-pr-description',
-                        workingDirectory,
-                        'main',
-                        contribution?.branchName ?? 'HEAD',
-                        contribution?.issueNumber?.toString()
-                      );
-                    } catch {
-                      // AI not configured or failed — switch without body
-                    }
-                    onSwitchTool?.('pull-requests', prBody ? { prBody } : undefined);
-                  }}
+                  onPullRequestClick={() => onSwitchTool?.('pull-requests')}
                   onVersionClick={() => setVersionEditorOpen(true)}
                   onCliClick={() => setCliExplorerOpen(true)}
                 />
@@ -501,18 +481,6 @@ export function MaintenanceTool({
                   issueNumber={contribution?.issueNumber?.toString()}
                   branchName={contribution?.branchName}
                   onClose={() => setChangelogResultOpen(false)}
-                />
-              )}
-              {readmeResultOpen && (
-                <ReadmeResult
-                  workingDirectory={workingDirectory}
-                  onClose={() => setReadmeResultOpen(false)}
-                />
-              )}
-              {docsResultOpen && (
-                <DocsResult
-                  workingDirectory={workingDirectory}
-                  onClose={() => setDocsResultOpen(false)}
                 />
               )}
               {(pushLoading || pushResult) && (

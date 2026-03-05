@@ -15,14 +15,6 @@ export function setupWorkflowHandlers(): void {
     return await workflowService.generateChangelog(repoPath, issueNumber, branchName);
   });
 
-  handleIpc('workflow:generate-readme-update', async (_event, repoPath) => {
-    return await workflowService.generateReadmeUpdate(repoPath);
-  });
-
-  handleIpc('workflow:generate-docs-update', async (_event, repoPath) => {
-    return await workflowService.generateDocsUpdate(repoPath);
-  });
-
   handleIpc(
     'workflow:generate-commit-message',
     async (_event, repoPath, issueNumber, branchName) => {
@@ -30,29 +22,9 @@ export function setupWorkflowHandlers(): void {
     }
   );
 
-  handleIpc(
-    'workflow:generate-pr-description',
-    async (_event, repoPath, baseBranch, headBranch, issueNumber) => {
-      return await workflowService.generatePRDescription(
-        repoPath,
-        baseBranch,
-        headBranch,
-        issueNumber
-      );
-    }
-  );
-
   // Workflow — Apply operations
   handleIpc('workflow:apply-changelog', async (_event, repoPath, entry) => {
     await workflowService.applyChangelog(repoPath, entry);
-  });
-
-  handleIpc('workflow:apply-readme', async (_event, repoPath, content) => {
-    await workflowService.applyReadme(repoPath, content);
-  });
-
-  handleIpc('workflow:apply-docs-update', async (_event, repoPath, update) => {
-    await workflowService.applyDocsUpdate(repoPath, update);
   });
 
   // Version management

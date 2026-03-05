@@ -29,7 +29,6 @@ interface CreatePullRequestModalProps {
   branches: string[];
   remotes: GitRemote[];
   defaultBranchName?: string;
-  defaultBody?: string;
   onClose: () => void;
   onCreated: () => void;
   /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
@@ -142,7 +141,6 @@ export function CreatePullRequestModal({
   branches,
   remotes,
   defaultBranchName,
-  defaultBody,
   onClose,
   onCreated,
   inline,
@@ -150,7 +148,7 @@ export function CreatePullRequestModal({
   const [base, setBase] = useState('');
   const [compare, setCompare] = useState('');
   const [title, setTitle] = useState('');
-  const [body, setBody] = useState(defaultBody ?? '');
+  const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

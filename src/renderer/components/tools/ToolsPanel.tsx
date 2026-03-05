@@ -93,7 +93,6 @@ export function ToolsPanel({
   onRefreshBranches,
 }: ToolsPanelProps) {
   const [activeTool, setActiveTool] = useState<ToolType>('dev-tools');
-  const [prDefaultBody, setPrDefaultBody] = useState<string | undefined>();
   const [menuOpen, setMenuOpen] = useState(false);
   const [terminalExpanded, setTerminalExpanded] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(0);
@@ -198,8 +197,6 @@ export function ToolsPanel({
             remotes={remotes}
             githubUsername={githubUsername}
             onRefreshBranches={onRefreshBranches}
-            initialView={prDefaultBody ? 'create' : 'list'}
-            defaultPRBody={prDefaultBody}
           />
         ) : null;
       case 'actions':
@@ -214,12 +211,7 @@ export function ToolsPanel({
             workingDirectory={workingDirectory}
             onRunCommand={handleRunCommand}
             contribution={contribution}
-            onSwitchTool={(tool, data) => {
-              if (tool === 'pull-requests' && data?.prBody) {
-                setPrDefaultBody(data.prBody);
-              } else {
-                setPrDefaultBody(undefined);
-              }
+            onSwitchTool={(tool) => {
               setActiveTool(tool as ToolType);
             }}
           />
