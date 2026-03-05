@@ -59,6 +59,8 @@ import type {
   LinterInfo,
   LintConfig,
   ESLintConfig,
+  AppNotification,
+  NotificationPreferences,
 } from './types';
 
 export interface CoreChannels {
@@ -358,4 +360,17 @@ export interface CoreChannels {
   // CLI scanning
   'workflow:scan-clis': (ecosystem?: string) => CLIGroup[];
   'workflow:get-cli-help': (cliPath: string, subcommand?: string) => CLIHelpResult;
+
+  // Notification Channels
+  'notification:add': (notification: AppNotification) => void;
+  'notification:get-all': (limit?: number, offset?: number) => AppNotification[];
+  'notification:mark-read': (id: string) => void;
+  'notification:mark-all-read': () => void;
+  'notification:dismiss': (id: string) => void;
+  'notification:clear-all': () => void;
+  'notification:get-preferences': () => NotificationPreferences;
+  'notification:update-preferences': (
+    preferences: Partial<NotificationPreferences>
+  ) => NotificationPreferences;
+  'notification:get-unread-count': () => number;
 }

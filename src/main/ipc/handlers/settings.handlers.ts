@@ -95,6 +95,15 @@ export function setupSettingsHandlers(): void {
       aiConfig = undefined;
     }
 
+    let notificationPreferences: import('../channels').NotificationPreferences | undefined;
+    try {
+      if (settings.notificationPreferences) {
+        notificationPreferences = JSON.parse(settings.notificationPreferences);
+      }
+    } catch {
+      notificationPreferences = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -108,6 +117,7 @@ export function setupSettingsHandlers(): void {
       bashProfile,
       codeServerConfig,
       aiConfig,
+      notificationPreferences,
     };
   });
 
@@ -161,6 +171,12 @@ export function setupSettingsHandlers(): void {
     if (updates.aiConfig !== undefined) {
       database.setSetting('aiConfig', JSON.stringify(updates.aiConfig));
     }
+    if (updates.notificationPreferences !== undefined) {
+      database.setSetting(
+        'notificationPreferences',
+        JSON.stringify(updates.notificationPreferences)
+      );
+    }
 
     // Return updated settings
     const settings = database.getAllSettings();
@@ -198,6 +214,15 @@ export function setupSettingsHandlers(): void {
       aiConfig = undefined;
     }
 
+    let notificationPreferences2: import('../channels').NotificationPreferences | undefined;
+    try {
+      if (settings.notificationPreferences) {
+        notificationPreferences2 = JSON.parse(settings.notificationPreferences);
+      }
+    } catch {
+      notificationPreferences2 = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -211,6 +236,7 @@ export function setupSettingsHandlers(): void {
       bashProfile,
       codeServerConfig,
       aiConfig,
+      notificationPreferences: notificationPreferences2,
     };
   });
 

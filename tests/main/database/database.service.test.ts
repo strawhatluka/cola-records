@@ -322,4 +322,88 @@ describe('DatabaseService', () => {
       expect(() => dbService.close()).not.toThrow();
     });
   });
+
+  // ── Notification Operations ──────────────────────────────────────
+  describe('Notification Operations', () => {
+    const sampleNotification = {
+      id: 'notif_test_1',
+      category: 'git' as const,
+      priority: 'low' as const,
+      title: 'Push Successful',
+      message: 'Pushed to origin/main',
+      timestamp: Date.now(),
+      read: false,
+      dismissed: false,
+      dedupeKey: 'test-key-1',
+    };
+
+    it('addNotification and getNotifications roundtrip', () => {
+      dbService.addNotification(sampleNotification);
+      const results = dbService.getNotifications(10, 0);
+      expect(results.length).toBe(1);
+      expect(results[0].id).toBe('notif_test_1');
+      expect(results[0].title).toBe('Push Successful');
+      expect(results[0].read).toBe(false);
+      expect(results[0].dismissed).toBe(false);
+    });
+
+    it('markNotificationRead updates read flag', () => {
+      dbService.addNotification(sampleNotification);
+      dbService.markNotificationRead('notif_test_1');
+      const results = dbService.getNotifications(10, 0);
+      expect(results[0].read).toBe(true);
+    });
+
+    it('markAllNotificationsRead updates all', () => {
+      dbService.addNotification(sampleNotification);
+      dbService.addNotification({
+        ...sampleNotification,
+        id: 'notif_test_2',
+        dedupeKey: 'test-key-2',
+      });
+      dbService.markAllNotificationsRead();
+      const results = dbService.getNotifications(10, 0);
+      expect(results.every((n: any) => n.read === true)).toBe(true);
+    });
+
+    it('dismissNotification updates dismissed flag', () => {
+      dbService.addNotification(sampleNotification);
+      dbService.dismissNotification('notif_test_1');
+      // getNotifications excludes dismissed
+      const results = dbService.getNotifications(10, 0);
+      expect(results.length).toBe(0);
+    });
+
+    it('clearAllNotifications empties table', () => {
+      dbService.addNotification(sampleNotification);
+      dbService.addNotification({
+        ...sampleNotification,
+        id: 'notif_test_2',
+        dedupeKey: 'test-key-2',
+      });
+      dbService.clearAllNotifications();
+      const results = dbService.getNotifications(10, 0);
+      expect(results.length).toBe(0);
+    });
+
+    it('getUnreadNotificationCount returns correct count', () => {
+      dbService.addNotification(sampleNotification);
+      dbService.addNotification({
+        ...sampleNotification,
+        id: 'notif_test_2',
+        dedupeKey: 'test-key-2',
+      });
+      expect(dbService.getUnreadNotificationCount()).toBe(2);
+      dbService.markNotificationRead('notif_test_1');
+      expect(dbService.getUnreadNotificationCount()).toBe(1);
+    });
+
+    it('purgeOldNotifications removes old entries', () => {
+      const oldTimestamp = Date.now() - 60 * 24 * 60 * 60 * 1000; // 60 days ago
+      dbService.addNotification({ ...sampleNotification, timestamp: oldTimestamp });
+      dbService.purgeOldNotifications(30);
+      const results = dbService.getNotifications(10, 0);
+      expect(results.length).toBe(0);
+    });
+  });
 });

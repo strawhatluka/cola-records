@@ -8,8 +8,8 @@ describe('Database Schema', () => {
       expect(Number.isInteger(SCHEMA_VERSION)).toBe(true);
     });
 
-    it('is currently version 7', () => {
-      expect(SCHEMA_VERSION).toBe(7);
+    it('is currently version 8', () => {
+      expect(SCHEMA_VERSION).toBe(8);
     });
   });
 
@@ -118,6 +118,15 @@ describe('Database Schema', () => {
       const migration = MIGRATIONS[7];
       expect(migration).toContain('toggle');
       expect(migration).toContain('ALTER TABLE dev_scripts');
+    });
+
+    it('version 8 adds notifications table', () => {
+      const migration = MIGRATIONS[8];
+      expect(migration).toContain('CREATE TABLE IF NOT EXISTS notifications');
+      expect(migration).toContain('dedupe_key');
+      expect(migration).toContain('idx_notifications_timestamp');
+      expect(migration).toContain('idx_notifications_read');
+      expect(migration).toContain('idx_notifications_category');
     });
   });
 });

@@ -294,6 +294,16 @@ export function removeAllIpcHandlers(): void {
     'workflow:update-version',
     'workflow:scan-clis',
     'workflow:get-cli-help',
+    // ── Notifications ──
+    'notification:add',
+    'notification:get-all',
+    'notification:mark-read',
+    'notification:mark-all-read',
+    'notification:dismiss',
+    'notification:clear-all',
+    'notification:get-preferences',
+    'notification:update-preferences',
+    'notification:get-unread-count',
   ];
 
   channels.forEach((channel) => {
