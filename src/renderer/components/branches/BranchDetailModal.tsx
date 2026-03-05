@@ -20,6 +20,7 @@ interface BranchDetailModalProps {
   localPath: string;
   onClose: () => void;
   onDeleted: () => void;
+  onSwitched: () => void;
 }
 
 export function BranchDetailModal({
@@ -27,6 +28,7 @@ export function BranchDetailModal({
   localPath,
   onClose,
   onDeleted,
+  onSwitched,
 }: BranchDetailModalProps) {
   const [branchInfo, setBranchInfo] = React.useState<BranchInfo | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -34,6 +36,7 @@ export function BranchDetailModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const [switching, setSwitching] = React.useState(false);
 
   React.useEffect(() => {
     const fetchBranchInfo = async () => {
@@ -69,6 +72,20 @@ export function BranchDetailModal({
       }
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleSwitch = async () => {
+    setSwitching(true);
+    setError(null);
+    try {
+      await ipc.invoke('git:checkout', localPath, branchName);
+      onSwitched();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSwitching(false);
     }
   };
 
@@ -168,13 +185,18 @@ export function BranchDetailModal({
               </div>
             </div>
 
-            {/* Delete Section */}
+            {/* Actions Section */}
             {!showDeleteConfirm ? (
               <div className="pt-3 border-t border-border flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                  {!canDelete && branchInfo.isCurrent && 'Cannot delete the current branch'}
-                  {!canDelete && branchInfo.isProtected && 'Cannot delete protected branches'}
-                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleSwitch}
+                  disabled={branchInfo.isCurrent || switching}
+                >
+                  <GitBranch className="h-3.5 w-3.5 mr-1.5" />
+                  {switching ? 'Switching...' : 'Switch Branch'}
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

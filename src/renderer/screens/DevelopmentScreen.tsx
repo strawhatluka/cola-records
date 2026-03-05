@@ -523,6 +523,16 @@ export function DevelopmentScreen({
               .then((result) => setBranches(result))
               .catch(() => {});
           }}
+          onSwitched={() => {
+            // Refresh current branch and branches list after switch
+            ipc
+              .invoke('git:get-current-branch', contribution.localPath)
+              .then((result) => {
+                if (isMounted.current) setCurrentBranch(result);
+              })
+              .catch(() => {});
+            fetchBranches();
+          }}
         />
       )}
 
