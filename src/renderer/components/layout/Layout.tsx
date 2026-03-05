@@ -60,6 +60,7 @@ export function Layout({
           activeProjectId={activeProjectId}
           onSelectProject={onSelectProject}
           onCloseProject={onCloseProject}
+          onNavigate={(screen) => onScreenChange(screen as Screen)}
         />
         <div className="flex-1 overflow-auto styled-scroll">{children}</div>
       </main>

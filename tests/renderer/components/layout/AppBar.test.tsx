@@ -31,6 +31,44 @@ vi.mock('../../../../src/renderer/components/discord/DiscordClient', () => ({
   DiscordClient: () => <div data-testid="discord-client">DiscordClient</div>,
 }));
 
+// Mock NotificationCenter to isolate AppBar tests
+vi.mock('../../../../src/renderer/components/notifications/NotificationCenter', () => ({
+  NotificationCenter: () => <div data-testid="notification-center">NotificationCenter</div>,
+}));
+
+// Mock useNotificationStore
+vi.mock('../../../../src/renderer/stores/useNotificationStore', () => ({
+  useNotificationStore: Object.assign(
+    (selector: any) =>
+      selector({
+        notifications: [],
+        preferences: {
+          enabled: true,
+          toastsEnabled: true,
+          nativeEnabled: true,
+          soundEnabled: false,
+          dndEnabled: false,
+          pollInterval: 5,
+          categories: {},
+        },
+        unreadCount: 0,
+        loading: false,
+        addNotification: vi.fn(),
+        markAsRead: vi.fn(),
+        markAllAsRead: vi.fn(),
+        dismiss: vi.fn(),
+        clearAll: vi.fn(),
+        fetchNotifications: vi.fn(),
+        fetchPreferences: vi.fn(),
+        updatePreferences: vi.fn(),
+        _initializeListeners: vi.fn(() => vi.fn()),
+      }),
+    {
+      getState: () => ({ _initializeListeners: vi.fn(() => vi.fn()) }),
+    }
+  ),
+}));
+
 import { AppBar } from '../../../../src/renderer/components/layout/AppBar';
 
 describe('AppBar', () => {
@@ -86,5 +124,10 @@ describe('AppBar', () => {
       render(<AppBar title="Test" />);
       expect(screen.getByTestId('discord-client')).toBeDefined();
     });
+  });
+
+  it('renders notification center', () => {
+    render(<AppBar title="Test" />);
+    expect(screen.getByTestId('notification-center')).toBeDefined();
   });
 });

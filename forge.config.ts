@@ -26,7 +26,7 @@ const config: ForgeConfig = {
     ],
     win32metadata: {
       CompanyName: 'Sunny Stack',
-      FileDescription: 'Cola Records - GitHub Contribution Tracker',
+      FileDescription: 'Cola Records - Developer Workspace Engine',
       ProductName: 'Cola Records',
       InternalName: 'cola-records',
     },
@@ -37,7 +37,7 @@ const config: ForgeConfig = {
       name: '@electron-forge/maker-squirrel',
       config: {
         authors: 'Luka Fagundes',
-        description: 'Cola Records - GitHub contribution tracker with integrated IDE',
+        description: 'Cola Records - Developer Workspace Engine',
         setupIcon: './assets/icons/icons/win/icon.ico',
         iconUrl:
           'https://raw.githubusercontent.com/lukadfagundes/cola-records/main/assets/icons/icons/win/icon.ico',

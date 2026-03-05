@@ -845,6 +845,7 @@ export interface AppSettings {
   bashProfile?: BashProfileSettings;
   codeServerConfig?: CodeServerConfig;
   aiConfig?: AIConfig;
+  notificationPreferences?: NotificationPreferences;
 }
 
 // AI Types
@@ -906,6 +907,49 @@ export interface CLIHelpResult {
   subcommands: CLISubcommand[];
   flags: CLIFlag[];
   rawOutput: string;
+}
+
+// Notification Types
+export type NotificationCategory =
+  | 'github-pr'
+  | 'github-issue'
+  | 'github-ci'
+  | 'git'
+  | 'system'
+  | 'integration';
+
+export type NotificationPriority = 'high' | 'medium' | 'low';
+
+export interface AppNotification {
+  id: string;
+  category: NotificationCategory;
+  priority: NotificationPriority;
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  dismissed: boolean;
+  dedupeKey: string;
+  actionLabel?: string;
+  actionScreen?: string;
+  actionContext?: string;
+  groupKey?: string;
+}
+
+export interface NotificationCategoryPreference {
+  enabled: boolean;
+  toast: boolean;
+  native: boolean;
+}
+
+export interface NotificationPreferences {
+  enabled: boolean;
+  toastsEnabled: boolean;
+  nativeEnabled: boolean;
+  soundEnabled: boolean;
+  dndEnabled: boolean;
+  pollInterval: number;
+  categories: Record<NotificationCategory, NotificationCategoryPreference>;
 }
 
 // Docs Update Type

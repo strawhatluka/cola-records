@@ -28,6 +28,21 @@ vi.mock('../../../src/renderer/providers/ThemeProvider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+// Mock sonner
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), warning: vi.fn(), info: vi.fn(), success: vi.fn() },
+}));
+
+// Mock logger for notification store
+vi.mock('../../../src/renderer/utils/logger', () => ({
+  createLogger: () => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
+
 import { useSettingsStore } from '../../../src/renderer/stores/useSettingsStore';
 import { SettingsScreen } from '../../../src/renderer/screens/SettingsScreen';
 
@@ -65,7 +80,7 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Settings')).toBeDefined();
   });
 
-  it('renders all 5 tab buttons', () => {
+  it('renders all 6 tab buttons', () => {
     render(<SettingsScreen />);
     // Use getAllByText since 'General' appears both as tab button and card title
     const generalElements = screen.getAllByText('General');
@@ -74,6 +89,7 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Bash Profile')).toBeDefined();
     expect(screen.getByText('SSH Remotes')).toBeDefined();
     expect(screen.getByText('Code Server')).toBeDefined();
+    expect(screen.getByText('Notifications')).toBeDefined();
   });
 
   it('shows General tab content by default', () => {
@@ -115,6 +131,15 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Default Contributions Directory')).toBeDefined();
     // Code Server content should NOT be visible
     expect(screen.queryByText('Resource Allocation')).toBeNull();
+  });
+
+  it('switches to Notifications tab', async () => {
+    const user = userEvent.setup();
+    render(<SettingsScreen />);
+
+    await user.click(screen.getByText('Notifications'));
+    // NotificationsTab renders these headings
+    expect(screen.getByText('Enable Notifications')).toBeDefined();
   });
 
   it('tab switching works correctly between all tabs', async () => {

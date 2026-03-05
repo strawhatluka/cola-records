@@ -3,6 +3,8 @@
  *
  * One-way events sent from main to renderer
  */
+import type { AppNotification } from './types';
+
 export interface IpcEvents {
   'git:status-changed': (repoPath: string) => void;
   'terminal:data': (terminalId: string, data: string) => void;
@@ -28,4 +30,8 @@ export interface IpcEvents {
     releaseNotes?: string;
   }) => void;
   'updater:error': (error: { message: string }) => void;
+
+  // Notification Events (main -> renderer)
+  'notification:push': (notification: AppNotification) => void;
+  'notification:batch': (notifications: AppNotification[]) => void;
 }

@@ -4,6 +4,8 @@ export function Toaster() {
   return (
     <Sonner
       position="bottom-right"
+      richColors
+      closeButton
       toastOptions={{
         classNames: {
           toast: 'bg-background text-foreground border-border',
