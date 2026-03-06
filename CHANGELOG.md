@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **GitHub Config Tool** — 7th tool in ToolsPanel for managing `.github/` directory configurations
+  - **Dev Tools-style layout**: two category sections (Repository + Community) with icon headers, bordered cards, and 64px feature buttons with green/grey status dots — matching MaintenanceTool pattern
+  - **GitHubConfigService** (`github-config.service.ts`): file system service for scanning, reading, writing, deleting, and deploying `.github/` configs with 12 feature templates and YAML front-matter parser
+  - **12 features**: Workflows, Dependabot, Release Notes, Issue Templates, PR Template, Labeler, CODEOWNERS, Auto-Assign, Copilot Instructions, Funding, Security Policy, Stale — each with detect/deploy/edit/delete lifecycle
+  - **Inline panels** (`GitHubConfigPanel.tsx`): expand below feature buttons showing file list per feature, card-style action buttons (Edit/Reset/Delete), setup mode with template selector + deploy
+  - **GUI form editors** with fully interactive controls (`GitHubConfigFields.tsx` shared component library):
+    - **Shared components**: `ConfigToggle`, `ConfigNumber`, `ConfigSelect`, `ConfigText`, `ConfigTextarea`, `ConfigSwitch` (Radix toggle), `ConfigSlider` (Radix range), `ConfigChipInput` (interactive tag input), `ActionRow` — matching FormatEditor/HooksEditor design patterns (120px font-mono labels, 2-column grid, `text-[10px]` compact controls)
+    - **ChipInput** (`ChipInput.tsx`): reusable interactive tag/chip input — renders values as removable pill chips with inline text input, Enter/comma to add, Backspace to remove, duplicate prevention; replaces all comma-separated text fields across editors
+    - **MarkdownEditor**: section-based form parsing markdown into heading+content pairs with add/remove sections
+    - **YamlEditor**: 6 feature-specific forms — Dependabot (ecosystem/schedule/limit + ChipInput for labels/assignees), Release Notes (ActionRow category list + ChipInput for labels), Labeler (ActionRow label + ChipInput for patterns), Auto-Assign (Radix Switch toggle + ChipInput for reviewers), Funding (platform inputs), Stale (Radix Sliders for day counts + ChipInput for exempt labels + textarea messages)
+    - **WorkflowsEditor**: interactive trigger builder with clickable ToggleChips to enable/disable triggers (push, pull_request, schedule, release, workflow_dispatch), per-trigger config panels (ChipInput for branches/types, cron input with Daily/Weekly/Monthly presets), jobs-only YAML textarea with Tab-to-indent (2-space) support
+    - **IssueTemplatesEditor**: structured metadata grid (name/description/title + ChipInput for labels/assignees) + markdown body
+    - **CodeownersEditor**: row-based with glob patterns + owners (unchanged — already GUI)
+  - **7 IPC channels**: `github-config:scan`, `github-config:read-file`, `github-config:write-file`, `github-config:delete-file`, `github-config:create-from-template`, `github-config:list-templates`, `github-config:list-issue-templates`
+  - **3 integrations**: PR Template auto-populates CreatePullRequestModal body, Issue Templates add template selector dropdown to CreateIssueModal, ActionsTool "Edit" button cross-links to GitHub Config workflows editor
+  - **12+ templates**: CI Node.js, Release, Auto-Close Issues, Dependabot npm, Release Notes categories, Bug Report, Feature Request, Issue Config, PR checklist, Labeler rules, CODEOWNERS solo, Auto-Assign self, Copilot conventions, Funding placeholder, Security policy, Stale management
 - Dev Tools — Set Up category with 6 ecosystem-aware action buttons: Install, Env File, Git Init, Hooks, Editor Config, TypeCheck
   - **Project Detection Service** (`project-detection.service.ts`): scans working directory to detect ecosystem (Node, Python, Rust, Go, Ruby, PHP, Java), package manager, available scripts, and tooling
   - 7 new IPC channels (`dev-tools:detect-project`, `dev-tools:get-install-command`, `dev-tools:get-typecheck-command`, `dev-tools:get-git-init-command`, `dev-tools:get-hooks-command`, `dev-tools:setup-env-file`, `dev-tools:setup-editor-config`)
@@ -172,6 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Sub-issue detail view now hides closed sub-issues, inherits Secondary badge from parent's `branchBadge` prop, and displays actual GitHub labels (e.g. `enhancement`, `bug`) as separate badges — added `labels: string[]` to `SubIssue` type, filtered sub-issue list to open-only, hierarchy labels (Primary/Secondary) excluded from display to avoid duplication with computed badge
 - Clean button failing on Windows — trailing slashes in `CLEAN_TARGETS` patterns caused backslash-escaped quotes in `rm -rf` commands, and Windows `path.join` produced backslash paths incompatible with Git Bash; paths now normalized to POSIX forward slashes
 - MaintenanceTool crash when project detection returns `undefined` — strengthened null check to handle both `null` and `undefined` states
 - Removed non-null assertion in `DocsViewer.tsx` link click handler (ESLint warning cleanup)
@@ -182,6 +199,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- GitHub Config service tests (`github-config.service.test.ts`): 56 tests covering scan, readFile, writeFile, deleteFile, createFromTemplate (overwrite protection, subdirectory targeting), listTemplates (all 12 features), listIssueTemplates (YAML front-matter parsing, label formats, quote stripping)
+- GitHub Config component tests: GitHubConfigTool (10 tests), GitHubConfigPanel (15 tests), MarkdownEditor (5), YamlEditor (5), WorkflowsEditor (7), IssueTemplatesEditor (7), CodeownersEditor (5)
+- ChipInput component tests (`ChipInput.test.tsx`): 8 tests covering chip rendering, add via Enter/comma, remove via X/Backspace, duplicate prevention, empty prevention, placeholder
 - Workflow service tests (`workflow.service.test.ts`): 15 tests covering changelog generation, commit message generation, PR description generation, README update/generation, docs update/generation, issue number extraction from branch names
 - CLI scanner service tests (`cli-scanner.service.test.ts`): 10 tests covering PATH scanning, empty PATH, directory read errors, ecosystem filtering, unfiltered scanning, alias dedup, code-server dedup, angle-bracket flag parsing, raw output fallback, and timeout handling
 - AI service tests (`ai.service.test.ts`): tests for multi-provider AI abstraction layer (Gemini, Anthropic, OpenAI, Ollama)

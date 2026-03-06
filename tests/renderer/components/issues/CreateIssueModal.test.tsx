@@ -52,13 +52,17 @@ describe('CreateIssueModal', () => {
     open: true,
     owner: 'test-org',
     repo: 'test-repo',
+    localPath: '/tmp/test-repo',
     onClose: vi.fn(),
     onCreated: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockInvoke.mockResolvedValue({ number: 1, url: 'https://github.com/org/repo/issues/1' });
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'github-config:list-issue-templates') return Promise.resolve([]);
+      return Promise.resolve({ number: 1, url: 'https://github.com/org/repo/issues/1' });
+    });
   });
 
   it('does not render content when open is false', () => {

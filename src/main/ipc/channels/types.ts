@@ -113,6 +113,7 @@ export interface SubIssue {
   title: string;
   state: string;
   url: string;
+  labels: string[];
 }
 
 // PR Check Status Types
@@ -907,6 +908,41 @@ export interface CLIHelpResult {
   subcommands: CLISubcommand[];
   flags: CLIFlag[];
   rawOutput: string;
+}
+
+// GitHub Config Types
+export interface GitHubConfigFeature {
+  id: string;
+  label: string;
+  description: string;
+  /** Relative path(s) within .github/ — single file or directory */
+  path: string;
+  /** Whether the feature is currently deployed */
+  exists: boolean;
+  /** List of files found (for multi-file features like workflows, issue templates) */
+  files: string[];
+}
+
+export interface GitHubConfigScanResult {
+  features: GitHubConfigFeature[];
+}
+
+export interface GitHubConfigTemplate {
+  id: string;
+  label: string;
+  description: string;
+  content: string;
+  /** Relative target path within .github/ */
+  targetPath: string;
+}
+
+export interface GitHubConfigIssueTemplate {
+  name: string;
+  description: string;
+  title: string;
+  labels: string[];
+  body: string;
+  fileName: string;
 }
 
 // Notification Types

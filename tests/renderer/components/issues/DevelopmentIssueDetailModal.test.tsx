@@ -589,11 +589,18 @@ describe('DevelopmentIssueDetailModal', () => {
 
   describe('sub-issue navigation', () => {
     const mockSubIssues = [
-      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '' },
-      { id: 202, number: 21, title: 'Sub issue B', state: 'closed', url: '' },
+      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '', labels: ['Secondary'] },
+      {
+        id: 202,
+        number: 21,
+        title: 'Sub issue B',
+        state: 'closed',
+        url: '',
+        labels: ['Secondary'],
+      },
     ];
 
-    it('renders sub-issue rows as clickable buttons', async () => {
+    it('renders open sub-issue rows as clickable buttons and hides closed', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         if (channel === 'github:get-issue') return baseIssueDetail;
         if (channel === 'github:list-issue-comments') return [];
@@ -614,11 +621,11 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Sub issue A')).toBeDefined();
       });
-      // Sub-issue rows should be buttons
+      // Open sub-issue should be a button
       const btnA = screen.getByText('Sub issue A').closest('button');
       expect(btnA).not.toBeNull();
-      const btnB = screen.getByText('Sub issue B').closest('button');
-      expect(btnB).not.toBeNull();
+      // Closed sub-issue should not render
+      expect(screen.queryByText('Sub issue B')).toBeNull();
     });
 
     it('calls onNavigateToIssue with sub-issue number and parent context on click', async () => {
@@ -773,11 +780,18 @@ describe('DevelopmentIssueDetailModal', () => {
 
   describe('sub-issue branched badges', () => {
     const mockSubIssues = [
-      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '' },
-      { id: 202, number: 21, title: 'Sub issue B', state: 'closed', url: '' },
+      {
+        id: 201,
+        number: 20,
+        title: 'Sub issue A',
+        state: 'open',
+        url: '',
+        labels: ['Secondary', 'enhancement'],
+      },
+      { id: 202, number: 21, title: 'Sub issue B', state: 'open', url: '', labels: ['Secondary'] },
     ];
 
-    it('shows "Secondary" badge on sub-issue rows when parent has branchBadge', async () => {
+    it('shows Secondary badge on sub-issues when parent has branchBadge Primary', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         if (channel === 'github:get-issue') return baseIssueDetail;
         if (channel === 'github:list-issue-comments') return [];
@@ -799,11 +813,14 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Sub issue A')).toBeDefined();
       });
-      const badges = screen.getAllByText('Secondary');
-      expect(badges.length).toBe(2);
+      // Both sub-issues get Secondary badge inherited from parent
+      const secondaryBadges = screen.getAllByText('Secondary');
+      expect(secondaryBadges.length).toBe(2);
+      // Other labels like 'enhancement' still render
+      expect(screen.getByText('enhancement')).toBeDefined();
     });
 
-    it('does not show branched badge on sub-issue rows when parent has no branchBadge', async () => {
+    it('does not show Secondary badge when parent has no branchBadge', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         if (channel === 'github:get-issue') return baseIssueDetail;
         if (channel === 'github:list-issue-comments') return [];
@@ -824,6 +841,7 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Sub issue A')).toBeDefined();
       });
+      // No Secondary badge since parent has no branchBadge (and label 'Secondary' is filtered from display)
       expect(screen.queryByText('Secondary')).toBeNull();
       expect(screen.queryByText('branched')).toBeNull();
     });

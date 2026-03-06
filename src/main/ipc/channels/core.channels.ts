@@ -60,6 +60,9 @@ import type {
   ESLintConfig,
   AppNotification,
   NotificationPreferences,
+  GitHubConfigScanResult,
+  GitHubConfigTemplate,
+  GitHubConfigIssueTemplate,
 } from './types';
 
 export interface CoreChannels {
@@ -341,6 +344,26 @@ export interface CoreChannels {
   // CLI scanning
   'workflow:scan-clis': (ecosystem?: string) => CLIGroup[];
   'workflow:get-cli-help': (cliPath: string, subcommand?: string) => CLIHelpResult;
+
+  // GitHub Config Management Channels
+  'github-config:scan': (workingDirectory: string) => GitHubConfigScanResult;
+  'github-config:read-file': (workingDirectory: string, relativePath: string) => string;
+  'github-config:write-file': (
+    workingDirectory: string,
+    relativePath: string,
+    content: string
+  ) => SetUpActionResult;
+  'github-config:delete-file': (
+    workingDirectory: string,
+    relativePath: string
+  ) => SetUpActionResult;
+  'github-config:create-from-template': (
+    workingDirectory: string,
+    featureId: string,
+    templateId: string
+  ) => SetUpActionResult;
+  'github-config:list-templates': (featureId: string) => GitHubConfigTemplate[];
+  'github-config:list-issue-templates': (workingDirectory: string) => GitHubConfigIssueTemplate[];
 
   // Notification Channels
   'notification:add': (notification: AppNotification) => void;

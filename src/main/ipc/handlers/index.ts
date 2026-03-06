@@ -13,6 +13,7 @@ import { setupDevToolsHandlers } from './dev-tools.handlers';
 import { setupAIHandlers } from './ai.handlers';
 import { setupWorkflowHandlers } from './workflow.handlers';
 import { setupNotificationHandlers } from './notification.handlers';
+import { setupGitHubConfigHandlers } from './github-config.handlers';
 
 export function setupIpcHandlers(): void {
   setupGitHubHandlers();
@@ -24,4 +25,5 @@ export function setupIpcHandlers(): void {
   setupAIHandlers();
   setupWorkflowHandlers();
   setupNotificationHandlers();
+  setupGitHubConfigHandlers();
 }

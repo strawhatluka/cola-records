@@ -557,49 +557,63 @@ export function DevelopmentIssueDetailModal({
             </div>
           )}
 
-          {/* Sub-issues list */}
-          {subIssues.length > 0 && (
+          {/* Sub-issues list (open only) */}
+          {subIssues.filter((s) => s.state === 'open').length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Sub-issues ({subIssues.length})</h3>
+              <h3 className="text-sm font-medium">
+                Sub-issues ({subIssues.filter((s) => s.state === 'open').length})
+              </h3>
               <div className="space-y-1">
-                {subIssues.map((sub) => (
-                  <button
-                    key={sub.id}
-                    onClick={() =>
-                      onNavigateToIssue?.(sub.number, {
-                        number: issue.number,
-                        title: issueDetail?.title || issue.title,
-                      })
-                    }
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm hover:bg-accent/50 cursor-pointer transition-colors text-left"
-                  >
-                    <span
-                      className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                        sub.state === 'open'
-                          ? 'bg-green-500/10 text-green-500'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {sub.state}
-                    </span>
-                    <span className="truncate flex-1">{sub.title}</span>
-                    {(branchBadge ||
-                      branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))) && (
-                      <span
-                        className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))
-                            ? 'bg-blue-500/10 text-blue-500'
-                            : 'bg-yellow-500/10 text-yellow-400'
-                        }`}
+                {subIssues
+                  .filter((s) => s.state === 'open')
+                  .map((sub) => {
+                    const isBranched = branches.some((br) =>
+                      new RegExp(`\\b${sub.number}\\b`).test(br)
+                    );
+                    // Sub-issues inherit badge from parent: Primary's children are Secondary, Secondary takes priority over branched
+                    const subBadge =
+                      branchBadge === 'Primary' ? 'Secondary' : isBranched ? 'branched' : undefined;
+                    // Filter out hierarchy labels (handled by subBadge) — show other labels like "enhancement", "bug", etc.
+                    const displayLabels = (sub.labels ?? []).filter(
+                      (l) => l !== 'Primary' && l !== 'Secondary'
+                    );
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() =>
+                          onNavigateToIssue?.(sub.number, {
+                            number: issue.number,
+                            title: issueDetail?.title || issue.title,
+                          })
+                        }
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm hover:bg-accent/50 cursor-pointer transition-colors text-left"
                       >
-                        {branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))
-                          ? 'branched'
-                          : 'Secondary'}
-                      </span>
-                    )}
-                    <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
-                  </button>
-                ))}
+                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/10 text-green-500">
+                          open
+                        </span>
+                        <span className="truncate flex-1">{sub.title}</span>
+                        {subBadge && (
+                          <Badge
+                            className={
+                              subBadge === 'Secondary'
+                                ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                            }
+                          >
+                            {subBadge}
+                          </Badge>
+                        )}
+                        {displayLabels.map((label) => (
+                          <Badge key={label} variant="secondary">
+                            {label}
+                          </Badge>
+                        ))}
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          #{sub.number}
+                        </span>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
           )}

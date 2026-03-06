@@ -250,6 +250,7 @@ export function IssuesTool({
             open={true}
             owner={parsed.owner}
             repo={parsed.repo}
+            localPath={contribution.localPath}
             onClose={handleCreateClose}
             onCreated={handleIssueCreated}
             inline

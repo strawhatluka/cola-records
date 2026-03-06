@@ -165,3 +165,7 @@ export const Bell = createIcon('Bell');
 export const BellOff = createIcon('BellOff');
 export const Workflow = createIcon('Workflow');
 export const Plug = createIcon('Plug');
+
+// GitHub Config icons
+export const Rocket = createIcon('Rocket');
+export const RotateCcw = createIcon('RotateCcw');
