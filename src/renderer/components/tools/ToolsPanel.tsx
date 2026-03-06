@@ -19,6 +19,7 @@ import {
   Tag,
   ChevronUp,
   ChevronDown,
+  FolderGit2,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { TerminalTool } from './TerminalTool';
@@ -29,10 +30,18 @@ import { IssuesTool } from './IssuesTool';
 import { PullRequestsTool } from './PullRequestsTool';
 import { ActionsTool } from './ActionsTool';
 import { ReleasesTool } from './ReleasesTool';
+import { GitHubConfigTool } from './GitHubConfigTool';
 import { cn } from '../../lib/utils';
 import type { Contribution } from '../../../main/ipc/channels';
 
-type ToolType = 'issues' | 'pull-requests' | 'actions' | 'releases' | 'dev-scripts' | 'dev-tools';
+type ToolType =
+  | 'issues'
+  | 'pull-requests'
+  | 'actions'
+  | 'releases'
+  | 'dev-scripts'
+  | 'dev-tools'
+  | 'github-config';
 
 interface ToolItem {
   id: ToolType;
@@ -47,6 +56,7 @@ const tools: ToolItem[] = [
   { id: 'actions', label: 'Actions', icon: Play },
   { id: 'releases', label: 'Releases', icon: Tag },
   { id: 'dev-scripts', label: 'Dev Scripts', icon: Code },
+  { id: 'github-config', label: 'GitHub Config', icon: FolderGit2 },
 ];
 
 interface GitRemote {
@@ -93,6 +103,7 @@ export function ToolsPanel({
   onRefreshBranches,
 }: ToolsPanelProps) {
   const [activeTool, setActiveTool] = useState<ToolType>('dev-tools');
+  const [toolData, setToolData] = useState<Record<string, string> | undefined>();
   const [menuOpen, setMenuOpen] = useState(false);
   const [terminalExpanded, setTerminalExpanded] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(0);
@@ -200,7 +211,15 @@ export function ToolsPanel({
           />
         ) : null;
       case 'actions':
-        return contribution ? <ActionsTool contribution={contribution} /> : null;
+        return contribution ? (
+          <ActionsTool
+            contribution={contribution}
+            onSwitchTool={(tool, data) => {
+              setToolData(data);
+              setActiveTool(tool as ToolType);
+            }}
+          />
+        ) : null;
       case 'releases':
         return contribution ? <ReleasesTool contribution={contribution} /> : null;
       case 'dev-scripts':
@@ -211,9 +230,17 @@ export function ToolsPanel({
             workingDirectory={workingDirectory}
             onRunCommand={handleRunCommand}
             contribution={contribution}
-            onSwitchTool={(tool) => {
+            onSwitchTool={(tool, data) => {
+              setToolData(data);
               setActiveTool(tool as ToolType);
             }}
+          />
+        );
+      case 'github-config':
+        return (
+          <GitHubConfigTool
+            workingDirectory={workingDirectory}
+            initialFeature={toolData?.feature}
           />
         );
       default:
@@ -262,6 +289,7 @@ export function ToolsPanel({
                         activeTool === tool.id && 'bg-accent'
                       )}
                       onClick={() => {
+                        setToolData(undefined);
                         setActiveTool(tool.id);
                         setMenuOpen(false);
                       }}

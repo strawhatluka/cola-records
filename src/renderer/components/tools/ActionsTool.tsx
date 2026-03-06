@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { ipc } from '../../ipc/client';
 import { extractOwnerRepo } from '../../screens/DevelopmentScreen';
@@ -51,6 +51,7 @@ type ActionsView = 'list' | 'run-detail' | 'job-logs';
 
 interface ActionsToolProps {
   contribution: Contribution;
+  onSwitchTool?: (tool: string, data?: Record<string, string>) => void;
 }
 
 function getStatusBadgeClass(status: string, conclusion: string | null): string {
@@ -99,7 +100,7 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
-export function ActionsTool({ contribution }: ActionsToolProps) {
+export function ActionsTool({ contribution, onSwitchTool }: ActionsToolProps) {
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -274,10 +275,26 @@ export function ActionsTool({ contribution }: ActionsToolProps) {
             </Button>
             <span className="text-sm font-medium truncate">{selectedRun.displayTitle}</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => handleOpenExternal(selectedRun.htmlUrl)}>
-            <ExternalLink className="h-3.5 w-3.5 mr-1" />
-            GitHub
-          </Button>
+          <div className="flex items-center gap-1">
+            {onSwitchTool && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onSwitchTool('github-config', { feature: 'workflows' })}
+              >
+                <Pencil className="h-3.5 w-3.5 mr-1" />
+                Edit
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleOpenExternal(selectedRun.htmlUrl)}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+              GitHub
+            </Button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto styled-scroll">
           {/* Run Summary */}

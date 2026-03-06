@@ -778,13 +778,20 @@ describe('DevelopmentIssueDetailModal', () => {
     });
   });
 
-  describe('sub-issue label badges', () => {
+  describe('sub-issue branched badges', () => {
     const mockSubIssues = [
-      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '', labels: ['Secondary'] },
-      { id: 202, number: 21, title: 'Sub issue B', state: 'open', url: '', labels: ['Primary'] },
+      {
+        id: 201,
+        number: 20,
+        title: 'Sub issue A',
+        state: 'open',
+        url: '',
+        labels: ['Secondary', 'enhancement'],
+      },
+      { id: 202, number: 21, title: 'Sub issue B', state: 'open', url: '', labels: ['Secondary'] },
     ];
 
-    it('shows label badges from sub-issue data', async () => {
+    it('shows Secondary badge on sub-issues when parent has branchBadge Primary', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         if (channel === 'github:get-issue') return baseIssueDetail;
         if (channel === 'github:list-issue-comments') return [];
@@ -806,20 +813,18 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Sub issue A')).toBeDefined();
       });
-      expect(screen.getByText('Secondary')).toBeDefined();
-      // 'Primary' appears twice: once as parent branchBadge, once as sub-issue label
-      expect(screen.getAllByText('Primary').length).toBeGreaterThanOrEqual(2);
+      // Both sub-issues get Secondary badge inherited from parent
+      const secondaryBadges = screen.getAllByText('Secondary');
+      expect(secondaryBadges.length).toBe(2);
+      // Other labels like 'enhancement' still render
+      expect(screen.getByText('enhancement')).toBeDefined();
     });
 
-    it('does not show label badges when sub-issues have no labels', async () => {
-      const noLabelSubIssues = [
-        { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '', labels: [] },
-        { id: 202, number: 21, title: 'Sub issue B', state: 'open', url: '', labels: [] },
-      ];
+    it('does not show Secondary badge when parent has no branchBadge', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         if (channel === 'github:get-issue') return baseIssueDetail;
         if (channel === 'github:list-issue-comments') return [];
-        if (channel === 'github:list-sub-issues') return noLabelSubIssues;
+        if (channel === 'github:list-sub-issues') return mockSubIssues;
         return [];
       });
       render(
@@ -836,8 +841,9 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Sub issue A')).toBeDefined();
       });
+      // No Secondary badge since parent has no branchBadge (and label 'Secondary' is filtered from display)
       expect(screen.queryByText('Secondary')).toBeNull();
-      expect(screen.queryByText('Primary')).toBeNull();
+      expect(screen.queryByText('branched')).toBeNull();
     });
   });
 

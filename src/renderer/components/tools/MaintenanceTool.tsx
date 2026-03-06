@@ -60,7 +60,7 @@ interface MaintenanceToolProps {
   workingDirectory: string;
   onRunCommand: (command: string) => void;
   contribution?: Contribution;
-  onSwitchTool?: (tool: string) => void;
+  onSwitchTool?: (tool: string, data?: Record<string, string>) => void;
 }
 
 interface SetUpButton {

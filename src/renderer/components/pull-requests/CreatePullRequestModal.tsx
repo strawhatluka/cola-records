@@ -216,8 +216,21 @@ export function CreatePullRequestModal({
         }
       }
 
-      // Reset other state
+      // Pre-populate body from PR template if available
       setBody('');
+      try {
+        const template = await ipc.invoke(
+          'github-config:read-file',
+          localPath,
+          'PULL_REQUEST_TEMPLATE.md'
+        );
+        if (template && isMounted.current) {
+          setBody(template);
+        }
+      } catch {
+        // No PR template — leave body empty
+      }
+
       setError(null);
       setComparison(null);
       setComparisonError(null);
