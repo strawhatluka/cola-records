@@ -228,6 +228,48 @@ export function devScriptRowToDevScript(row: MockDevScriptRow): DevScript {
   };
 }
 
+// ── Global Script Factory ──────────────────────────────────────────────
+
+export function createMockGlobalDevScript(overrides?: Partial<DevScript>): DevScript {
+  const command = overrides?.command ?? 'npm run format';
+  const commands = overrides?.commands ?? [command];
+  return {
+    id: `global_script_${Date.now()}_test`,
+    projectPath: '__global__',
+    name: 'Format',
+    command,
+    commands,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+export const mockGlobalDevScripts = {
+  format: createMockGlobalDevScript({
+    id: 'global_script_format',
+    name: 'Format',
+    command: 'npm run format',
+    commands: ['npm run format'],
+  }),
+  lint: createMockGlobalDevScript({
+    id: 'global_script_lint',
+    name: 'Global Lint',
+    command: 'npm run lint',
+    commands: ['npm run lint'],
+  }),
+  clean: createMockGlobalDevScript({
+    id: 'global_script_clean',
+    name: 'Clean',
+    command: 'rm -rf node_modules',
+    commands: ['rm -rf node_modules', 'npm install'],
+  }),
+};
+
+export function createMockGlobalDevScriptsList(): DevScript[] {
+  return [mockGlobalDevScripts.format, mockGlobalDevScripts.lint, mockGlobalDevScripts.clean];
+}
+
 // ── Validation Helpers ──────────────────────────────────────────────
 
 export function isValidDevScript(script: unknown): script is DevScript {

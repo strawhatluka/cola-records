@@ -7,6 +7,7 @@ import { SSHRemotesTab } from '../components/settings/SSHRemotesTab';
 import { CodeServerTab } from '../components/settings/CodeServerTab';
 import { AITab } from '../components/settings/AITab';
 import { NotificationsTab } from '../components/settings/NotificationsTab';
+import { GlobalScriptsTab } from '../components/settings/GlobalScriptsTab';
 
 type SettingsTab =
   | 'general'
@@ -15,7 +16,8 @@ type SettingsTab =
   | 'bash-profile'
   | 'ssh-remotes'
   | 'code-server'
-  | 'notifications';
+  | 'notifications'
+  | 'global-scripts';
 
 const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'general', label: 'General' },
@@ -25,6 +27,7 @@ const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'ssh-remotes', label: 'SSH Remotes' },
   { id: 'code-server', label: 'Code Server' },
   { id: 'notifications', label: 'Notifications' },
+  { id: 'global-scripts', label: 'Global Scripts' },
 ];
 
 export function SettingsScreen() {
@@ -71,6 +74,7 @@ export function SettingsScreen() {
         <CodeServerTab settings={settings} onUpdate={updateSettings} />
       )}
       {activeTab === 'notifications' && <NotificationsTab />}
+      {activeTab === 'global-scripts' && <GlobalScriptsTab />}
     </div>
   );
 }

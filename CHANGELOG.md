@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **7 IPC channels**: `github-config:scan`, `github-config:read-file`, `github-config:write-file`, `github-config:delete-file`, `github-config:create-from-template`, `github-config:list-templates`, `github-config:list-issue-templates`
   - **3 integrations**: PR Template auto-populates CreatePullRequestModal body, Issue Templates add template selector dropdown to CreateIssueModal, ActionsTool "Edit" button cross-links to GitHub Config workflows editor
   - **12+ templates**: CI Node.js, Release, Auto-Close Issues, Dependabot npm, Release Notes categories, Bug Report, Feature Request, Issue Config, PR checklist, Labeler rules, CODEOWNERS solo, Auto-Assign self, Copilot conventions, Funding placeholder, Security policy, Stale management
+- **Global Dev Scripts** — new Settings tab for creating dev scripts accessible by all projects (#71)
+  - `GLOBAL_SCRIPTS_PATH` sentinel (`__global__`) reuses existing `dev_scripts` table and IPC channels with zero schema migration
+  - **GlobalScriptsTab** (`GlobalScriptsTab.tsx`): full CRUD settings tab with same 3-mode form (Single, Multi-Terminal, Toggle) as DevScriptsTool
+  - Zustand store extended with `globalScripts` state, `loadGlobalScripts()`, `saveGlobalScript()`, `deleteGlobalScript()` actions — `loadScripts()` now fetches both project + global scripts in parallel via `Promise.all`
+  - **DevScriptsTool** shows global scripts in a separate "Global Scripts" section with dashed-border cards, Globe badge, run-only buttons (no edit/delete), and "Manage global scripts in Settings" hint
+  - **DevelopmentScreen** header bar renders global script buttons alongside project-specific scripts for one-click execution from any project
 - Dev Tools — Set Up category with 6 ecosystem-aware action buttons: Install, Env File, Git Init, Hooks, Editor Config, TypeCheck
   - **Project Detection Service** (`project-detection.service.ts`): scans working directory to detect ecosystem (Node, Python, Rust, Go, Ruby, PHP, Java), package manager, available scripts, and tooling
   - 7 new IPC channels (`dev-tools:detect-project`, `dev-tools:get-install-command`, `dev-tools:get-typecheck-command`, `dev-tools:get-git-init-command`, `dev-tools:get-hooks-command`, `dev-tools:setup-env-file`, `dev-tools:setup-editor-config`)
@@ -199,6 +205,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Global Dev Scripts tests: GlobalScriptsTab (14 tests — rendering, form validation, save, delete confirmation), useDevScriptsStore global actions (8 tests — loadGlobalScripts, saveGlobalScript, deleteGlobalScript, project isolation), DevScriptsTool global display (8 tests — section rendering, badge, run execution, no edit/delete, alongside project scripts)
 - GitHub Config service tests (`github-config.service.test.ts`): 56 tests covering scan, readFile, writeFile, deleteFile, createFromTemplate (overwrite protection, subdirectory targeting), listTemplates (all 12 features), listIssueTemplates (YAML front-matter parsing, label formats, quote stripping)
 - GitHub Config component tests: GitHubConfigTool (10 tests), GitHubConfigPanel (15 tests), MarkdownEditor (5), YamlEditor (5), WorkflowsEditor (7), IssueTemplatesEditor (7), CodeownersEditor (5)
 - ChipInput component tests (`ChipInput.test.tsx`): 8 tests covering chip rendering, add via Enter/comma, remove via X/Backspace, duplicate prevention, empty prevention, placeholder
