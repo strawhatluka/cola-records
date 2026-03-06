@@ -35,6 +35,7 @@ const mockElectronAPI = {
 // Mock the dev scripts store
 let mockDevScriptsState = {
   scripts: [] as any[],
+  globalScripts: [] as any[],
   loading: false,
   error: null as string | null,
   loadScripts: vi.fn(),
@@ -121,6 +122,7 @@ describe('DevelopmentScreen Dev Scripts Integration', () => {
     vi.clearAllMocks();
     mockDevScriptsState = {
       scripts: [],
+      globalScripts: [],
       loading: false,
       error: null,
       loadScripts: vi.fn(),

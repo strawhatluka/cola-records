@@ -136,6 +136,7 @@ describe('DevelopmentScreen Toggle Integration', () => {
     mockToggleStates = {};
     mockDevScriptsState = {
       scripts: [toggleScript],
+      globalScripts: [],
       loading: false,
       error: null,
       executingScriptId: null,

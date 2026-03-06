@@ -56,6 +56,7 @@ vi.mock('../../../src/renderer/components/tools/ToolsPanel', () => ({
 vi.mock('../../../src/renderer/stores/useDevScriptsStore', () => ({
   useDevScriptsStore: () => ({
     scripts: [],
+    globalScripts: [],
     loading: false,
     loadScripts: vi.fn(),
     saveScript: vi.fn(),

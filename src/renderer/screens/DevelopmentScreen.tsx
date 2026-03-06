@@ -124,6 +124,7 @@ export function DevelopmentScreen({
   // Dev scripts store
   const {
     scripts: allScripts,
+    globalScripts,
     loadScripts: loadDevScripts,
     toggleStates,
     flipToggleState,
@@ -170,7 +171,8 @@ export function DevelopmentScreen({
   // Toggle script execution: open modal with the current toggle command, then flip state on close
   const handleToggleExecute = useCallback(
     (scriptId: string, command: string) => {
-      const script = devScripts.find((s) => s.id === scriptId);
+      const script =
+        devScripts.find((s) => s.id === scriptId) ?? globalScripts.find((s) => s.id === scriptId);
       if (!script) return;
       // Create a transient script with the toggle command so the modal runs it
       const toggleExecScript: DevScript = {
@@ -183,7 +185,7 @@ export function DevelopmentScreen({
       setExecutingScript(toggleExecScript);
       flipToggleState(scriptId);
     },
-    [devScripts, flipToggleState]
+    [devScripts, globalScripts, flipToggleState]
   );
 
   // Fetch authenticated user on mount
@@ -372,9 +374,19 @@ export function DevelopmentScreen({
           <span className="text-xs text-muted-foreground">{contribution.localPath}</span>
 
           {/* Dev Script buttons */}
-          {devScripts.length > 0 && (
+          {(devScripts.length > 0 || globalScripts.length > 0) && (
             <div className="flex gap-1 ml-2 border-l border-border pl-3">
               {devScripts.map((script) => (
+                <ScriptButton
+                  key={script.id}
+                  script={script}
+                  onClick={() => setExecutingScript(script)}
+                  isToggle={!!script.toggle}
+                  toggleState={toggleStates[script.id]}
+                  onToggleExecute={(command) => handleToggleExecute(script.id, command)}
+                />
+              ))}
+              {globalScripts.map((script) => (
                 <ScriptButton
                   key={script.id}
                   script={script}

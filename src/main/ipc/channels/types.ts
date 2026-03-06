@@ -431,6 +431,9 @@ export interface DevScriptToggle {
   secondPressCommand: string;
 }
 
+/** Sentinel project_path for global dev scripts (accessible by all projects) */
+export const GLOBAL_SCRIPTS_PATH = '__global__';
+
 export interface DevScript {
   id: string;
   projectPath: string;

@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMockDevScript, createMockToggleScript } from '../../../mocks/dev-scripts.mock';
+import {
+  createMockDevScript,
+  createMockToggleScript,
+  createMockGlobalDevScript,
+  createMockGlobalDevScriptsList,
+} from '../../../mocks/dev-scripts.mock';
 
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -20,6 +25,7 @@ const mockDeleteScript = vi.fn();
 
 let mockStoreState = {
   scripts: [] as any[],
+  globalScripts: [] as any[],
   loading: false,
   error: null as string | null,
 };
@@ -46,6 +52,7 @@ describe('DevScriptsTool', () => {
     vi.clearAllMocks();
     mockStoreState = {
       scripts: [],
+      globalScripts: [],
       loading: false,
       error: null,
     };
@@ -776,6 +783,92 @@ describe('DevScriptsTool', () => {
       render(<DevScriptsTool {...defaultProps} />);
       expect(screen.getByText('My Build')).toBeDefined();
       expect(screen.queryByText('Other Build')).toBeNull();
+    });
+  });
+
+  describe('global scripts display', () => {
+    it('should show global scripts section when globals exist', () => {
+      mockStoreState.globalScripts = createMockGlobalDevScriptsList();
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.getByText('Global Scripts')).toBeDefined();
+    });
+
+    it('should not show global scripts section when no globals', () => {
+      mockStoreState.globalScripts = [];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.queryByText('Global Scripts')).toBeNull();
+    });
+
+    it('should show Global badge on global scripts', () => {
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Format' })];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.getByText('Format')).toBeDefined();
+      expect(screen.getAllByText('Global').length).toBeGreaterThan(0);
+    });
+
+    it('should show global scripts alongside project scripts', () => {
+      mockStoreState.scripts = [
+        createMockDevScript({
+          id: 'p1',
+          name: 'Build',
+          projectPath: '/test/project/path',
+        }),
+      ];
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Format' })];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.getByText('Build')).toBeDefined();
+      expect(screen.getByText('Format')).toBeDefined();
+      expect(screen.getByText('Global Scripts')).toBeDefined();
+    });
+
+    it('should show manage hint for global scripts', () => {
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Format' })];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.getByText('Manage global scripts in Settings')).toBeDefined();
+    });
+
+    it('should not show empty state when only global scripts exist', () => {
+      mockStoreState.scripts = [];
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Format' })];
+
+      render(<DevScriptsTool {...defaultProps} />);
+      expect(screen.queryByText('No scripts yet')).toBeNull();
+    });
+
+    it('should dispatch execute event when global script run is clicked', async () => {
+      const globalScript = createMockGlobalDevScript({ id: 'g1', name: 'Format' });
+      mockStoreState.globalScripts = [globalScript];
+
+      const eventListener = vi.fn();
+      window.addEventListener('execute-dev-script', eventListener);
+
+      const { container } = render(<DevScriptsTool {...defaultProps} />);
+
+      // Global scripts have a run button
+      const runButton = container.querySelector('button[title="Run script"]');
+      expect(runButton).not.toBeNull();
+      fireEvent.click(runButton!);
+
+      await waitFor(() => {
+        expect(eventListener).toHaveBeenCalled();
+      });
+
+      window.removeEventListener('execute-dev-script', eventListener);
+    });
+
+    it('should not show edit or delete buttons for global scripts', () => {
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Format' })];
+
+      const { container } = render(<DevScriptsTool {...defaultProps} />);
+
+      // Global scripts should only have Run button, no Edit or Delete
+      expect(container.querySelector('button[title="Edit script"]')).toBeNull();
+      expect(container.querySelector('button[title="Delete script"]')).toBeNull();
     });
   });
 });
