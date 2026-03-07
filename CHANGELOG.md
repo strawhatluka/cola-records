@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add new test suite for AI IPC handlers (`tests/main/ipc/ai-handlers.test.ts`) (#72)
+- Add new test suite for core IPC handlers (`tests/main/ipc/core-handlers.test.ts`) (#72)
+- Add new test suite for dev tools IPC handlers (`tests/main/ipc/dev-tools-handlers.test.ts`) (#72)
+- Add new test suite for GitHub configuration IPC handlers (`tests/main/ipc/github-config-handlers.test.ts`) (#72)
+- Add new test suite for GitHub IPC handlers (`tests/main/ipc/github-handlers.test.ts`) (#72)
+- Add new test suite for IPC handlers index (`tests/main/ipc/handlers-index.test.ts`) (#72)
+- Add new test suite for IPC handlers wrapper (`tests/main/ipc/handlers-wrapper.test.ts`) (#72)
+- Add new test suite for integrations IPC handlers (`tests/main/ipc/integrations-handlers.test.ts`) (#72)
+- Add new test suite for notification IPC handlers (`tests/main/ipc/notification-handlers.test.ts`) (#72)
+- Add new test suite for project IPC handlers (`tests/main/ipc/project-handlers.test.ts`) (#72)
+- Add new test suite for settings IPC handlers (`tests/main/ipc/settings-handlers.test.ts`) (#72)
+- Add new test suite for workflow IPC handlers (`tests/main/ipc/workflow-handlers.test.ts`) (#72)
 - **New Project Wizard** — interactive multi-step wizard for creating new projects from My Projects and Professional Projects screens (#55)
   - **6-step guided wizard**: Basics (name, location, type) > Ecosystem (7 ecosystems, frameworks, monorepo tools, package managers) > Options (GitHub repo, extras, license) > Database (5 engines, ORM selection, Docker Compose, env vars) > GitHub Config (template selection from 12 existing templates) > Review & Create (summary + live progress)
   - **CLI Detection Service** (`cli-detection.service.ts`): detects installed CLI tools per ecosystem with version info, required/optional classification, and monorepo tool support
