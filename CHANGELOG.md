@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add new test suite for main process entry point (`tests/main/index.test.ts`) (#72)
+- Add new test suite for project detection service (`tests/main/services/project-detection.service.test.ts`) (#72)
+- Add new test suite for Discord `CreatePollModal` component (`tests/renderer/components/discord/CreatePollModal.test.tsx`) (#72)
+- Add new test suite for Discord `EmbedRenderer` component (`tests/renderer/components/discord/EmbedRenderer.test.ts`) (#72)
+- Add new test suite for Discord `GifPicker` component (`tests/renderer/components/discord/GifPicker.test.tsx`) (#72)
+- Add new test suite for Discord `PickerPanel` component (`tests/renderer/components/discord/PickerPanel.test.tsx`) (#72)
+- Add new test suite for Discord `PollRenderer` component (`tests/renderer/components/discord/PollRenderer.test.tsx`) (#72)
+- Add new test suite for SSH remotes settings tab (`tests/renderer/components/settings/SSHRemotesTab.test.tsx`) (#72)
+- Add new test suite for renderer IPC client (`tests/renderer/ipc/client.test.ts`) (#72)
+- Add `BarChart3` and `TrendingUp` icons to `tests/mocks/lucide-react.tsx` for Discord components (#72)
+- Add tests for MarkdownEditor toolbar buttons to verify correct markdown insertion in `MarkdownEditor.test.tsx` (#72)
+- Add tests for editing global scripts in `GlobalScriptsTab.test.tsx`, covering opening the edit form and saving changes (#72)
 - Add new test suite for AI IPC handlers (`tests/main/ipc/ai-handlers.test.ts`) (#72)
 - Add new test suite for core IPC handlers (`tests/main/ipc/core-handlers.test.ts`) (#72)
 - Add new test suite for dev tools IPC handlers (`tests/main/ipc/dev-tools-handlers.test.ts`) (#72)
@@ -207,6 +219,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Types**: `AppNotification`, `NotificationCategory` (6), `NotificationPriority` (3), `NotificationCategoryPreference`, `NotificationPreferences`
 
 ### Changed
+
+- Refactor test mocks in `tests/main/services/notification.service.test.ts` to use `vi.hoisted` for better isolation and control (#72)
+- Remove generic test cases for service initialization in `tests/main/services/notification.service.test.ts` (#72)
 
 - Git hooks pre-push actions now disabled by default for all ecosystem presets (Node, Python, Rust) — users can enable them via the Hooks GUI after installation ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
 - CLI Explorer command input now editable — users can type custom arguments directly in the `$` input field, with Enter key support to run

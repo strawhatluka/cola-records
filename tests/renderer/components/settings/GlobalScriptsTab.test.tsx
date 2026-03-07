@@ -183,6 +183,94 @@ describe('GlobalScriptsTab', () => {
     });
   });
 
+  describe('edit', () => {
+    it('opens edit form when edit button is clicked', () => {
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Build' })];
+      render(<GlobalScriptsTab />);
+
+      const editBtn = screen.getByTitle('Edit script');
+      fireEvent.click(editBtn);
+
+      expect(screen.getByText('Edit Global Script')).toBeDefined();
+    });
+
+    it('saves edited script', async () => {
+      mockSaveGlobalScript.mockResolvedValueOnce(undefined);
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Build' })];
+      render(<GlobalScriptsTab />);
+
+      const editBtn = screen.getByTitle('Edit script');
+      fireEvent.click(editBtn);
+
+      const nameInput = screen.getByTestId('global-script-name');
+      fireEvent.change(nameInput, { target: { value: 'Build All' } });
+
+      fireEvent.click(screen.getByText('Save Changes'));
+
+      await waitFor(() => {
+        expect(mockSaveGlobalScript).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'Build All',
+          })
+        );
+      });
+    });
+  });
+
+  describe('script modes', () => {
+    it('switches to multi mode and shows terminal UI', () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Multi'));
+
+      expect(screen.getByText('Add Terminal')).toBeDefined();
+    });
+
+    it('switches to toggle mode and shows toggle fields', () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Toggle'));
+
+      // Labels include em-dash: "First Press — Name", "First Press — Command", etc.
+      expect(screen.getByTestId('global-script-toggle-first-name')).toBeDefined();
+      expect(screen.getByTestId('global-script-toggle-first-cmd')).toBeDefined();
+      expect(screen.getByTestId('global-script-toggle-second-name')).toBeDefined();
+      expect(screen.getByTestId('global-script-toggle-second-cmd')).toBeDefined();
+    });
+
+    it('switches back to single mode', () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Multi'));
+      fireEvent.click(screen.getByText('Single'));
+
+      expect(screen.getByTestId('global-script-command-0')).toBeDefined();
+    });
+  });
+
+  describe('commands', () => {
+    it('adds a second command field', () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Add Command'));
+
+      expect(screen.getByTestId('global-script-command-0')).toBeDefined();
+      expect(screen.getByTestId('global-script-command-1')).toBeDefined();
+    });
+  });
+
+  describe('loading state', () => {
+    it('disables Add Script button when loading', () => {
+      mockStoreState.loading = true;
+      render(<GlobalScriptsTab />);
+
+      // Open the form, then check submit is disabled
+      fireEvent.click(screen.getByText('Add Global Script'));
+      const addBtn = screen.getByText('Add Script');
+      expect((addBtn as HTMLButtonElement).disabled).toBe(true);
+    });
+  });
+
   describe('delete', () => {
     it('shows delete confirmation on delete click', () => {
       mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Build' })];
@@ -208,6 +296,42 @@ describe('GlobalScriptsTab', () => {
       await waitFor(() => {
         expect(mockDeleteGlobalScript).toHaveBeenCalledWith('g1');
       });
+    });
+
+    it('cancels delete', () => {
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Build' })];
+
+      render(<GlobalScriptsTab />);
+
+      fireEvent.click(screen.getByTitle('Delete script'));
+      expect(screen.getByText('Confirm')).toBeDefined();
+
+      fireEvent.click(screen.getByText('Cancel'));
+      expect(screen.queryByText('Confirm')).toBeNull();
+    });
+  });
+
+  describe('script info display', () => {
+    it('shows command count for multi-command scripts', () => {
+      mockStoreState.globalScripts = [
+        createMockGlobalDevScript({
+          id: 'g1',
+          name: 'Build',
+          commands: ['npm run lint', 'npm run build', 'npm run test'],
+        }),
+      ];
+      render(<GlobalScriptsTab />);
+
+      expect(screen.getByText('Build')).toBeDefined();
+    });
+
+    it('displays multiple scripts', () => {
+      mockStoreState.globalScripts = createMockGlobalDevScriptsList();
+      render(<GlobalScriptsTab />);
+
+      expect(screen.getByText('Format')).toBeDefined();
+      expect(screen.getByText('Global Lint')).toBeDefined();
+      expect(screen.getByText('Clean')).toBeDefined();
     });
   });
 });

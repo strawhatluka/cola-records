@@ -166,6 +166,10 @@ export const BellOff = createIcon('BellOff');
 export const Workflow = createIcon('Workflow');
 export const Plug = createIcon('Plug');
 
+// Discord icons
+export const BarChart3 = createIcon('BarChart3');
+export const TrendingUp = createIcon('TrendingUp');
+
 // GitHub Config icons
 export const Rocket = createIcon('Rocket');
 export const RotateCcw = createIcon('RotateCcw');
