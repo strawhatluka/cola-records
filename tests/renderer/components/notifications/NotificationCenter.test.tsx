@@ -30,13 +30,16 @@ vi.mock('../../../../src/renderer/utils/logger', () => ({
 // Radix Popover mock
 vi.mock('@radix-ui/react-popover', () => ({
   Root: ({ children }: any) => <div>{children}</div>,
-  Trigger: ({ children, asChild, ...props }: any) => (
-    <button data-testid="popover-trigger" {...props}>
-      {children}
-    </button>
-  ),
+  Trigger: ({ children, asChild, ...props }: any) =>
+    asChild ? (
+      <div data-testid="popover-trigger">{children}</div>
+    ) : (
+      <button data-testid="popover-trigger" {...props}>
+        {children}
+      </button>
+    ),
   Portal: ({ children }: any) => <div>{children}</div>,
-  Content: ({ children, ...props }: any) => (
+  Content: ({ children, sideOffset, align, ...props }: any) => (
     <div data-testid="popover-content" {...props}>
       {children}
     </div>

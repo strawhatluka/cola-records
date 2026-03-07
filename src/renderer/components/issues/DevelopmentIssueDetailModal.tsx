@@ -18,7 +18,7 @@ import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
 import { ReactionDisplay } from '../ui/ReactionPicker';
 import { CreateSubIssueModal } from './CreateSubIssueModal';
 import { AddExistingSubIssueModal } from './AddExistingSubIssueModal';
-import { Dialog, DialogContent, DialogDescription, DialogHeader } from '../ui/Dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -434,10 +434,10 @@ export function DevelopmentIssueDetailModal({
       )}
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h2 className="text-xl font-semibold">
+          <DialogTitle className="text-xl font-semibold">
             {issueDetail?.title || issue.title}
             <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
-          </h2>
+          </DialogTitle>
           <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
             {issueStatusBadge(issueState)}
             {branchBadge && (

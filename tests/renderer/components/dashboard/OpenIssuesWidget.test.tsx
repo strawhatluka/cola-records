@@ -149,7 +149,7 @@ describe('OpenIssuesWidget', () => {
     });
   });
 
-  it('renders widget title', () => {
+  it('renders widget title', async () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
         return { login: 'testuser', name: 'Test', email: '' };
@@ -157,6 +157,10 @@ describe('OpenIssuesWidget', () => {
     });
     render(<OpenIssuesWidget />);
     expect(screen.getByText('Open Issues')).toBeDefined();
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalled();
+    });
   });
 
   it('shows empty state when both search queries fail (allSettled catches errors)', async () => {

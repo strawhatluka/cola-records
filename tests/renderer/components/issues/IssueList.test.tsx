@@ -46,8 +46,8 @@ describe('IssueList', () => {
 
   it('renders issue cards', () => {
     const issues = [
-      createMockIssue({ number: 1, title: 'First issue' }),
-      createMockIssue({ number: 2, title: 'Second issue' }),
+      createMockIssue({ id: 'issue_1', number: 1, title: 'First issue' }),
+      createMockIssue({ id: 'issue_2', number: 2, title: 'Second issue' }),
     ];
     render(<IssueList issues={issues} onIssueSelect={mockOnIssueSelect} loading={false} />);
     expect(screen.getByText('First issue')).toBeDefined();

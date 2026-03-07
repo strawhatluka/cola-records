@@ -221,7 +221,7 @@ describe('RecentActivityWidget', () => {
     });
   });
 
-  it('renders the widget title', () => {
+  it('renders the widget title', async () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
         return { login: 'testuser', name: 'Test', email: '' };
@@ -229,5 +229,10 @@ describe('RecentActivityWidget', () => {
     });
     render(<RecentActivityWidget />);
     expect(screen.getByText('Recent Activity')).toBeDefined();
+
+    // Wait for async effects to settle
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalled();
+    });
   });
 });

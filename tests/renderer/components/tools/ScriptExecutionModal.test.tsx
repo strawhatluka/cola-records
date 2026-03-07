@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import { createMockDevScript, createMockTerminalSession } from '../../../mocks/dev-scripts.mock';
 
 // Mock lucide-react
@@ -160,7 +160,11 @@ describe('ScriptExecutionModal', () => {
       const mockSession = createMockTerminalSession({ id: 'session_1' });
       setupTerminalMock(mockSession);
 
-      const { container } = render(<ScriptExecutionModal {...defaultProps} />);
+      let container!: HTMLElement;
+      await act(async () => {
+        const result = render(<ScriptExecutionModal {...defaultProps} />);
+        container = result.container;
+      });
 
       // Check for backdrop class
       const backdrop = container.querySelector('.backdrop-blur-sm');

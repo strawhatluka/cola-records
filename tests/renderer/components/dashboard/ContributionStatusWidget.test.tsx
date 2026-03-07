@@ -21,7 +21,7 @@ describe('ContributionStatusWidget', () => {
     mockInvoke.mockReset();
   });
 
-  it('renders widget title', () => {
+  it('renders widget title', async () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
         return { login: 'testuser', name: 'Test', email: '' };
@@ -29,6 +29,10 @@ describe('ContributionStatusWidget', () => {
     });
     render(<ContributionStatusWidget />);
     expect(screen.getByText('Contribution Status')).toBeDefined();
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalled();
+    });
   });
 
   it('renders 4 metric cards with correct counts', async () => {

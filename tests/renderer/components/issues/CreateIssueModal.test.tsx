@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createElement } from 'react';
 
@@ -70,16 +70,20 @@ describe('CreateIssueModal', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('renders form fields when open', () => {
-    render(<CreateIssueModal {...defaultProps} />);
+  it('renders form fields when open', async () => {
+    await act(async () => {
+      render(<CreateIssueModal {...defaultProps} />);
+    });
 
     expect(screen.getByPlaceholderText('Issue title')).toBeDefined();
     expect(screen.getByPlaceholderText(/Describe the issue/)).toBeDefined();
     expect(screen.getByPlaceholderText(/bug, enhancement/)).toBeDefined();
   });
 
-  it('submit button is disabled when title is empty', () => {
-    render(<CreateIssueModal {...defaultProps} />);
+  it('submit button is disabled when title is empty', async () => {
+    await act(async () => {
+      render(<CreateIssueModal {...defaultProps} />);
+    });
 
     const submitButton = screen.getByText('Create Issue').closest('button');
     expect(submitButton).toBeDefined();

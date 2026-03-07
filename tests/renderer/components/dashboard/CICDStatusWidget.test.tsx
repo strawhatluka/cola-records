@@ -304,13 +304,17 @@ describe('CICDStatusWidget', () => {
     });
   });
 
-  it('renders widget title', () => {
+  it('renders widget title', async () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:list-user-repos') return [];
       return undefined;
     });
     render(<CICDStatusWidget />);
     expect(screen.getByText('CI/CD Status')).toBeDefined();
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalled();
+    });
   });
 
   it('shows pipelines from all repos (not limited to 5)', async () => {

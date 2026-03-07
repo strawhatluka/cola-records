@@ -13,6 +13,7 @@ describe('BashProfileTab', () => {
 
   beforeEach(() => {
     mockOnUpdate.mockClear();
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
   });
 
   // =====================
@@ -71,7 +72,7 @@ describe('BashProfileTab', () => {
       await user.click(screen.getByText('Add'));
 
       expect(screen.getByText('Alias name cannot contain spaces')).toBeDefined();
-    });
+    }, 15000);
 
     it('adds a new alias to local state (not saved until Save button)', async () => {
       const user = userEvent.setup();

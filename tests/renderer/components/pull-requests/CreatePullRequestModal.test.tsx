@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Mock IPC
@@ -85,7 +85,9 @@ describe('CreatePullRequestModal', () => {
   });
 
   it('renders form fields when open', async () => {
-    render(<CreatePullRequestModal {...defaultProps} />);
+    await act(async () => {
+      render(<CreatePullRequestModal {...defaultProps} />);
+    });
 
     expect(screen.getByPlaceholderText('Pull request title')).toBeInTheDocument();
     expect(screen.getByText('Base Branch')).toBeInTheDocument();

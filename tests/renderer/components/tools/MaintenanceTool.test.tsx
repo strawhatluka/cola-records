@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Mock lucide-react
@@ -63,7 +63,9 @@ describe('MaintenanceTool', () => {
   });
 
   it('renders the Set Up section header', async () => {
-    render(<MaintenanceTool {...defaultProps} />);
+    await act(async () => {
+      render(<MaintenanceTool {...defaultProps} />);
+    });
     expect(screen.getByText('Set Up')).toBeDefined();
   });
 
@@ -147,7 +149,9 @@ describe('MaintenanceTool', () => {
   });
 
   it('renders Update and Info section headers', async () => {
-    render(<MaintenanceTool {...defaultProps} />);
+    await act(async () => {
+      render(<MaintenanceTool {...defaultProps} />);
+    });
     expect(screen.getByText('Update')).toBeDefined();
     expect(screen.getByText('Info')).toBeDefined();
   });
@@ -162,7 +166,9 @@ describe('MaintenanceTool', () => {
   });
 
   it('renders Info section with 6 buttons', async () => {
-    render(<MaintenanceTool {...defaultProps} />);
+    await act(async () => {
+      render(<MaintenanceTool {...defaultProps} />);
+    });
     expect(screen.getByText('Status')).toBeDefined();
     expect(screen.getByText('Log')).toBeDefined();
     expect(screen.getByText('Branches')).toBeDefined();

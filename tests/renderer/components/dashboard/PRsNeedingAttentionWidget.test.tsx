@@ -186,7 +186,7 @@ describe('PRsNeedingAttentionWidget', () => {
     });
   });
 
-  it('renders widget title', () => {
+  it('renders widget title', async () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
         return { login: 'testuser', name: 'Test', email: '' };
@@ -194,6 +194,10 @@ describe('PRsNeedingAttentionWidget', () => {
     });
     render(<PRsNeedingAttentionWidget />);
     expect(screen.getByText('PRs Needing Attention')).toBeDefined();
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalled();
+    });
   });
 
   it('renders Open button when onOpenProject is provided', async () => {

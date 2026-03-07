@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Use vi.hoisted to ensure mocks are available at vi.mock time
@@ -71,18 +71,24 @@ describe('ToolsPanel', () => {
     });
   });
 
-  it('renders with dev tools selected by default', () => {
-    render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+  it('renders with dev tools selected by default', async () => {
+    await act(async () => {
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+    });
     expect(screen.getByText('Dev Tools')).toBeDefined();
   });
 
-  it('renders hamburger menu button', () => {
-    render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+  it('renders hamburger menu button', async () => {
+    await act(async () => {
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+    });
     expect(screen.getByTestId('icon-menu')).toBeDefined();
   });
 
-  it('renders close button', () => {
-    render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+  it('renders close button', async () => {
+    await act(async () => {
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+    });
     const closeButton = screen.getByTestId('icon-x').closest('button');
     expect(closeButton).toBeDefined();
   });
@@ -132,8 +138,10 @@ describe('ToolsPanel', () => {
     expect(screen.getByText('No scripts yet')).toBeDefined();
   });
 
-  it('renders Dev Tools content by default', () => {
-    render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+  it('renders Dev Tools content by default', async () => {
+    await act(async () => {
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+    });
 
     // Dev Tools is default, should show Set Up section
     expect(screen.getByText('Set Up')).toBeDefined();
@@ -183,8 +191,10 @@ describe('ToolsPanel', () => {
   });
 
   describe('persistent terminal bar', () => {
-    it('renders minimized terminal bar by default', () => {
-      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+    it('renders minimized terminal bar by default', async () => {
+      await act(async () => {
+        render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+      });
 
       // Terminal bar should show Terminal icon and label
       expect(screen.getByTestId('icon-terminal')).toBeDefined();
@@ -295,20 +305,22 @@ describe('ToolsPanel', () => {
   });
 
   describe('multi-session adoption', () => {
-    it('auto-expands terminal when adoptSessions is provided', () => {
+    it('auto-expands terminal when adoptSessions is provided', async () => {
       const sessions = [
         { sessionId: 'session_1', output: 'output 1', name: 'Frontend' },
         { sessionId: 'session_2', output: 'output 2', name: 'Backend' },
       ];
 
-      render(
-        <ToolsPanel
-          workingDirectory={workingDirectory}
-          onClose={mockOnClose}
-          adoptSessions={sessions}
-          onSessionsAdopted={vi.fn()}
-        />
-      );
+      await act(async () => {
+        render(
+          <ToolsPanel
+            workingDirectory={workingDirectory}
+            onClose={mockOnClose}
+            adoptSessions={sessions}
+            onSessionsAdopted={vi.fn()}
+          />
+        );
+      });
 
       // Terminal should be expanded (ChevronDown visible for collapse)
       // (TerminalTool's tab bar also renders a ChevronDown in its dropdown button)
@@ -325,14 +337,16 @@ describe('ToolsPanel', () => {
       const mockOnSessionsAdopted = vi.fn();
       const sessions = [{ sessionId: 'adopted_1', output: 'test output', name: 'Script' }];
 
-      render(
-        <ToolsPanel
-          workingDirectory={workingDirectory}
-          onClose={mockOnClose}
-          adoptSessions={sessions}
-          onSessionsAdopted={mockOnSessionsAdopted}
-        />
-      );
+      await act(async () => {
+        render(
+          <ToolsPanel
+            workingDirectory={workingDirectory}
+            onClose={mockOnClose}
+            adoptSessions={sessions}
+            onSessionsAdopted={mockOnSessionsAdopted}
+          />
+        );
+      });
 
       // Wait for adopted session to appear as a tab
       await vi.waitFor(() => {
