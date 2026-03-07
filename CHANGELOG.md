@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **New Project Wizard** — interactive multi-step wizard for creating new projects from My Projects and Professional Projects screens (#55)
+  - **6-step guided wizard**: Basics (name, location, type) > Ecosystem (7 ecosystems, frameworks, monorepo tools, package managers) > Options (GitHub repo, extras, license) > Database (5 engines, ORM selection, Docker Compose, env vars) > GitHub Config (template selection from 12 existing templates) > Review & Create (summary + live progress)
+  - **CLI Detection Service** (`cli-detection.service.ts`): detects installed CLI tools per ecosystem with version info, required/optional classification, and monorepo tool support
+  - **Project Scaffold Service** (`project-scaffold.service.ts`): orchestrates project creation via ecosystem-specific CLI commands (npm create vite, cargo init, go mod init, rails new, etc.) with manual fallbacks, extras writing (.gitignore, .editorconfig, LICENSE, README), and monorepo setup (Turborepo, Nx, pnpm/Cargo/Go/uv workspaces)
+  - **Database Scaffold Service** (`database-scaffold.service.ts`): generates Docker Compose configs, environment variables, and Prisma schemas for PostgreSQL, MySQL, MongoDB, SQLite, and Redis with ORM options across 7 ecosystems
+  - **Template files**: per-ecosystem `.gitignore` templates and 6 open-source license templates (MIT, Apache-2.0, GPL-3.0, BSD-2-Clause, ISC, Unlicense)
+  - **GitHub repo creation**: `createRepository()` added to GitHub REST service for creating new repos via API
+  - **Smart package manager validation**: pre-flight check when leaving Ecosystem step detects if selected PM (bun, pnpm, yarn, uv, poetry) is installed; inline banner offers to switch to an installed alternative, install the tool globally, or continue anyway; auto-advances after successful install
+  - **8 new IPC channels**: `project:check-cli-tools`, `project:scaffold`, `project:scaffold-database`, `project:get-orm-options`, `project:create-github-repo`, `project:initialize-git`, `project:validate-package-manager`, `project:install-tool`
+  - **Database schema v9**: 7 new columns on contributions table (ecosystem, framework, package_manager, is_monorepo, monorepo_tool, database_engine, database_orm) for project metadata persistence
+  - **Creation pipeline**: validates CLI tools > creates directory > scaffolds project > scaffolds database > applies GitHub config templates > git init with main+dev branches > creates GitHub repo > pushes > saves to DB > auto-opens in Development screen
+  - **"New Project" button** on both My Projects and Professional Projects screens with auto-filled category and default location from settings
 - **GitHub Config Tool** — 7th tool in ToolsPanel for managing `.github/` directory configurations
   - **Dev Tools-style layout**: two category sections (Repository + Community) with icon headers, bordered cards, and 64px feature buttons with green/grey status dots — matching MaintenanceTool pattern
   - **GitHubConfigService** (`github-config.service.ts`): file system service for scanning, reading, writing, deleting, and deploying `.github/` configs with 12 feature templates and YAML front-matter parser

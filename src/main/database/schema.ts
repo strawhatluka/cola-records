@@ -4,7 +4,7 @@
  * SQLite database schema for Cola Records
  */
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 /**
  * SQL statements to create all tables
@@ -118,5 +118,15 @@ export const MIGRATIONS: Record<number, string> = {
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
     CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_key ON notifications(dedupe_key);
     CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);
+  `,
+  // Version 9: Add project creation metadata columns
+  9: `
+    ALTER TABLE contributions ADD COLUMN ecosystem TEXT;
+    ALTER TABLE contributions ADD COLUMN framework TEXT;
+    ALTER TABLE contributions ADD COLUMN package_manager TEXT;
+    ALTER TABLE contributions ADD COLUMN is_monorepo INTEGER DEFAULT 0;
+    ALTER TABLE contributions ADD COLUMN monorepo_tool TEXT;
+    ALTER TABLE contributions ADD COLUMN database_engine TEXT;
+    ALTER TABLE contributions ADD COLUMN database_orm TEXT;
   `,
 };

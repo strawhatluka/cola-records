@@ -63,6 +63,13 @@ import type {
   GitHubConfigScanResult,
   GitHubConfigTemplate,
   GitHubConfigIssueTemplate,
+  ToolDetectionResult,
+  ToolInstallResult,
+  ScaffoldConfig,
+  ScaffoldResult,
+  DatabaseScaffoldConfig,
+  ORMOption,
+  GitHubRepository,
 } from './types';
 
 export interface CoreChannels {
@@ -92,6 +99,24 @@ export interface CoreChannels {
 
   // Project Channels
   'project:scan-directory': (directoryPath: string) => Contribution[];
+  'project:check-cli-tools': (
+    ecosystem: Ecosystem,
+    isMonorepo?: boolean,
+    monorepoTool?: string
+  ) => ToolDetectionResult[];
+  'project:scaffold': (config: ScaffoldConfig) => ScaffoldResult;
+  'project:scaffold-database': (config: DatabaseScaffoldConfig) => ScaffoldResult;
+  'project:get-orm-options': (ecosystem: Ecosystem, engine: string) => ORMOption[];
+  'project:create-github-repo': (
+    name: string,
+    options: { description?: string; isPrivate?: boolean; autoInit?: boolean }
+  ) => GitHubRepository;
+  'project:initialize-git': (projectPath: string, remoteName?: string, remoteUrl?: string) => void;
+  'project:validate-package-manager': (
+    ecosystem: Ecosystem,
+    packageManager: string
+  ) => ToolDetectionResult;
+  'project:install-tool': (toolName: string) => ToolInstallResult;
 
   // Settings Channels
   'settings:get': () => AppSettings;
