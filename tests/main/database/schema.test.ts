@@ -8,8 +8,8 @@ describe('Database Schema', () => {
       expect(Number.isInteger(SCHEMA_VERSION)).toBe(true);
     });
 
-    it('is currently version 8', () => {
-      expect(SCHEMA_VERSION).toBe(8);
+    it('is currently version 9', () => {
+      expect(SCHEMA_VERSION).toBe(9);
     });
   });
 

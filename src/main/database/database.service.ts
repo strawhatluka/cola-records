@@ -28,6 +28,13 @@ interface ContributionRow {
   upstream_url: string | null;
   is_fork: number | null;
   remotes_valid: number | null;
+  ecosystem: string | null;
+  framework: string | null;
+  package_manager: string | null;
+  is_monorepo: number | null;
+  monorepo_tool: string | null;
+  database_engine: string | null;
+  database_orm: string | null;
 }
 
 /**
@@ -133,9 +140,9 @@ export class DatabaseService {
     const stmt = db.prepare(`
       INSERT INTO contributions (
         id, repository_url, local_path, issue_number, issue_title, branch_name, status,
-        created_at, updated_at, pr_url, pr_number, pr_status, upstream_url, is_fork, remotes_valid, type
+        created_at, updated_at, pr_url, pr_number, pr_status, upstream_url, is_fork, remotes_valid, type, ecosystem, framework, package_manager, is_monorepo, monorepo_tool, database_engine, database_orm
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -154,7 +161,14 @@ export class DatabaseService {
       contribution.upstreamUrl || null,
       contribution.isFork ? 1 : 0,
       contribution.remotesValid ? 1 : 0,
-      contribution.type || 'contribution'
+      contribution.type || 'contribution',
+      contribution.ecosystem || null,
+      contribution.framework || null,
+      contribution.packageManager || null,
+      contribution.isMonorepo ? 1 : 0,
+      contribution.monorepoTool || null,
+      contribution.databaseEngine || null,
+      contribution.databaseOrm || null
     );
 
     return {
@@ -208,7 +222,7 @@ export class DatabaseService {
       UPDATE contributions
       SET repository_url = ?, local_path = ?, issue_number = ?, issue_title = ?, branch_name = ?, status = ?,
           pr_url = ?, pr_number = ?, pr_status = ?, upstream_url = ?, is_fork = ?, remotes_valid = ?,
-          created_at = ?, updated_at = ?, type = ?
+          created_at = ?, updated_at = ?, type = ?, ecosystem = ?, framework = ?, package_manager = ?, is_monorepo = ?, monorepo_tool = ?, database_engine = ?, database_orm = ?
       WHERE id = ?
     `);
 
@@ -228,6 +242,13 @@ export class DatabaseService {
       createdAtTimestamp,
       now,
       merged.type || 'contribution',
+      merged.ecosystem || null,
+      merged.framework || null,
+      merged.packageManager || null,
+      merged.isMonorepo ? 1 : 0,
+      merged.monorepoTool || null,
+      merged.databaseEngine || null,
+      merged.databaseOrm || null,
       id
     );
 
@@ -379,6 +400,13 @@ export class DatabaseService {
       upstreamUrl: row.upstream_url || undefined,
       isFork: row.is_fork === 1,
       remotesValid: row.remotes_valid === 1,
+      ecosystem: row.ecosystem || undefined,
+      framework: row.framework || undefined,
+      packageManager: row.package_manager || undefined,
+      isMonorepo: row.is_monorepo === 1,
+      monorepoTool: row.monorepo_tool || undefined,
+      databaseEngine: row.database_engine || undefined,
+      databaseOrm: row.database_orm || undefined,
     };
   }
 

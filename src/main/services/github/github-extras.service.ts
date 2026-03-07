@@ -224,6 +224,38 @@ export async function unstarRepository(
   }
 }
 
+export async function createRepository(
+  client: Octokit,
+  name: string,
+  options: {
+    description?: string;
+    isPrivate?: boolean;
+    autoInit?: boolean;
+  }
+): Promise<GitHubRepository> {
+  try {
+    const response = await client.repos.createForAuthenticatedUser({
+      name,
+      description: options.description || '',
+      private: options.isPrivate ?? false,
+      auto_init: options.autoInit ?? false,
+    });
+
+    return {
+      id: response.data.id.toString(),
+      name: response.data.name,
+      fullName: response.data.full_name,
+      description: response.data.description || '',
+      url: response.data.clone_url || response.data.html_url,
+      language: response.data.language || 'Unknown',
+      stars: response.data.stargazers_count,
+      forks: response.data.forks_count,
+    };
+  } catch (error) {
+    throw new Error(`Failed to create repository ${name}: ${error}`);
+  }
+}
+
 export async function getRateLimit(client: Octokit) {
   try {
     const response = await client.rateLimit.get();

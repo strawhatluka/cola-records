@@ -137,6 +137,14 @@ export function removeAllIpcHandlers(): void {
     'contribution:sync-with-github',
     // ── Projects ──
     'project:scan-directory',
+    'project:check-cli-tools',
+    'project:scaffold',
+    'project:scaffold-database',
+    'project:get-orm-options',
+    'project:create-github-repo',
+    'project:initialize-git',
+    'project:validate-package-manager',
+    'project:install-tool',
     // ── Settings ──
     'settings:get',
     'settings:update',

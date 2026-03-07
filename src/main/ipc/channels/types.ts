@@ -185,6 +185,14 @@ export interface Contribution {
   upstreamUrl?: string;
   isFork?: boolean;
   remotesValid?: boolean;
+  // Project creation metadata
+  ecosystem?: string;
+  framework?: string;
+  packageManager?: string;
+  isMonorepo?: boolean;
+  monorepoTool?: string;
+  databaseEngine?: string;
+  databaseOrm?: string;
 }
 
 // Spotify Types
@@ -504,6 +512,15 @@ export interface DiskUsageResult {
   totalBytes: number;
   entries: DiskUsageEntry[];
   scanDurationMs: number;
+}
+
+// CLI Detection Types
+export interface ToolDetectionResult {
+  name: string;
+  installed: boolean;
+  version?: string;
+  path?: string;
+  required: boolean;
 }
 
 // Hook Tool Types
@@ -989,4 +1006,95 @@ export interface NotificationPreferences {
   dndEnabled: boolean;
   pollInterval: number;
   categories: Record<NotificationCategory, NotificationCategoryPreference>;
+}
+
+// Project Creation Types
+export interface ToolDetectionResult {
+  name: string;
+  installed: boolean;
+  version?: string;
+  path?: string;
+  required: boolean;
+}
+
+export interface ToolInstallResult {
+  success: boolean;
+  message: string;
+  version?: string;
+}
+
+export interface ScaffoldConfig {
+  projectName: string;
+  projectPath: string;
+  ecosystem: Ecosystem;
+  framework?: string;
+  packageManager?: string;
+  isMonorepo: boolean;
+  monorepoTool?: string;
+  extras: {
+    gitignore: boolean;
+    editorconfig: boolean;
+    envFile: boolean;
+    readme: boolean;
+    license?: string;
+  };
+}
+
+export interface ScaffoldResult {
+  success: boolean;
+  message: string;
+  filesCreated: string[];
+  warnings: string[];
+}
+
+export interface DatabaseScaffoldConfig {
+  projectPath: string;
+  projectName: string;
+  ecosystem: Ecosystem;
+  engine: 'postgresql' | 'mysql' | 'mongodb' | 'sqlite' | 'redis' | 'none';
+  orm?: string;
+  includeDocker: boolean;
+  includeEnvVars: boolean;
+  additionalEngines: string[];
+}
+
+export interface ORMOption {
+  id: string;
+  name: string;
+  recommended: boolean;
+}
+
+export interface ProjectGitHubConfigSelection {
+  featureId: string;
+  templateId: string;
+}
+
+export interface WizardConfig {
+  projectName: string;
+  category: 'personal' | 'professional';
+  location: string;
+  projectType: 'single' | 'monorepo';
+  ecosystem: Ecosystem;
+  framework?: string;
+  monorepoTool?: string;
+  packageManager: string;
+  createGitHubRepo: boolean;
+  repoVisibility: 'public' | 'private';
+  repoDescription: string;
+  extras: {
+    gitignore: boolean;
+    editorconfig: boolean;
+    readme: boolean;
+    envFile: boolean;
+    hooks: boolean;
+    license: string | null;
+  };
+  database: {
+    engine: 'postgresql' | 'mysql' | 'mongodb' | 'sqlite' | 'redis' | 'none';
+    orm?: string;
+    includeDocker: boolean;
+    includeEnvVars: boolean;
+    additionalEngines: string[];
+  };
+  githubConfigSelections: ProjectGitHubConfigSelection[];
 }
