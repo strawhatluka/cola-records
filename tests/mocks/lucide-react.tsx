@@ -169,6 +169,8 @@ export const Plug = createIcon('Plug');
 // Discord icons
 export const BarChart3 = createIcon('BarChart3');
 export const TrendingUp = createIcon('TrendingUp');
+export const Smile = createIcon('Smile');
+export const Upload = createIcon('Upload');
 
 // GitHub Config icons
 export const Rocket = createIcon('Rocket');

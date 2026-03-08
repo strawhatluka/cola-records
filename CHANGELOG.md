@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add new test suite for root application component (`tests/renderer/App.test.tsx`) (#72)
+- Add new test suite for Discord `MessageInput` component (`tests/renderer/components/discord/MessageInput.test.tsx`) (#72)
+- Add new test suite for `NotificationGroup` component (`tests/renderer/components/notifications/NotificationGroup.test.tsx`) (#72)
+- Add new test suite for `NotificationItem` component (`tests/renderer/components/notifications/NotificationItem.test.tsx`) (#72)
 - Add new test suite for main process entry point (`tests/main/index.test.ts`) (#72)
 - Add new test suite for project detection service (`tests/main/services/project-detection.service.test.ts`) (#72)
 - Add new test suite for Discord `CreatePollModal` component (`tests/renderer/components/discord/CreatePollModal.test.tsx`) (#72)
@@ -220,6 +224,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add `Smile` and `Upload` icon exports to `lucide-react` mock (`tests/mocks/lucide-react.tsx`) (#72)
+- Refactor test setup for `GitHubConfigYamlEditor` to use `vi.hoisted` for IPC mock and introduce mocks for `Button` and `GitHubConfigFields` components (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
+- Update `GitHubConfigYamlEditor` test imports, replacing `userEvent` with `fireEvent` (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
 - Refactor test mocks in `tests/main/services/notification.service.test.ts` to use `vi.hoisted` for better isolation and control (#72)
 - Remove generic test cases for service initialization in `tests/main/services/notification.service.test.ts` (#72)
 
