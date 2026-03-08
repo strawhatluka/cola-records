@@ -175,3 +175,11 @@ export const Upload = createIcon('Upload');
 // GitHub Config icons
 export const Rocket = createIcon('Rocket');
 export const RotateCcw = createIcon('RotateCcw');
+
+// MessageList / Discord panel icons
+export const Pin = createIcon('Pin');
+export const PanelLeftOpen = createIcon('PanelLeftOpen');
+export const PanelLeftClose = createIcon('PanelLeftClose');
+
+// Issue modal icons
+export const Inbox = createIcon('Inbox');

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `Pin`, `PanelLeftOpen`, and `PanelLeftClose` icons to `tests/mocks/lucide-react.tsx` for Discord `MessageList` component.
+- Add `Inbox` icon to `tests/mocks/lucide-react.tsx` for issue modals.
+- Add mock `CreateSubIssueModal` and `AddExistingSubIssueModal` components for testing in `tests/renderer/components/issues/DevelopmentIssueDetailModal.test.tsx`.
+- Add test to verify the `close issue menu` shows all options in `tests/renderer/components/issues/DevelopmentIssueDetailModal.test.tsx`.
+- Add test to verify `Toggle` badge display for toggle scripts in `tests/renderer/components/settings/GlobalScriptsTab.test.tsx`.
+- Add test to verify terminals count display for multi-terminal scripts in `tests/renderer/components/settings/GlobalScriptsTab.test.tsx`.
+- Add test to verify navigation to create view and template display when "New" button is clicked in `tests/renderer/components/tools/GitHubConfigWorkflowsEditor.test.tsx`.
+- Add test to verify deploying a template and returning to list view in `tests/renderer/components/tools/GitHubConfigWorkflowsEditor.test.tsx`.
+- Add test to verify toggling an action enabled/disabled in `tests/renderer/components/tools/HooksEditor.test.tsx`.
+- Add new test suite for Discord `MessageList` component (`tests/renderer/components/discord/MessageList.test.tsx`) (#72).
 - Add new test suite for root application component (`tests/renderer/App.test.tsx`) (#72)
 - Add new test suite for Discord `MessageInput` component (`tests/renderer/components/discord/MessageInput.test.tsx`) (#72)
 - Add new test suite for `NotificationGroup` component (`tests/renderer/components/notifications/NotificationGroup.test.tsx`) (#72)

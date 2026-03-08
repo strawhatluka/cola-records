@@ -333,5 +333,388 @@ describe('GlobalScriptsTab', () => {
       expect(screen.getByText('Global Lint')).toBeDefined();
       expect(screen.getByText('Clean')).toBeDefined();
     });
+
+    it('shows Toggle badge for toggle scripts', () => {
+      mockStoreState.globalScripts = [
+        createMockGlobalDevScript({
+          id: 'g1',
+          name: 'Start DB',
+          toggle: {
+            firstPressName: 'Start DB',
+            firstPressCommand: 'docker compose up -d',
+            secondPressName: 'Stop DB',
+            secondPressCommand: 'docker compose down',
+          },
+        }),
+      ];
+      render(<GlobalScriptsTab />);
+      expect(screen.getByText('Toggle')).toBeDefined();
+      expect(screen.getByText('Start DB / Stop DB')).toBeDefined();
+    });
+
+    it('shows terminals count for multi-terminal scripts', () => {
+      mockStoreState.globalScripts = [
+        createMockGlobalDevScript({
+          id: 'g1',
+          name: 'Full Stack',
+          terminals: [
+            { name: 'Frontend', commands: ['npm run dev:frontend'] },
+            { name: 'Backend', commands: ['npm run dev:backend'] },
+          ],
+        }),
+      ];
+      render(<GlobalScriptsTab />);
+      expect(screen.getByText('2 terminals')).toBeDefined();
+      expect(screen.getByText('Frontend, Backend')).toBeDefined();
+    });
+
+    it('shows joined commands for multi-command single scripts', () => {
+      mockStoreState.globalScripts = [
+        createMockGlobalDevScript({
+          id: 'g1',
+          name: 'Setup',
+          commands: ['npm install', 'npm run build'],
+        }),
+      ];
+      render(<GlobalScriptsTab />);
+      expect(screen.getByText('npm install && npm run build')).toBeDefined();
+      expect(screen.getByText('2 commands')).toBeDefined();
+    });
+  });
+
+  describe('toggle mode', () => {
+    it('submits toggle mode successfully', async () => {
+      mockSaveGlobalScript.mockResolvedValueOnce(undefined);
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Toggle'));
+
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-name'), {
+        target: { value: 'Start DB' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-cmd'), {
+        target: { value: 'docker compose up -d' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-second-name'), {
+        target: { value: 'Stop DB' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-second-cmd'), {
+        target: { value: 'docker compose down' },
+      });
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(mockSaveGlobalScript).toHaveBeenCalledWith(
+          expect.objectContaining({
+            projectPath: '__global__',
+            name: 'Start DB',
+            toggle: {
+              firstPressName: 'Start DB',
+              firstPressCommand: 'docker compose up -d',
+              secondPressName: 'Stop DB',
+              secondPressCommand: 'docker compose down',
+            },
+          })
+        );
+      });
+    });
+
+    it('validates first press name required', async () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Toggle'));
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('First press name is required')).toBeDefined();
+      });
+    });
+
+    it('validates first press command required', async () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Toggle'));
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-name'), {
+        target: { value: 'Start' },
+      });
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('First press command is required')).toBeDefined();
+      });
+    });
+
+    it('validates second press name required', async () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Toggle'));
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-name'), {
+        target: { value: 'Start' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-cmd'), {
+        target: { value: 'up' },
+      });
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Second press name is required')).toBeDefined();
+      });
+    });
+
+    it('validates second press command required', async () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Toggle'));
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-name'), {
+        target: { value: 'Start' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-cmd'), {
+        target: { value: 'up' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-second-name'), {
+        target: { value: 'Stop' },
+      });
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Second press command is required')).toBeDefined();
+      });
+    });
+
+    it('validates duplicate name in toggle mode', async () => {
+      mockStoreState.globalScripts = [createMockGlobalDevScript({ id: 'g1', name: 'Start DB' })];
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Toggle'));
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-name'), {
+        target: { value: 'Start DB' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-first-cmd'), {
+        target: { value: 'up' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-second-name'), {
+        target: { value: 'Stop' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-toggle-second-cmd'), {
+        target: { value: 'down' },
+      });
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('A global script with this name already exists')).toBeDefined();
+      });
+    });
+
+    it('hides name input in toggle mode', () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Toggle'));
+      expect(screen.queryByTestId('global-script-name')).toBeNull();
+    });
+  });
+
+  describe('multi-terminal mode', () => {
+    it('submits multi-terminal mode successfully', async () => {
+      mockSaveGlobalScript.mockResolvedValueOnce(undefined);
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.change(screen.getByTestId('global-script-name'), {
+        target: { value: 'Full Stack' },
+      });
+      fireEvent.click(screen.getByText('Multi'));
+
+      // First terminal should be auto-created
+      const terminalNameInput = screen.getByPlaceholderText('Terminal name (e.g., Frontend)');
+      fireEvent.change(terminalNameInput, { target: { value: 'Frontend' } });
+
+      const cmdInput = screen.getByPlaceholderText('e.g., npm run dev');
+      fireEvent.change(cmdInput, { target: { value: 'npm run dev:frontend' } });
+
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(mockSaveGlobalScript).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'Full Stack',
+            terminals: [{ name: 'Frontend', commands: ['npm run dev:frontend'] }],
+          })
+        );
+      });
+    });
+
+    it('validates empty terminal name', async () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.change(screen.getByTestId('global-script-name'), {
+        target: { value: 'Stack' },
+      });
+      fireEvent.click(screen.getByText('Multi'));
+
+      // Auto-created terminal has name "Terminal 1" — clear it to trigger validation
+      const terminalNameInput = screen.getByPlaceholderText('Terminal name (e.g., Frontend)');
+      fireEvent.change(terminalNameInput, { target: { value: '' } });
+
+      const cmdInput = screen.getByPlaceholderText('e.g., npm run dev');
+      fireEvent.change(cmdInput, { target: { value: 'cmd' } });
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Terminal 1 needs a name')).toBeDefined();
+      });
+    });
+
+    it('validates empty terminal commands', async () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.change(screen.getByTestId('global-script-name'), {
+        target: { value: 'Stack' },
+      });
+      fireEvent.click(screen.getByText('Multi'));
+
+      const terminalNameInput = screen.getByPlaceholderText('Terminal name (e.g., Frontend)');
+      fireEvent.change(terminalNameInput, { target: { value: 'Frontend' } });
+
+      // Leave command empty, click submit
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Terminal "Frontend" needs at least one command')).toBeDefined();
+      });
+    });
+
+    it('validates duplicate terminal names', async () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.change(screen.getByTestId('global-script-name'), {
+        target: { value: 'Stack' },
+      });
+      fireEvent.click(screen.getByText('Multi'));
+
+      // First terminal
+      const firstTerminal = screen.getByPlaceholderText('Terminal name (e.g., Frontend)');
+      fireEvent.change(firstTerminal, { target: { value: 'Frontend' } });
+      const firstCmd = screen.getByPlaceholderText('e.g., npm run dev');
+      fireEvent.change(firstCmd, { target: { value: 'cmd1' } });
+
+      // Add second terminal
+      fireEvent.click(screen.getByText('Add Terminal'));
+      const allTerminalNames = screen.getAllByPlaceholderText('Terminal name (e.g., Frontend)');
+      fireEvent.change(allTerminalNames[1], { target: { value: 'Frontend' } });
+      const allCmds = screen.getAllByPlaceholderText('e.g., npm run dev');
+      fireEvent.change(allCmds[1], { target: { value: 'cmd2' } });
+
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Terminal names must be unique')).toBeDefined();
+      });
+    });
+
+    it('carries commands from single to multi mode', () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+
+      // Enter a command in single mode
+      fireEvent.change(screen.getByTestId('global-script-command-0'), {
+        target: { value: 'npm run build' },
+      });
+
+      // Switch to multi
+      fireEvent.click(screen.getByText('Multi'));
+
+      // Terminal should exist with the command carried over
+      expect(screen.getByText('1 cmd')).toBeDefined();
+    });
+  });
+
+  describe('edit toggle/multi scripts', () => {
+    it('opens edit form in toggle mode for toggle script', () => {
+      mockStoreState.globalScripts = [
+        createMockGlobalDevScript({
+          id: 'g1',
+          name: 'Start DB',
+          toggle: {
+            firstPressName: 'Start DB',
+            firstPressCommand: 'docker compose up -d',
+            secondPressName: 'Stop DB',
+            secondPressCommand: 'docker compose down',
+          },
+        }),
+      ];
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByTitle('Edit script'));
+
+      expect(screen.getByText('Edit Global Script')).toBeDefined();
+      expect(
+        (screen.getByTestId('global-script-toggle-first-name') as HTMLInputElement).value
+      ).toBe('Start DB');
+      expect((screen.getByTestId('global-script-toggle-first-cmd') as HTMLInputElement).value).toBe(
+        'docker compose up -d'
+      );
+      expect(
+        (screen.getByTestId('global-script-toggle-second-name') as HTMLInputElement).value
+      ).toBe('Stop DB');
+      expect(
+        (screen.getByTestId('global-script-toggle-second-cmd') as HTMLInputElement).value
+      ).toBe('docker compose down');
+    });
+
+    it('opens edit form in multi mode for multi-terminal script', () => {
+      mockStoreState.globalScripts = [
+        createMockGlobalDevScript({
+          id: 'g1',
+          name: 'Full Stack',
+          terminals: [
+            { name: 'Frontend', commands: ['npm run dev:frontend'] },
+            { name: 'Backend', commands: ['npm run dev:backend'] },
+          ],
+        }),
+      ];
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByTitle('Edit script'));
+
+      expect(screen.getByText('Edit Global Script')).toBeDefined();
+      expect(screen.getByText('Add Terminal')).toBeDefined();
+    });
+  });
+
+  describe('save error handling', () => {
+    it('displays error when save fails', async () => {
+      mockSaveGlobalScript.mockRejectedValueOnce(new Error('Network error'));
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.change(screen.getByTestId('global-script-name'), {
+        target: { value: 'Build' },
+      });
+      fireEvent.change(screen.getByTestId('global-script-command-0'), {
+        target: { value: 'npm run build' },
+      });
+      fireEvent.click(screen.getByText('Add Script'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Error: Network error')).toBeDefined();
+      });
+    });
+  });
+
+  describe('remove command', () => {
+    it('removes a command when clicking X button', () => {
+      render(<GlobalScriptsTab />);
+      fireEvent.click(screen.getByText('Add Global Script'));
+      fireEvent.click(screen.getByText('Add Command'));
+
+      // Now 2 command inputs
+      expect(screen.getByTestId('global-script-command-0')).toBeDefined();
+      expect(screen.getByTestId('global-script-command-1')).toBeDefined();
+
+      // Click X on one of the commands — find X buttons inside the commands area
+      const xButtons = screen.getAllByTestId('icon-x');
+      // The form has an X close button too, so find the one that's in the commands area
+      // Click the last X icon which should be the remove command button
+      const removeBtn = xButtons[xButtons.length - 1].closest('button');
+      if (removeBtn) fireEvent.click(removeBtn);
+
+      expect(screen.queryByTestId('global-script-command-1')).toBeNull();
+    });
   });
 });
