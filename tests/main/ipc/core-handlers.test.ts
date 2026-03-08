@@ -128,6 +128,7 @@ vi.mock('child_process', () => ({
   exec: mocks.mockExec,
 }));
 
+import path from 'path';
 import { setupCoreHandlers } from '../../../src/main/ipc/handlers/core.handlers';
 
 function getHandler(channel: string) {
@@ -483,5 +484,174 @@ describe('core.handlers', () => {
     const handler = getHandler('shell:launch-app');
     await handler!({}, 'malware');
     expect(mocks.mockExec).not.toHaveBeenCalled();
+  });
+
+  // ── Docs ──
+
+  describe('docs:get-structure', () => {
+    // Use path.join for cross-platform path matching (Windows uses backslashes)
+    const ROOT = '/mock/app';
+    const docsDir = path.join(ROOT, 'docs');
+
+    // Helper to create a Dirent-like object
+    function dirent(
+      name: string,
+      isDir: boolean
+    ): { name: string; isDirectory: () => boolean; isFile: () => boolean } {
+      return { name, isDirectory: () => isDir, isFile: () => !isDir };
+    }
+
+    it('returns empty array when no docs dir and no root docs exist', async () => {
+      mocks.mockExistsSync.mockReturnValue(false);
+
+      const handler = getHandler('docs:get-structure');
+      const result = await handler!({});
+
+      expect(result).toEqual([]);
+    });
+
+    it('returns categories from docs subdirectories', async () => {
+      const guidesDir = path.join(docsDir, 'guides');
+      mocks.mockExistsSync.mockImplementation((p: string) => p === docsDir);
+      mocks.mockReaddirSync.mockImplementation((p: string) => {
+        if (p === docsDir) return [dirent('guides', true)];
+        if (p === guidesDir)
+          return [dirent('getting-started.md', false), dirent('advanced.md', false)];
+        return [];
+      });
+
+      const handler = getHandler('docs:get-structure');
+      const result = await handler!({});
+
+      expect(result).toEqual([
+        {
+          name: 'Guides',
+          files: [
+            {
+              name: 'advanced.md',
+              path: path.join(guidesDir, 'advanced.md'),
+              displayName: 'Advanced',
+            },
+            {
+              name: 'getting-started.md',
+              path: path.join(guidesDir, 'getting-started.md'),
+              displayName: 'Getting Started',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('skips non-directory entries in docs folder', async () => {
+      const apiDir = path.join(docsDir, 'api');
+      mocks.mockExistsSync.mockImplementation((p: string) => p === docsDir);
+      mocks.mockReaddirSync.mockImplementation((p: string) => {
+        if (p === docsDir) return [dirent('loose-file.md', false), dirent('api', true)];
+        if (p === apiDir) return [dirent('reference.md', false)];
+        return [];
+      });
+
+      const handler = getHandler('docs:get-structure');
+      const result = await handler!({});
+
+      expect(result).toEqual([
+        {
+          name: 'Api',
+          files: [
+            {
+              name: 'reference.md',
+              path: path.join(apiDir, 'reference.md'),
+              displayName: 'Reference',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('skips categories with no .md files', async () => {
+      const imagesDir = path.join(docsDir, 'images');
+      const guidesDir = path.join(docsDir, 'guides');
+      mocks.mockExistsSync.mockImplementation((p: string) => p === docsDir);
+      mocks.mockReaddirSync.mockImplementation((p: string) => {
+        if (p === docsDir) return [dirent('images', true), dirent('guides', true)];
+        if (p === imagesDir) return [dirent('logo.png', false), dirent('screenshot.txt', false)];
+        if (p === guidesDir) return [dirent('setup.md', false)];
+        return [];
+      });
+
+      const handler = getHandler('docs:get-structure');
+      const result = await handler!({});
+
+      expect(result).toEqual([
+        {
+          name: 'Guides',
+          files: [
+            { name: 'setup.md', path: path.join(guidesDir, 'setup.md'), displayName: 'Setup' },
+          ],
+        },
+      ]);
+    });
+
+    it('includes root-level project docs as first category', async () => {
+      const readmePath = path.join(ROOT, 'README.md');
+      const changelogPath = path.join(ROOT, 'CHANGELOG.md');
+      mocks.mockExistsSync.mockImplementation((p: string) => {
+        return p === readmePath || p === changelogPath;
+      });
+
+      const handler = getHandler('docs:get-structure');
+      const result = await handler!({});
+
+      expect(result).toEqual([
+        {
+          name: 'Cola Records',
+          files: [
+            { name: 'README.md', path: readmePath, displayName: 'README' },
+            { name: 'CHANGELOG.md', path: changelogPath, displayName: 'CHANGELOG' },
+          ],
+        },
+      ]);
+    });
+
+    it('combines docs categories and root docs, sorted with root first', async () => {
+      const readmePath = path.join(ROOT, 'README.md');
+      const contributingPath = path.join(ROOT, 'CONTRIBUTING.md');
+      const tutorialsDir = path.join(docsDir, 'tutorials');
+      const apiDir = path.join(docsDir, 'api');
+      mocks.mockExistsSync.mockImplementation((p: string) => {
+        return p === docsDir || p === readmePath || p === contributingPath;
+      });
+      mocks.mockReaddirSync.mockImplementation((p: string) => {
+        if (p === docsDir) return [dirent('tutorials', true), dirent('api', true)];
+        if (p === tutorialsDir) return [dirent('quick-start.md', false)];
+        if (p === apiDir) return [dirent('endpoints.md', false)];
+        return [];
+      });
+
+      const handler = getHandler('docs:get-structure');
+      const result = (await handler!({})) as {
+        name: string;
+        files: { name: string; path: string; displayName: string }[];
+      }[];
+
+      expect(result).toHaveLength(3);
+      expect(result[0].name).toBe('Cola Records');
+      expect(result[0].files).toEqual([
+        { name: 'README.md', path: readmePath, displayName: 'README' },
+        { name: 'CONTRIBUTING.md', path: contributingPath, displayName: 'CONTRIBUTING' },
+      ]);
+      expect(result[1].name).toBe('Api');
+      expect(result[1].files).toEqual([
+        { name: 'endpoints.md', path: path.join(apiDir, 'endpoints.md'), displayName: 'Endpoints' },
+      ]);
+      expect(result[2].name).toBe('Tutorials');
+      expect(result[2].files).toEqual([
+        {
+          name: 'quick-start.md',
+          path: path.join(tutorialsDir, 'quick-start.md'),
+          displayName: 'Quick Start',
+        },
+      ]);
+    });
   });
 });

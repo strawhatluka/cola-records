@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `fs` mock implementations (`existsSync`, `rmSync`, `readdirSync`, `chmodSync`, `unlinkSync`, `rmdirSync`) in `tests/main/ipc/contribution-handlers.test.ts`. (Relates to #72)
+- Add `github-rest.service` mock implementation (`checkPRStatus`) in `tests/main/ipc/contribution-handlers.test.ts`. (Relates to #72)
+- Add import for `database` in `tests/main/ipc/contribution-handlers.test.ts`.
+- Add `path` import in `tests/main/ipc/core-handlers.test.ts`.
+- Add new test suite for `docs:get-structure` IPC handler, including tests for empty directories, category detection, and file structure in `tests/main/ipc/core-handlers.test.ts`.
+- Add test case to detect `pyproject.toml` version in `tests/main/services/version.service.test.ts`.
+- Add test case to detect `setup.py` version in `tests/main/services/version.service.test.ts`.
 - Add tests for `mapUser` and `mapChannel` fallback logic in `tests/main/services/discord.service.test.ts`. (Relates to #72)
 - Mock `MarkdownEditor` component in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
 - Add new tests for comparison functionality in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
@@ -252,6 +259,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Change mock reset method from `vi.clearAllMocks()` to `vi.resetAllMocks()` in `tests/main/services/version.service.test.ts`.
+- Change test object property `name` to `source` for 'Node.js' entry in `tests/renderer/components/tools/MaintenanceTool.test.tsx`.
 - Clean up empty lines in `CHANGELOG.md`. (Relates to #72)
 - Update imports to include `afterEach` and `fireEvent` in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
 - Update imports to include `act` in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)

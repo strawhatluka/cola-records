@@ -1592,7 +1592,7 @@ describe('MaintenanceTool', () => {
       if (channel === 'workflow:scan-clis')
         return Promise.resolve([
           {
-            name: 'Node.js',
+            source: 'Node.js',
             entries: [{ name: 'node', path: '/usr/bin/node', version: '20.0.0' }],
           },
         ]);
