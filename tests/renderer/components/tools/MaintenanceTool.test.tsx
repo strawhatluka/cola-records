@@ -813,4 +813,917 @@ describe('MaintenanceTool', () => {
       expect(screen.getByText('Delete')).toBeDefined();
     });
   });
+
+  // ── handleGitInit ────────────────────────────────────────────────────
+
+  it('enables Git Init button when project has no .git and calls onRunCommand', async () => {
+    const onRunCommand = vi.fn();
+    const projectNoGit: ProjectInfo = { ...mockProjectInfo, hasGit: false };
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(projectNoGit);
+      if (channel === 'dev-tools:get-git-init-command') return Promise.resolve('git init');
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool workingDirectory="/test/project" onRunCommand={onRunCommand} />);
+    await waitFor(() => {
+      expect(screen.getByText('Git Init')).toBeDefined();
+    });
+
+    const gitInitButton = screen.getByText('Git Init').closest('button')!;
+    expect(gitInitButton.disabled).toBe(false);
+
+    await userEvent.click(gitInitButton);
+
+    await waitFor(() => {
+      expect(onRunCommand).toHaveBeenCalledWith('git init');
+    });
+  });
+
+  // ── handleTypeCheck ──────────────────────────────────────────────────
+
+  it('calls onRunCommand with typecheck command when TypeCheck clicked', async () => {
+    const onRunCommand = vi.fn();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'dev-tools:get-typecheck-command') return Promise.resolve('npx tsc --noEmit');
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool workingDirectory="/test/project" onRunCommand={onRunCommand} />);
+    await waitFor(() => {
+      expect(screen.getByText('TypeCheck')).toBeDefined();
+    });
+
+    const typecheckButton = screen.getByText('TypeCheck').closest('button')!;
+    await userEvent.click(typecheckButton);
+
+    await waitFor(() => {
+      expect(onRunCommand).toHaveBeenCalledWith('npx tsc --noEmit');
+    });
+  });
+
+  it('disables TypeCheck button when no typeChecker detected', async () => {
+    const projectNoTypeChecker: ProjectInfo = { ...mockProjectInfo, typeChecker: null };
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(projectNoTypeChecker);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('TypeCheck')).toBeDefined();
+    });
+
+    const typecheckButton = screen.getByText('TypeCheck').closest('button');
+    expect(typecheckButton?.disabled).toBe(true);
+  });
+
+  it('does not call onRunCommand when typecheck command is null', async () => {
+    const onRunCommand = vi.fn();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'dev-tools:get-typecheck-command') return Promise.resolve(null);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool workingDirectory="/test/project" onRunCommand={onRunCommand} />);
+    await waitFor(() => {
+      expect(screen.getByText('TypeCheck')).toBeDefined();
+    });
+
+    const typecheckButton = screen.getByText('TypeCheck').closest('button')!;
+    await userEvent.click(typecheckButton);
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('dev-tools:get-typecheck-command', '/test/project');
+    });
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  it('does not call onRunCommand when install command is null', async () => {
+    const onRunCommand = vi.fn();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'dev-tools:get-install-command') return Promise.resolve(null);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool workingDirectory="/test/project" onRunCommand={onRunCommand} />);
+    await waitFor(() => {
+      expect(screen.getByText('Install')).toBeDefined();
+    });
+
+    const installButton = screen.getByText('Install').closest('button')!;
+    await userEvent.click(installButton);
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('dev-tools:get-install-command', '/test/project');
+    });
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  it('disables Install button when install command is null', async () => {
+    const projectNoInstall: ProjectInfo = {
+      ...mockProjectInfo,
+      commands: { ...mockProjectInfo.commands, install: null },
+    };
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(projectNoInstall);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Install')).toBeDefined();
+    });
+
+    const installButton = screen.getByText('Install').closest('button');
+    expect(installButton?.disabled).toBe(true);
+  });
+
+  // ── handlePush ───────────────────────────────────────────────────────
+
+  it('shows push success message after successful push with tracking', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'git:status')
+        return Promise.resolve({ current: 'main', tracking: 'origin/main' });
+      if (channel === 'git:push') return Promise.resolve(undefined);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Push')).toBeDefined();
+    });
+
+    const pushButton = screen.getByText('Push').closest('button')!;
+    await userEvent.click(pushButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pushed to origin/main')).toBeDefined();
+    });
+  });
+
+  it('shows push success message with upstream set when no tracking branch', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'git:status') return Promise.resolve({ current: 'feat/new', tracking: null });
+      if (channel === 'git:push') return Promise.resolve(undefined);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Push')).toBeDefined();
+    });
+
+    const pushButton = screen.getByText('Push').closest('button')!;
+    await userEvent.click(pushButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pushed to origin/feat/new (upstream set)')).toBeDefined();
+    });
+
+    // Verify push was called with needsUpstream = true
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'git:push',
+      '/test/project',
+      'origin',
+      'feat/new',
+      true
+    );
+  });
+
+  it('shows push error message when push fails', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'git:status')
+        return Promise.resolve({ current: 'main', tracking: 'origin/main' });
+      if (channel === 'git:push') return Promise.reject(new Error('Permission denied'));
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Push')).toBeDefined();
+    });
+
+    const pushButton = screen.getByText('Push').closest('button')!;
+    await userEvent.click(pushButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Permission denied')).toBeDefined();
+    });
+  });
+
+  it('shows generic push failure message for non-Error rejection', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'git:status')
+        return Promise.resolve({ current: 'main', tracking: 'origin/main' });
+      if (channel === 'git:push') return Promise.reject('some string error');
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Push')).toBeDefined();
+    });
+
+    const pushButton = screen.getByText('Push').closest('button')!;
+    await userEvent.click(pushButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Push failed')).toBeDefined();
+    });
+  });
+
+  it('uses contribution branchName as fallback when status.current is empty', async () => {
+    const contribution = { branchName: 'feat/from-contribution', issueNumber: 42 };
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'git:status') return Promise.resolve({ current: '', tracking: null });
+      if (channel === 'git:push') return Promise.resolve(undefined);
+      return Promise.resolve(null);
+    });
+
+    render(
+      <MaintenanceTool
+        {...defaultProps}
+        contribution={
+          contribution as unknown as import('../../../../src/main/ipc/channels/types').Contribution
+        }
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Push')).toBeDefined();
+    });
+
+    const pushButton = screen.getByText('Push').closest('button')!;
+    await userEvent.click(pushButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Pushed to origin/feat/from-contribution (upstream set)')
+      ).toBeDefined();
+    });
+  });
+
+  it('shows "Pushing..." during push loading state', async () => {
+    let resolvePush: (() => void) | undefined;
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'git:status')
+        return Promise.resolve({ current: 'main', tracking: 'origin/main' });
+      if (channel === 'git:push')
+        return new Promise<void>((resolve) => {
+          resolvePush = resolve;
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Push')).toBeDefined();
+    });
+
+    const pushButton = screen.getByText('Push').closest('button')!;
+    await userEvent.click(pushButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pushing...')).toBeDefined();
+    });
+
+    // Resolve the push to clean up
+    await act(async () => {
+      resolvePush?.();
+    });
+  });
+
+  // ── Workflow action buttons ──────────────────────────────────────────
+
+  it('renders all workflow action buttons (Changelog, Stage, Commit, Push, Pull Request, Version, CLI)', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('New Branch')).toBeDefined();
+    });
+
+    expect(screen.getByText('Changelog')).toBeDefined();
+    expect(screen.getByText('Stage')).toBeDefined();
+    expect(screen.getByText('Commit')).toBeDefined();
+    expect(screen.getByText('Push')).toBeDefined();
+    expect(screen.getByText('Pull Request')).toBeDefined();
+    expect(screen.getByText('Version')).toBeDefined();
+    expect(screen.getByText('CLI')).toBeDefined();
+  });
+
+  it('opens ChangelogResult panel when Changelog button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'workflow:generate-changelog')
+        return Promise.resolve({ entry: '## Changes\n- Fix bug', hasChanges: true });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Changelog')).toBeDefined();
+    });
+
+    const changelogButton = screen.getByText('Changelog').closest('button')!;
+    await userEvent.click(changelogButton);
+
+    // ChangelogResult calls workflow:generate-changelog on mount
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'workflow:generate-changelog',
+        '/test/project',
+        undefined,
+        undefined
+      );
+    });
+  });
+
+  it('toggles ChangelogResult panel off when Changelog clicked again', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'workflow:generate-changelog')
+        return Promise.resolve({ entry: '## Changes\n- Fix bug', hasChanges: true });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Changelog')).toBeDefined();
+    });
+
+    const changelogButton = screen.getByText('Changelog').closest('button')!;
+    await userEvent.click(changelogButton);
+
+    // Wait for ChangelogResult to render (IPC call completes)
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'workflow:generate-changelog',
+        '/test/project',
+        undefined,
+        undefined
+      );
+    });
+
+    // Wait a tick for the state to update with the result
+    await waitFor(() => {
+      expect(screen.getByText('Apply to CHANGELOG.md')).toBeDefined();
+    });
+
+    // Toggle off
+    await userEvent.click(changelogButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Apply to CHANGELOG.md')).toBeNull();
+    });
+  });
+
+  it('calls onSwitchTool with "pull-requests" when Pull Request clicked', async () => {
+    const onSwitchTool = vi.fn();
+    render(<MaintenanceTool {...defaultProps} onSwitchTool={onSwitchTool} />);
+    await waitFor(() => {
+      expect(screen.getByText('Pull Request')).toBeDefined();
+    });
+
+    const prButton = screen.getByText('Pull Request').closest('button')!;
+    await userEvent.click(prButton);
+
+    expect(onSwitchTool).toHaveBeenCalledWith('pull-requests');
+  });
+
+  // ── Editor early returns (full-view replacements) ────────────────────
+
+  it('renders EnvEditor when Edit Example is clicked in EnvPanel', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:list-env-files')
+        return Promise.resolve([
+          { name: '.env.example', path: '/test/.env.example', exists: true },
+        ]);
+      if (channel === 'dev-tools:read-env-file') return Promise.resolve('KEY=value');
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Env File')).toBeDefined();
+    });
+
+    // Open EnvPanel
+    const envButton = screen.getByText('Env File').closest('button')!;
+    await userEvent.click(envButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Example')).toBeDefined();
+    });
+
+    // Click Edit Example to open EnvEditor
+    const editExampleButton = screen.getByText('Edit Example').closest('button')!;
+    await userEvent.click(editExampleButton);
+
+    // EnvEditor replaces the entire view
+    await waitFor(() => {
+      expect(screen.getByText('Env Editor')).toBeDefined();
+    });
+    // Normal Set Up section should not be visible
+    expect(screen.queryByText('Set Up')).toBeNull();
+  });
+
+  it('opens HooksPanel when Hooks button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-hooks')
+        return Promise.resolve({
+          detected: 'husky',
+          recommendations: [],
+          ecosystem: 'node',
+          hasLintStaged: false,
+          existingConfig: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Hooks')).toBeDefined();
+    });
+
+    const hooksButton = screen.getByText('Hooks').closest('button')!;
+    await userEvent.click(hooksButton);
+
+    // HooksPanel renders with detected tool info
+    await waitFor(() => {
+      expect(screen.getByText('Git Hooks')).toBeDefined();
+    });
+  });
+
+  it('renders EditorConfigEditor when Edit Config clicked in EditorConfigPanel', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project')
+        return Promise.resolve({ ...mockProjectInfo, hasEditorConfig: true });
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:read-editorconfig')
+        return Promise.resolve({ root: true, sections: [] });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Editor Config')).toBeDefined();
+    });
+
+    // Open EditorConfigPanel
+    const editorConfigButton = screen.getByText('Editor Config').closest('button')!;
+    await userEvent.click(editorConfigButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Config')).toBeDefined();
+    });
+
+    // Click Edit Config to open EditorConfigEditor
+    const editConfigButton = screen.getByText('Edit Config').closest('button')!;
+    await userEvent.click(editConfigButton);
+
+    // EditorConfigEditor replaces the entire view
+    await waitFor(() => {
+      expect(screen.queryByText('Set Up')).toBeNull();
+    });
+  });
+
+  it('opens FormatPanel and invokes detect-formatter when Format button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'prettier',
+          configPath: '/test/.prettierrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve(null);
+      if (channel === 'dev-tools:read-format-config')
+        return Promise.resolve({ type: 'prettier', config: {} });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Format')).toBeDefined();
+    });
+
+    const formatButton = screen.getByText('Format').closest('button')!;
+    await userEvent.click(formatButton);
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'dev-tools:detect-formatter',
+        '/test/project',
+        'node'
+      );
+    });
+  });
+
+  it('invokes detect-format-ignore when Format panel opens with ignore file', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'prettier',
+          configPath: '/test/.prettierrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('node_modules/\n');
+      if (channel === 'dev-tools:detect-format-ignore')
+        return Promise.resolve({ exists: true, path: '/test/.prettierignore' });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Format')).toBeDefined();
+    });
+
+    const formatButton = screen.getByText('Format').closest('button')!;
+    await userEvent.click(formatButton);
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'dev-tools:detect-formatter',
+        '/test/project',
+        'node'
+      );
+    });
+  });
+
+  it('invokes detect-test-framework when Test panel opens', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: 'vitest',
+          configPath: '/test/vitest.config.ts',
+          hasConfig: true,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      if (channel === 'dev-tools:read-test-config')
+        return Promise.resolve({ type: 'vitest', config: {} });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Test')).toBeDefined();
+    });
+
+    const testButton = screen.getByText('Test').closest('button')!;
+    await userEvent.click(testButton);
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'dev-tools:detect-test-framework',
+        '/test/project',
+        'node'
+      );
+    });
+  });
+
+  it('invokes detect-coverage when Coverage panel opens', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-coverage')
+        return Promise.resolve({
+          provider: 'v8',
+          configPath: '/test/vitest.config.ts',
+          hasConfig: true,
+          reportPath: null,
+        });
+      if (channel === 'dev-tools:read-coverage-config')
+        return Promise.resolve({ type: 'vitest', config: {} });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Coverage')).toBeDefined();
+    });
+
+    const coverageButton = screen.getByText('Coverage').closest('button')!;
+    await userEvent.click(coverageButton);
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('dev-tools:detect-coverage', '/test/project', 'node');
+    });
+  });
+
+  it('invokes detect-build-tool when Build panel opens', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-build-tool')
+        return Promise.resolve({
+          buildTool: 'vite',
+          configPath: '/test/vite.config.ts',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-build-config')
+        return Promise.resolve({ type: 'vite', config: {} });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Build')).toBeDefined();
+    });
+
+    const buildButton = screen.getByText('Build').closest('button')!;
+    await userEvent.click(buildButton);
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'dev-tools:detect-build-tool',
+        '/test/project',
+        'node'
+      );
+    });
+  });
+
+  it('renders LintEditor when Edit Config clicked in LintPanel', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-linter')
+        return Promise.resolve({
+          linter: 'eslint',
+          configPath: '/test/.eslintrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-lint-config')
+        return Promise.resolve({ type: 'eslint', config: {} });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Lint')).toBeDefined();
+    });
+
+    // Open LintPanel
+    const lintButton = screen.getByText('Lint').closest('button')!;
+    await userEvent.click(lintButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Config')).toBeDefined();
+    });
+
+    // Click Edit Config to open LintEditor
+    const editConfigButton = screen.getByText('Edit Config').closest('button')!;
+    await userEvent.click(editConfigButton);
+
+    // LintEditor renders with the actual component title
+    await waitFor(() => {
+      expect(screen.getByText('ESLint Config')).toBeDefined();
+    });
+  });
+
+  it('renders StageEditor when Stage button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'git:status')
+        return Promise.resolve({ current: 'main', files: [], tracking: 'origin/main' });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Stage')).toBeDefined();
+    });
+
+    const stageButton = screen.getByText('Stage').closest('button')!;
+    await userEvent.click(stageButton);
+
+    // StageEditor replaces the entire view
+    await waitFor(() => {
+      expect(screen.getByText('Stage Files')).toBeDefined();
+    });
+    expect(screen.queryByText('Set Up')).toBeNull();
+  });
+
+  it('renders VersionEditor when Version button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:detect-versions') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Version')).toBeDefined();
+    });
+
+    const versionButton = screen.getByText('Version').closest('button')!;
+    await userEvent.click(versionButton);
+
+    // VersionEditor replaces the entire view
+    await waitFor(() => {
+      expect(screen.getByText('Version Editor')).toBeDefined();
+    });
+    expect(screen.queryByText('Set Up')).toBeNull();
+  });
+
+  it('invokes cli scan when CLI button clicked', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'workflow:scan-clis')
+        return Promise.resolve([
+          {
+            name: 'Node.js',
+            entries: [{ name: 'node', path: '/usr/bin/node', version: '20.0.0' }],
+          },
+        ]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('CLI')).toBeDefined();
+    });
+
+    const cliButton = screen.getByText('CLI').closest('button')!;
+    await userEvent.click(cliButton);
+
+    // CLIExplorer renders after scan completes
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('workflow:scan-clis', 'node');
+    });
+  });
+
+  // ── workingDirectory change re-detection ─────────────────────────────
+
+  it('re-detects project when workingDirectory prop changes', async () => {
+    const { rerender } = render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('dev-tools:detect-project', '/test/project');
+    });
+
+    // Change workingDirectory
+    rerender(
+      <MaintenanceTool workingDirectory="/new/project" onRunCommand={defaultProps.onRunCommand} />
+    );
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('dev-tools:detect-project', '/new/project');
+    });
+  });
+
+  // ── buttons array coverage (no projectInfo) ──────────────────────────
+
+  it('renders no Set Up action buttons when projectInfo is null', async () => {
+    mockInvoke.mockImplementation(() => Promise.reject(new Error('fail')));
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      const errorElements = screen.getAllByText('Could not detect project');
+      expect(errorElements.length).toBe(3);
+    });
+
+    // Setup action buttons should not be present
+    expect(screen.queryByText('Install')).toBeNull();
+    expect(screen.queryByText('Env File')).toBeNull();
+    expect(screen.queryByText('Git Init')).toBeNull();
+    expect(screen.queryByText('Hooks')).toBeNull();
+    expect(screen.queryByText('TypeCheck')).toBeNull();
+  });
+
+  // ── CommitModal open ─────────────────────────────────────────────────
+
+  it('renders Commit button in workflow actions', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Commit')).toBeDefined();
+    });
+
+    const commitButton = screen.getByText('Commit').closest('button')!;
+    expect(commitButton).toBeDefined();
+  });
+
+  // ── NewBranchDialog open ─────────────────────────────────────────────
+
+  it('renders New Branch button in workflow actions', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('New Branch')).toBeDefined();
+    });
+
+    const newBranchButton = screen.getByText('New Branch').closest('button')!;
+    expect(newBranchButton).toBeDefined();
+  });
+
+  // ── contribution prop passed through ─────────────────────────────────
+
+  it('passes contribution data to CommitModal and ChangelogResult', async () => {
+    const contribution = { branchName: 'feat/test', issueNumber: 99 };
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'workflow:generate-changelog')
+        return Promise.resolve({ entry: 'changelog entry', hasChanges: true });
+      return Promise.resolve(null);
+    });
+
+    render(
+      <MaintenanceTool
+        {...defaultProps}
+        contribution={
+          contribution as unknown as import('../../../../src/main/ipc/channels/types').Contribution
+        }
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Changelog')).toBeDefined();
+    });
+
+    // Click Changelog to open ChangelogResult
+    const changelogButton = screen.getByText('Changelog').closest('button')!;
+    await userEvent.click(changelogButton);
+
+    // ChangelogResult should pass issueNumber and branchName to IPC
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'workflow:generate-changelog',
+        '/test/project',
+        '99',
+        'feat/test'
+      );
+    });
+  });
 });

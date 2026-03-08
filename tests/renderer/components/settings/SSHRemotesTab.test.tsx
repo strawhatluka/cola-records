@@ -478,6 +478,272 @@ describe('SSHRemotesTab', () => {
   });
 
   // ============================================
+  // Save edited remote (lines 130-131)
+  // ============================================
+  it('saves changes when editing an existing remote', async () => {
+    const existingRemote = createRemote({
+      id: 'edit-save-1',
+      name: 'original-name',
+      hostname: '10.0.0.1',
+      user: 'pi',
+      port: 22,
+      keyPath: '/home/pi/.ssh/id_rsa',
+    });
+
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'settings:get-ssh-remotes') return [existingRemote];
+      if (channel === 'settings:save-ssh-remotes') return undefined;
+      return undefined;
+    });
+
+    await act(async () => {
+      render(<SSHRemotesTab />);
+    });
+
+    // Click the edit button
+    const editButtons = screen.getAllByTestId('icon-pencil');
+    fireEvent.click(editButtons[0].closest('button')!);
+
+    // Verify we are in edit mode
+    expect(screen.getByText('Edit Remote')).toBeDefined();
+    expect(screen.getByText('Save Changes')).toBeDefined();
+
+    // Change the hostname
+    fireEvent.change(screen.getByLabelText('Hostname / IP Address *'), {
+      target: { value: '10.0.0.99' },
+    });
+
+    // Save
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save Changes'));
+    });
+
+    // Verify it saved with the updated data mapped over the existing remote
+    expect(mockInvoke).toHaveBeenCalledWith('settings:save-ssh-remotes', [
+      expect.objectContaining({
+        id: 'edit-save-1',
+        name: 'original-name',
+        hostname: '10.0.0.99',
+        user: 'pi',
+        port: 22,
+        keyPath: '/home/pi/.ssh/id_rsa',
+      }),
+    ]);
+
+    // Form should be closed after save
+    expect(screen.queryByText('Edit Remote')).toBeNull();
+  });
+
+  // ============================================
+  // Delete while editing (lines 163-164)
+  // ============================================
+  it('cancels edit form when deleting the remote being edited', async () => {
+    const remote = createRemote({ id: 'edit-del-1', name: 'edit-then-delete' });
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'settings:get-ssh-remotes') return [remote];
+      if (channel === 'settings:save-ssh-remotes') return undefined;
+      return undefined;
+    });
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    await act(async () => {
+      render(<SSHRemotesTab />);
+    });
+
+    // Click edit to enter edit mode
+    const editButtons = screen.getAllByTestId('icon-pencil');
+    fireEvent.click(editButtons[0].closest('button')!);
+
+    // Verify we are in edit mode
+    expect(screen.getByText('Edit Remote')).toBeDefined();
+
+    // Now delete the same remote we are editing
+    const deleteButtons = screen.getAllByTestId('icon-trash2');
+    await act(async () => {
+      fireEvent.click(deleteButtons[0].closest('button')!);
+    });
+
+    // Confirm was called
+    expect(window.confirm).toHaveBeenCalledWith('Delete SSH remote "edit-then-delete"?');
+
+    // Edit form should be closed (handleCancel called)
+    expect(screen.queryByText('Edit Remote')).toBeNull();
+
+    // Remote should be deleted
+    expect(mockInvoke).toHaveBeenCalledWith('settings:save-ssh-remotes', []);
+  });
+
+  // ============================================
+  // Delete failure (lines 166-167)
+  // ============================================
+  it('shows alert when delete fails', async () => {
+    const remote = createRemote({ id: 'fail-del', name: 'fail-to-delete' });
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'settings:get-ssh-remotes') return [remote];
+      if (channel === 'settings:save-ssh-remotes') throw new Error('Delete failed');
+      return undefined;
+    });
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    await act(async () => {
+      render(<SSHRemotesTab />);
+    });
+
+    const deleteButtons = screen.getAllByTestId('icon-trash2');
+    await act(async () => {
+      fireEvent.click(deleteButtons[0].closest('button')!);
+    });
+
+    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to delete'));
+  });
+
+  // ============================================
+  // Port input fallback (line 334)
+  // ============================================
+  it('falls back to port 22 when non-numeric value entered', async () => {
+    mockInvoke.mockResolvedValue([]);
+    await act(async () => {
+      render(<SSHRemotesTab />);
+    });
+
+    fireEvent.click(screen.getByText('Add SSH Remote'));
+
+    const portInput = screen.getByLabelText('Port') as HTMLInputElement;
+
+    // Set a non-numeric value that parseInt will return NaN for
+    fireEvent.change(portInput, { target: { value: '' } });
+
+    // The fallback || 22 should set port to 22
+    expect(portInput.value).toBe('22');
+  });
+
+  // ============================================
+  // IdentitiesOnly switch toggle (line 372)
+  // ============================================
+  it('toggles identitiesOnly switch', async () => {
+    mockInvoke.mockResolvedValue([]);
+    await act(async () => {
+      render(<SSHRemotesTab />);
+    });
+
+    fireEvent.click(screen.getByText('Add SSH Remote'));
+
+    // Find the switch by role
+    const switchEl = screen.getByRole('switch');
+
+    // Default is true (checked), so clicking should toggle to false
+    expect(switchEl.getAttribute('data-state')).toBe('checked');
+
+    fireEvent.click(switchEl);
+
+    await waitFor(() => {
+      expect(switchEl.getAttribute('data-state')).toBe('unchecked');
+    });
+  });
+
+  // ============================================
+  // Port validation (line 68)
+  // ============================================
+  it('validates port out of range', async () => {
+    mockInvoke.mockResolvedValue([]);
+    await act(async () => {
+      render(<SSHRemotesTab />);
+    });
+
+    fireEvent.click(screen.getByText('Add SSH Remote'));
+
+    // Fill all required fields
+    fireEvent.change(screen.getByLabelText('Host Name *'), {
+      target: { value: 'valid-name' },
+    });
+    fireEvent.change(screen.getByLabelText('Hostname / IP Address *'), {
+      target: { value: '10.0.0.1' },
+    });
+    fireEvent.change(screen.getByLabelText('Username *'), {
+      target: { value: 'user' },
+    });
+    fireEvent.change(screen.getByLabelText('Private Key Path *'), {
+      target: { value: '/key' },
+    });
+    // Set port to 99999 (out of range - above 65535)
+    fireEvent.change(screen.getByLabelText('Port'), {
+      target: { value: '99999' },
+    });
+
+    fireEvent.click(screen.getByText('Add Remote'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Port must be between 1 and 65535')).toBeDefined();
+    });
+  });
+
+  // ============================================
+  // Empty username validation (line 67)
+  // ============================================
+  it('validates empty username', async () => {
+    mockInvoke.mockResolvedValue([]);
+    await act(async () => {
+      render(<SSHRemotesTab />);
+    });
+
+    fireEvent.click(screen.getByText('Add SSH Remote'));
+
+    fireEvent.change(screen.getByLabelText('Host Name *'), {
+      target: { value: 'valid-name' },
+    });
+    fireEvent.change(screen.getByLabelText('Hostname / IP Address *'), {
+      target: { value: '10.0.0.1' },
+    });
+    // Clear the default username
+    fireEvent.change(screen.getByLabelText('Username *'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Private Key Path *'), {
+      target: { value: '/key' },
+    });
+
+    fireEvent.click(screen.getByText('Add Remote'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Username is required')).toBeDefined();
+    });
+  });
+
+  // ============================================
+  // Browse key path dialog cancelled (line 82-84)
+  // ============================================
+  it('handles browse dialog returning null (cancelled)', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'settings:get-ssh-remotes') return [];
+      if (channel === 'dialog:open-directory') return null;
+      return undefined;
+    });
+
+    await act(async () => {
+      render(<SSHRemotesTab />);
+    });
+
+    fireEvent.click(screen.getByText('Add SSH Remote'));
+
+    // Set an initial key path
+    fireEvent.change(screen.getByLabelText('Private Key Path *'), {
+      target: { value: '/original/path' },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Browse'));
+    });
+
+    // Key path should remain unchanged when dialog returns null
+    expect((screen.getByLabelText('Private Key Path *') as HTMLInputElement).value).toBe(
+      '/original/path'
+    );
+  });
+
+  // ============================================
   // Browse key path
   // ============================================
   it('browses for key path via dialog', async () => {

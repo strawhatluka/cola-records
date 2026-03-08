@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -214,5 +214,461 @@ describe('LintEditor', () => {
       'rubocop',
       expect.objectContaining({ _raw: 'modified content' })
     );
+  });
+
+  // ============================================
+  // ESLint rich mode — toggle environment
+  // ============================================
+  it('toggles environment checkboxes in ESLint rich mode', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-linter')
+        return Promise.resolve({
+          linter: 'eslint',
+          configPath: '/test/.eslintrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-lint-config')
+        return Promise.resolve({
+          linter: 'eslint',
+          config: { env: { browser: true } },
+          configPath: '/test/.eslintrc.json',
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Environments')).toBeDefined();
+    });
+
+    const browserCb = screen.getByTestId('lint-env-browser') as HTMLInputElement;
+    expect(browserCb.checked).toBe(true);
+
+    const nodeCb = screen.getByTestId('lint-env-node') as HTMLInputElement;
+    expect(nodeCb.checked).toBe(false);
+
+    // Use fireEvent.click for checkbox — more reliable in JSDOM
+    fireEvent.click(nodeCb);
+
+    await waitFor(() => {
+      expect(screen.getByText('Save').closest('button')!.disabled).toBe(false);
+    });
+  });
+
+  it('adds and removes extends items', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { extends: ['eslint:recommended'] },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('eslint:recommended')).toBeDefined();
+    });
+
+    const extendsInput = screen.getByTestId('lint-extends');
+    await user.type(extendsInput, 'plugin:react/recommended');
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByText('plugin:react/recommended')).toBeDefined();
+
+    const removeBtn = screen.getByTitle('Remove eslint:recommended');
+    await user.click(removeBtn);
+
+    expect(screen.queryByText('eslint:recommended')).toBeNull();
+  });
+
+  it('adds plugins via input', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { plugins: [] },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Plugins')).toBeDefined();
+    });
+
+    await user.type(screen.getByTestId('lint-plugins'), '@typescript-eslint');
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByText('@typescript-eslint')).toBeDefined();
+  });
+
+  it('sets and clears parser input', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { parser: '@typescript-eslint/parser' },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('lint-parser')).toBeDefined();
+    });
+
+    const parserInput = screen.getByTestId('lint-parser') as HTMLInputElement;
+    expect(parserInput.value).toBe('@typescript-eslint/parser');
+
+    await user.clear(parserInput);
+    expect(screen.getByText('Save').closest('button')!.disabled).toBe(false);
+  });
+
+  it('adds ignorePatterns', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({ linter: 'eslint', config: {}, configPath: '/test/.eslintrc.json' });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Ignore Patterns')).toBeDefined();
+    });
+
+    await user.type(screen.getByTestId('lint-ignorePatterns'), 'dist/**');
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByText('dist/**')).toBeDefined();
+  });
+
+  it('adds a new rule with default severity "warn"', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { rules: {} },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Rules')).toBeDefined();
+    });
+
+    await user.type(screen.getByTestId('lint-add-rule'), 'no-unused-vars');
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByText('no-unused-vars')).toBeDefined();
+    const ruleSelect = screen.getByTestId('lint-rule-no-unused-vars') as HTMLSelectElement;
+    expect(ruleSelect.value).toBe('warn');
+  });
+
+  it('changes rule severity from warn to error', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { rules: { 'no-console': 'warn' } },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('lint-rule-no-console')).toBeDefined();
+    });
+
+    await user.selectOptions(screen.getByTestId('lint-rule-no-console'), 'error');
+    expect(screen.getByText('Save').closest('button')!.disabled).toBe(false);
+  });
+
+  it('removes a rule via trash button', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { rules: { 'no-console': 'warn' } },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('no-console')).toBeDefined();
+    });
+
+    await user.click(screen.getByTitle('Remove no-console'));
+    expect(screen.queryByText('no-console')).toBeNull();
+  });
+
+  it('displays numeric rule value as off/warn/error', async () => {
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { rules: { 'no-var': 2 } },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('no-var')).toBeDefined();
+    });
+
+    const ruleSelect = screen.getByTestId('lint-rule-no-var') as HTMLSelectElement;
+    expect(ruleSelect.value).toBe('error');
+  });
+
+  it('saves ESLint config via rich mode', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-linter')
+        return Promise.resolve({
+          linter: 'eslint',
+          configPath: '/test/.eslintrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-lint-config')
+        return Promise.resolve({
+          linter: 'eslint',
+          config: { env: { browser: true } },
+          configPath: '/test/.eslintrc.json',
+        });
+      if (channel === 'dev-tools:write-lint-config')
+        return Promise.resolve({ success: true, message: 'Saved .eslintrc.json' });
+      return Promise.resolve(null);
+    });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Environments')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTestId('lint-env-node'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Save').closest('button')!.disabled).toBe(false);
+    });
+
+    fireEvent.click(screen.getByText('Save').closest('button')!);
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'dev-tools:write-lint-config',
+        '/test/project',
+        'eslint',
+        expect.objectContaining({ env: { browser: true, node: true } })
+      );
+    });
+  });
+
+  it('shows "Failed to save" on save error', async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-linter')
+        return Promise.resolve({
+          linter: 'rubocop',
+          configPath: '/test/.rubocop.yml',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-lint-config')
+        return Promise.resolve({
+          linter: 'rubocop',
+          config: { _raw: 'original' },
+          configPath: '/test/.rubocop.yml',
+        });
+      if (channel === 'dev-tools:write-lint-config')
+        return Promise.reject(new Error('Write error'));
+      return Promise.resolve(null);
+    });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('RuboCop Config')).toBeDefined();
+    });
+
+    const textarea = document.querySelector('textarea')!;
+    await user.clear(textarea);
+    await user.type(textarea, 'modified');
+
+    await user.click(screen.getByText('Save').closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to save')).toBeDefined();
+    });
+  });
+
+  it('handles load error gracefully', async () => {
+    mockInvoke.mockImplementation(() => Promise.reject(new Error('Network error')));
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText(/No lint config found/)).toBeDefined();
+    });
+  });
+
+  it('calls onClose from no-config close button', async () => {
+    const onClose = vi.fn();
+    mockInvoke.mockResolvedValue({ linter: null, configPath: null, hasConfig: false });
+
+    render(<LintEditor {...defaultProps} onClose={onClose} />);
+    await waitFor(() => {
+      expect(screen.getByText('Lint Editor')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByTitle('Close'));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows linter name as-is for unknown linter', async () => {
+    mockInvoke
+      .mockResolvedValueOnce({ linter: 'pylint', configPath: '/test/.pylintrc', hasConfig: true })
+      .mockResolvedValueOnce({
+        linter: 'pylint',
+        config: { _raw: 'content' },
+        configPath: '/test/.pylintrc',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('pylint Config')).toBeDefined();
+    });
+  });
+
+  it('shows TOML hint for ruff', async () => {
+    mockInvoke
+      .mockResolvedValueOnce({ linter: 'ruff', configPath: '/test/ruff.toml', hasConfig: true })
+      .mockResolvedValueOnce({
+        linter: 'ruff',
+        config: { _raw: '' },
+        configPath: '/test/ruff.toml',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('TOML config file')).toBeDefined();
+    });
+  });
+
+  it('shows YAML hint for golangci-lint', async () => {
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'golangci-lint',
+        configPath: '/test/.golangci.yml',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'golangci-lint',
+        config: { _raw: '' },
+        configPath: '/test/.golangci.yml',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('YAML config file')).toBeDefined();
+    });
+  });
+
+  it('handles non-eslint config without _raw property', async () => {
+    mockInvoke
+      .mockResolvedValueOnce({ linter: 'ruff', configPath: '/test/ruff.toml', hasConfig: true })
+      .mockResolvedValueOnce({
+        linter: 'ruff',
+        config: { 'line-length': 88 },
+        configPath: '/test/ruff.toml',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Ruff Config')).toBeDefined();
+    });
+    const textarea = document.querySelector('textarea');
+    expect(textarea).toBeDefined();
+    expect(textarea?.value).toBe('');
+  });
+
+  it('does not add duplicate extends item', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { extends: ['eslint:recommended'] },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('eslint:recommended')).toBeDefined();
+    });
+
+    await user.type(screen.getByTestId('lint-extends'), 'eslint:recommended');
+    await user.keyboard('{Enter}');
+
+    const items = screen.getAllByText('eslint:recommended');
+    expect(items.length).toBe(1);
+  });
+
+  it('does not add duplicate rule name', async () => {
+    const user = userEvent.setup();
+    mockInvoke
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        configPath: '/test/.eslintrc.json',
+        hasConfig: true,
+      })
+      .mockResolvedValueOnce({
+        linter: 'eslint',
+        config: { rules: { 'no-console': 'warn' } },
+        configPath: '/test/.eslintrc.json',
+      });
+
+    render(<LintEditor {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('no-console')).toBeDefined();
+    });
+
+    await user.type(screen.getByTestId('lint-add-rule'), 'no-console');
+    await user.keyboard('{Enter}');
+
+    const items = screen.getAllByText('no-console');
+    expect(items.length).toBe(1);
   });
 });

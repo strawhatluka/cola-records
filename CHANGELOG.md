@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add tests for `mapUser` and `mapChannel` fallback logic in `tests/main/services/discord.service.test.ts`. (Relates to #72)
+- Mock `MarkdownEditor` component in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Add new tests for comparison functionality in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Add test for saving changes when editing an existing remote in `tests/renderer/components/settings/SSHRemotesTab.test.tsx`. (Relates to #72)
+- Add tests for sourcemap selection functionality in `tests/renderer/components/tools/BuildEditor.test.tsx`. (Relates to #72)
+- Mock `useNotificationStore` in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Add test for showing generic error messages when commit generation fails in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Add test for adding a coverage reporter via Enter key in `tests/renderer/components/tools/CoverageEditor.test.tsx`. (Relates to #72)
+- Add `findFormSubmitButton` helper function in `tests/renderer/components/tools/DevScriptsTool.test.tsx`. (Relates to #72)
+- Add test for adding new command fields in `tests/renderer/components/tools/DevScriptsTool.test.tsx`. (Relates to #72)
+- Add tests for changing `indent_style` and `end_of_line` properties in `tests/renderer/components/tools/EditorConfigEditor.test.tsx`. (Relates to #72)
+- Add test for loading generic mode with raw text for non-Prettier formatters in `tests/renderer/components/tools/FormatEditor.test.tsx`. (Relates to #72)
+- Add test for handling detection errors in `tests/renderer/components/tools/HooksPanel.test.tsx`. (Relates to #72)
+- Add test for toggling environment checkboxes in ESLint rich mode in `tests/renderer/components/tools/LintEditor.test.tsx`. (Relates to #72)
+- Add test for enabling Git Init button and command execution in `tests/renderer/components/tools/MaintenanceTool.test.tsx`. (Relates to #72)
+- Add test for changing Jest `collectCoverage` toggle in `tests/renderer/components/tools/TestEditor.test.tsx`. (Relates to #72)
+- Add new test file `tests/main/services/github/github-extras.service.test.ts`. (Relates to #72)
+- Add new test file `tests/renderer/screens/DevelopmentScreen.test.tsx`. (Relates to #72)
 - Add `Pin`, `PanelLeftOpen`, and `PanelLeftClose` icons to `tests/mocks/lucide-react.tsx` for Discord `MessageList` component.
 - Add `Inbox` icon to `tests/mocks/lucide-react.tsx` for issue modals.
 - Add mock `CreateSubIssueModal` and `AddExistingSubIssueModal` components for testing in `tests/renderer/components/issues/DevelopmentIssueDetailModal.test.tsx`.
@@ -234,18 +252,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clean up empty lines in `CHANGELOG.md`. (Relates to #72)
+- Update imports to include `afterEach` and `fireEvent` in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Update imports to include `act` in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/CoverageEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/EditorConfigEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/HooksPanel.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/LintEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/TestEditor.test.tsx`. (Relates to #72)
 - Add `Smile` and `Upload` icon exports to `lucide-react` mock (`tests/mocks/lucide-react.tsx`) (#72)
 - Refactor test setup for `GitHubConfigYamlEditor` to use `vi.hoisted` for IPC mock and introduce mocks for `Button` and `GitHubConfigFields` components (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
 - Update `GitHubConfigYamlEditor` test imports, replacing `userEvent` with `fireEvent` (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
 - Refactor test mocks in `tests/main/services/notification.service.test.ts` to use `vi.hoisted` for better isolation and control (#72)
 - Remove generic test cases for service initialization in `tests/main/services/notification.service.test.ts` (#72)
-
 - Git hooks pre-push actions now disabled by default for all ecosystem presets (Node, Python, Rust) — users can enable them via the Hooks GUI after installation ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
 - CLI Explorer command input now editable — users can type custom arguments directly in the `$` input field, with Enter key support to run
 - CLI `--help` parser improved: `parseSubcommands()` now detects git-style lowercase section headers with indented commands; `parseFlags()` handles `--flag=VALUE` patterns
 
 ### Removed
 
+- Remove pre-commit hooks configuration from `.pre-commit-config.yaml`. (Relates to #72)
 - Remotes dropdown button from Development screen header — redundant now that Dev Tools Info section has a Remotes button running `git remote -v` in the terminal (remotes data fetching preserved for fork-aware PR creation)
 
 ### Fixed
