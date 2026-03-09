@@ -181,5 +181,9 @@ export const Pin = createIcon('Pin');
 export const PanelLeftOpen = createIcon('PanelLeftOpen');
 export const PanelLeftClose = createIcon('PanelLeftClose');
 
+// Package Manager panel icons
+export const FolderCog = createIcon('FolderCog');
+export const FolderPlus = createIcon('FolderPlus');
+
 // Issue modal icons
 export const Inbox = createIcon('Inbox');

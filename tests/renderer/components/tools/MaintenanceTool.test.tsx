@@ -78,16 +78,47 @@ describe('MaintenanceTool', () => {
     expect(detectingElements.length).toBe(3);
   });
 
-  it('renders 6 Set Up buttons after detection', async () => {
+  it('renders 12 Set Up buttons after detection in correct order', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     await waitFor(() => {
       expect(screen.getByText('Install')).toBeDefined();
     });
-    expect(screen.getByText('Env File')).toBeDefined();
+
+    // All 12 buttons should be present
+    expect(screen.getByText('Package Manager')).toBeDefined();
     expect(screen.getByText('Git Init')).toBeDefined();
-    expect(screen.getByText('Hooks')).toBeDefined();
-    expect(screen.getByText('Editor Config')).toBeDefined();
+    expect(screen.getByText('Lint')).toBeDefined();
     expect(screen.getByText('TypeCheck')).toBeDefined();
+    expect(screen.getByText('Test')).toBeDefined();
+    expect(screen.getByText('Coverage')).toBeDefined();
+    expect(screen.getByText('Format')).toBeDefined();
+    expect(screen.getByText('Build')).toBeDefined();
+    expect(screen.getByText('Env File')).toBeDefined();
+    expect(screen.getByText('Editor Config')).toBeDefined();
+    expect(screen.getByText('Hooks')).toBeDefined();
+
+    // Verify button order by finding all button labels in the Set Up section
+    const setupSection = screen.getByText('Set Up').closest('.flex.flex-col.gap-2');
+    expect(setupSection).not.toBeNull();
+    const buttons = setupSection!.querySelectorAll('button');
+    const labels = Array.from(buttons).map((btn) => btn.textContent?.trim());
+
+    const expectedOrder = [
+      'Install',
+      'Package Manager',
+      'Git Init',
+      'Lint',
+      'TypeCheck',
+      'Test',
+      'Coverage',
+      'Format',
+      'Build',
+      'Env File',
+      'Editor Config',
+      'Hooks',
+    ];
+
+    expect(labels).toEqual(expectedOrder);
   });
 
   it('disables Git Init when .git exists', async () => {
@@ -1643,10 +1674,57 @@ describe('MaintenanceTool', () => {
 
     // Setup action buttons should not be present
     expect(screen.queryByText('Install')).toBeNull();
+    expect(screen.queryByText('Package Manager')).toBeNull();
     expect(screen.queryByText('Env File')).toBeNull();
     expect(screen.queryByText('Git Init')).toBeNull();
     expect(screen.queryByText('Hooks')).toBeNull();
     expect(screen.queryByText('TypeCheck')).toBeNull();
+  });
+
+  it('opens PackageManagerPanel when Package Manager button clicked', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Package Manager')).toBeDefined();
+    });
+
+    const pmButton = screen.getByText('Package Manager').closest('button')!;
+    await userEvent.click(pmButton);
+
+    // PackageManagerPanel should render with title (PM detected mode)
+    await waitFor(() => {
+      expect(screen.getByText('Package Manager', { selector: 'h4' })).toBeDefined();
+    });
+  });
+
+  it('closes PackageManagerPanel when Package Manager button clicked again (toggle)', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Package Manager')).toBeDefined();
+    });
+
+    const pmButton = screen.getByText('Package Manager').closest('button')!;
+    await userEvent.click(pmButton);
+
+    await waitFor(() => {
+      // Panel header rendered as h4
+      expect(screen.getByText('Package Manager', { selector: 'h4' })).toBeDefined();
+    });
+
+    // Click again to close
+    await userEvent.click(pmButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Package Manager', { selector: 'h4' })).toBeNull();
+    });
+  });
+
+  it('Package Manager button is always enabled', async () => {
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Package Manager')).toBeDefined();
+    });
+
+    const pmButton = screen.getByText('Package Manager').closest('button');
+    expect(pmButton?.disabled).toBe(false);
   });
 
   // ── CommitModal open ─────────────────────────────────────────────────

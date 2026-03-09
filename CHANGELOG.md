@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `package-manager.service.ts` to manage package manager operations. (Relates to #72)
+- Add `PackageManagerPanel.tsx` component to display package manager information and controls. (Relates to #72)
+- Add `package-manager.service.test.ts` for `PackageManagerService`. (Relates to #72)
+- Add `PackageManagerPanel.test.tsx` for `PackageManagerPanel` component. (Relates to #72)
+- Add `PMInfo` interface to `src/main/ipc/channels/types.ts`. (Relates to #72)
+- Add new IPC channel definitions for package manager operations (`dev-tools:get-pm-commands`, `dev-tools:get-pm-info`, `dev-tools:get-pm-init-command`, `dev-tools:get-pm-dedupe-command`, `dev-tools:get-pm-lock-refresh-command`) in `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Add new IPC handler registrations for package manager channels in `src/main/ipc/handlers.ts`. (Relates to #72)
+- Add `packageManagerService` import to `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add new IPC handler implementations for package manager channels in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add `FolderCog` and `FolderPlus` icons to `tests/mocks/lucide-react.tsx`. (Relates to #72)
+- Add `PackageManagerPanel` import to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add `package-manager` button and its handler to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add `Lint`, `Test`, `Coverage`, `Format`, and `Build` buttons to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add test case to `tests/renderer/components/tools/ToolsPanel.test.tsx` to verify the order of navigation items. (Relates to #72)
 - Add test suite for `code-server.service` concurrent start handling in `tests/main/services/code-server.service.test.ts`. (Relates to #72)
 - Add mock implementations for `tag` and `pushTags` in `tests/main/services/git.service.test.ts`. (Relates to #72)
 - Add test cases for `getRemoteUrl` and `fetch` error handling in `tests/main/services/git.service.test.ts`. (Relates to #72)
@@ -295,6 +309,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Refactor and unify Set Up buttons in `src/renderer/components/tools/MaintenanceTool.tsx` into a single `allButtons` array, including new and existing buttons. (Relates to #72)
+- Update `tests/renderer/components/tools/MaintenanceTool.test.tsx` to reflect the new number (12) and order of Set Up buttons. (Relates to #72)
+- Adjust the internal order of navigation items in `src/renderer/components/tools/ToolsPanel.tsx`. (Relates to #72)
 - Refactor `src/main/services/workflow.service.ts` to improve logic for adding new entries to `CHANGELOG.md`, ensuring proper blank line spacing after headings and inserting new entries before existing bullets. (Relates to #72)
 - Update `tests/main/services/workflow.service.test.ts` to verify the new `workflow.service` logic for changelog entry insertion, including blank line spacing after headings and correct ordering of new entries. (Relates to #72)
 - Update `updater.service` mock environment service to be mutable for improved test flexibility in `tests/main/services/updater.service.test.ts`. (Relates to #72)
@@ -319,6 +336,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Remove `WorkflowButtons` import from `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Remove explicit `env-file`, `hooks`, and `typecheck` button definitions and their associated handlers from the old structure in `src/renderer/components/tools/MaintenanceTool.tsx` as they are now part of the unified `allButtons` array. (Relates to #72)
 - Remove pre-commit hooks configuration from `.pre-commit-config.yaml`. (Relates to #72)
 - Remotes dropdown button from Development screen header — redundant now that Dev Tools Info section has a Remotes button running `git remote -v` in the terminal (remotes data fetching preserved for fork-aware PR creation)
 

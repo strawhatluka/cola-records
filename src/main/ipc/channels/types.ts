@@ -590,6 +590,13 @@ export interface SetUpActionResult {
   message: string;
 }
 
+export interface PMInfo {
+  name: string;
+  version: string | null;
+  lockFile: string | null;
+  registry: string | null;
+}
+
 // Env Scanner Types
 export interface EnvSourceLocation {
   file: string;

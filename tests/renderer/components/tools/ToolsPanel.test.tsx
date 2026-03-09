@@ -105,6 +105,39 @@ describe('ToolsPanel', () => {
     expect(screen.getByText('Dev Tools')).toBeDefined();
   });
 
+  it('renders navigation items in correct order', async () => {
+    const user = userEvent.setup();
+    render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+    // Open menu to see all nav items
+    const menuButton = screen.getByTestId('icon-menu').closest('button');
+    expect(menuButton).not.toBeNull();
+    await user.click(menuButton as HTMLButtonElement);
+
+    // Get all menu buttons inside the dropdown (w-full px-3 py-2)
+    const menuItems = screen
+      .getAllByRole('button')
+      .filter(
+        (btn) =>
+          btn.className.includes('w-full') &&
+          btn.className.includes('px-3') &&
+          btn.className.includes('py-2')
+      );
+
+    const expectedOrder = [
+      'Dev Tools',
+      'Dev Scripts',
+      'GitHub Config',
+      'Issues',
+      'Pull Requests',
+      'Actions',
+      'Releases',
+    ];
+
+    const actualLabels = menuItems.map((btn) => btn.textContent?.trim());
+    expect(actualLabels).toEqual(expectedOrder);
+  });
+
   it('renders hamburger menu button', async () => {
     await act(async () => {
       render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);

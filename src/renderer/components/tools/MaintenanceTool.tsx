@@ -24,11 +24,17 @@ import {
   ShieldCheck,
   FileCode,
   Loader2,
+  SearchCheck,
+  AlignLeft,
+  FlaskConical,
+  PieChart,
+  Hammer,
+  FolderCog,
 } from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 import type { ProjectInfo, Contribution } from '../../../main/ipc/channels/types';
-import { WorkflowButtons } from './WorkflowButtons';
+import { PackageManagerPanel } from './PackageManagerPanel';
 import { NewBranchDialog } from './NewBranchDialog';
 import { UpdateSection } from './UpdateSection';
 import { InfoSection } from './InfoSection';
@@ -101,6 +107,7 @@ export function MaintenanceTool({
   const [buildEditorOpen, setBuildEditorOpen] = useState(false);
   const [lintPanelOpen, setLintPanelOpen] = useState(false);
   const [lintEditorOpen, setLintEditorOpen] = useState(false);
+  const [packageManagerPanelOpen, setPackageManagerPanelOpen] = useState(false);
   const [stageEditorOpen, setStageEditorOpen] = useState(false);
   const [commitModalOpen, setCommitModalOpen] = useState(false);
   const [changelogResultOpen, setChangelogResultOpen] = useState(false);
@@ -183,6 +190,10 @@ export function MaintenanceTool({
     }
   }, [workingDirectory, onRunCommand, setButtonLoading]);
 
+  const handlePackageManager = useCallback(() => {
+    setPackageManagerPanelOpen((prev) => !prev);
+  }, []);
+
   const handlePush = useCallback(async () => {
     setPushLoading(true);
     setPushResult(null);
@@ -221,8 +232,8 @@ export function MaintenanceTool({
 
   const hasProject = projectInfo != null && projectInfo.ecosystem !== 'unknown';
 
-  // Env File button is always enabled (never disabled)
-  const buttons: SetUpButton[] = projectInfo
+  // Unified button array: all 12 Set Up buttons in specified order
+  const allButtons: (SetUpButton & { onClick: () => void })[] = projectInfo
     ? [
         {
           id: 'install',
@@ -231,14 +242,16 @@ export function MaintenanceTool({
           disabled: !projectInfo.commands.install,
           loading: buttonStates['install']?.loading ?? false,
           status: buttonStates['install']?.status ?? null,
+          onClick: handleInstall,
         },
         {
-          id: 'env-file',
-          label: 'Env File',
-          icon: FileKey,
+          id: 'package-manager',
+          label: 'Package Manager',
+          icon: FolderCog,
           disabled: false,
-          loading: buttonStates['env-file']?.loading ?? false,
-          status: buttonStates['env-file']?.status ?? null,
+          loading: false,
+          status: null,
+          onClick: handlePackageManager,
         },
         {
           id: 'git-init',
@@ -247,22 +260,16 @@ export function MaintenanceTool({
           disabled: projectInfo.hasGit,
           loading: buttonStates['git-init']?.loading ?? false,
           status: buttonStates['git-init']?.status ?? null,
+          onClick: handleGitInit,
         },
         {
-          id: 'hooks',
-          label: 'Hooks',
-          icon: ShieldCheck,
+          id: 'lint',
+          label: 'Lint',
+          icon: SearchCheck,
           disabled: false,
-          loading: buttonStates['hooks']?.loading ?? false,
-          status: buttonStates['hooks']?.status ?? null,
-        },
-        {
-          id: 'editor-config',
-          label: 'Editor Config',
-          icon: FileCode,
-          disabled: false,
-          loading: buttonStates['editor-config']?.loading ?? false,
-          status: buttonStates['editor-config']?.status ?? null,
+          loading: false,
+          status: null,
+          onClick: () => setLintPanelOpen((prev) => !prev),
         },
         {
           id: 'typecheck',
@@ -271,18 +278,73 @@ export function MaintenanceTool({
           disabled: !projectInfo.typeChecker,
           loading: buttonStates['typecheck']?.loading ?? false,
           status: buttonStates['typecheck']?.status ?? null,
+          onClick: handleTypeCheck,
+        },
+        {
+          id: 'test',
+          label: 'Test',
+          icon: FlaskConical,
+          disabled: false,
+          loading: false,
+          status: null,
+          onClick: () => setTestPanelOpen((prev) => !prev),
+        },
+        {
+          id: 'coverage',
+          label: 'Coverage',
+          icon: PieChart,
+          disabled: false,
+          loading: false,
+          status: null,
+          onClick: () => setCoveragePanelOpen((prev) => !prev),
+        },
+        {
+          id: 'format',
+          label: 'Format',
+          icon: AlignLeft,
+          disabled: false,
+          loading: false,
+          status: null,
+          onClick: () => setFormatPanelOpen((prev) => !prev),
+        },
+        {
+          id: 'build',
+          label: 'Build',
+          icon: Hammer,
+          disabled: false,
+          loading: false,
+          status: null,
+          onClick: () => setBuildPanelOpen((prev) => !prev),
+        },
+        {
+          id: 'env-file',
+          label: 'Env File',
+          icon: FileKey,
+          disabled: false,
+          loading: buttonStates['env-file']?.loading ?? false,
+          status: buttonStates['env-file']?.status ?? null,
+          onClick: handleEnvFile,
+        },
+        {
+          id: 'editor-config',
+          label: 'Editor Config',
+          icon: FileCode,
+          disabled: false,
+          loading: buttonStates['editor-config']?.loading ?? false,
+          status: buttonStates['editor-config']?.status ?? null,
+          onClick: handleEditorConfig,
+        },
+        {
+          id: 'hooks',
+          label: 'Hooks',
+          icon: ShieldCheck,
+          disabled: false,
+          loading: buttonStates['hooks']?.loading ?? false,
+          status: buttonStates['hooks']?.status ?? null,
+          onClick: handleHooks,
         },
       ]
     : [];
-
-  const handlers: Record<string, () => void> = {
-    install: handleInstall,
-    'env-file': handleEnvFile,
-    'git-init': handleGitInit,
-    hooks: handleHooks,
-    'editor-config': handleEditorConfig,
-    typecheck: handleTypeCheck,
-  };
 
   // When env editor is open, render it instead of the normal Tool Box
   if (envEditorOpen) {
@@ -533,22 +595,13 @@ export function MaintenanceTool({
           ) : hasProject && projectInfo ? (
             <>
               <div className="flex flex-wrap gap-2">
-                <WorkflowButtons
-                  commands={projectInfo.commands}
-                  onRunCommand={onRunCommand}
-                  onLintClick={() => setLintPanelOpen((prev) => !prev)}
-                  onFormatClick={() => setFormatPanelOpen((prev) => !prev)}
-                  onTestClick={() => setTestPanelOpen((prev) => !prev)}
-                  onCoverageClick={() => setCoveragePanelOpen((prev) => !prev)}
-                  onBuildClick={() => setBuildPanelOpen((prev) => !prev)}
-                />
-                {buttons.map((btn) => {
+                {allButtons.map((btn) => {
                   const Icon = btn.icon;
                   return (
                     <button
                       key={btn.id}
                       disabled={btn.disabled || btn.loading}
-                      onClick={handlers[btn.id]}
+                      onClick={btn.onClick}
                       className="flex flex-col items-center gap-1 p-2 rounded-md border border-border hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed min-w-[64px] transition-colors"
                       title={btn.status ?? btn.label}
                     >
@@ -564,6 +617,15 @@ export function MaintenanceTool({
                   );
                 })}
               </div>
+              {packageManagerPanelOpen && projectInfo && (
+                <PackageManagerPanel
+                  workingDirectory={workingDirectory}
+                  ecosystem={projectInfo.ecosystem}
+                  packageManager={projectInfo.packageManager}
+                  onClose={() => setPackageManagerPanelOpen(false)}
+                  onRunCommand={onRunCommand}
+                />
+              )}
               {formatPanelOpen && projectInfo && (
                 <FormatPanel
                   workingDirectory={workingDirectory}

@@ -58,6 +58,8 @@ import type {
   LinterInfo,
   LintConfig,
   ESLintConfig,
+  PMInfo,
+  PackageManager,
   AppNotification,
   NotificationPreferences,
   GitHubConfigScanResult,
@@ -337,6 +339,13 @@ export interface CoreChannels {
     ecosystem: Ecosystem,
     linter: LinterType | null
   ) => ESLintConfig | Record<string, unknown>;
+
+  // Dev Tools — Package Manager Channels
+  'dev-tools:get-pm-commands': (pm: PackageManager) => Record<string, string | null>;
+  'dev-tools:get-pm-info': (workingDirectory: string, pm: PackageManager) => PMInfo;
+  'dev-tools:get-pm-init-command': (pm: PackageManager) => string | null;
+  'dev-tools:get-pm-dedupe-command': (pm: PackageManager) => string | null;
+  'dev-tools:get-pm-lock-refresh-command': (pm: PackageManager) => string | null;
 
   // AI Channels
   'ai:complete': (prompt: string, maxTokens?: number) => AICompletionResponse;

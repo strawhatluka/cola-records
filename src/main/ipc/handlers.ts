@@ -284,6 +284,12 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:read-lint-config',
     'dev-tools:write-lint-config',
     'dev-tools:get-lint-presets',
+    // ── Package Manager ──
+    'dev-tools:get-pm-commands',
+    'dev-tools:get-pm-info',
+    'dev-tools:get-pm-init-command',
+    'dev-tools:get-pm-dedupe-command',
+    'dev-tools:get-pm-lock-refresh-command',
     // ── GitHub Config ──
     'github-config:scan',
     'github-config:read-file',
