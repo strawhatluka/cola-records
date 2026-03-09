@@ -295,8 +295,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Refactor `src/main/services/workflow.service.ts` to improve logic for adding new entries to `CHANGELOG.md`, ensuring proper blank line spacing after headings and inserting new entries before existing bullets. (Relates to #72)
+- Update `tests/main/services/workflow.service.test.ts` to verify the new `workflow.service` logic for changelog entry insertion, including blank line spacing after headings and correct ordering of new entries. (Relates to #72)
 - Update `updater.service` mock environment service to be mutable for improved test flexibility in `tests/main/services/updater.service.test.ts`. (Relates to #72)
-
 - Change mock reset method from `vi.clearAllMocks()` to `vi.resetAllMocks()` in `tests/main/services/version.service.test.ts`.
 - Change test object property `name` to `source` for 'Node.js' entry in `tests/renderer/components/tools/MaintenanceTool.test.tsx`.
 - Clean up empty lines in `CHANGELOG.md`. (Relates to #72)
