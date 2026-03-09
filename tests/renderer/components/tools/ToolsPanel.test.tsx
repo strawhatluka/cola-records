@@ -54,6 +54,33 @@ vi.mock('../../../../src/renderer/stores/useDevScriptsStore', () => ({
     scripts.filter((s: any) => s.projectPath === projectPath),
 }));
 
+// Mock tool components
+vi.mock('../../../../src/renderer/components/tools/IssuesTool', () => ({
+  IssuesTool: () => <div data-testid="issues-tool">Issues Tool</div>,
+}));
+
+vi.mock('../../../../src/renderer/components/tools/PullRequestsTool', () => ({
+  PullRequestsTool: () => <div data-testid="pull-requests-tool">Pull Requests Tool</div>,
+}));
+
+vi.mock('../../../../src/renderer/components/tools/ActionsTool', () => ({
+  ActionsTool: ({ onSwitchTool }: any) => (
+    <div data-testid="actions-tool">
+      <button onClick={() => onSwitchTool('github-config', { feature: 'workflows' })}>
+        Switch to Config
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('../../../../src/renderer/components/tools/ReleasesTool', () => ({
+  ReleasesTool: () => <div data-testid="releases-tool">Releases Tool</div>,
+}));
+
+vi.mock('../../../../src/renderer/components/tools/GitHubConfigTool', () => ({
+  GitHubConfigTool: () => <div data-testid="github-config-tool">GitHub Config Tool</div>,
+}));
+
 import { ToolsPanel } from '../../../../src/renderer/components/tools/ToolsPanel';
 
 describe('ToolsPanel', () => {
@@ -355,6 +382,215 @@ describe('ToolsPanel', () => {
 
       // onSessionsAdopted should be called
       expect(mockOnSessionsAdopted).toHaveBeenCalled();
+    });
+  });
+
+  describe('renderTool branches - with contribution', () => {
+    const mockContribution = {
+      id: 'contrib-1',
+      repositoryUrl: 'https://github.com/user/repo',
+      localPath: '/test/project',
+      branchName: 'feature/test',
+      status: 'in_progress' as const,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+    };
+
+    it('renders IssuesTool when Issues is selected with contribution', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToolsPanel
+          workingDirectory={workingDirectory}
+          onClose={mockOnClose}
+          contribution={mockContribution}
+        />
+      );
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click Issues
+      const issuesOption = screen.getAllByText('Issues')[0];
+      await user.click(issuesOption);
+
+      // IssuesTool should be rendered
+      expect(screen.getByTestId('issues-tool')).toBeDefined();
+    });
+
+    it('renders PullRequestsTool when Pull Requests is selected with contribution', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToolsPanel
+          workingDirectory={workingDirectory}
+          onClose={mockOnClose}
+          contribution={mockContribution}
+        />
+      );
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click Pull Requests
+      const prOption = screen.getByText('Pull Requests');
+      await user.click(prOption);
+
+      // PullRequestsTool should be rendered
+      expect(screen.getByTestId('pull-requests-tool')).toBeDefined();
+    });
+
+    it('renders ActionsTool when Actions is selected with contribution', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToolsPanel
+          workingDirectory={workingDirectory}
+          onClose={mockOnClose}
+          contribution={mockContribution}
+        />
+      );
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click Actions
+      const actionsOption = screen.getByText('Actions');
+      await user.click(actionsOption);
+
+      // ActionsTool should be rendered
+      expect(screen.getByTestId('actions-tool')).toBeDefined();
+    });
+
+    it('renders ReleasesTool when Releases is selected with contribution', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToolsPanel
+          workingDirectory={workingDirectory}
+          onClose={mockOnClose}
+          contribution={mockContribution}
+        />
+      );
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click Releases
+      const releasesOption = screen.getByText('Releases');
+      await user.click(releasesOption);
+
+      // ReleasesTool should be rendered
+      expect(screen.getByTestId('releases-tool')).toBeDefined();
+    });
+
+    it('handles ActionsTool onSwitchTool callback', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToolsPanel
+          workingDirectory={workingDirectory}
+          onClose={mockOnClose}
+          contribution={mockContribution}
+        />
+      );
+
+      // Open menu and switch to Actions
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+      const actionsOption = screen.getByText('Actions');
+      await user.click(actionsOption);
+
+      // ActionsTool should be rendered
+      expect(screen.getByTestId('actions-tool')).toBeDefined();
+
+      // Click the "Switch to Config" button in ActionsTool
+      const switchButton = screen.getByText('Switch to Config');
+      await user.click(switchButton);
+
+      // GitHubConfigTool should now be rendered
+      expect(screen.getByTestId('github-config-tool')).toBeDefined();
+    });
+  });
+
+  describe('renderTool branches - without contribution', () => {
+    it('returns null for Issues when contribution is undefined', async () => {
+      const user = userEvent.setup();
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click Issues
+      const issuesOption = screen.getAllByText('Issues')[0];
+      await user.click(issuesOption);
+
+      // IssuesTool should NOT be rendered (returns null)
+      expect(screen.queryByTestId('issues-tool')).toBeNull();
+    });
+
+    it('returns null for Pull Requests when contribution is undefined', async () => {
+      const user = userEvent.setup();
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click Pull Requests
+      const prOption = screen.getByText('Pull Requests');
+      await user.click(prOption);
+
+      // PullRequestsTool should NOT be rendered (returns null)
+      expect(screen.queryByTestId('pull-requests-tool')).toBeNull();
+    });
+
+    it('returns null for Actions when contribution is undefined', async () => {
+      const user = userEvent.setup();
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click Actions
+      const actionsOption = screen.getByText('Actions');
+      await user.click(actionsOption);
+
+      // ActionsTool should NOT be rendered (returns null)
+      expect(screen.queryByTestId('actions-tool')).toBeNull();
+    });
+
+    it('returns null for Releases when contribution is undefined', async () => {
+      const user = userEvent.setup();
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click Releases
+      const releasesOption = screen.getByText('Releases');
+      await user.click(releasesOption);
+
+      // ReleasesTool should NOT be rendered (returns null)
+      expect(screen.queryByTestId('releases-tool')).toBeNull();
+    });
+
+    it('renders GitHubConfigTool without contribution', async () => {
+      const user = userEvent.setup();
+      render(<ToolsPanel workingDirectory={workingDirectory} onClose={mockOnClose} />);
+
+      // Open menu
+      const menuButton = screen.getByTestId('icon-menu').closest('button');
+      await user.click(menuButton as HTMLButtonElement);
+
+      // Click GitHub Config
+      const configOption = screen.getByText('GitHub Config');
+      await user.click(configOption);
+
+      // GitHubConfigTool should be rendered (no contribution needed)
+      expect(screen.getByTestId('github-config-tool')).toBeDefined();
     });
   });
 });

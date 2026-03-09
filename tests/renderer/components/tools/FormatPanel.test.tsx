@@ -283,4 +283,280 @@ describe('FormatPanel', () => {
     });
     expect(screen.queryByText('Create Ignore')).toBeNull();
   });
+
+  // ── Detection error handling ──
+
+  it('shows fallback state when detection fails', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.reject(new Error('Detection failed'));
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('No formatter detected')).toBeDefined();
+    });
+  });
+
+  // ── Formatter without check flag (e.g., gofmt) ──
+
+  it('does not show Format Check button for formatters without check flag', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'gofmt',
+          configPath: '/test/project/gofmt.conf',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Run Format')).toBeDefined();
+    });
+    expect(screen.queryByText('Format Check')).toBeNull();
+  });
+
+  // ── Formatter label fallback (unlisted formatter uses raw name) ──
+
+  it('uses raw formatter name when not in FORMATTER_LABELS', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'custom-fmt',
+          configPath: '/test/project/.custom-fmt',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('custom-fmt')).toBeDefined();
+    });
+  });
+
+  // ── handleRunFormat when formatCommand is null ──
+
+  it('does not call onRunCommand when formatCommand is null', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'prettier',
+          configPath: '/test/project/.prettierrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      return Promise.resolve(null);
+    });
+
+    const onRunCommand = vi.fn();
+    render(<FormatPanel {...defaultProps} formatCommand={null} onRunCommand={onRunCommand} />);
+    await waitFor(() => {
+      expect(screen.getByText('Run Format')).toBeDefined();
+    });
+
+    // Run Format button should be disabled
+    const runBtn = screen.getByText('Run Format').closest('button')!;
+    expect(runBtn.disabled).toBe(true);
+  });
+
+  // ── handleCreateConfig: create-config with non-node ecosystem and no formatter ──
+
+  it('shows "No formatter to configure" when no formatter and non-node ecosystem', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({ formatter: null, configPath: null, hasConfig: false });
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} ecosystem={'python' as any} />);
+    await waitFor(() => {
+      expect(screen.getByText('No formatter detected')).toBeDefined();
+    });
+
+    // No "Create Config" button should be shown for non-node ecosystem with no formatter
+    expect(screen.queryByText('Create Config')).toBeNull();
+  });
+
+  // ── handleCreateConfig: catch block ──
+
+  it('shows "Failed" status when create config errors', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({ formatter: 'prettier', configPath: null, hasConfig: false });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      if (channel === 'dev-tools:get-format-presets')
+        return Promise.reject(new Error('Preset error'));
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Create Config')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Config').closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed')).toBeDefined();
+    });
+  });
+
+  // ── handleCreateConfig: successful config creation re-detects formatter ──
+
+  it('re-detects formatter after successful config creation', async () => {
+    let detectCallCount = 0;
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter') {
+        detectCallCount++;
+        if (detectCallCount === 1) {
+          return Promise.resolve({ formatter: 'prettier', configPath: null, hasConfig: false });
+        }
+        // After creation, return with config
+        return Promise.resolve({
+          formatter: 'prettier',
+          configPath: '/test/project/.prettierrc.json',
+          hasConfig: true,
+        });
+      }
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      if (channel === 'dev-tools:get-format-presets') return Promise.resolve({});
+      if (channel === 'dev-tools:write-format-config')
+        return Promise.resolve({ success: true, message: 'Config created' });
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Create Config')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Config').closest('button')!);
+
+    await waitFor(() => {
+      // After re-detection, should show action buttons
+      expect(screen.getByText('Run Format')).toBeDefined();
+    });
+  });
+
+  // ── handleCreateIgnore: catch block ──
+
+  it('shows "Failed" status when create ignore errors', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'prettier',
+          configPath: '/test/project/.prettierrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      if (channel === 'dev-tools:create-format-ignore')
+        return Promise.reject(new Error('Write error'));
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Create Ignore')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Ignore').closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed')).toBeDefined();
+    });
+  });
+
+  // ── handleCreateIgnore: unsuccessful result does not flip to Edit Ignore ──
+
+  it('does not switch to Edit Ignore when creation result is not success', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'prettier',
+          configPath: '/test/project/.prettierrc.json',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      if (channel === 'dev-tools:create-format-ignore')
+        return Promise.resolve({ success: false, message: 'Permission denied' });
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Create Ignore')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Ignore').closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Permission denied')).toBeDefined();
+    });
+    // Should still show Create Ignore, not Edit Ignore
+    expect(screen.getByText('Create Ignore')).toBeDefined();
+    expect(screen.queryByText('Edit Ignore')).toBeNull();
+  });
+
+  // ── handleFormatCheck: no check flag for formatter ──
+
+  it('does not call onRunCommand for format check when formatter has no check flag', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({
+          formatter: 'gofmt',
+          configPath: '/test/project/gofmt.conf',
+          hasConfig: true,
+        });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      return Promise.resolve(null);
+    });
+
+    const onRunCommand = vi.fn();
+    render(<FormatPanel {...defaultProps} onRunCommand={onRunCommand} />);
+    await waitFor(() => {
+      expect(screen.getByText('gofmt')).toBeDefined();
+    });
+
+    // Format Check button should not even exist for gofmt
+    expect(screen.queryByText('Format Check')).toBeNull();
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  // ── No-config detected formatter label shows "Detected: X (no config file)" ──
+
+  it('shows "Detected: <label> (no config file)" for known formatter without config', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({ formatter: 'ruff', configPath: null, hasConfig: false });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} ecosystem={'python' as any} />);
+    await waitFor(() => {
+      expect(screen.getByText('Detected: Ruff (no config file)')).toBeDefined();
+    });
+  });
+
+  // ── formatterLabel fallback to 'Formatter' when null ──
+
+  it('shows "Formatter" heading when formatter is null but hasConfig is true', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-formatter')
+        return Promise.resolve({ formatter: null, configPath: '/some/config', hasConfig: true });
+      if (channel === 'dev-tools:read-format-ignore') return Promise.resolve('');
+      return Promise.resolve(null);
+    });
+
+    render(<FormatPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Formatter')).toBeDefined();
+    });
+  });
 });

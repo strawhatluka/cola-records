@@ -110,4 +110,265 @@ describe('GeneralTab', () => {
       expect(mockSetTheme).toHaveBeenCalledWith('system');
     });
   });
+
+  describe('Directory selection - cancelled (null result)', () => {
+    beforeEach(() => {
+      mockInvoke.mockResolvedValue(null);
+    });
+
+    it('retains original clone path when dialog is cancelled', async () => {
+      const user = userEvent.setup();
+      render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      const browseButtons = screen.getAllByText('Browse');
+      await user.click(browseButtons[0]);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('dialog:open-directory');
+      });
+
+      // Path should remain unchanged
+      const clonePathInput = screen.getByDisplayValue('/mock/contributions');
+      expect(clonePathInput).toBeDefined();
+    });
+
+    it('retains original projects path when dialog is cancelled', async () => {
+      const user = userEvent.setup();
+      render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      const browseButtons = screen.getAllByText('Browse');
+      await user.click(browseButtons[1]);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('dialog:open-directory');
+      });
+
+      // Path should remain unchanged
+      const projectsPathInput = screen.getByDisplayValue('/mock/projects');
+      expect(projectsPathInput).toBeDefined();
+    });
+
+    it('retains original professional projects path when dialog is cancelled', async () => {
+      const user = userEvent.setup();
+      render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      const browseButtons = screen.getAllByText('Browse');
+      await user.click(browseButtons[2]);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('dialog:open-directory');
+      });
+
+      // Path should remain unchanged
+      const professionalPathInput = screen.getByDisplayValue('/mock/professional');
+      expect(professionalPathInput).toBeDefined();
+    });
+  });
+
+  describe('Directory selection - error handling', () => {
+    const dialogError = new Error('Dialog error');
+
+    beforeEach(() => {
+      mockInvoke.mockRejectedValue(dialogError);
+    });
+
+    it('retains original clone path when dialog errors', async () => {
+      const user = userEvent.setup();
+      render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      const browseButtons = screen.getAllByText('Browse');
+      await user.click(browseButtons[0]);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('dialog:open-directory');
+      });
+
+      // Path should remain unchanged
+      const clonePathInput = screen.getByDisplayValue('/mock/contributions');
+      expect(clonePathInput).toBeDefined();
+    });
+
+    it('retains original projects path when dialog errors', async () => {
+      const user = userEvent.setup();
+      render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      const browseButtons = screen.getAllByText('Browse');
+      await user.click(browseButtons[1]);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('dialog:open-directory');
+      });
+
+      // Path should remain unchanged
+      const projectsPathInput = screen.getByDisplayValue('/mock/projects');
+      expect(projectsPathInput).toBeDefined();
+    });
+
+    it('retains original professional projects path when dialog errors', async () => {
+      const user = userEvent.setup();
+      render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      const browseButtons = screen.getAllByText('Browse');
+      await user.click(browseButtons[2]);
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('dialog:open-directory');
+      });
+
+      // Path should remain unchanged
+      const professionalPathInput = screen.getByDisplayValue('/mock/professional');
+      expect(professionalPathInput).toBeDefined();
+    });
+  });
+
+  describe('Save settings - error handling', () => {
+    it('shows error alert when save fails', async () => {
+      const saveError = new Error('Failed to save');
+      const mockFailingUpdate = vi.fn().mockRejectedValue(saveError);
+      const user = userEvent.setup();
+
+      render(<GeneralTab settings={baseSettings} onUpdate={mockFailingUpdate} />);
+
+      await user.click(screen.getByText('Save Settings'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith(`Failed to save settings: ${saveError}`);
+      });
+
+      // setAppTheme should NOT be called on error
+      expect(mockSetTheme).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Theme selection and save', () => {
+    it('updates theme to dark and saves', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockResolvedValue('/selected/path');
+
+      render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      // Find and click the theme select trigger
+      const themeLabel = screen.getByText('Theme');
+      const selectTrigger = themeLabel.closest('div')?.querySelector('[role="combobox"]');
+
+      if (!selectTrigger) {
+        throw new Error('Theme select trigger not found');
+      }
+
+      await user.click(selectTrigger);
+
+      // Click the dark theme option
+      const darkOption = screen.getByText('Dark');
+      await user.click(darkOption);
+
+      // Save settings
+      await user.click(screen.getByText('Save Settings'));
+
+      await waitFor(() => {
+        expect(mockOnUpdate).toHaveBeenCalledWith({
+          defaultClonePath: '/mock/contributions',
+          defaultProjectsPath: '/mock/projects',
+          defaultProfessionalProjectsPath: '/mock/professional',
+          theme: 'dark',
+        });
+      });
+
+      // Verify setAppTheme was called with dark
+      await waitFor(() => {
+        expect(mockSetTheme).toHaveBeenCalledWith('dark');
+      });
+    });
+
+    it('updates theme to light and saves', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockResolvedValue('/selected/path');
+
+      render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      // Find and click the theme select trigger
+      const themeLabel = screen.getByText('Theme');
+      const selectTrigger = themeLabel.closest('div')?.querySelector('[role="combobox"]');
+
+      if (!selectTrigger) {
+        throw new Error('Theme select trigger not found');
+      }
+
+      await user.click(selectTrigger);
+
+      // Click the light theme option
+      const lightOption = screen.getByText('Light');
+      await user.click(lightOption);
+
+      // Save settings
+      await user.click(screen.getByText('Save Settings'));
+
+      await waitFor(() => {
+        expect(mockOnUpdate).toHaveBeenCalledWith({
+          defaultClonePath: '/mock/contributions',
+          defaultProjectsPath: '/mock/projects',
+          defaultProfessionalProjectsPath: '/mock/professional',
+          theme: 'light',
+        });
+      });
+
+      // Verify setAppTheme was called with light
+      await waitFor(() => {
+        expect(mockSetTheme).toHaveBeenCalledWith('light');
+      });
+    });
+  });
+
+  describe('Props synchronization via useEffect', () => {
+    it('updates state when settings prop changes', async () => {
+      const { rerender } = render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      // Verify initial values
+      expect(screen.getByDisplayValue('/mock/contributions')).toBeDefined();
+      expect(screen.getByDisplayValue('/mock/projects')).toBeDefined();
+      expect(screen.getByDisplayValue('/mock/professional')).toBeDefined();
+
+      // Update settings prop
+      const updatedSettings: AppSettings = {
+        ...baseSettings,
+        defaultClonePath: '/new/contributions',
+        defaultProjectsPath: '/new/projects',
+        defaultProfessionalProjectsPath: '/new/professional',
+        theme: 'dark',
+      };
+
+      rerender(<GeneralTab settings={updatedSettings} onUpdate={mockOnUpdate} />);
+
+      // Verify updated values appear
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('/new/contributions')).toBeDefined();
+        expect(screen.getByDisplayValue('/new/projects')).toBeDefined();
+        expect(screen.getByDisplayValue('/new/professional')).toBeDefined();
+      });
+    });
+
+    it('syncs theme when settings prop theme changes', async () => {
+      const { rerender } = render(<GeneralTab settings={baseSettings} onUpdate={mockOnUpdate} />);
+
+      // Initial theme is 'system'
+      // Update to dark theme
+      const updatedSettings: AppSettings = {
+        ...baseSettings,
+        theme: 'dark',
+      };
+
+      rerender(<GeneralTab settings={updatedSettings} onUpdate={mockOnUpdate} />);
+
+      // Save to verify the theme was synced internally
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Save Settings'));
+
+      await waitFor(() => {
+        expect(mockOnUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            theme: 'dark',
+          })
+        );
+      });
+    });
+  });
 });

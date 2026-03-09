@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add test suite for `code-server.service` concurrent start handling in `tests/main/services/code-server.service.test.ts`. (Relates to #72)
+- Add mock implementations for `tag` and `pushTags` in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test cases for `getRemoteUrl` and `fetch` error handling in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test case for `git.service` to use `master` as base branch when `main` does not exist in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test suite for `hooks.service` `setupHookTool` with `simple-git-hooks` in `tests/main/services/hooks.service.test.ts`. (Relates to #72)
+- Add test suite for `spotify.service` edge cases and fallbacks, including `getPlaybackState` when device info is missing in `tests/main/services/spotify.service.test.ts`. (Relates to #72)
+- Add test case for `updater.service` to filter out null release notes in `tests/main/services/updater.service.test.ts`. (Relates to #72)
+- Add test suites for `contribution-scanner.worker` error handling branches for URL parsing and GitHub API failures in `tests/main/workers/contribution-scanner.worker.test.ts`. (Relates to #72)
+- Add test suite for `scanner-pool` `getWorkerPath` in packaged mode in `tests/main/workers/scanner-pool.test.ts`. (Relates to #72)
+- Add `waitFor` import to `tests/renderer/components/contributions/ContributionCard.test.tsx`.
+- Add test suite for fork and remote badges in `ContributionCard.test.tsx`. (Relates to #72)
+- Add test cases for `CICDStatusWidget` to handle authentication and non-authentication errors from workflow runs in `tests/renderer/components/dashboard/CICDStatusWidget.test.tsx`. (Relates to #72)
+- Add test cases for `ContributionStatusWidget` to handle authentication and non-authentication errors from search results in `tests/renderer/components/dashboard/ContributionStatusWidget.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/dashboard/GitHubProfileWidget.test.tsx`.
+- Add test case for `GitHubProfileWidget` to show "Other" language segment for repositories with more than 3 languages in `tests/renderer/components/dashboard/GitHubProfileWidget.test.tsx`. (Relates to #72)
+- Add test case for `OpenIssuesWidget` to show error when result processing throws in `tests/renderer/components/dashboard/OpenIssuesWidget.test.tsx`. (Relates to #72)
+- Add test case for `PRsNeedingAttentionWidget` to show pending review state with a Clock icon when no reviews are available in `tests/renderer/components/dashboard/PRsNeedingAttentionWidget.test.tsx`. (Relates to #72)
+- Add test case for `RecentActivityWidget` to render `DeleteEvent` descriptions and icons in `tests/renderer/components/dashboard/RecentActivityWidget.test.tsx`. (Relates to #72)
+- Add test suites for `CreateIssueModal` inline mode and template handling in `tests/renderer/components/issues/CreateIssueModal.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/settings/BashProfileTab.test.tsx`.
+- Add test suite for `BashProfileTab` alias editing functionality in `tests/renderer/components/settings/BashProfileTab.test.tsx`. (Relates to #72)
+- Add test suite for `GeneralTab` directory selection cancellation behavior in `tests/renderer/components/settings/GeneralTab.test.tsx`. (Relates to #72)
+- Add `act` import and timer control setup to `tests/renderer/components/settings/NotificationsTab.test.tsx`.
+- Add test case for `NotificationsTab` master toggle switch functionality in `tests/renderer/components/settings/NotificationsTab.test.tsx`. (Relates to #72)
+- Add test cases for `ActionsTool` log display, including empty states and truncation, in `tests/renderer/components/tools/ActionsTool.test.tsx`. (Relates to #72)
+- Add test suite for `BuildPanel` `handleDevBuild` branch coverage, including conditional display of "Dev Build" button, in `tests/renderer/components/tools/BuildPanel.test.tsx`. (Relates to #72)
+- Add test suite for `CoveragePanel` `handleOpenReport` branch coverage in `tests/renderer/components/tools/CoveragePanel.test.tsx`. (Relates to #72)
+- Add test suites for `FormatPanel` detection error handling and conditional display of "Format Check" button for formatters without a check flag in `tests/renderer/components/tools/FormatPanel.test.tsx`. (Relates to #72)
+- Add test suite for `LintPanel` `handleLintFix` branch coverage for different linters in `tests/renderer/components/tools/LintPanel.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/tools/ReleasesTool.test.tsx`.
+- Add test case for `ReleasesTool` to send empty target as undefined during release creation in `tests/renderer/components/tools/ReleasesTool.test.tsx`. (Relates to #72)
+- Add test suite for `TestPanel` `handleRunTests` branch coverage when `testCommand` is null in `tests/renderer/components/tools/TestPanel.test.tsx`. (Relates to #72)
+- Add mock components for `IssuesTool`, `PullRequestsTool`, `ActionsTool`, and `ReleasesTool` in `tests/renderer/components/tools/ToolsPanel.test.tsx`. (Relates to #72)
+- Add test suite for `DocumentationScreen` `loadFileContent` error handling in `tests/renderer/screens/DocumentationScreen.test.tsx`. (Relates to #72)
+- Add new test file `tests/renderer/components/pull-requests/pr-detail-utils.test.tsx` for `pr-detail-utils`. (Relates to #72)
+
 - Add `fs` mock implementations (`existsSync`, `rmSync`, `readdirSync`, `chmodSync`, `unlinkSync`, `rmdirSync`) in `tests/main/ipc/contribution-handlers.test.ts`. (Relates to #72)
 - Add `github-rest.service` mock implementation (`checkPRStatus`) in `tests/main/ipc/contribution-handlers.test.ts`. (Relates to #72)
 - Add import for `database` in `tests/main/ipc/contribution-handlers.test.ts`.
@@ -258,6 +294,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Types**: `AppNotification`, `NotificationCategory` (6), `NotificationPriority` (3), `NotificationCategoryPreference`, `NotificationPreferences`
 
 ### Changed
+
+- Update `updater.service` mock environment service to be mutable for improved test flexibility in `tests/main/services/updater.service.test.ts`. (Relates to #72)
 
 - Change mock reset method from `vi.clearAllMocks()` to `vi.resetAllMocks()` in `tests/main/services/version.service.test.ts`.
 - Change test object property `name` to `source` for 'Node.js' entry in `tests/renderer/components/tools/MaintenanceTool.test.tsx`.
