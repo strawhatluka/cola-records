@@ -430,8 +430,9 @@ describe('ScriptExecutionModal', () => {
 
       render(<ScriptExecutionModal {...defaultProps} />);
 
+      // Wait for terminal session to be spawned (XTermTerminal renders only after session resolves)
       await waitFor(() => {
-        expect(screen.getByText('Move to Terminal')).toBeDefined();
+        expect(screen.getByTestId('xterm-terminal')).toBeDefined();
       });
 
       fireEvent.click(screen.getByText('Move to Terminal'));
