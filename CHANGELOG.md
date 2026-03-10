@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `GitHubIssueDetail` interface to `src/main/ipc/channels/types.ts` for detailed GitHub issue information. (Relates to #72)
+- Add `GitHubPullRequestResult` interface to `src/main/ipc/channels/types.ts` for GitHub pull request creation results. (Relates to #72)
+- Add `GitHubUserRepository` interface to `src/main/ipc/channels/types.ts` for user-specific GitHub repository details. (Relates to #72)
 - Add `npm-registry.service.ts` to provide functionality for searching the npm registry. (Relates to #72)
 - Add `package-config.service.ts` to manage reading and writing package configuration files. (Relates to #72)
 - Add `PackageConfigEditor.tsx` component for editing package configuration files. (Relates to #72)
@@ -328,6 +331,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update `src/main/services/github.service.ts` to import and utilize specific GitHub API response types from `../ipc/channels/types.ts`. (Relates to #72)
+- Refactor `getIssueDetail` method in `src/main/services/github.service.ts` to return `Promise<GitHubIssueDetail>`. (Relates to #72)
+- Refactor `createPullRequest` method in `src/main/services/github.service.ts` to return `Promise<GitHubPullRequestResult>`. (Relates to #72)
+- Refactor `getUserRepositories` method in `src/main/services/github.service.ts` to return `Promise<GitHubUserRepository[]>`. (Relates to #72)
+- Refactor `searchRepositoriesByTopic` method in `src/main/services/github.service.ts` to return `Promise<GitHubRepositorySearchResult[]>`. (Relates to #72)
+- Refactor `getRateLimit` method in `src/main/services/github.service.ts` to return `Promise<GitHubRateLimit>`. (Relates to #72)
+- Refactor `getRepositoryTree` method in `src/main/services/github.service.ts` to return `Promise<RepositoryTreeEntry[]>`. (Relates to #72)
+- Remove `eslint-disable` comment for `no-explicit-any` in `src/main/services/github.service.ts` due to improved type definitions. (Relates to #72)
 - Update `minimatch` to `5.1.9` in `package-lock.json`. (Relates to #72)
 - Update `minimatch` to `9.0.9` in `package-lock.json`. (Relates to #72)
 - Update `brace-expansion` dependency range to `^2.0.2` in `package-lock.json`. (Relates to #72)

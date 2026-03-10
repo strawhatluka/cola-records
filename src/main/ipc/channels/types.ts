@@ -153,6 +153,61 @@ export interface GitHubRepository {
   defaultBranch?: string;
 }
 
+// GitHub Issue Detail (from REST API — includes state and author info)
+export interface GitHubIssueDetail {
+  id: string;
+  number: number;
+  title: string;
+  body: string;
+  url: string;
+  state: string;
+  labels: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  author: string;
+  authorAvatarUrl: string;
+}
+
+// GitHub Pull Request Creation Result
+export interface GitHubPullRequestResult {
+  number: number;
+  url: string;
+  state: string;
+}
+
+// GitHub User Repository (from REST API — includes clone URL and visibility)
+export interface GitHubUserRepository {
+  id: string;
+  name: string;
+  fullName: string;
+  description: string;
+  url: string;
+  cloneUrl: string;
+  language: string;
+  stars: number;
+  forks: number;
+  private: boolean;
+}
+
+// GitHub Repository Search Result (from GraphQL — subset of full repo info)
+export interface GitHubRepositorySearchResult {
+  id: string;
+  name: string;
+  fullName: string;
+  description: string;
+  url: string;
+  language: string;
+  stars: number;
+  forks: number;
+}
+
+// GitHub Rate Limit Status
+export interface GitHubRateLimit {
+  limit: number;
+  remaining: number;
+  reset: Date;
+}
+
 // Repository Tree Types (for GitHub API)
 export interface RepositoryTreeEntry {
   name: string;
