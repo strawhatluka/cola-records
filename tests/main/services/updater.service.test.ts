@@ -9,6 +9,7 @@ const {
   mockSetFeedURL,
   mockSend,
   mockIsDestroyed,
+  mockEnv,
 } = vi.hoisted(() => ({
   mockCheckForUpdates: vi.fn(),
   mockDownloadUpdate: vi.fn(),
@@ -17,6 +18,7 @@ const {
   mockSetFeedURL: vi.fn(),
   mockSend: vi.fn(),
   mockIsDestroyed: vi.fn(() => false),
+  mockEnv: { development: false, production: true },
 }));
 
 // Mock electron-updater
@@ -42,12 +44,9 @@ vi.mock('electron', () => ({
   BrowserWindow: vi.fn(),
 }));
 
-// Mock environment service
+// Mock environment service (using mutable mockEnv so dev-mode branches can be tested)
 vi.mock('../../../src/main/services/environment.service', () => ({
-  env: {
-    development: false,
-    production: true,
-  },
+  env: mockEnv,
 }));
 
 // Import after mocks
@@ -383,6 +382,154 @@ describe('UpdaterService', () => {
           })
         );
       }
+    });
+
+    it('filters out array entries with null notes', () => {
+      const onUpdateAvailable = mockOn.mock.calls.find((call) => call[0] === 'update-available');
+      if (onUpdateAvailable) {
+        onUpdateAvailable[1]({
+          version: '1.1.0',
+          releaseDate: '2026-02-10',
+          releaseNotes: [
+            { version: '1.1.0', note: 'Valid' },
+            { version: '1.0.1', note: null },
+          ],
+        });
+
+        expect(mockSend).toHaveBeenCalledWith(
+          'updater:available',
+          expect.objectContaining({
+            releaseNotes: '1.1.0: Valid',
+          })
+        );
+      }
+    });
+  });
+
+  describe('event handlers - renderer communication', () => {
+    beforeEach(() => {
+      updaterService.initialize(mockWindow);
+    });
+
+    it('sends checking-for-update event to renderer', () => {
+      const onChecking = mockOn.mock.calls.find((call) => call[0] === 'checking-for-update');
+      expect(onChecking).toBeDefined();
+
+      if (onChecking) {
+        mockSend.mockClear();
+        onChecking[1]();
+
+        expect(mockSend).toHaveBeenCalledWith('updater:checking', undefined);
+      }
+    });
+
+    it('sends update-not-available event to renderer', () => {
+      const onNotAvailable = mockOn.mock.calls.find((call) => call[0] === 'update-not-available');
+      expect(onNotAvailable).toBeDefined();
+
+      if (onNotAvailable) {
+        mockSend.mockClear();
+        onNotAvailable[1]({ version: '1.0.0', releaseDate: '2026-02-10' });
+
+        expect(mockSend).toHaveBeenCalledWith('updater:not-available', undefined);
+      }
+    });
+  });
+
+  describe('development mode', () => {
+    afterEach(() => {
+      // Reset mockEnv back to production mode for other tests
+      mockEnv.development = false;
+      mockEnv.production = true;
+    });
+
+    it('initialize skips setup when env.development is true', () => {
+      mockEnv.development = true;
+      mockEnv.production = false;
+
+      mockSetFeedURL.mockClear();
+      mockOn.mockClear();
+
+      updaterService.initialize(mockWindow);
+
+      expect(mockSetFeedURL).not.toHaveBeenCalled();
+      expect(mockOn).not.toHaveBeenCalled();
+    });
+
+    it('checkForUpdates returns null when env.development is true', async () => {
+      mockEnv.development = true;
+      mockEnv.production = false;
+
+      const result = await updaterService.checkForUpdates();
+
+      expect(result).toBeNull();
+      expect(mockCheckForUpdates).not.toHaveBeenCalled();
+    });
+
+    it('downloadUpdate skips when env.development is true', async () => {
+      mockEnv.development = true;
+      mockEnv.production = false;
+
+      await updaterService.downloadUpdate();
+
+      expect(mockDownloadUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('downloadUpdate error states', () => {
+    it('throws "No update available to download" when status is not available', async () => {
+      // First initialize so we can trigger events
+      updaterService.initialize(mockWindow);
+
+      // Trigger update-not-available to set status to 'not-available'
+      const onNotAvailable = mockOn.mock.calls.find((call) => call[0] === 'update-not-available');
+      expect(onNotAvailable).toBeDefined();
+      onNotAvailable![1]({ version: '1.0.0', releaseDate: '2026-02-10' });
+
+      await expect(updaterService.downloadUpdate()).rejects.toThrow(
+        'No update available to download'
+      );
+    });
+  });
+
+  describe('sendToRenderer edge cases', () => {
+    it('does not send when window is destroyed', () => {
+      updaterService.initialize(mockWindow);
+      mockIsDestroyed.mockReturnValue(true);
+      mockSend.mockClear();
+
+      // Trigger an event that would normally send to renderer
+      const onError = mockOn.mock.calls.find((call) => call[0] === 'error');
+      expect(onError).toBeDefined();
+
+      if (onError) {
+        onError[1](new Error('Test error'));
+
+        expect(mockSend).not.toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe('isUpdateReady', () => {
+    it('returns true after update-downloaded event is triggered', () => {
+      updaterService.initialize(mockWindow);
+
+      // Trigger update-downloaded event
+      const onDownloaded = mockOn.mock.calls.find((call) => call[0] === 'update-downloaded');
+      expect(onDownloaded).toBeDefined();
+      onDownloaded![1]({ version: '1.2.0', releaseDate: '2026-03-01', releaseNotes: 'Update' });
+
+      expect(updaterService.isUpdateReady()).toBe(true);
+    });
+  });
+
+  describe('checkForUpdates edge cases', () => {
+    it('returns null when result has no updateInfo', async () => {
+      mockCheckForUpdates.mockResolvedValue({});
+
+      const result = await updaterService.checkForUpdates();
+
+      expect(result).toBeNull();
     });
   });
 });

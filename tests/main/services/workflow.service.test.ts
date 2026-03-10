@@ -299,10 +299,10 @@ describe('WorkflowService', () => {
       );
 
       const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
-      // New entry should appear under ### Added (right after heading)
-      expect(written).toContain('### Added\n- New feature');
-      // Fix entry should appear under ### Fixed
-      expect(written).toContain('### Fixed\n- Fix a bug');
+      // New entry should appear before existing bullets, with blank line between heading and bullets preserved
+      expect(written).toContain('### Added\n\n- New feature\n- Existing feature');
+      // Fix entry should appear under ### Fixed with blank line after heading
+      expect(written).toContain('### Fixed\n\n- Fix a bug');
       // Version section should be preserved
       expect(written).toContain('## [1.0.0] - 2026-01-01');
     });
@@ -316,7 +316,8 @@ describe('WorkflowService', () => {
       await workflowService.applyChangelog('/test/repo', '### Security\n- Fix vulnerability');
 
       const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
-      expect(written).toContain('### Security\n- Fix vulnerability');
+      // New category should have blank line between heading and bullets
+      expect(written).toContain('### Security\n\n- Fix vulnerability');
       expect(written).toContain('### Added');
       expect(written).toContain('## [1.0.0]');
     });

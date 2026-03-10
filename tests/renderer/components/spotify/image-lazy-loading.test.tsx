@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -74,7 +74,7 @@ describe('Spotify Components Image Lazy Loading', () => {
   });
 
   describe('PlaylistPanel', () => {
-    it('playlist thumbnail images have loading="lazy"', () => {
+    it('playlist thumbnail images have loading="lazy"', async () => {
       const playlists = [
         createMockSpotifyPlaylist({
           id: '1',
@@ -95,7 +95,11 @@ describe('Spotify Components Image Lazy Loading', () => {
         return undefined;
       });
 
-      const { container } = render(<PlaylistPanel />);
+      let container!: HTMLElement;
+      await act(async () => {
+        const result = render(<PlaylistPanel />);
+        container = result.container;
+      });
 
       // Images with alt="" are decorative and have role="presentation", use querySelectorAll
       const images = container.querySelectorAll('img');

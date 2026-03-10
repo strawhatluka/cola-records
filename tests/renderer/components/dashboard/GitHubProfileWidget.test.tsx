@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const mockInvoke = vi.fn();
 vi.mock('../../../../src/renderer/ipc/client', () => ({
@@ -231,5 +231,200 @@ describe('GitHubProfileWidget', () => {
     });
 
     expect(screen.getByText('Retry')).toBeDefined();
+  });
+
+  it('shows "Other" segment when repos have more than 3 languages', async () => {
+    const multiLangRepos = [
+      {
+        id: '1',
+        name: 'r1',
+        fullName: 'o/r1',
+        description: '',
+        url: '',
+        cloneUrl: '',
+        language: 'TypeScript',
+        stars: 1,
+        forks: 0,
+        private: false,
+      },
+      {
+        id: '2',
+        name: 'r2',
+        fullName: 'o/r2',
+        description: '',
+        url: '',
+        cloneUrl: '',
+        language: 'Python',
+        stars: 1,
+        forks: 0,
+        private: false,
+      },
+      {
+        id: '3',
+        name: 'r3',
+        fullName: 'o/r3',
+        description: '',
+        url: '',
+        cloneUrl: '',
+        language: 'Go',
+        stars: 1,
+        forks: 0,
+        private: false,
+      },
+      {
+        id: '4',
+        name: 'r4',
+        fullName: 'o/r4',
+        description: '',
+        url: '',
+        cloneUrl: '',
+        language: 'Rust',
+        stars: 1,
+        forks: 0,
+        private: false,
+      },
+      {
+        id: '5',
+        name: 'r5',
+        fullName: 'o/r5',
+        description: '',
+        url: '',
+        cloneUrl: '',
+        language: 'Java',
+        stars: 1,
+        forks: 0,
+        private: false,
+      },
+    ];
+
+    setupMockIPC({ repos: multiLangRepos });
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Other/)).toBeDefined();
+    });
+  });
+
+  it('hides language bar when repos have no languages', async () => {
+    const noLangRepos = [
+      {
+        id: '1',
+        name: 'r1',
+        fullName: 'o/r1',
+        description: '',
+        url: '',
+        cloneUrl: '',
+        language: '',
+        stars: 1,
+        forks: 0,
+        private: false,
+      },
+      {
+        id: '2',
+        name: 'r2',
+        fullName: 'o/r2',
+        description: '',
+        url: '',
+        cloneUrl: '',
+        language: 'Unknown',
+        stars: 1,
+        forks: 0,
+        private: false,
+      },
+    ];
+
+    setupMockIPC({ repos: noLangRepos });
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Octocat')).toBeDefined();
+    });
+
+    // No language segments should be rendered
+    expect(screen.queryByText(/TypeScript/)).toBeNull();
+    expect(screen.queryByText(/Python/)).toBeNull();
+  });
+
+  it('hides "Member since" when createdAt is an invalid date (NaN)', async () => {
+    setupMockIPC({ user: { ...mockUser, createdAt: 'not-a-date' } });
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Octocat')).toBeDefined();
+    });
+
+    expect(screen.queryByText(/Member since/)).toBeNull();
+  });
+
+  it('shows avatar fallback initial when avatar image errors', async () => {
+    setupMockIPC();
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Octocat')).toBeDefined();
+    });
+
+    // Simulate image error
+    const img = screen.getByAltText('octocat avatar');
+    fireEvent.error(img);
+
+    await waitFor(() => {
+      // After error, should show initial letter fallback
+      expect(screen.getByText('O')).toBeDefined();
+    });
+  });
+
+  it('falls back to login when name is empty', async () => {
+    setupMockIPC({ user: { ...mockUser, name: '' } });
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      // Should display login as the name since name is empty
+      const nameElements = screen.getAllByText('octocat');
+      // One for the name fallback, one for @octocat
+      expect(nameElements.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it('sets noToken for "unauthorized" error keyword', async () => {
+    mockInvoke.mockRejectedValue(new Error('Request unauthorized'));
+
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Connect GitHub in Settings')).toBeDefined();
+    });
+  });
+
+  it('sets noToken for "auth" error keyword', async () => {
+    mockInvoke.mockRejectedValue(new Error('Auth failed'));
+
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Connect GitHub in Settings')).toBeDefined();
+    });
+  });
+
+  it('handles non-Error thrown in catch (String fallback)', async () => {
+    mockInvoke.mockRejectedValue('plain string error');
+
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('plain string error')).toBeDefined();
+    });
+  });
+
+  it('shows avatar initial when avatarUrl is not provided at all', async () => {
+    setupMockIPC({ user: { ...mockUser, avatarUrl: '' } });
+    render(<GitHubProfileWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('The Octocat')).toBeDefined();
+    });
+
+    // Should show the initial letter fallback
+    expect(screen.getByText('O')).toBeDefined();
   });
 });

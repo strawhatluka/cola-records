@@ -292,4 +292,368 @@ describe('TestPanel', () => {
       expect(screen.getByText('No test framework detected')).toBeDefined();
     });
   });
+
+  // ── Branch coverage: handleRunTests with null testCommand ──
+
+  it('does not call onRunCommand when Run Tests clicked with null testCommand', async () => {
+    const onRunCommand = vi.fn();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: 'vitest',
+          configPath: '/test/project/vitest.config.ts',
+          hasConfig: true,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} testCommand={null} onRunCommand={onRunCommand} />);
+    await waitFor(() => {
+      expect(screen.getByText('Run Tests')).toBeDefined();
+    });
+
+    const btn = screen.getByText('Run Tests').closest('button')!;
+    expect(btn.disabled).toBe(true);
+    await userEvent.click(btn);
+    expect(onRunCommand).not.toHaveBeenCalled();
+  });
+
+  // ── Branch coverage: handleCreateConfig success path ──
+
+  it('creates config successfully and re-detects framework', async () => {
+    let detectCount = 0;
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework') {
+        detectCount++;
+        if (detectCount === 1) {
+          return Promise.resolve({
+            framework: null,
+            configPath: null,
+            hasConfig: false,
+            coverageCommand: null,
+            watchCommand: null,
+          });
+        }
+        return Promise.resolve({
+          framework: 'vitest',
+          configPath: '/test/project/vitest.config.ts',
+          hasConfig: true,
+          coverageCommand: 'npx vitest run --coverage',
+          watchCommand: 'npx vitest --watch',
+        });
+      }
+      if (channel === 'dev-tools:get-test-presets') {
+        return Promise.resolve({ template: 'default' });
+      }
+      if (channel === 'dev-tools:write-test-config') {
+        return Promise.resolve({ success: true, message: 'Config created' });
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Create Config')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Config').closest('button')!);
+    await waitFor(() => {
+      expect(screen.getByText('Vitest')).toBeDefined();
+    });
+  });
+
+  it('shows failure message when config creation throws', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework') {
+        return Promise.resolve({
+          framework: null,
+          configPath: null,
+          hasConfig: false,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      }
+      if (channel === 'dev-tools:get-test-presets') {
+        return Promise.reject(new Error('network error'));
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Create Config')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Config').closest('button')!);
+    await waitFor(() => {
+      expect(screen.getByText('Failed')).toBeDefined();
+    });
+  });
+
+  it('shows message when write-test-config returns success false', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework') {
+        return Promise.resolve({
+          framework: null,
+          configPath: null,
+          hasConfig: false,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      }
+      if (channel === 'dev-tools:get-test-presets') {
+        return Promise.resolve({ template: 'default' });
+      }
+      if (channel === 'dev-tools:write-test-config') {
+        return Promise.resolve({ success: false, message: 'Already exists' });
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Create Config')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Config').closest('button')!);
+    await waitFor(() => {
+      expect(screen.getByText('Already exists')).toBeDefined();
+    });
+  });
+
+  // ── Branch coverage: handleCreateConfig "No framework to configure" ──
+
+  it('does not show Create Config for non-node ecosystem when no framework detected', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: null,
+          configPath: null,
+          hasConfig: false,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} ecosystem="python" />);
+    await waitFor(() => {
+      expect(screen.getByText('No test framework detected')).toBeDefined();
+    });
+    expect(screen.queryByText('Create Config')).toBeNull();
+  });
+
+  // ── Branch coverage: Create Config from action buttons view ──
+
+  it('invokes handleCreateConfig from action buttons when framework detected but no config', async () => {
+    let detectCount = 0;
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework') {
+        detectCount++;
+        if (detectCount === 1) {
+          return Promise.resolve({
+            framework: 'vitest',
+            configPath: null,
+            hasConfig: false,
+            coverageCommand: 'npx vitest run --coverage',
+            watchCommand: 'npx vitest --watch',
+          });
+        }
+        return Promise.resolve({
+          framework: 'vitest',
+          configPath: '/test/project/vitest.config.ts',
+          hasConfig: true,
+          coverageCommand: 'npx vitest run --coverage',
+          watchCommand: 'npx vitest --watch',
+        });
+      }
+      if (channel === 'dev-tools:get-test-presets') {
+        return Promise.resolve({ template: 'default' });
+      }
+      if (channel === 'dev-tools:write-test-config') {
+        return Promise.resolve({ success: true, message: 'Config created' });
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Vitest')).toBeDefined();
+      expect(screen.getByText('Create Config')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Config').closest('button')!);
+    await waitFor(() => {
+      expect(screen.getByText('Edit Config')).toBeDefined();
+    });
+  });
+
+  // ── Branch coverage: frameworkLabel fallback ──
+
+  it('falls back to raw framework name when not in FRAMEWORK_LABELS', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: 'custom-framework',
+          configPath: '/test/project/custom.config.ts',
+          hasConfig: true,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('custom-framework')).toBeDefined();
+    });
+  });
+
+  it('shows "Test Framework" heading when frameworkLabel is null', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: null,
+          configPath: null,
+          hasConfig: true,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Test Framework')).toBeDefined();
+    });
+  });
+
+  // ── Branch coverage: onClose from framework-detected view ──
+
+  it('calls onClose from the framework-detected view close button', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: 'vitest',
+          configPath: '/test/project/vitest.config.ts',
+          hasConfig: true,
+          coverageCommand: 'npx vitest run --coverage',
+          watchCommand: 'npx vitest --watch',
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Vitest')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByTitle('Close'));
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  // ── Branch coverage: handleRunCoverage with null coverageCommand ──
+
+  it('does not show Coverage button and does nothing when coverageCommand is null', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: 'jest',
+          configPath: '/test/project/jest.config.js',
+          hasConfig: true,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Jest')).toBeDefined();
+    });
+    expect(screen.queryByText('Coverage')).toBeNull();
+    expect(screen.queryByText('Watch')).toBeNull();
+  });
+
+  // ── Branch coverage: handleRunWatch with null watchCommand ──
+
+  it('does not show Watch button when watchCommand is null but coverage exists', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: 'jest',
+          configPath: '/test/project/jest.config.js',
+          hasConfig: true,
+          coverageCommand: 'jest --coverage',
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Coverage')).toBeDefined();
+    });
+    expect(screen.queryByText('Watch')).toBeNull();
+  });
+
+  // ── Branch coverage: status display in action buttons view ──
+
+  it('displays status text in the action buttons view after failed create config', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework') {
+        return Promise.resolve({
+          framework: 'vitest',
+          configPath: null,
+          hasConfig: false,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      }
+      if (channel === 'dev-tools:get-test-presets') {
+        return Promise.resolve({ template: 'default' });
+      }
+      if (channel === 'dev-tools:write-test-config') {
+        return Promise.resolve({ success: false, message: 'Permission denied' });
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Vitest')).toBeDefined();
+      expect(screen.getByText('Create Config')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Create Config').closest('button')!);
+    await waitFor(() => {
+      expect(screen.getByText('Permission denied')).toBeDefined();
+    });
+  });
+
+  // ── Branch coverage: disables Run Tests when testCommand is null ──
+
+  it('disables Run Tests button when testCommand is null', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-test-framework')
+        return Promise.resolve({
+          framework: 'vitest',
+          configPath: '/test/project/vitest.config.ts',
+          hasConfig: true,
+          coverageCommand: null,
+          watchCommand: null,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<TestPanel {...defaultProps} testCommand={null} />);
+    await waitFor(() => {
+      expect(screen.getByText('Run Tests')).toBeDefined();
+    });
+
+    const btn = screen.getByText('Run Tests').closest('button');
+    expect(btn?.disabled).toBe(true);
+  });
 });

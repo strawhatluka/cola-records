@@ -9,6 +9,142 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `setTimeout` call to `src/renderer/components/tools/ChangelogResult.tsx` to automatically close the component after 1200ms. (Relates to #72)
+- Add `GitHubIssueDetail` interface to `src/main/ipc/channels/types.ts` for detailed GitHub issue information. (Relates to #72)
+- Add `GitHubPullRequestResult` interface to `src/main/ipc/channels/types.ts` for GitHub pull request creation results. (Relates to #72)
+- Add `GitHubUserRepository` interface to `src/main/ipc/channels/types.ts` for user-specific GitHub repository details. (Relates to #72)
+- Add `npm-registry.service.ts` to provide functionality for searching the npm registry. (Relates to #72)
+- Add `package-config.service.ts` to manage reading and writing package configuration files. (Relates to #72)
+- Add `PackageConfigEditor.tsx` component for editing package configuration files. (Relates to #72)
+- Add `npm-registry.service.test.ts` for `NpmRegistryService`. (Relates to #72)
+- Add `package-config.service.test.ts` for `PackageConfigService`. (Relates to #72)
+- Add `PackageConfigEditor.test.tsx` for `PackageConfigEditor` component. (Relates to #72)
+- Add `PackageConfigData` and `NpmSearchResult` interfaces to `src/main/ipc/channels/types.ts`. (Relates to #72)
+- Add `PackageConfigData` and `NpmSearchResult` types to `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Add new IPC channels `dev-tools:read-package-config`, `dev-tools:write-package-config`, and `dev-tools:search-npm-registry` in `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Register new IPC handlers for package configuration and npm registry search in `src/main/ipc/handlers.ts`. (Relates to #72)
+- Add imports for `packageConfigService` and `npmRegistryService` in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Implement IPC handlers for `dev-tools:read-package-config`, `dev-tools:write-package-config`, and `dev-tools:search-npm-registry` in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add import for `PackageConfigEditor` component in `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Implement conditional rendering for `PackageConfigEditor` within `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Pass `onOpenEditor` prop to `PackageManagerPanel` in `src/renderer/components/tools/MaintenanceTool.tsx` to trigger opening the `PackageConfigEditor`. (Relates to #72)
+- Add `onOpenEditor` prop to `PackageManagerPanel` component in `src/renderer/components/tools/PackageManagerPanel.tsx`. (Relates to #72)
+- Add 'Package Config' action button with `FileJson` icon to `PackageManagerPanel` in `src/renderer/components/tools/PackageManagerPanel.tsx`. (Relates to #72)
+- Add mock implementations for `FileJson` and `ArrowRightLeft` icons in `tests/mocks/lucide-react.tsx`. (Relates to #72)
+- Add test case to verify `PackageConfigEditor` opens from `PackageManagerPanel` in `tests/renderer/components/tools/MaintenanceTool.test.tsx`. (Relates to #72)
+- Add `package-manager.service.ts` to manage package manager operations. (Relates to #72)
+- Add `PackageManagerPanel.tsx` component to display package manager information and controls. (Relates to #72)
+- Add `package-manager.service.test.ts` for `PackageManagerService`. (Relates to #72)
+- Add `PackageManagerPanel.test.tsx` for `PackageManagerPanel` component. (Relates to #72)
+- Add `PMInfo` interface to `src/main/ipc/channels/types.ts`. (Relates to #72)
+- Add new IPC channel definitions for package manager operations (`dev-tools:get-pm-commands`, `dev-tools:get-pm-info`, `dev-tools:get-pm-init-command`, `dev-tools:get-pm-dedupe-command`, `dev-tools:get-pm-lock-refresh-command`) in `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Add new IPC handler registrations for package manager channels in `src/main/ipc/handlers.ts`. (Relates to #72)
+- Add `packageManagerService` import to `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add new IPC handler implementations for package manager channels in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add `FolderCog` and `FolderPlus` icons to `tests/mocks/lucide-react.tsx`. (Relates to #72)
+- Add `PackageManagerPanel` import to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add `package-manager` button and its handler to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add `Lint`, `Test`, `Coverage`, `Format`, and `Build` buttons to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add test case to `tests/renderer/components/tools/ToolsPanel.test.tsx` to verify the order of navigation items. (Relates to #72)
+- Add test suite for `code-server.service` concurrent start handling in `tests/main/services/code-server.service.test.ts`. (Relates to #72)
+- Add mock implementations for `tag` and `pushTags` in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test cases for `getRemoteUrl` and `fetch` error handling in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test case for `git.service` to use `master` as base branch when `main` does not exist in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test suite for `hooks.service` `setupHookTool` with `simple-git-hooks` in `tests/main/services/hooks.service.test.ts`. (Relates to #72)
+- Add test suite for `spotify.service` edge cases and fallbacks, including `getPlaybackState` when device info is missing in `tests/main/services/spotify.service.test.ts`. (Relates to #72)
+- Add test case for `updater.service` to filter out null release notes in `tests/main/services/updater.service.test.ts`. (Relates to #72)
+- Add test suites for `contribution-scanner.worker` error handling branches for URL parsing and GitHub API failures in `tests/main/workers/contribution-scanner.worker.test.ts`. (Relates to #72)
+- Add test suite for `scanner-pool` `getWorkerPath` in packaged mode in `tests/main/workers/scanner-pool.test.ts`. (Relates to #72)
+- Add `waitFor` import to `tests/renderer/components/contributions/ContributionCard.test.tsx`.
+- Add test suite for fork and remote badges in `ContributionCard.test.tsx`. (Relates to #72)
+- Add test cases for `CICDStatusWidget` to handle authentication and non-authentication errors from workflow runs in `tests/renderer/components/dashboard/CICDStatusWidget.test.tsx`. (Relates to #72)
+- Add test cases for `ContributionStatusWidget` to handle authentication and non-authentication errors from search results in `tests/renderer/components/dashboard/ContributionStatusWidget.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/dashboard/GitHubProfileWidget.test.tsx`.
+- Add test case for `GitHubProfileWidget` to show "Other" language segment for repositories with more than 3 languages in `tests/renderer/components/dashboard/GitHubProfileWidget.test.tsx`. (Relates to #72)
+- Add test case for `OpenIssuesWidget` to show error when result processing throws in `tests/renderer/components/dashboard/OpenIssuesWidget.test.tsx`. (Relates to #72)
+- Add test case for `PRsNeedingAttentionWidget` to show pending review state with a Clock icon when no reviews are available in `tests/renderer/components/dashboard/PRsNeedingAttentionWidget.test.tsx`. (Relates to #72)
+- Add test case for `RecentActivityWidget` to render `DeleteEvent` descriptions and icons in `tests/renderer/components/dashboard/RecentActivityWidget.test.tsx`. (Relates to #72)
+- Add test suites for `CreateIssueModal` inline mode and template handling in `tests/renderer/components/issues/CreateIssueModal.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/settings/BashProfileTab.test.tsx`.
+- Add test suite for `BashProfileTab` alias editing functionality in `tests/renderer/components/settings/BashProfileTab.test.tsx`. (Relates to #72)
+- Add test suite for `GeneralTab` directory selection cancellation behavior in `tests/renderer/components/settings/GeneralTab.test.tsx`. (Relates to #72)
+- Add `act` import and timer control setup to `tests/renderer/components/settings/NotificationsTab.test.tsx`.
+- Add test case for `NotificationsTab` master toggle switch functionality in `tests/renderer/components/settings/NotificationsTab.test.tsx`. (Relates to #72)
+- Add test cases for `ActionsTool` log display, including empty states and truncation, in `tests/renderer/components/tools/ActionsTool.test.tsx`. (Relates to #72)
+- Add test suite for `BuildPanel` `handleDevBuild` branch coverage, including conditional display of "Dev Build" button, in `tests/renderer/components/tools/BuildPanel.test.tsx`. (Relates to #72)
+- Add test suite for `CoveragePanel` `handleOpenReport` branch coverage in `tests/renderer/components/tools/CoveragePanel.test.tsx`. (Relates to #72)
+- Add test suites for `FormatPanel` detection error handling and conditional display of "Format Check" button for formatters without a check flag in `tests/renderer/components/tools/FormatPanel.test.tsx`. (Relates to #72)
+- Add test suite for `LintPanel` `handleLintFix` branch coverage for different linters in `tests/renderer/components/tools/LintPanel.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/tools/ReleasesTool.test.tsx`.
+- Add test case for `ReleasesTool` to send empty target as undefined during release creation in `tests/renderer/components/tools/ReleasesTool.test.tsx`. (Relates to #72)
+- Add test suite for `TestPanel` `handleRunTests` branch coverage when `testCommand` is null in `tests/renderer/components/tools/TestPanel.test.tsx`. (Relates to #72)
+- Add mock components for `IssuesTool`, `PullRequestsTool`, `ActionsTool`, and `ReleasesTool` in `tests/renderer/components/tools/ToolsPanel.test.tsx`. (Relates to #72)
+- Add test suite for `DocumentationScreen` `loadFileContent` error handling in `tests/renderer/screens/DocumentationScreen.test.tsx`. (Relates to #72)
+- Add new test file `tests/renderer/components/pull-requests/pr-detail-utils.test.tsx` for `pr-detail-utils`. (Relates to #72)
+
+- Add `fs` mock implementations (`existsSync`, `rmSync`, `readdirSync`, `chmodSync`, `unlinkSync`, `rmdirSync`) in `tests/main/ipc/contribution-handlers.test.ts`. (Relates to #72)
+- Add `github-rest.service` mock implementation (`checkPRStatus`) in `tests/main/ipc/contribution-handlers.test.ts`. (Relates to #72)
+- Add import for `database` in `tests/main/ipc/contribution-handlers.test.ts`.
+- Add `path` import in `tests/main/ipc/core-handlers.test.ts`.
+- Add new test suite for `docs:get-structure` IPC handler, including tests for empty directories, category detection, and file structure in `tests/main/ipc/core-handlers.test.ts`.
+- Add test case to detect `pyproject.toml` version in `tests/main/services/version.service.test.ts`.
+- Add test case to detect `setup.py` version in `tests/main/services/version.service.test.ts`.
+- Add tests for `mapUser` and `mapChannel` fallback logic in `tests/main/services/discord.service.test.ts`. (Relates to #72)
+- Mock `MarkdownEditor` component in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Add new tests for comparison functionality in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Add test for saving changes when editing an existing remote in `tests/renderer/components/settings/SSHRemotesTab.test.tsx`. (Relates to #72)
+- Add tests for sourcemap selection functionality in `tests/renderer/components/tools/BuildEditor.test.tsx`. (Relates to #72)
+- Mock `useNotificationStore` in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Add test for showing generic error messages when commit generation fails in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Add test for adding a coverage reporter via Enter key in `tests/renderer/components/tools/CoverageEditor.test.tsx`. (Relates to #72)
+- Add `findFormSubmitButton` helper function in `tests/renderer/components/tools/DevScriptsTool.test.tsx`. (Relates to #72)
+- Add test for adding new command fields in `tests/renderer/components/tools/DevScriptsTool.test.tsx`. (Relates to #72)
+- Add tests for changing `indent_style` and `end_of_line` properties in `tests/renderer/components/tools/EditorConfigEditor.test.tsx`. (Relates to #72)
+- Add test for loading generic mode with raw text for non-Prettier formatters in `tests/renderer/components/tools/FormatEditor.test.tsx`. (Relates to #72)
+- Add test for handling detection errors in `tests/renderer/components/tools/HooksPanel.test.tsx`. (Relates to #72)
+- Add test for toggling environment checkboxes in ESLint rich mode in `tests/renderer/components/tools/LintEditor.test.tsx`. (Relates to #72)
+- Add test for enabling Git Init button and command execution in `tests/renderer/components/tools/MaintenanceTool.test.tsx`. (Relates to #72)
+- Add test for changing Jest `collectCoverage` toggle in `tests/renderer/components/tools/TestEditor.test.tsx`. (Relates to #72)
+- Add new test file `tests/main/services/github/github-extras.service.test.ts`. (Relates to #72)
+- Add new test file `tests/renderer/screens/DevelopmentScreen.test.tsx`. (Relates to #72)
+- Add `Pin`, `PanelLeftOpen`, and `PanelLeftClose` icons to `tests/mocks/lucide-react.tsx` for Discord `MessageList` component.
+- Add `Inbox` icon to `tests/mocks/lucide-react.tsx` for issue modals.
+- Add mock `CreateSubIssueModal` and `AddExistingSubIssueModal` components for testing in `tests/renderer/components/issues/DevelopmentIssueDetailModal.test.tsx`.
+- Add test to verify the `close issue menu` shows all options in `tests/renderer/components/issues/DevelopmentIssueDetailModal.test.tsx`.
+- Add test to verify `Toggle` badge display for toggle scripts in `tests/renderer/components/settings/GlobalScriptsTab.test.tsx`.
+- Add test to verify terminals count display for multi-terminal scripts in `tests/renderer/components/settings/GlobalScriptsTab.test.tsx`.
+- Add test to verify navigation to create view and template display when "New" button is clicked in `tests/renderer/components/tools/GitHubConfigWorkflowsEditor.test.tsx`.
+- Add test to verify deploying a template and returning to list view in `tests/renderer/components/tools/GitHubConfigWorkflowsEditor.test.tsx`.
+- Add test to verify toggling an action enabled/disabled in `tests/renderer/components/tools/HooksEditor.test.tsx`.
+- Add new test suite for Discord `MessageList` component (`tests/renderer/components/discord/MessageList.test.tsx`) (#72).
+- Add new test suite for root application component (`tests/renderer/App.test.tsx`) (#72)
+- Add new test suite for Discord `MessageInput` component (`tests/renderer/components/discord/MessageInput.test.tsx`) (#72)
+- Add new test suite for `NotificationGroup` component (`tests/renderer/components/notifications/NotificationGroup.test.tsx`) (#72)
+- Add new test suite for `NotificationItem` component (`tests/renderer/components/notifications/NotificationItem.test.tsx`) (#72)
+- Add new test suite for main process entry point (`tests/main/index.test.ts`) (#72)
+- Add new test suite for project detection service (`tests/main/services/project-detection.service.test.ts`) (#72)
+- Add new test suite for Discord `CreatePollModal` component (`tests/renderer/components/discord/CreatePollModal.test.tsx`) (#72)
+- Add new test suite for Discord `EmbedRenderer` component (`tests/renderer/components/discord/EmbedRenderer.test.ts`) (#72)
+- Add new test suite for Discord `GifPicker` component (`tests/renderer/components/discord/GifPicker.test.tsx`) (#72)
+- Add new test suite for Discord `PickerPanel` component (`tests/renderer/components/discord/PickerPanel.test.tsx`) (#72)
+- Add new test suite for Discord `PollRenderer` component (`tests/renderer/components/discord/PollRenderer.test.tsx`) (#72)
+- Add new test suite for SSH remotes settings tab (`tests/renderer/components/settings/SSHRemotesTab.test.tsx`) (#72)
+- Add new test suite for renderer IPC client (`tests/renderer/ipc/client.test.ts`) (#72)
+- Add `BarChart3` and `TrendingUp` icons to `tests/mocks/lucide-react.tsx` for Discord components (#72)
+- Add tests for MarkdownEditor toolbar buttons to verify correct markdown insertion in `MarkdownEditor.test.tsx` (#72)
+- Add tests for editing global scripts in `GlobalScriptsTab.test.tsx`, covering opening the edit form and saving changes (#72)
+- Add new test suite for AI IPC handlers (`tests/main/ipc/ai-handlers.test.ts`) (#72)
+- Add new test suite for core IPC handlers (`tests/main/ipc/core-handlers.test.ts`) (#72)
+- Add new test suite for dev tools IPC handlers (`tests/main/ipc/dev-tools-handlers.test.ts`) (#72)
+- Add new test suite for GitHub configuration IPC handlers (`tests/main/ipc/github-config-handlers.test.ts`) (#72)
+- Add new test suite for GitHub IPC handlers (`tests/main/ipc/github-handlers.test.ts`) (#72)
+- Add new test suite for IPC handlers index (`tests/main/ipc/handlers-index.test.ts`) (#72)
+- Add new test suite for IPC handlers wrapper (`tests/main/ipc/handlers-wrapper.test.ts`) (#72)
+- Add new test suite for integrations IPC handlers (`tests/main/ipc/integrations-handlers.test.ts`) (#72)
+- Add new test suite for notification IPC handlers (`tests/main/ipc/notification-handlers.test.ts`) (#72)
+- Add new test suite for project IPC handlers (`tests/main/ipc/project-handlers.test.ts`) (#72)
+- Add new test suite for settings IPC handlers (`tests/main/ipc/settings-handlers.test.ts`) (#72)
+- Add new test suite for workflow IPC handlers (`tests/main/ipc/workflow-handlers.test.ts`) (#72)
 - **New Project Wizard** — interactive multi-step wizard for creating new projects from My Projects and Professional Projects screens (#55)
   - **6-step guided wizard**: Basics (name, location, type) > Ecosystem (7 ecosystems, frameworks, monorepo tools, package managers) > Options (GitHub repo, extras, license) > Database (5 engines, ORM selection, Docker Compose, env vars) > GitHub Config (template selection from 12 existing templates) > Review & Create (summary + live progress)
   - **CLI Detection Service** (`cli-detection.service.ts`): detects installed CLI tools per ecosystem with version info, required/optional classification, and monorepo tool support
@@ -196,12 +332,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update `src/main/services/github.service.ts` to import and utilize specific GitHub API response types from `../ipc/channels/types.ts`. (Relates to #72)
+- Refactor `getIssueDetail` method in `src/main/services/github.service.ts` to return `Promise<GitHubIssueDetail>`. (Relates to #72)
+- Refactor `createPullRequest` method in `src/main/services/github.service.ts` to return `Promise<GitHubPullRequestResult>`. (Relates to #72)
+- Refactor `getUserRepositories` method in `src/main/services/github.service.ts` to return `Promise<GitHubUserRepository[]>`. (Relates to #72)
+- Refactor `searchRepositoriesByTopic` method in `src/main/services/github.service.ts` to return `Promise<GitHubRepositorySearchResult[]>`. (Relates to #72)
+- Refactor `getRateLimit` method in `src/main/services/github.service.ts` to return `Promise<GitHubRateLimit>`. (Relates to #72)
+- Refactor `getRepositoryTree` method in `src/main/services/github.service.ts` to return `Promise<RepositoryTreeEntry[]>`. (Relates to #72)
+- Remove `eslint-disable` comment for `no-explicit-any` in `src/main/services/github.service.ts` due to improved type definitions. (Relates to #72)
+- Update `minimatch` to `5.1.9` in `package-lock.json`. (Relates to #72)
+- Update `minimatch` to `9.0.9` in `package-lock.json`. (Relates to #72)
+- Update `brace-expansion` dependency range to `^2.0.2` in `package-lock.json`. (Relates to #72)
+- Update `@rollup/rollup-android-arm-eabi` to `4.59.0` in `package-lock.json`. (Relates to #72)
+- Update `dompurify` dependency to `^3.3.2` in `package.json` and `package-lock.json`.
+- Update `lucide-react` icon imports in `src/renderer/components/tools/PackageManagerPanel.tsx` to include `FileJson`. (Relates to #72)
+- Update `PackageManagerPanel` tests in `tests/renderer/components/tools/PackageManagerPanel.test.tsx` to include the `onOpenEditor` prop. (Relates to #72)
+- Adjust `PackageManagerPanel` tests in `tests/renderer/components/tools/PackageManagerPanel.test.tsx` to verify the 'Package Config' action button and its position. (Relates to #72)
+- Refactor and unify Set Up buttons in `src/renderer/components/tools/MaintenanceTool.tsx` into a single `allButtons` array, including new and existing buttons. (Relates to #72)
+- Update `tests/renderer/components/tools/MaintenanceTool.test.tsx` to reflect the new number (12) and order of Set Up buttons. (Relates to #72)
+- Adjust the internal order of navigation items in `src/renderer/components/tools/ToolsPanel.tsx`. (Relates to #72)
+- Refactor `src/main/services/workflow.service.ts` to improve logic for adding new entries to `CHANGELOG.md`, ensuring proper blank line spacing after headings and inserting new entries before existing bullets. (Relates to #72)
+- Update `tests/main/services/workflow.service.test.ts` to verify the new `workflow.service` logic for changelog entry insertion, including blank line spacing after headings and correct ordering of new entries. (Relates to #72)
+- Update `updater.service` mock environment service to be mutable for improved test flexibility in `tests/main/services/updater.service.test.ts`. (Relates to #72)
+- Change mock reset method from `vi.clearAllMocks()` to `vi.resetAllMocks()` in `tests/main/services/version.service.test.ts`.
+- Change test object property `name` to `source` for 'Node.js' entry in `tests/renderer/components/tools/MaintenanceTool.test.tsx`.
+- Clean up empty lines in `CHANGELOG.md`. (Relates to #72)
+- Update imports to include `afterEach` and `fireEvent` in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Update imports to include `act` in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/CoverageEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/EditorConfigEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/HooksPanel.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/LintEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/TestEditor.test.tsx`. (Relates to #72)
+- Add `Smile` and `Upload` icon exports to `lucide-react` mock (`tests/mocks/lucide-react.tsx`) (#72)
+- Refactor test setup for `GitHubConfigYamlEditor` to use `vi.hoisted` for IPC mock and introduce mocks for `Button` and `GitHubConfigFields` components (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
+- Update `GitHubConfigYamlEditor` test imports, replacing `userEvent` with `fireEvent` (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
+- Refactor test mocks in `tests/main/services/notification.service.test.ts` to use `vi.hoisted` for better isolation and control (#72)
+- Remove generic test cases for service initialization in `tests/main/services/notification.service.test.ts` (#72)
 - Git hooks pre-push actions now disabled by default for all ecosystem presets (Node, Python, Rust) — users can enable them via the Hooks GUI after installation ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
 - CLI Explorer command input now editable — users can type custom arguments directly in the `$` input field, with Enter key support to run
 - CLI `--help` parser improved: `parseSubcommands()` now detects git-style lowercase section headers with indented commands; `parseFlags()` handles `--flag=VALUE` patterns
 
 ### Removed
 
+- Remove `WorkflowButtons` import from `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Remove explicit `env-file`, `hooks`, and `typecheck` button definitions and their associated handlers from the old structure in `src/renderer/components/tools/MaintenanceTool.tsx` as they are now part of the unified `allButtons` array. (Relates to #72)
+- Remove pre-commit hooks configuration from `.pre-commit-config.yaml`. (Relates to #72)
 - Remotes dropdown button from Development screen header — redundant now that Dev Tools Info section has a Remotes button running `git remote -v` in the terminal (remotes data fetching preserved for fork-aware PR creation)
 
 ### Fixed

@@ -21,6 +21,17 @@ vi.mock('react-markdown', () => ({
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
+// Mock sub-issue modals
+vi.mock('../../../../src/renderer/components/issues/CreateSubIssueModal', () => ({
+  CreateSubIssueModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="create-sub-issue-modal" /> : null,
+}));
+
+vi.mock('../../../../src/renderer/components/issues/AddExistingSubIssueModal', () => ({
+  AddExistingSubIssueModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="add-existing-sub-issue-modal" /> : null,
+}));
+
 import { DevelopmentIssueDetailModal } from '../../../../src/renderer/components/issues/DevelopmentIssueDetailModal';
 
 const baseIssue = {
@@ -942,6 +953,226 @@ describe('DevelopmentIssueDetailModal', () => {
 
       await waitFor(() => {
         expect(onClose).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('close issue menu', () => {
+    it('shows close menu with all options', async () => {
+      setupMockIPC();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      let closeBtn!: HTMLElement;
+      await waitFor(() => {
+        const match = screen
+          .getAllByText('Close')
+          .find((el) => el.closest('button[data-variant="destructive"]'));
+        expect(match).toBeDefined();
+        closeBtn = match!;
+      });
+
+      await user.click(closeBtn);
+      expect(screen.getByText('Close as completed')).toBeDefined();
+      expect(screen.getByText('Close as not planned')).toBeDefined();
+      expect(screen.getByText('Close as duplicate')).toBeDefined();
+    });
+
+    it('closes issue as not planned', async () => {
+      setupMockIPC();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      let closeBtn!: HTMLElement;
+      await waitFor(() => {
+        const match = screen
+          .getAllByText('Close')
+          .find((el) => el.closest('button[data-variant="destructive"]'));
+        expect(match).toBeDefined();
+        closeBtn = match!;
+      });
+
+      await user.click(closeBtn);
+      await user.click(screen.getByText('Close as not planned'));
+
+      await waitFor(() => {
+        const calls = mockInvoke.mock.calls.filter(
+          (c: unknown[]) => c[0] === 'github:update-issue'
+        );
+        expect(calls.length).toBeGreaterThanOrEqual(1);
+        expect(calls[0]).toEqual([
+          'github:update-issue',
+          'org',
+          'repo',
+          10,
+          { state: 'closed', state_reason: 'not_planned' },
+        ]);
+      });
+    });
+
+    it('opens duplicate search when clicking Close as duplicate', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:get-issue') return baseIssueDetail;
+        if (channel === 'github:list-issue-comments') return [];
+        if (channel === 'github:list-issue-reactions') return [];
+        if (channel === 'github:list-sub-issues') return [];
+        if (channel === 'github:get-parent-issue') return null;
+        if (channel === 'github:list-issues')
+          return [{ number: 5, title: 'Similar bug', state: 'open', labels: [] }];
+        return undefined;
+      });
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      let closeBtn!: HTMLElement;
+      await waitFor(() => {
+        const match = screen
+          .getAllByText('Close')
+          .find((el) => el.closest('button[data-variant="destructive"]'));
+        expect(match).toBeDefined();
+        closeBtn = match!;
+      });
+
+      await user.click(closeBtn);
+      await user.click(screen.getByText('Close as duplicate'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Select duplicate issue')).toBeDefined();
+      });
+
+      // Should show the issue from the search results
+      await waitFor(() => {
+        expect(screen.getByText('Similar bug')).toBeDefined();
+      });
+    });
+  });
+
+  // NOTE: inline rendering test skipped — component uses DialogTitle in header
+  // which requires Dialog context even in inline mode (known tech debt).
+
+  describe('sub-issue modals', () => {
+    it('opens create sub-issue modal from dropdown', async () => {
+      setupMockIPC();
+      const user = userEvent.setup();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Click 'Create sub-issue' button to open dropdown
+      await user.click(screen.getByText('Create sub-issue'));
+
+      // Wait for dropdown to appear with both options
+      await waitFor(() => {
+        expect(screen.getByText('Add existing issue')).toBeDefined();
+      });
+
+      // Click 'Create sub-issue' menu item (second one in the dropdown)
+      const createItems = screen.getAllByText('Create sub-issue');
+      // The dropdown menu item should be the last one
+      await user.click(createItems[createItems.length - 1]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-sub-issue-modal')).toBeDefined();
+      });
+    });
+
+    it('opens add existing sub-issue modal from dropdown', async () => {
+      setupMockIPC();
+      const user = userEvent.setup();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Create sub-issue'));
+      await waitFor(() => {
+        expect(screen.getByText('Add existing issue')).toBeDefined();
+      });
+      await user.click(screen.getByText('Add existing issue'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-existing-sub-issue-modal')).toBeDefined();
+      });
+    });
+  });
+
+  describe('branchBadge variants', () => {
+    it('renders Primary badge with purple styling', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          branchBadge="Primary"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Primary')).toBeDefined();
+      });
+    });
+
+    it('renders Secondary badge with yellow styling', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          branchBadge="Secondary"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Secondary')).toBeDefined();
       });
     });
   });

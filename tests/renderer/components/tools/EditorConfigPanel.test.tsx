@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -56,7 +56,9 @@ describe('EditorConfigPanel', () => {
   // ── Setup mode (no config) ──
 
   it('renders setup mode when hasEditorConfig is false', async () => {
-    render(<EditorConfigPanel {...defaultProps} />);
+    await act(async () => {
+      render(<EditorConfigPanel {...defaultProps} />);
+    });
     expect(screen.getByText('Editor Config Setup')).toBeDefined();
     expect(screen.getByText('Create .editorconfig')).toBeDefined();
   });

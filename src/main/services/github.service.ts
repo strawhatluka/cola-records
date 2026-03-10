@@ -1,5 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- GitHub API caching uses generic response types */
-import type { GitHubIssue, GitHubRepository } from '../ipc/channels';
+import type {
+  GitHubIssue,
+  GitHubIssueDetail,
+  GitHubPullRequestResult,
+  GitHubRateLimit,
+  GitHubRepository,
+  GitHubRepositorySearchResult,
+  GitHubUserRepository,
+  RepositoryTreeEntry,
+} from '../ipc/channels';
 import { gitHubGraphQLService } from './github-graphql.service';
 import { gitHubRestService } from './github-rest.service';
 import { database } from '../database';
@@ -127,7 +135,7 @@ export class GitHubService {
     repo: string,
     issueNumber: number,
     skipCache = false
-  ): Promise<any> {
+  ): Promise<GitHubIssueDetail> {
     const cacheKey = this.getCacheKey('issue', owner, repo, issueNumber);
 
     return this.getCached(
@@ -169,14 +177,14 @@ export class GitHubService {
     head: string,
     base: string,
     body: string
-  ): Promise<any> {
+  ): Promise<GitHubPullRequestResult> {
     return gitHubRestService.createPullRequest(owner, repo, title, head, base, body);
   }
 
   /**
    * Get user repositories
    */
-  async getUserRepositories(username?: string, skipCache = false): Promise<any[]> {
+  async getUserRepositories(username?: string, skipCache = false): Promise<GitHubUserRepository[]> {
     const cacheKey = this.getCacheKey('repos', username || 'authenticated');
 
     return this.getCached(
@@ -189,7 +197,11 @@ export class GitHubService {
   /**
    * Search repositories by topic
    */
-  async searchRepositoriesByTopic(topic: string, limit = 20, skipCache = false): Promise<any[]> {
+  async searchRepositoriesByTopic(
+    topic: string,
+    limit = 20,
+    skipCache = false
+  ): Promise<GitHubRepositorySearchResult[]> {
     const cacheKey = this.getCacheKey('repos-topic', topic, limit);
 
     return this.getCached(
@@ -202,7 +214,7 @@ export class GitHubService {
   /**
    * Get rate limit status
    */
-  async getRateLimit(): Promise<any> {
+  async getRateLimit(): Promise<GitHubRateLimit> {
     return gitHubRestService.getRateLimit();
   }
 
@@ -225,7 +237,11 @@ export class GitHubService {
   /**
    * Get repository file tree
    */
-  async getRepositoryTree(owner: string, repo: string, branch: string = 'main'): Promise<any> {
+  async getRepositoryTree(
+    owner: string,
+    repo: string,
+    branch: string = 'main'
+  ): Promise<RepositoryTreeEntry[]> {
     const cacheKey = this.getCacheKey('tree', owner, repo, branch);
 
     return this.getCached(

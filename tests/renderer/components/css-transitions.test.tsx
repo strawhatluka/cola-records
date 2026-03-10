@@ -33,7 +33,8 @@ vi.mock('react-router-dom', () => ({
 // Mock radix-ui dropdown for ThemeToggle
 vi.mock('@radix-ui/react-dropdown-menu', () => ({
   Root: ({ children }: any) => <div>{children}</div>,
-  Trigger: ({ children, asChild, ...props }: any) => <button {...props}>{children}</button>,
+  Trigger: ({ children, asChild, ...props }: any) =>
+    asChild ? <>{children}</> : <button {...props}>{children}</button>,
   Portal: ({ children }: any) => <div>{children}</div>,
   Content: ({ children }: any) => <div>{children}</div>,
   Item: ({ children, onSelect, ...props }: any) => (

@@ -51,12 +51,12 @@ interface ToolItem {
 
 const tools: ToolItem[] = [
   { id: 'dev-tools', label: 'Dev Tools', icon: Wrench },
+  { id: 'dev-scripts', label: 'Dev Scripts', icon: Code },
+  { id: 'github-config', label: 'GitHub Config', icon: FolderGit2 },
   { id: 'issues', label: 'Issues', icon: CircleDot },
   { id: 'pull-requests', label: 'Pull Requests', icon: GitPullRequest },
   { id: 'actions', label: 'Actions', icon: Play },
   { id: 'releases', label: 'Releases', icon: Tag },
-  { id: 'dev-scripts', label: 'Dev Scripts', icon: Code },
-  { id: 'github-config', label: 'GitHub Config', icon: FolderGit2 },
 ];
 
 interface GitRemote {

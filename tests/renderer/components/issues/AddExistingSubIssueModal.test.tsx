@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Mock IPC
@@ -50,16 +50,18 @@ describe('AddExistingSubIssueModal', () => {
   });
 
   it('renders dialog with title when open', async () => {
-    render(
-      <AddExistingSubIssueModal
-        open={true}
-        owner="org"
-        repo="repo"
-        parentIssueNumber={10}
-        onClose={mockOnClose}
-        onAdded={mockOnAdded}
-      />
-    );
+    await act(async () => {
+      render(
+        <AddExistingSubIssueModal
+          open={true}
+          owner="org"
+          repo="repo"
+          parentIssueNumber={10}
+          onClose={mockOnClose}
+          onAdded={mockOnAdded}
+        />
+      );
+    });
     expect(screen.getByText('Add Existing Issue')).toBeDefined();
     expect(screen.getByText(/Link an existing issue as a sub-issue of #10/)).toBeDefined();
   });

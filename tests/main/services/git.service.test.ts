@@ -82,6 +82,8 @@ const mockGitInstance = {
   remote: mockRemote,
   branch: mockBranch,
   raw: mockRaw,
+  tag: vi.fn(),
+  pushTags: vi.fn(),
 };
 
 vi.mock('simple-git', () => ({
@@ -305,6 +307,12 @@ describe('GitService', () => {
       const url = await service.getRemoteUrl('/repo');
       expect(url).toBeNull();
     });
+
+    it('returns null on error', async () => {
+      mockGetRemotes.mockRejectedValue(new Error('git error'));
+      const url = await service.getRemoteUrl('/repo');
+      expect(url).toBeNull();
+    });
   });
 
   describe('fetch', () => {
@@ -317,6 +325,11 @@ describe('GitService', () => {
       mockFetch.mockResolvedValue(undefined);
       await service.fetch('/repo', 'origin');
       expect(mockFetch).toHaveBeenCalledWith('origin');
+    });
+
+    it('throws on error', async () => {
+      mockFetch.mockRejectedValue(new Error('fetch failed'));
+      await expect(service.fetch('/repo', 'origin')).rejects.toThrow('Failed to fetch from');
     });
   });
 
@@ -580,6 +593,66 @@ describe('GitService', () => {
         'Failed to get branch info'
       );
     });
+
+    it('uses master as base branch when main does not exist', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+      mockLog.mockResolvedValue({
+        all: [{ hash: 'abc', message: 'test', author_name: 'User', date: '2026-01-01' }],
+        total: 10,
+      });
+      // Return branches without 'main' but with 'master'
+      mockBranchLocal.mockResolvedValue({ all: ['master', 'feature', 'develop'] });
+      mockRaw.mockResolvedValue('2\t3');
+
+      const info = await service.getBranchInfo('/repo', 'feature');
+      expect(info.ahead).toBe(3);
+      expect(info.behind).toBe(2);
+    });
+
+    it('uses dev as base branch when main and master do not exist', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature' });
+      mockLog.mockResolvedValue({
+        all: [{ hash: 'abc', message: 'test', author_name: 'User', date: '2026-01-01' }],
+        total: 10,
+      });
+      // Return branches without 'main' or 'master', but with 'dev'
+      mockBranchLocal.mockResolvedValue({ all: ['dev', 'feature'] });
+      mockRaw.mockResolvedValue('1\t4');
+
+      const info = await service.getBranchInfo('/repo', 'feature');
+      expect(info.ahead).toBe(4);
+      expect(info.behind).toBe(1);
+    });
+
+    it('uses first branch as base when no standard branches exist', async () => {
+      mockStatus.mockResolvedValue({ current: 'feature-2' });
+      mockLog.mockResolvedValue({
+        all: [{ hash: 'abc', message: 'test', author_name: 'User', date: '2026-01-01' }],
+        total: 10,
+      });
+      // Return branches without any standard base branches
+      mockBranchLocal.mockResolvedValue({ all: ['feature-1', 'feature-2'] });
+      mockRaw.mockResolvedValue('0\t5');
+
+      const info = await service.getBranchInfo('/repo', 'feature-2');
+      expect(info.ahead).toBe(5);
+      expect(info.behind).toBe(0);
+    });
+
+    it('handles when branch is same as base branch', async () => {
+      mockStatus.mockResolvedValue({ current: 'main' });
+      mockLog.mockResolvedValue({
+        all: [{ hash: 'abc', message: 'test', author_name: 'User', date: '2026-01-01' }],
+        total: 10,
+      });
+      mockBranchLocal.mockResolvedValue({ all: ['main'] });
+
+      const info = await service.getBranchInfo('/repo', 'main');
+      // When branch is same as base, no git rev-list should be called
+      expect(info.ahead).toBe(0);
+      expect(info.behind).toBe(0);
+      expect(mockRaw).not.toHaveBeenCalled();
+    });
   });
 
   describe('getCredentialsPath', () => {
@@ -708,6 +781,122 @@ describe('GitService', () => {
       });
 
       expect(() => service.migrateFromHostCredentials()).not.toThrow();
+    });
+  });
+
+  describe('getDiff', () => {
+    it('returns unstaged diff with ANSI codes stripped', async () => {
+      mockDiff.mockResolvedValue(
+        '\x1B[31m-removed line\x1B[0m\n\x1B[32m+added line\x1B[0m\ndiff --git a/file.ts'
+      );
+
+      const diff = await service.getDiff('/repo');
+
+      expect(diff).toBe('-removed line\n+added line\ndiff --git a/file.ts');
+      expect(mockDiff).toHaveBeenCalledWith(['--no-color']);
+    });
+
+    it('returns empty string when no changes', async () => {
+      mockDiff.mockResolvedValue('');
+
+      const diff = await service.getDiff('/repo');
+
+      expect(diff).toBe('');
+    });
+
+    it('throws on error', async () => {
+      mockDiff.mockRejectedValue(new Error('diff failed'));
+
+      await expect(service.getDiff('/repo')).rejects.toThrow('Failed to get diff');
+    });
+  });
+
+  describe('getDiffStaged', () => {
+    it('returns staged diff with ANSI codes stripped', async () => {
+      mockDiff.mockResolvedValue(
+        '\x1B[31m-old content\x1B[0m\n\x1B[32m+new content\x1B[0m\ndiff --git a/staged.ts'
+      );
+
+      const diff = await service.getDiffStaged('/repo');
+
+      expect(diff).toBe('-old content\n+new content\ndiff --git a/staged.ts');
+      expect(mockDiff).toHaveBeenCalledWith(['--cached', '--no-color']);
+    });
+
+    it('returns empty string when no staged changes', async () => {
+      mockDiff.mockResolvedValue('');
+
+      const diff = await service.getDiffStaged('/repo');
+
+      expect(diff).toBe('');
+    });
+
+    it('throws on error', async () => {
+      mockDiff.mockRejectedValue(new Error('diff failed'));
+
+      await expect(service.getDiffStaged('/repo')).rejects.toThrow('Failed to get staged diff');
+    });
+  });
+
+  describe('tag', () => {
+    beforeEach(() => {
+      mockGitInstance.tag.mockReset();
+    });
+
+    const mockTag = mockGitInstance.tag;
+
+    it('creates annotated tag with message', async () => {
+      mockTag.mockResolvedValue(undefined);
+
+      await service.tag('/repo', 'v1.0.0', 'Release version 1.0.0');
+
+      expect(mockTag).toHaveBeenCalledWith(['-a', 'v1.0.0', '-m', 'Release version 1.0.0']);
+    });
+
+    it('creates lightweight tag without message', async () => {
+      mockTag.mockResolvedValue(undefined);
+
+      await service.tag('/repo', 'v1.0.1');
+
+      expect(mockTag).toHaveBeenCalledWith(['v1.0.1']);
+    });
+
+    it('throws on error', async () => {
+      mockTag.mockRejectedValue(new Error('tag already exists'));
+
+      await expect(service.tag('/repo', 'v1.0.0')).rejects.toThrow('Failed to create tag');
+    });
+  });
+
+  describe('pushTags', () => {
+    beforeEach(() => {
+      mockGitInstance.pushTags.mockReset();
+      // Mock getRemotes for withAuthenticatedRemote
+      mockGetRemotes.mockResolvedValue([]);
+    });
+
+    const mockPushTags = mockGitInstance.pushTags;
+
+    it('pushes tags to default remote', async () => {
+      mockPushTags.mockResolvedValue(undefined);
+
+      await service.pushTags('/repo');
+
+      expect(mockPushTags).toHaveBeenCalledWith('origin');
+    });
+
+    it('pushes tags to specified remote', async () => {
+      mockPushTags.mockResolvedValue(undefined);
+
+      await service.pushTags('/repo', 'upstream');
+
+      expect(mockPushTags).toHaveBeenCalledWith('upstream');
+    });
+
+    it('throws on error', async () => {
+      mockPushTags.mockRejectedValue(new Error('push failed'));
+
+      await expect(service.pushTags('/repo')).rejects.toThrow('Failed to push tags');
     });
   });
 });

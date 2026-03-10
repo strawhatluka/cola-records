@@ -166,6 +166,28 @@ export const BellOff = createIcon('BellOff');
 export const Workflow = createIcon('Workflow');
 export const Plug = createIcon('Plug');
 
+// Discord icons
+export const BarChart3 = createIcon('BarChart3');
+export const TrendingUp = createIcon('TrendingUp');
+export const Smile = createIcon('Smile');
+export const Upload = createIcon('Upload');
+
 // GitHub Config icons
 export const Rocket = createIcon('Rocket');
 export const RotateCcw = createIcon('RotateCcw');
+
+// MessageList / Discord panel icons
+export const Pin = createIcon('Pin');
+export const PanelLeftOpen = createIcon('PanelLeftOpen');
+export const PanelLeftClose = createIcon('PanelLeftClose');
+
+// Package Manager panel icons
+export const FolderCog = createIcon('FolderCog');
+export const FolderPlus = createIcon('FolderPlus');
+export const FileJson = createIcon('FileJson');
+
+// Package Config Editor icons
+export const ArrowRightLeft = createIcon('ArrowRightLeft');
+
+// Issue modal icons
+export const Inbox = createIcon('Inbox');

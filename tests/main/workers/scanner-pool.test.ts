@@ -273,4 +273,148 @@ describe('Scanner Pool', () => {
       await scan2Promise;
     });
   });
+
+  describe('getWorkerPath() - packaged mode', () => {
+    it('uses production path when app.isPackaged is true', async () => {
+      // Reset modules and update the mock
+      vi.resetModules();
+      vi.doMock('electron', () => ({
+        app: {
+          isPackaged: true,
+        },
+      }));
+
+      // Import path mock to verify the join call
+      const pathMock = await import('path');
+      const pathJoinSpy = vi.spyOn(pathMock, 'join');
+
+      const scannerPool = await importScannerPool();
+
+      // Start a scan to trigger getWorkerPath()
+      const scanPromise = scannerPool.scan('/test', null);
+
+      // Verify path.join was called with __dirname (production path)
+      expect(pathJoinSpy).toHaveBeenCalled();
+      const joinCalls = pathJoinSpy.mock.calls;
+      const hasProductionPath = joinCalls.some(
+        (call) => call.includes('contribution-scanner.worker.js') && !call.includes('.vite/build/')
+      );
+      expect(hasProductionPath).toBe(true);
+
+      // Clean up promise
+      workerMessageHandler!({ type: 'result', data: [] });
+      await scanPromise;
+    });
+  });
+
+  describe('Worker constructor failure', () => {
+    it('rejects when Worker constructor throws', async () => {
+      // Reset modules to use a new Worker mock that throws
+      vi.resetModules();
+
+      class FailingMockWorker {
+        constructor() {
+          throw new Error('Worker spawn failed');
+        }
+      }
+
+      vi.doMock('worker_threads', () => ({
+        Worker: FailingMockWorker,
+      }));
+
+      const scannerPool = await importScannerPool();
+
+      // Attempt to scan should reject with constructor error
+      await expect(scannerPool.scan('/test', null)).rejects.toThrow(
+        'Failed to spawn scanner worker: Error: Worker spawn failed'
+      );
+    });
+  });
+
+  describe('Race condition handling - settled flag', () => {
+    beforeEach(async () => {
+      // Reset modules and re-establish mocks for these tests
+      vi.resetModules();
+      vi.doMock('worker_threads', () => ({
+        Worker: MockWorker,
+      }));
+      vi.doMock('electron', () => ({
+        app: {
+          isPackaged: false,
+        },
+      }));
+      MockWorker.mockClear();
+      workerMessageHandler = null;
+      workerErrorHandler = null;
+      workerExitHandler = null;
+    });
+
+    it('ignores message events after promise is already settled', async () => {
+      const scannerPool = await importScannerPool();
+
+      const scanPromise = scannerPool.scan('/test', null);
+
+      // First message settles the promise
+      workerMessageHandler!({ type: 'result', data: [{ test: 'data' }] });
+      await scanPromise;
+
+      // Second message should be ignored (settled = true)
+      // This tests the "if (settled) return;" branch on line 76
+      workerMessageHandler!({ type: 'result', data: [{ should: 'be ignored' }] });
+
+      // No assertion needed - we're testing that no error is thrown
+      expect(mockWorkerTerminate).toHaveBeenCalledTimes(1); // Only called once
+    });
+
+    it('ignores error events after promise is already settled', async () => {
+      const scannerPool = await importScannerPool();
+
+      const scanPromise = scannerPool.scan('/test', null);
+
+      // Settle with result first
+      workerMessageHandler!({ type: 'result', data: [] });
+      await scanPromise;
+
+      // Error event after settlement should be ignored
+      // This tests the "if (settled) return;" branch on line 89
+      workerErrorHandler!(new Error('Late error'));
+
+      // No additional termination or rejection
+      expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores exit events after promise is already settled', async () => {
+      const scannerPool = await importScannerPool();
+
+      const scanPromise = scannerPool.scan('/test', null);
+
+      // Settle with result first
+      workerMessageHandler!({ type: 'result', data: [] });
+      await scanPromise;
+
+      // Exit event after settlement should be ignored
+      // This tests the "if (settled) return;" branch on line 96
+      workerExitHandler!(1);
+
+      // No additional termination or rejection
+      expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores timeout when promise was already settled by result', async () => {
+      const scannerPool = await importScannerPool();
+
+      const scanPromise = scannerPool.scan('/test', null);
+
+      // Settle with result first
+      workerMessageHandler!({ type: 'result', data: [] });
+      await scanPromise;
+
+      // Advance time to trigger timeout - should be ignored due to settled flag
+      // This tests the "if (!settled)" branch on line 62
+      vi.advanceTimersByTime(30000);
+
+      // Still only one termination (from the result handler, not from timeout)
+      expect(mockWorkerTerminate).toHaveBeenCalledTimes(1);
+    });
+  });
 });

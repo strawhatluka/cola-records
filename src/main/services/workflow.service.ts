@@ -259,12 +259,23 @@ ${diff.slice(0, 12000)}`;
     for (const [category, bullets] of newSections) {
       const heading = `### ${category}`;
       const headingIndex = content.indexOf(heading);
-      const bulletText = '\n' + bullets.join('\n');
+      const bulletBlock = bullets.join('\n');
 
       if (headingIndex !== -1) {
-        // Find end of heading line, insert bullets right after
+        // Find the end of the heading line
         const endOfLine = content.indexOf('\n', headingIndex);
-        content = content.slice(0, endOfLine) + bulletText + content.slice(endOfLine);
+        const afterHeading = content.slice(endOfLine + 1);
+
+        // Find the first bullet line, skipping any blank lines after the heading
+        const firstBulletMatch = afterHeading.match(/^(\n*)(- )/);
+        if (firstBulletMatch) {
+          // Insert new bullets before existing bullets, preserving the blank line after heading
+          const insertAt = endOfLine + 1 + firstBulletMatch[1].length;
+          content = content.slice(0, insertAt) + bulletBlock + '\n' + content.slice(insertAt);
+        } else {
+          // No existing bullets under this heading — add after heading with blank line
+          content = content.slice(0, endOfLine) + '\n\n' + bulletBlock + content.slice(endOfLine);
+        }
       } else {
         // Category doesn't exist — add it at end of [Unreleased] section
         const nextVersionIndex = content.indexOf('\n## [', content.indexOf('## [Unreleased]') + 1);
@@ -273,7 +284,8 @@ ${diff.slice(0, 12000)}`;
           content.slice(0, insertAt).trimEnd() +
           '\n\n' +
           heading +
-          bulletText +
+          '\n\n' +
+          bulletBlock +
           '\n' +
           content.slice(insertAt);
       }

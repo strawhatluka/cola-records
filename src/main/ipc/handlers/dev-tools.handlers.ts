@@ -22,6 +22,9 @@ import { testConfigService } from '../../services/test-config.service';
 import { coverageConfigService } from '../../services/coverage-config.service';
 import { buildConfigService } from '../../services/build-config.service';
 import { lintConfigService } from '../../services/lint-config.service';
+import { packageManagerService } from '../../services/package-manager.service';
+import { packageConfigService } from '../../services/package-config.service';
+import { npmRegistryService } from '../../services/npm-registry.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -383,5 +386,39 @@ export function setupDevToolsHandlers(): void {
 
   handleIpc('dev-tools:get-lint-presets', async (_event, ecosystem, linter) => {
     return lintConfigService.getPresets(ecosystem, linter);
+  });
+
+  // Dev Tools — Package Manager handlers
+  handleIpc('dev-tools:get-pm-commands', async (_event, pm) => {
+    return packageManagerService.getCommands(pm);
+  });
+
+  handleIpc('dev-tools:get-pm-info', async (_event, workingDirectory, pm) => {
+    return await packageManagerService.getInfo(workingDirectory, pm);
+  });
+
+  handleIpc('dev-tools:get-pm-init-command', async (_event, pm) => {
+    return packageManagerService.getInitCommand(pm);
+  });
+
+  handleIpc('dev-tools:get-pm-dedupe-command', async (_event, pm) => {
+    return packageManagerService.getDedupeCommand(pm);
+  });
+
+  handleIpc('dev-tools:get-pm-lock-refresh-command', async (_event, pm) => {
+    return packageManagerService.getLockRefreshCommand(pm);
+  });
+
+  // Dev Tools — Package Config handlers
+  handleIpc('dev-tools:read-package-config', async (_event, workingDirectory, ecosystem) => {
+    return await packageConfigService.read(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:write-package-config', async (_event, workingDirectory, ecosystem, data) => {
+    return await packageConfigService.write(workingDirectory, ecosystem, data);
+  });
+
+  handleIpc('dev-tools:search-npm-registry', async (_event, query) => {
+    return await npmRegistryService.search(query);
   });
 }

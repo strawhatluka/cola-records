@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 
 const mockInvoke = vi.fn();
 vi.mock('../../../../src/renderer/ipc/client', () => ({
@@ -79,8 +79,10 @@ describe('ChannelList React.memo Optimization (ChannelItem)', () => {
     const updatedChannels = [
       createMockDiscordChannel({ id: 'ch_1', name: 'announcements', type: 0, position: 0 }),
     ];
-    useDiscordStore.setState({
-      guildChannels: { guild_1: updatedChannels },
+    act(() => {
+      useDiscordStore.setState({
+        guildChannels: { guild_1: updatedChannels },
+      });
     });
     rerender(<ChannelList />);
 
@@ -109,7 +111,9 @@ describe('ChannelList React.memo Optimization (ChannelItem)', () => {
     expect(screen.getByText('random')).toBeInTheDocument();
 
     // Select the 'general' channel
-    useDiscordStore.setState({ selectedChannelId: 'ch_1' });
+    act(() => {
+      useDiscordStore.setState({ selectedChannelId: 'ch_1' });
+    });
     rerender(<ChannelList />);
 
     // Both channels should still render after selection change

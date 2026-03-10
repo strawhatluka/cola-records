@@ -1,129 +1,626 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
-const mockInvoke = vi.fn();
-vi.mock('../../../../src/renderer/ipc/client', () => ({
-  ipc: {
-    invoke: (...args: unknown[]) => mockInvoke(...args),
-    send: vi.fn(),
-    on: vi.fn(() => vi.fn()),
-    platform: 'win32',
-    isDevelopment: true,
-  },
-}));
+// Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
-import { GitHubConfigYamlEditor } from '../../../../src/renderer/components/tools/GitHubConfigYamlEditor';
+// Mock IPC client
+const { mockInvoke } = vi.hoisted(() => ({
+  mockInvoke: vi.fn(),
+}));
+vi.mock('../../../../src/renderer/ipc/client', () => ({
+  ipc: { invoke: mockInvoke },
+}));
 
-const defaultProps = {
-  workingDirectory: '/test/project',
-  feature: {
+// Mock Button component
+vi.mock('../../../../src/renderer/components/ui/Button', () => ({
+  Button: ({
+    children,
+    onClick,
+    disabled,
+    ...props
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+    variant?: string;
+    size?: string;
+    className?: string;
+  }) => (
+    <button onClick={onClick} disabled={disabled} data-variant={props.variant}>
+      {children}
+    </button>
+  ),
+}));
+
+// Mock GitHubConfigFields - simple stub implementations
+vi.mock('../../../../src/renderer/components/tools/GitHubConfigFields', () => ({
+  ConfigNumber: ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: number;
+    onChange: (v: number) => void;
+  }) => (
+    <input
+      data-testid={`config-number-${label}`}
+      type="number"
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+    />
+  ),
+  ConfigSelect: ({
+    label,
+    value,
+    onChange,
+    options,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    options: { value: string; label: string }[];
+  }) => (
+    <select
+      data-testid={`config-select-${label}`}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  ),
+  ConfigText: ({
+    label,
+    value,
+    onChange,
+    placeholder,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
+    <input
+      data-testid={`config-text-${label}`}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+  ConfigTextarea: ({
+    label,
+    value,
+    onChange,
+    placeholder,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
+    <textarea
+      data-testid={`config-textarea-${label}`}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+  ConfigSwitch: ({
+    label,
+    checked,
+    onChange,
+  }: {
+    label: string;
+    checked: boolean;
+    onChange: (v: boolean) => void;
+  }) => (
+    <input
+      data-testid={`config-switch-${label}`}
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+    />
+  ),
+  ConfigSlider: ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: number;
+    onChange: (v: number) => void;
+  }) => (
+    <input
+      data-testid={`config-slider-${label}`}
+      type="range"
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+    />
+  ),
+  ConfigChipInput: ({
+    label,
+    values,
+    onChange,
+  }: {
+    label: string;
+    values: string[];
+    onChange: (v: string[]) => void;
+  }) => (
+    <input
+      data-testid={`config-chip-${label}`}
+      value={values.join(',')}
+      onChange={(e) => onChange(e.target.value.split(','))}
+    />
+  ),
+  ActionRow: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="action-row">{children}</div>
+  ),
+}));
+
+import { GitHubConfigYamlEditor } from '../../../../src/renderer/components/tools/GitHubConfigYamlEditor';
+import type { GitHubConfigFeature } from '../../../../src/main/ipc/channels/types';
+
+function createFeature(overrides: Partial<GitHubConfigFeature> = {}): GitHubConfigFeature {
+  return {
     id: 'dependabot',
     label: 'Dependabot',
+    description: 'Automated dependency updates',
     path: 'dependabot.yml',
-    category: 'yaml' as const,
     exists: true,
-    description: 'Dependabot configuration',
-    files: ['.github/dependabot.yml'],
-  },
-  onClose: vi.fn(),
-};
+    files: [],
+    ...overrides,
+  };
+}
+
+const DEPENDABOT_YAML = `version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+`;
+
+const FUNDING_YAML = `github: testuser
+patreon: mypatreon
+`;
+
+const STALE_YAML = `daysUntilStale: 60
+daysUntilClose: 7
+staleLabel: "stale"
+markComment: "This issue is stale"
+closeComment: "Closing stale issue"
+`;
 
 describe('GitHubConfigYamlEditor', () => {
+  const mockOnClose = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockInvoke.mockImplementation((channel: string) => {
-      if (channel === 'github-config:read-file') {
-        return Promise.resolve('version: 2\nupdates:\n  - package-ecosystem: npm\n');
-      }
-      if (channel === 'github-config:write-file') {
-        return Promise.resolve({ success: true, message: 'Saved' });
-      }
-      return Promise.resolve(null);
-    });
+    mockInvoke.mockReset();
   });
 
-  it('renders with feature label and path in the header', async () => {
-    render(<GitHubConfigYamlEditor {...defaultProps} />);
+  // ============================================
+  // Loading state
+  // ============================================
+  it('shows loading spinner while fetching config', () => {
+    mockInvoke.mockReturnValue(new Promise(() => {})); // Never resolves
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    expect(screen.getByTestId('icon-loader2')).toBeDefined();
+  });
+
+  // ============================================
+  // Dependabot form
+  // ============================================
+  it('renders dependabot form after loading', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-select-ecosystem')).toBeDefined();
+    });
+    expect(screen.getByTestId('config-select-interval')).toBeDefined();
+    expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    expect(screen.getByTestId('config-number-openPrLimit')).toBeDefined();
+  });
+
+  it('shows feature label and path in header', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
     await waitFor(() => {
       expect(screen.getByText('Dependabot')).toBeDefined();
     });
     expect(screen.getByText('.github/dependabot.yml')).toBeDefined();
   });
 
-  it('loads YAML content and parses into form fields', async () => {
-    render(<GitHubConfigYamlEditor {...defaultProps} />);
-    await waitFor(() => {
-      expect(screen.getByTestId('config-ecosystem')).toBeDefined();
-    });
-    expect(mockInvoke).toHaveBeenCalledWith(
-      'github-config:read-file',
-      '/test/project',
-      'dependabot.yml'
+  it('passes correct IPC channel to read file', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
     );
-
-    // Should have parsed ecosystem from YAML
-    const ecosystemSelect = screen.getByTestId('config-ecosystem') as HTMLSelectElement;
-    expect(ecosystemSelect.value).toBe('npm');
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('github-config:read-file', '/repo', 'dependabot.yml');
+    });
   });
 
-  it('saves modified content via github-config:write-file', async () => {
-    const user = userEvent.setup();
-    render(<GitHubConfigYamlEditor {...defaultProps} />);
+  // ============================================
+  // Save behavior
+  // ============================================
+  it('shows Save button that is disabled when not dirty', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
     await waitFor(() => {
-      expect(screen.getByTestId('config-interval')).toBeDefined();
+      expect(screen.getByText('Save')).toBeDefined();
     });
+    const saveBtn = screen.getByText('Save').closest('button')!;
+    expect(saveBtn.disabled).toBe(true);
+  });
 
-    // Change the schedule interval dropdown
-    const intervalSelect = screen.getByTestId('config-interval') as HTMLSelectElement;
-    await user.selectOptions(intervalSelect, 'daily');
-
+  it('enables Save button when form is modified', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
+    });
     const saveBtn = screen.getByText('Save').closest('button')!;
     expect(saveBtn.disabled).toBe(false);
-    await user.click(saveBtn);
+  });
+
+  it('shows "unsaved" text when form is dirty', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
+    });
+    expect(screen.getByText('unsaved')).toBeDefined();
+  });
+
+  it('calls write-file IPC on save', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
+    });
+
+    mockInvoke.mockResolvedValueOnce({ success: true });
+    fireEvent.click(screen.getByText('Save'));
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith(
         'github-config:write-file',
-        '/test/project',
+        '/repo',
         'dependabot.yml',
-        expect.any(String)
+        expect.stringContaining('/packages')
       );
     });
   });
 
-  it('close button calls onClose when content is clean', async () => {
-    const onClose = vi.fn();
-    const user = userEvent.setup();
-    render(<GitHubConfigYamlEditor {...defaultProps} onClose={onClose} />);
+  it('shows "Saved" status after successful save', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
     await waitFor(() => {
-      expect(screen.getByText('Dependabot')).toBeDefined();
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
     });
 
-    const closeBtn = screen.getByTestId('icon-x').closest('button')!;
-    await user.click(closeBtn);
+    mockInvoke.mockResolvedValueOnce({ success: true });
+    fireEvent.click(screen.getByText('Save'));
 
-    expect(onClose).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(screen.getByText('Saved')).toBeDefined();
+    });
   });
 
-  it('shows unsaved changes prompt when closing with dirty content', async () => {
-    const user = userEvent.setup();
-    render(<GitHubConfigYamlEditor {...defaultProps} />);
+  it('shows error message on save failure', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
     await waitFor(() => {
-      expect(screen.getByTestId('config-directory')).toBeDefined();
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
     });
 
-    // Modify a form field
-    const directoryInput = screen.getByTestId('config-directory') as HTMLInputElement;
-    await user.clear(directoryInput);
-    await user.type(directoryInput, '/src');
+    mockInvoke.mockResolvedValueOnce({ success: false, message: 'Write failed' });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Write failed')).toBeDefined();
+    });
+  });
+
+  // ============================================
+  // Close behavior
+  // ============================================
+  it('closes directly when not dirty', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-select-ecosystem')).toBeDefined();
+    });
+    const closeBtn = screen.getByTestId('icon-x').closest('button')!;
+    fireEvent.click(closeBtn);
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('shows unsaved prompt when closing with dirty form', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
+    });
 
     const closeBtn = screen.getByTestId('icon-x').closest('button')!;
-    await user.click(closeBtn);
-
+    fireEvent.click(closeBtn);
+    expect(mockOnClose).not.toHaveBeenCalled();
     expect(screen.getByText('You have unsaved changes.')).toBeDefined();
-    expect(screen.getByText('Save and close')).toBeDefined();
-    expect(screen.getByText('Close without saving')).toBeDefined();
+  });
+
+  it('closes without saving when "Close without saving" clicked', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
+    });
+
+    const closeBtn = screen.getByTestId('icon-x').closest('button')!;
+    fireEvent.click(closeBtn);
+
+    fireEvent.click(screen.getByText('Close without saving'));
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('saves and closes when "Save and close" clicked', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
+    });
+
+    const closeBtn = screen.getByTestId('icon-x').closest('button')!;
+    fireEvent.click(closeBtn);
+
+    mockInvoke.mockResolvedValueOnce({ success: true });
+    fireEvent.click(screen.getByText('Save and close'));
+
+    await waitFor(() => {
+      expect(mockOnClose).toHaveBeenCalled();
+    });
+  });
+
+  // ============================================
+  // Different feature types
+  // ============================================
+  it('renders funding form for funding feature', async () => {
+    mockInvoke.mockResolvedValueOnce(FUNDING_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature({ id: 'funding', label: 'Funding', path: 'FUNDING.yml' })}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-text-github')).toBeDefined();
+    });
+    expect(screen.getByTestId('config-text-patreon')).toBeDefined();
+    expect(screen.getByTestId('config-text-open_collective')).toBeDefined();
+    expect(screen.getByTestId('config-text-ko_fi')).toBeDefined();
+  });
+
+  it('renders stale form for stale feature', async () => {
+    mockInvoke.mockResolvedValueOnce(STALE_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature({ id: 'stale', label: 'Stale', path: '.github/stale.yml' })}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-slider-daysUntilStale')).toBeDefined();
+    });
+    expect(screen.getByTestId('config-slider-daysUntilClose')).toBeDefined();
+    expect(screen.getByTestId('config-text-staleLabel')).toBeDefined();
+  });
+
+  it('renders auto-assign form', async () => {
+    const autoAssignYaml = 'addReviewers: true\naddAssignees: author\nnumberOfReviewers: 2\n';
+    mockInvoke.mockResolvedValueOnce(autoAssignYaml);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature({
+          id: 'auto-assign',
+          label: 'Auto-Assign',
+          path: 'auto_assign.yml',
+        })}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-switch-addReviewers')).toBeDefined();
+    });
+    expect(screen.getByTestId('config-select-addAssignees')).toBeDefined();
+    expect(screen.getByTestId('config-number-numReviewers')).toBeDefined();
+  });
+
+  it('renders release-notes form', async () => {
+    const releaseNotesYaml = `changelog:
+  categories:
+    - title: "Features"
+      labels:
+        - enhancement
+    - title: "Bug Fixes"
+      labels:
+        - bug
+`;
+    mockInvoke.mockResolvedValueOnce(releaseNotesYaml);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature({
+          id: 'release-notes',
+          label: 'Release Notes',
+          path: 'release.yml',
+        })}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId('action-row').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it('renders labeler form', async () => {
+    const labelerYaml = `"frontend":
+  - "src/renderer/**"
+"backend":
+  - "src/main/**"
+`;
+    mockInvoke.mockResolvedValueOnce(labelerYaml);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature({ id: 'labeler', label: 'Labeler', path: 'labeler.yml' })}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId('action-row').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  // ============================================
+  // Error handling
+  // ============================================
+  it('shows error string when save throws', async () => {
+    mockInvoke.mockResolvedValueOnce(DEPENDABOT_YAML);
+    render(
+      <GitHubConfigYamlEditor
+        workingDirectory="/repo"
+        feature={createFeature()}
+        onClose={mockOnClose}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('config-text-directory')).toBeDefined();
+    });
+    fireEvent.change(screen.getByTestId('config-text-directory'), {
+      target: { value: '/packages' },
+    });
+
+    mockInvoke.mockRejectedValueOnce(new Error('Network error'));
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Error: Network error')).toBeDefined();
+    });
   });
 });

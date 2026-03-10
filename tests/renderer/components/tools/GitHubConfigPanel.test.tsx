@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const mockInvoke = vi.fn();
@@ -86,7 +86,9 @@ describe('GitHubConfigPanel', () => {
   });
 
   it('shows feature description in setup mode', async () => {
-    render(<GitHubConfigPanel {...defaultProps} />);
+    await act(async () => {
+      render(<GitHubConfigPanel {...defaultProps} />);
+    });
 
     expect(screen.getByText('Pull request template for your repository')).toBeDefined();
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 // React hooks used in test patterns
 
 const mockInvoke = vi.fn();
@@ -62,8 +62,10 @@ describe('MessageList useCallback Stability', () => {
     expect(screen.getByText('Test message')).toBeInTheDocument();
 
     // Add another message
-    useDiscordStore.setState({
-      messages: [...messages, createMockDiscordMessage({ id: 'msg_2', content: 'New message' })],
+    act(() => {
+      useDiscordStore.setState({
+        messages: [...messages, createMockDiscordMessage({ id: 'msg_2', content: 'New message' })],
+      });
     });
     rerender(<MessageList />);
 
@@ -159,12 +161,14 @@ describe('MessageList useCallback Stability', () => {
     expect(screen.getByText('First')).toBeInTheDocument();
 
     // Add more messages
-    useDiscordStore.setState({
-      messages: [
-        createMockDiscordMessage({ id: 'msg_1', content: 'First' }),
-        createMockDiscordMessage({ id: 'msg_2', content: 'Second' }),
-        createMockDiscordMessage({ id: 'msg_3', content: 'Third' }),
-      ],
+    act(() => {
+      useDiscordStore.setState({
+        messages: [
+          createMockDiscordMessage({ id: 'msg_1', content: 'First' }),
+          createMockDiscordMessage({ id: 'msg_2', content: 'Second' }),
+          createMockDiscordMessage({ id: 'msg_3', content: 'Third' }),
+        ],
+      });
     });
     rerender(<MessageList />);
 
@@ -185,9 +189,11 @@ describe('MessageList useCallback Stability', () => {
     expect(screen.getByText('Channel 1 message')).toBeInTheDocument();
 
     // Change channel
-    useDiscordStore.setState({
-      selectedChannelId: 'ch_2',
-      messages: [createMockDiscordMessage({ id: 'msg_2', content: 'Channel 2 message' })],
+    act(() => {
+      useDiscordStore.setState({
+        selectedChannelId: 'ch_2',
+        messages: [createMockDiscordMessage({ id: 'msg_2', content: 'Channel 2 message' })],
+      });
     });
     rerender(<MessageList />);
 

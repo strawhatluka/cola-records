@@ -27,7 +27,7 @@ import { versionService } from '../../../src/main/services/version.service';
 
 describe('VersionService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('bumpVersion', () => {
@@ -91,6 +91,86 @@ describe('VersionService', () => {
 
       expect(versions).toEqual([]);
     });
+
+    it('should detect pyproject.toml version', () => {
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        return String(filePath).endsWith('pyproject.toml');
+      });
+      vi.mocked(fs.readFileSync).mockReturnValue('[project]\nversion = "1.2.3"');
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      const pyVersion = versions.find((v) => v.relativePath === 'pyproject.toml');
+      expect(pyVersion).toBeDefined();
+      expect(pyVersion!.currentVersion).toBe('1.2.3');
+      expect(pyVersion!.packageManager).toBe('pip');
+    });
+
+    it('should detect setup.py version', () => {
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        return String(filePath).endsWith('setup.py');
+      });
+      vi.mocked(fs.readFileSync).mockReturnValue('setup(name="app", version=\'2.0.0\')');
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      const setupVersion = versions.find((v) => v.relativePath === 'setup.py');
+      expect(setupVersion).toBeDefined();
+      expect(setupVersion!.currentVersion).toBe('2.0.0');
+      expect(setupVersion!.packageManager).toBe('pip');
+    });
+
+    it('should detect build.gradle version', () => {
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        return String(filePath).endsWith('build.gradle');
+      });
+      vi.mocked(fs.readFileSync).mockReturnValue("version = '3.1.0'");
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      const gradleVersion = versions.find((v) => v.relativePath === 'build.gradle');
+      expect(gradleVersion).toBeDefined();
+      expect(gradleVersion!.currentVersion).toBe('3.1.0');
+      expect(gradleVersion!.packageManager).toBe('gradle');
+    });
+
+    it('should detect pom.xml version', () => {
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        return String(filePath).endsWith('pom.xml');
+      });
+      vi.mocked(fs.readFileSync).mockReturnValue('<project><version>4.0.0</version></project>');
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      const pomVersion = versions.find((v) => v.relativePath === 'pom.xml');
+      expect(pomVersion).toBeDefined();
+      expect(pomVersion!.currentVersion).toBe('4.0.0');
+      expect(pomVersion!.packageManager).toBe('maven');
+    });
+
+    it('should return null for invalid package.json', () => {
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        return String(filePath).endsWith('package.json') && !String(filePath).includes('lock');
+      });
+      vi.mocked(fs.readFileSync).mockReturnValue('{not valid json');
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      const pkgVersion = versions.find((v) => v.relativePath === 'package.json');
+      expect(pkgVersion).toBeUndefined();
+    });
+
+    it('should return null for pyproject.toml without version', () => {
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        return String(filePath).endsWith('pyproject.toml');
+      });
+      vi.mocked(fs.readFileSync).mockReturnValue('[project]\nname = "app"');
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      const pyVersion = versions.find((v) => v.relativePath === 'pyproject.toml');
+      expect(pyVersion).toBeUndefined();
+    });
   });
 
   describe('updateVersion', () => {
@@ -138,6 +218,99 @@ describe('VersionService', () => {
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('Permission denied');
+    });
+
+    it('should update Cargo.toml version', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue('[package]\nname = "myapp"\nversion = "0.5.2"\n');
+
+      const result = versionService.updateVersion('/test/repo', '1.0.0', ['Cargo.toml']);
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        path.join('/test/repo', 'Cargo.toml'),
+        expect.stringContaining('"1.0.0"')
+      );
+    });
+
+    it('should update pyproject.toml version', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue('[project]\nversion = "1.0.0"\n');
+
+      const result = versionService.updateVersion('/test/repo', '2.0.0', ['pyproject.toml']);
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        path.join('/test/repo', 'pyproject.toml'),
+        expect.stringContaining('"2.0.0"')
+      );
+    });
+
+    it('should update setup.py version', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue('setup(name="app", version=\'1.0.0\')');
+
+      const result = versionService.updateVersion('/test/repo', '2.0.0', ['setup.py']);
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        path.join('/test/repo', 'setup.py'),
+        expect.stringContaining("'2.0.0'")
+      );
+    });
+
+    it('should update build.gradle version', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue("version = '1.0.0'");
+
+      const result = versionService.updateVersion('/test/repo', '2.0.0', ['build.gradle']);
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        path.join('/test/repo', 'build.gradle'),
+        expect.stringContaining("'2.0.0'")
+      );
+    });
+
+    it('should update pom.xml version', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue('<project><version>1.0.0</version></project>');
+
+      const result = versionService.updateVersion('/test/repo', '2.0.0', ['pom.xml']);
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        path.join('/test/repo', 'pom.xml'),
+        expect.stringContaining('2.0.0')
+      );
+    });
+
+    it('should return unchanged content for unknown file type', () => {
+      const originalContent = 'some random content version 1.0.0';
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(originalContent);
+
+      const result = versionService.updateVersion('/test/repo', '2.0.0', ['unknown.txt']);
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        path.join('/test/repo', 'unknown.txt'),
+        originalContent
+      );
+    });
+
+    it('should handle invalid JSON in package.json during replace', () => {
+      const brokenJson = '{broken';
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(brokenJson);
+
+      const result = versionService.updateVersion('/test/repo', '2.0.0', ['package.json']);
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        path.join('/test/repo', 'package.json'),
+        brokenJson
+      );
     });
   });
 });

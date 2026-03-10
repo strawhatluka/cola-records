@@ -453,6 +453,396 @@ describe('HooksService', () => {
       expect(recs[0].tool).toBe('lefthook');
     });
   });
+
+  // ── setupHookTool: simple-git-hooks path ──
+
+  describe('setupHookTool with simple-git-hooks', () => {
+    it('writes config and runs npx simple-git-hooks after', async () => {
+      const result = await hooksService.setupHookTool(TEST_DIR, 'simple-git-hooks', 'node');
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('simple-git-hooks');
+
+      // Verify .simple-git-hooks.json was written
+      const content = JSON.parse(await readFile(path.join(TEST_DIR, '.simple-git-hooks.json')));
+      expect(content['pre-commit']).toBe('npx lint-staged');
+
+      // Verify npx simple-git-hooks was called after config write
+      const { execFile: mockExecFile } = await import('child_process');
+      expect(mockExecFile).toHaveBeenCalledWith(
+        'npx',
+        ['simple-git-hooks'],
+        expect.objectContaining({ cwd: TEST_DIR }),
+        expect.any(Function)
+      );
+    });
+  });
+
+  // ── setupHookTool: pre-commit path ──
+
+  describe('setupHookTool with pre-commit', () => {
+    it('writes config and runs pre-commit install during init', async () => {
+      const result = await hooksService.setupHookTool(TEST_DIR, 'pre-commit', 'python');
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('pre-commit');
+
+      // Verify .pre-commit-config.yaml was written
+      const content = await readFile(path.join(TEST_DIR, '.pre-commit-config.yaml'));
+      expect(content).toContain('repos:');
+
+      // Verify pre-commit install was called
+      const { execFile: mockExecFile } = await import('child_process');
+      expect(mockExecFile).toHaveBeenCalledWith(
+        'pre-commit',
+        ['install'],
+        expect.objectContaining({ cwd: TEST_DIR }),
+        expect.any(Function)
+      );
+    });
+  });
+
+  // ── initHookTool failure paths ──
+
+  describe('initHookTool failure paths', () => {
+    it('lefthook install failure is non-fatal', async () => {
+      const { execFile: mockExecFile } = await import('child_process');
+      vi.mocked(mockExecFile).mockImplementation(((
+        cmd: string,
+        args: string[],
+        _opts: unknown,
+        cb: (...a: unknown[]) => void
+      ) => {
+        if (cmd === 'npx' && args[0] === 'lefthook') {
+          cb(new Error('lefthook not found'), '', '');
+        } else {
+          cb(null, '', '');
+        }
+        return undefined as any;
+      }) as any);
+
+      const result = await hooksService.setupHookTool(TEST_DIR, 'lefthook', 'rust');
+      expect(result.success).toBe(true);
+
+      // Verify config was still written despite init failure
+      const content = await readFile(path.join(TEST_DIR, 'lefthook.yml'));
+      expect(content).toContain('cargo fmt');
+
+      // Restore default mock
+      vi.mocked(mockExecFile).mockImplementation(((
+        _cmd: string,
+        _args: string[],
+        _opts: unknown,
+        cb: (...a: unknown[]) => void
+      ) => {
+        cb(null, '', '');
+        return undefined as any;
+      }) as any);
+    });
+
+    it('pre-commit install failure is non-fatal', async () => {
+      const { execFile: mockExecFile } = await import('child_process');
+      vi.mocked(mockExecFile).mockImplementation(((
+        cmd: string,
+        _args: string[],
+        _opts: unknown,
+        cb: (...a: unknown[]) => void
+      ) => {
+        if (cmd === 'pre-commit') {
+          cb(new Error('pre-commit not found'), '', '');
+        } else {
+          cb(null, '', '');
+        }
+        return undefined as any;
+      }) as any);
+
+      const result = await hooksService.setupHookTool(TEST_DIR, 'pre-commit', 'python');
+      expect(result.success).toBe(true);
+
+      // Verify config was still written despite init failure
+      const content = await readFile(path.join(TEST_DIR, '.pre-commit-config.yaml'));
+      expect(content).toContain('repos:');
+
+      // Restore default mock
+      vi.mocked(mockExecFile).mockImplementation(((
+        _cmd: string,
+        _args: string[],
+        _opts: unknown,
+        cb: (...a: unknown[]) => void
+      ) => {
+        cb(null, '', '');
+        return undefined as any;
+      }) as any);
+    });
+  });
+
+  // ── writeConfig error path ──
+
+  describe('writeConfig error path', () => {
+    it('returns success:false when write throws', async () => {
+      // Create a file where the .husky directory should be — mkdir will fail
+      const blockerPath = path.join(TEST_DIR, '.husky');
+      await fs.writeFile(blockerPath, 'not-a-directory');
+      const config: HookConfig = {
+        hookTool: 'husky',
+        hooks: makeHooks('pre-commit', [{ command: 'npx lint-staged', label: 'lint-staged' }]),
+        lintStaged: null,
+      };
+      const result = await hooksService.writeConfig(TEST_DIR, config);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Failed to save');
+      // Cleanup: remove the blocker file so other tests aren't affected
+      await fs.unlink(blockerPath);
+    });
+  });
+
+  // ── writeConfig husky with git config failure ──
+
+  describe('writeConfig husky with git config failure', () => {
+    it('succeeds even when git config fails', async () => {
+      const { execFile: mockExecFile } = await import('child_process');
+      vi.mocked(mockExecFile).mockImplementation(((
+        cmd: string,
+        args: string[],
+        _opts: unknown,
+        cb: (...a: unknown[]) => void
+      ) => {
+        if (cmd === 'git' && args[0] === 'config') {
+          cb(new Error('not a git repo'), '', '');
+        } else {
+          cb(null, '', '');
+        }
+        return undefined as any;
+      }) as any);
+
+      await ensureDir(path.join(TEST_DIR, '.husky'));
+      const config: HookConfig = {
+        hookTool: 'husky',
+        hooks: makeHooks('pre-commit', [{ command: 'npx lint-staged', label: 'lint-staged' }]),
+        lintStaged: null,
+      };
+      const result = await hooksService.writeConfig(TEST_DIR, config);
+      expect(result.success).toBe(true);
+
+      // Verify hooks were still written
+      const content = await readFile(path.join(TEST_DIR, '.husky', 'pre-commit'));
+      expect(content).toContain('npx lint-staged');
+
+      // Restore default mock
+      vi.mocked(mockExecFile).mockImplementation(((
+        _cmd: string,
+        _args: string[],
+        _opts: unknown,
+        cb: (...a: unknown[]) => void
+      ) => {
+        cb(null, '', '');
+        return undefined as any;
+      }) as any);
+    });
+  });
+
+  // ── readSimpleGitHooks from package.json ──
+
+  describe('readSimpleGitHooks from package.json', () => {
+    it('reads config from package.json key when .simple-git-hooks.json is missing', async () => {
+      await writeFile(
+        path.join(TEST_DIR, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          'simple-git-hooks': {
+            'pre-commit': 'npx lint-staged',
+            'commit-msg': 'npx commitlint --edit',
+          },
+        })
+      );
+      const config = await hooksService.readConfig(TEST_DIR, 'simple-git-hooks');
+      expect(config.hooks['pre-commit']).toHaveLength(1);
+      expect(config.hooks['pre-commit'][0].command).toBe('npx lint-staged');
+      expect(config.hooks['commit-msg']).toHaveLength(1);
+      expect(config.hooks['commit-msg'][0].command).toBe('npx commitlint --edit');
+    });
+
+    it('returns empty hooks when package.json has non-object simple-git-hooks value', async () => {
+      await writeFile(
+        path.join(TEST_DIR, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          'simple-git-hooks': 'invalid',
+        })
+      );
+      const config = await hooksService.readConfig(TEST_DIR, 'simple-git-hooks');
+      for (const hookName of [
+        'pre-commit',
+        'commit-msg',
+        'pre-push',
+        'post-merge',
+        'post-checkout',
+      ] as const) {
+        expect(config.hooks[hookName]).toHaveLength(0);
+      }
+    });
+  });
+
+  // ── readPreCommit with stages and defaults ──
+
+  describe('readPreCommit with stages', () => {
+    it('reads hooks with explicit stages', async () => {
+      await writeFile(
+        path.join(TEST_DIR, '.pre-commit-config.yaml'),
+        [
+          'repos:',
+          '  - repo: local',
+          '    hooks:',
+          '      - id: mycheck',
+          '        name: My Check',
+          '        stages: [pre-push, pre-commit]',
+        ].join('\n') + '\n'
+      );
+      const config = await hooksService.readConfig(TEST_DIR, 'pre-commit');
+      expect(config.hooks['pre-push']).toHaveLength(1);
+      expect(config.hooks['pre-push'][0].command).toBe('mycheck');
+      expect(config.hooks['pre-push'][0].label).toBe('My Check');
+      expect(config.hooks['pre-commit']).toHaveLength(1);
+      expect(config.hooks['pre-commit'][0].command).toBe('mycheck');
+    });
+
+    it('defaults hook to pre-commit when no stages and followed by next repo line', async () => {
+      await writeFile(
+        path.join(TEST_DIR, '.pre-commit-config.yaml'),
+        [
+          'repos:',
+          '  - repo: local',
+          '    hooks:',
+          '      - id: trailing-whitespace',
+          '        name: Trailing Whitespace',
+          '  - repo: https://github.com/other/repo',
+          '    hooks:',
+          '      - id: another-hook',
+        ].join('\n') + '\n'
+      );
+      const config = await hooksService.readConfig(TEST_DIR, 'pre-commit');
+      // trailing-whitespace should default to pre-commit (followed by repo line)
+      expect(config.hooks['pre-commit'].length).toBeGreaterThanOrEqual(1);
+      const twHook = config.hooks['pre-commit'].find((h) => h.command === 'trailing-whitespace');
+      expect(twHook).toBeDefined();
+      expect(twHook!.label).toBe('Trailing Whitespace');
+    });
+
+    it('defaults last hook to pre-commit when no trailing repo line', async () => {
+      await writeFile(
+        path.join(TEST_DIR, '.pre-commit-config.yaml'),
+        [
+          'repos:',
+          '  - repo: local',
+          '    hooks:',
+          '      - id: final-hook',
+          '        name: Final Hook',
+        ].join('\n') + '\n'
+      );
+      const config = await hooksService.readConfig(TEST_DIR, 'pre-commit');
+      expect(config.hooks['pre-commit']).toHaveLength(1);
+      expect(config.hooks['pre-commit'][0].command).toBe('final-hook');
+      expect(config.hooks['pre-commit'][0].label).toBe('Final Hook');
+    });
+  });
+
+  // ── addPrepareScript edge cases ──
+
+  describe('addPrepareScript edge cases', () => {
+    it('does not overwrite existing prepare script', async () => {
+      await writeFile(
+        path.join(TEST_DIR, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          scripts: { prepare: 'existing-command' },
+        })
+      );
+      await hooksService.setupHookTool(TEST_DIR, 'husky', 'node');
+      const pkg = JSON.parse(await readFile(path.join(TEST_DIR, 'package.json')));
+      expect(pkg.scripts.prepare).toBe('existing-command');
+    });
+
+    it('skips silently when no package.json exists', async () => {
+      // No package.json in TEST_DIR — addPrepareScript should not throw
+      const result = await hooksService.setupHookTool(TEST_DIR, 'husky', 'node');
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ── lint-staged: only writes enabled rules ──
+
+  describe('lint-staged enabled/disabled rules', () => {
+    it('only writes enabled rules to package.json', async () => {
+      await writeFile(path.join(TEST_DIR, 'package.json'), JSON.stringify({ name: 'test' }));
+      const result = await hooksService.setupLintStaged(TEST_DIR, {
+        enabled: true,
+        rules: [
+          { id: '1', pattern: '*.ts', commands: ['eslint --fix'], enabled: true },
+          { id: '2', pattern: '*.css', commands: ['prettier --write'], enabled: false },
+        ],
+      });
+      expect(result.success).toBe(true);
+      const content = JSON.parse(await readFile(path.join(TEST_DIR, 'package.json')));
+      expect(content['lint-staged']['*.ts']).toEqual(['eslint --fix']);
+      expect(content['lint-staged']['*.css']).toBeUndefined();
+    });
+  });
+
+  // ── lint-staged write error ──
+
+  describe('lint-staged write error', () => {
+    it('returns error when no package.json exists', async () => {
+      const result = await hooksService.setupLintStaged(TEST_DIR, {
+        enabled: true,
+        rules: [{ id: '1', pattern: '*.ts', commands: ['eslint --fix'], enabled: true }],
+      });
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Failed to save lint-staged');
+    });
+  });
+
+  // ── lint-staged null when no key ──
+
+  describe('lint-staged null when no key', () => {
+    it('returns null lintStaged when package.json has no lint-staged key', async () => {
+      await writeFile(path.join(TEST_DIR, 'package.json'), JSON.stringify({ name: 'test' }));
+      const config = await hooksService.readConfig(TEST_DIR, 'husky');
+      expect(config.lintStaged).toBeNull();
+    });
+  });
+
+  // ── detect with Go recommendations ──
+
+  describe('detect with Go recommendations', () => {
+    it('returns lefthook first for Go ecosystem', () => {
+      const recs = hooksService.getRecommendations('go');
+      expect(recs[0].tool).toBe('lefthook');
+      expect(recs.length).toBe(2);
+      expect(recs[1].tool).toBe('husky');
+    });
+  });
+
+  // ── Husky read with comments and shebang ──
+
+  describe('Husky read with comments and shebang', () => {
+    it('filters out comment and shebang lines', async () => {
+      await ensureDir(path.join(TEST_DIR, '.husky'));
+      await writeFile(
+        path.join(TEST_DIR, '.husky', 'pre-commit'),
+        [
+          '#!/usr/bin/env sh',
+          '# This is a comment',
+          '# Another comment line',
+          'npx lint-staged',
+          '# inline comment line',
+          'npm test',
+        ].join('\n') + '\n'
+      );
+      const config = await hooksService.readConfig(TEST_DIR, 'husky');
+      // Only actual commands should remain, not shebang or comment lines
+      expect(config.hooks['pre-commit']).toHaveLength(2);
+      expect(config.hooks['pre-commit'][0].command).toBe('npx lint-staged');
+      expect(config.hooks['pre-commit'][1].command).toBe('npm test');
+    });
+  });
 });
 
 // ── Helpers ──

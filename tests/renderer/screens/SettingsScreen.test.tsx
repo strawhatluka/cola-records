@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -75,13 +75,17 @@ describe('SettingsScreen', () => {
     });
   });
 
-  it('renders settings heading', () => {
-    render(<SettingsScreen />);
+  it('renders settings heading', async () => {
+    await act(async () => {
+      render(<SettingsScreen />);
+    });
     expect(screen.getByText('Settings')).toBeDefined();
   });
 
-  it('renders all 6 tab buttons', () => {
-    render(<SettingsScreen />);
+  it('renders all 6 tab buttons', async () => {
+    await act(async () => {
+      render(<SettingsScreen />);
+    });
     // Use getAllByText since 'General' appears both as tab button and card title
     const generalElements = screen.getAllByText('General');
     expect(generalElements.length).toBeGreaterThanOrEqual(1);
@@ -92,8 +96,10 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Notifications')).toBeDefined();
   });
 
-  it('shows General tab content by default', () => {
-    render(<SettingsScreen />);
+  it('shows General tab content by default', async () => {
+    await act(async () => {
+      render(<SettingsScreen />);
+    });
     expect(screen.getByText('Default Contributions Directory')).toBeDefined();
   });
 
@@ -125,8 +131,10 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Startup Behavior')).toBeDefined();
   });
 
-  it('default active tab is General', () => {
-    render(<SettingsScreen />);
+  it('default active tab is General', async () => {
+    await act(async () => {
+      render(<SettingsScreen />);
+    });
     // General tab content should be visible
     expect(screen.getByText('Default Contributions Directory')).toBeDefined();
     // Code Server content should NOT be visible
