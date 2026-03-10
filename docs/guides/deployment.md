@@ -57,6 +57,25 @@ npm run release
 npm run release:draft
 ```
 
+### Testing & Quality
+
+```bash
+# Run test suite
+npm test
+
+# Watch mode testing
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+
+# Auto-fix lint issues
+npm run lint:fix
+
+# Check formatting
+npm run format:check
+```
+
 ## Output Directory
 
 Built applications are output to the `out/` directory:
@@ -392,7 +411,7 @@ Update version in `package.json` before release:
 
 ```json
 {
-  "version": "1.0.0"
+  "version": "1.0.11"
 }
 ```
 

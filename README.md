@@ -38,13 +38,13 @@ Download the latest release from [GitHub Releases](https://github.com/lukadfagun
 **Debian/Ubuntu:**
 
 ```bash
-sudo dpkg -i cola-records_1.0.0_amd64.deb
+sudo dpkg -i cola-records_<version>_amd64.deb
 ```
 
 **Fedora/RHEL:**
 
 ```bash
-sudo rpm -i cola-records-1.0.0.x86_64.rpm
+sudo rpm -i cola-records-<version>.x86_64.rpm
 ```
 
 ## Requirements
