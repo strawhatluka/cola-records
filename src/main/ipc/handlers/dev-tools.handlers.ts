@@ -23,6 +23,8 @@ import { coverageConfigService } from '../../services/coverage-config.service';
 import { buildConfigService } from '../../services/build-config.service';
 import { lintConfigService } from '../../services/lint-config.service';
 import { packageManagerService } from '../../services/package-manager.service';
+import { packageConfigService } from '../../services/package-config.service';
+import { npmRegistryService } from '../../services/npm-registry.service';
 
 export function setupDevToolsHandlers(): void {
   // Code Server handlers
@@ -405,5 +407,18 @@ export function setupDevToolsHandlers(): void {
 
   handleIpc('dev-tools:get-pm-lock-refresh-command', async (_event, pm) => {
     return packageManagerService.getLockRefreshCommand(pm);
+  });
+
+  // Dev Tools — Package Config handlers
+  handleIpc('dev-tools:read-package-config', async (_event, workingDirectory, ecosystem) => {
+    return await packageConfigService.read(workingDirectory, ecosystem);
+  });
+
+  handleIpc('dev-tools:write-package-config', async (_event, workingDirectory, ecosystem, data) => {
+    return await packageConfigService.write(workingDirectory, ecosystem, data);
+  });
+
+  handleIpc('dev-tools:search-npm-registry', async (_event, query) => {
+    return await npmRegistryService.search(query);
   });
 }

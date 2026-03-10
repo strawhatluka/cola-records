@@ -60,6 +60,8 @@ import type {
   ESLintConfig,
   PMInfo,
   PackageManager,
+  PackageConfigData,
+  NpmSearchResult,
   AppNotification,
   NotificationPreferences,
   GitHubConfigScanResult,
@@ -346,6 +348,18 @@ export interface CoreChannels {
   'dev-tools:get-pm-init-command': (pm: PackageManager) => string | null;
   'dev-tools:get-pm-dedupe-command': (pm: PackageManager) => string | null;
   'dev-tools:get-pm-lock-refresh-command': (pm: PackageManager) => string | null;
+
+  // Dev Tools — Package Config Channels
+  'dev-tools:read-package-config': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => PackageConfigData | null;
+  'dev-tools:write-package-config': (
+    workingDirectory: string,
+    ecosystem: Ecosystem,
+    data: PackageConfigData
+  ) => SetUpActionResult;
+  'dev-tools:search-npm-registry': (query: string) => NpmSearchResult[];
 
   // AI Channels
   'ai:complete': (prompt: string, maxTokens?: number) => AICompletionResponse;

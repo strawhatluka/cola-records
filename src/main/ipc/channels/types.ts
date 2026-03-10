@@ -597,6 +597,21 @@ export interface PMInfo {
   registry: string | null;
 }
 
+export interface PackageConfigData {
+  ecosystem: Ecosystem;
+  fileName: string;
+  structured: Record<string, unknown> | null;
+  raw: string;
+  indent: string | number;
+}
+
+export interface NpmSearchResult {
+  name: string;
+  description: string;
+  version: string;
+  date: string;
+}
+
 // Env Scanner Types
 export interface EnvSourceLocation {
   file: string;

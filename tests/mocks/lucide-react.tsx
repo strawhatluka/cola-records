@@ -184,6 +184,10 @@ export const PanelLeftClose = createIcon('PanelLeftClose');
 // Package Manager panel icons
 export const FolderCog = createIcon('FolderCog');
 export const FolderPlus = createIcon('FolderPlus');
+export const FileJson = createIcon('FileJson');
+
+// Package Config Editor icons
+export const ArrowRightLeft = createIcon('ArrowRightLeft');
 
 // Issue modal icons
 export const Inbox = createIcon('Inbox');

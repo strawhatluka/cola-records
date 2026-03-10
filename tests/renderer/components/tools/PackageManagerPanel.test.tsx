@@ -19,6 +19,7 @@ const defaultProps = {
   packageManager: 'npm' as const,
   onClose: vi.fn(),
   onRunCommand: vi.fn(),
+  onOpenEditor: vi.fn(),
 };
 
 describe('PackageManagerPanel', () => {
@@ -33,13 +34,43 @@ describe('PackageManagerPanel', () => {
       expect(screen.getByTestId('icon-x')).toBeDefined();
     });
 
-    it('renders 5 action buttons', () => {
+    it('renders 6 action buttons including Package Config', () => {
       render(<PackageManagerPanel {...defaultProps} />);
+      expect(screen.getByText('Package Config')).toBeDefined();
       expect(screen.getByText('Init')).toBeDefined();
       expect(screen.getByText('Registry')).toBeDefined();
       expect(screen.getByText('Dedupe')).toBeDefined();
       expect(screen.getByText('Lock Refresh')).toBeDefined();
       expect(screen.getByText('Info')).toBeDefined();
+    });
+
+    it('renders Package Config as first button in action grid', () => {
+      render(<PackageManagerPanel {...defaultProps} />);
+      const buttons = screen
+        .getByText('Package Manager')
+        .closest('.rounded-lg')!
+        .querySelectorAll('button');
+      // First button after the header close button is Package Config
+      const actionButtons = Array.from(buttons).filter(
+        (btn) =>
+          btn.textContent?.includes('Package Config') ||
+          btn.textContent?.includes('Init') ||
+          btn.textContent?.includes('Registry') ||
+          btn.textContent?.includes('Dedupe') ||
+          btn.textContent?.includes('Lock Refresh') ||
+          btn.textContent?.includes('Info')
+      );
+      expect(actionButtons[0]?.textContent).toContain('Package Config');
+    });
+
+    it('calls onOpenEditor when Package Config button clicked', async () => {
+      const onOpenEditor = vi.fn();
+      render(<PackageManagerPanel {...defaultProps} onOpenEditor={onOpenEditor} />);
+
+      const packageConfigButton = screen.getByText('Package Config').closest('button')!;
+      await userEvent.click(packageConfigButton);
+
+      expect(onOpenEditor).toHaveBeenCalledTimes(1);
     });
 
     it('calls onClose when close button clicked', async () => {

@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `npm-registry.service.ts` to provide functionality for searching the npm registry. (Relates to #72)
+- Add `package-config.service.ts` to manage reading and writing package configuration files. (Relates to #72)
+- Add `PackageConfigEditor.tsx` component for editing package configuration files. (Relates to #72)
+- Add `npm-registry.service.test.ts` for `NpmRegistryService`. (Relates to #72)
+- Add `package-config.service.test.ts` for `PackageConfigService`. (Relates to #72)
+- Add `PackageConfigEditor.test.tsx` for `PackageConfigEditor` component. (Relates to #72)
+- Add `PackageConfigData` and `NpmSearchResult` interfaces to `src/main/ipc/channels/types.ts`. (Relates to #72)
+- Add `PackageConfigData` and `NpmSearchResult` types to `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Add new IPC channels `dev-tools:read-package-config`, `dev-tools:write-package-config`, and `dev-tools:search-npm-registry` in `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Register new IPC handlers for package configuration and npm registry search in `src/main/ipc/handlers.ts`. (Relates to #72)
+- Add imports for `packageConfigService` and `npmRegistryService` in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Implement IPC handlers for `dev-tools:read-package-config`, `dev-tools:write-package-config`, and `dev-tools:search-npm-registry` in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add import for `PackageConfigEditor` component in `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Implement conditional rendering for `PackageConfigEditor` within `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Pass `onOpenEditor` prop to `PackageManagerPanel` in `src/renderer/components/tools/MaintenanceTool.tsx` to trigger opening the `PackageConfigEditor`. (Relates to #72)
+- Add `onOpenEditor` prop to `PackageManagerPanel` component in `src/renderer/components/tools/PackageManagerPanel.tsx`. (Relates to #72)
+- Add 'Package Config' action button with `FileJson` icon to `PackageManagerPanel` in `src/renderer/components/tools/PackageManagerPanel.tsx`. (Relates to #72)
+- Add mock implementations for `FileJson` and `ArrowRightLeft` icons in `tests/mocks/lucide-react.tsx`. (Relates to #72)
+- Add test case to verify `PackageConfigEditor` opens from `PackageManagerPanel` in `tests/renderer/components/tools/MaintenanceTool.test.tsx`. (Relates to #72)
 - Add `package-manager.service.ts` to manage package manager operations. (Relates to #72)
 - Add `PackageManagerPanel.tsx` component to display package manager information and controls. (Relates to #72)
 - Add `package-manager.service.test.ts` for `PackageManagerService`. (Relates to #72)
@@ -309,6 +328,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update `lucide-react` icon imports in `src/renderer/components/tools/PackageManagerPanel.tsx` to include `FileJson`. (Relates to #72)
+- Update `PackageManagerPanel` tests in `tests/renderer/components/tools/PackageManagerPanel.test.tsx` to include the `onOpenEditor` prop. (Relates to #72)
+- Adjust `PackageManagerPanel` tests in `tests/renderer/components/tools/PackageManagerPanel.test.tsx` to verify the 'Package Config' action button and its position. (Relates to #72)
 - Refactor and unify Set Up buttons in `src/renderer/components/tools/MaintenanceTool.tsx` into a single `allButtons` array, including new and existing buttons. (Relates to #72)
 - Update `tests/renderer/components/tools/MaintenanceTool.test.tsx` to reflect the new number (12) and order of Set Up buttons. (Relates to #72)
 - Adjust the internal order of navigation items in `src/renderer/components/tools/ToolsPanel.tsx`. (Relates to #72)

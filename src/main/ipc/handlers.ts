@@ -290,6 +290,10 @@ export function removeAllIpcHandlers(): void {
     'dev-tools:get-pm-init-command',
     'dev-tools:get-pm-dedupe-command',
     'dev-tools:get-pm-lock-refresh-command',
+    // ── Package Config ──
+    'dev-tools:read-package-config',
+    'dev-tools:write-package-config',
+    'dev-tools:search-npm-registry',
     // ── GitHub Config ──
     'github-config:scan',
     'github-config:read-file',

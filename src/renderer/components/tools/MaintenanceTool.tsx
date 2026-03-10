@@ -61,6 +61,7 @@ import { CommitModal } from './CommitModal';
 import { ChangelogResult } from './ChangelogResult';
 import { VersionEditor } from './VersionEditor';
 import { CLIExplorer } from './CLIExplorer';
+import { PackageConfigEditor } from './PackageConfigEditor';
 
 interface MaintenanceToolProps {
   workingDirectory: string;
@@ -108,6 +109,7 @@ export function MaintenanceTool({
   const [lintPanelOpen, setLintPanelOpen] = useState(false);
   const [lintEditorOpen, setLintEditorOpen] = useState(false);
   const [packageManagerPanelOpen, setPackageManagerPanelOpen] = useState(false);
+  const [packageConfigEditorOpen, setPackageConfigEditorOpen] = useState(false);
   const [stageEditorOpen, setStageEditorOpen] = useState(false);
   const [commitModalOpen, setCommitModalOpen] = useState(false);
   const [changelogResultOpen, setChangelogResultOpen] = useState(false);
@@ -471,6 +473,19 @@ export function MaintenanceTool({
     );
   }
 
+  // When package config editor is open, render it instead of the normal Tool Box
+  if (packageConfigEditorOpen && projectInfo) {
+    return (
+      <PackageConfigEditor
+        workingDirectory={workingDirectory}
+        ecosystem={projectInfo.ecosystem}
+        packageManager={projectInfo.packageManager}
+        onClose={() => setPackageConfigEditorOpen(false)}
+        onRunCommand={onRunCommand}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col h-full p-4 gap-4 overflow-auto styled-scroll">
       {/* Info Section */}
@@ -624,6 +639,7 @@ export function MaintenanceTool({
                   packageManager={projectInfo.packageManager}
                   onClose={() => setPackageManagerPanelOpen(false)}
                   onRunCommand={onRunCommand}
+                  onOpenEditor={() => setPackageConfigEditorOpen(true)}
                 />
               )}
               {formatPanelOpen && projectInfo && (

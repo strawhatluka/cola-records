@@ -8,7 +8,17 @@
  */
 
 import { useState, useCallback } from 'react';
-import { X, Loader2, FolderPlus, Globe, Layers, RefreshCw, Info, ChevronRight } from 'lucide-react';
+import {
+  X,
+  Loader2,
+  FolderPlus,
+  Globe,
+  Layers,
+  RefreshCw,
+  Info,
+  ChevronRight,
+  FileJson,
+} from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import type { Ecosystem, PackageManager } from '../../../main/ipc/channels/types';
 
@@ -18,6 +28,7 @@ interface PackageManagerPanelProps {
   packageManager: PackageManager;
   onClose: () => void;
   onRunCommand: (command: string) => void;
+  onOpenEditor?: () => void;
 }
 
 interface ButtonState {
@@ -54,6 +65,7 @@ export function PackageManagerPanel({
   packageManager,
   onClose,
   onRunCommand,
+  onOpenEditor,
 }: PackageManagerPanelProps) {
   const [states, setStates] = useState<Record<string, ButtonState>>({});
   const [selectedPM, setSelectedPM] = useState<PackageManager>(
@@ -214,6 +226,12 @@ export function PackageManagerPanel({
 
   // Action buttons — PM detected
   const actionButtons = [
+    {
+      id: 'package-config',
+      label: 'Package Config',
+      icon: FileJson,
+      onClick: () => onOpenEditor?.(),
+    },
     {
       id: 'init',
       label: 'Init',

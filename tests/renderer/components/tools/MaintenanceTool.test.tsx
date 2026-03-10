@@ -1681,6 +1681,91 @@ describe('MaintenanceTool', () => {
     expect(screen.queryByText('TypeCheck')).toBeNull();
   });
 
+  it('opens PackageConfigEditor when onOpenEditor fires from PackageManagerPanel', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:read-package-config')
+        return Promise.resolve({
+          ecosystem: 'node',
+          fileName: 'package.json',
+          structured: { name: 'test' },
+          raw: '{"name":"test"}',
+          indent: 2,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Package Manager')).toBeDefined();
+    });
+
+    // Open PackageManagerPanel
+    const pmButton = screen.getByText('Package Manager').closest('button')!;
+    await userEvent.click(pmButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Package Config')).toBeDefined();
+    });
+
+    // Click Package Config to open editor
+    const packageConfigButton = screen.getByText('Package Config').closest('button')!;
+    await userEvent.click(packageConfigButton);
+
+    // PackageConfigEditor replaces the entire view
+    await waitFor(() => {
+      expect(screen.getByText('package.json')).toBeDefined();
+    });
+    expect(screen.queryByText('Set Up')).toBeNull();
+  });
+
+  it('closes PackageConfigEditor and returns to main view', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'dev-tools:detect-project') return Promise.resolve(mockProjectInfo);
+      if (channel === 'git:get-remotes') return Promise.resolve([]);
+      if (channel === 'dev-tools:get-clean-targets') return Promise.resolve([]);
+      if (channel === 'dev-tools:read-package-config')
+        return Promise.resolve({
+          ecosystem: 'node',
+          fileName: 'package.json',
+          structured: { name: 'test' },
+          raw: '{"name":"test"}',
+          indent: 2,
+        });
+      return Promise.resolve(null);
+    });
+
+    render(<MaintenanceTool {...defaultProps} />);
+    await waitFor(() => {
+      expect(screen.getByText('Package Manager')).toBeDefined();
+    });
+
+    // Open PackageManagerPanel → click Package Config
+    const pmButton = screen.getByText('Package Manager').closest('button')!;
+    await userEvent.click(pmButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Package Config')).toBeDefined();
+    });
+
+    await userEvent.click(screen.getByText('Package Config').closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('package.json')).toBeDefined();
+    });
+
+    // Close the editor (click the X button)
+    const closeButton = screen.getByTestId('icon-x').closest('button')!;
+    await userEvent.click(closeButton);
+
+    // Should return to the main view
+    await waitFor(() => {
+      expect(screen.getByText('Set Up')).toBeDefined();
+    });
+  });
+
   it('opens PackageManagerPanel when Package Manager button clicked', async () => {
     render(<MaintenanceTool {...defaultProps} />);
     await waitFor(() => {
