@@ -186,7 +186,7 @@ describe('PRsNeedingAttentionWidget', () => {
     });
   });
 
-  it('renders widget title', () => {
+  it('renders widget title', async () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
         return { login: 'testuser', name: 'Test', email: '' };
@@ -194,6 +194,10 @@ describe('PRsNeedingAttentionWidget', () => {
     });
     render(<PRsNeedingAttentionWidget />);
     expect(screen.getByText('PRs Needing Attention')).toBeDefined();
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalled();
+    });
   });
 
   it('renders Open button when onOpenProject is provided', async () => {
@@ -280,5 +284,169 @@ describe('PRsNeedingAttentionWidget', () => {
     });
 
     expect(screen.queryByTitle('Open in Cola Records')).toBeNull();
+  });
+
+  it('shows pending review state with Clock icon when no reviews', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        return {
+          totalCount: 1,
+          items: [
+            {
+              id: 200,
+              number: 77,
+              title: 'Pending review PR',
+              state: 'open',
+              htmlUrl: '',
+              createdAt: '',
+              updatedAt: '',
+              closedAt: null,
+              labels: [],
+              repoFullName: 'owner/repo',
+              isPullRequest: true,
+              author: 'testuser',
+            },
+          ],
+        };
+      }
+      // No reviews => pending state
+      if (channel === 'github:list-pr-reviews') return [];
+      if (channel === 'github:get-pull-request')
+        return { title: 'Pending review PR', headSha: 'sha1' };
+      if (channel === 'github:get-pr-check-status')
+        return { state: 'pending', total: 1, passed: 0, failed: 0, pending: 1 };
+      return undefined;
+    });
+
+    render(<PRsNeedingAttentionWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pending review PR')).toBeDefined();
+    });
+
+    // Clock icon for pending review state
+    expect(screen.getByTestId('icon-clock')).toBeDefined();
+  });
+
+  it('shows CI failure status', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        return {
+          totalCount: 1,
+          items: [
+            {
+              id: 300,
+              number: 88,
+              title: 'CI failing PR',
+              state: 'open',
+              htmlUrl: '',
+              createdAt: '',
+              updatedAt: '',
+              closedAt: null,
+              labels: [],
+              repoFullName: 'owner/repo',
+              isPullRequest: true,
+              author: 'testuser',
+            },
+          ],
+        };
+      }
+      if (channel === 'github:list-pr-reviews') return [{ state: 'APPROVED', author: 'reviewer' }];
+      if (channel === 'github:get-pull-request') return { title: 'CI failing PR', headSha: 'sha2' };
+      if (channel === 'github:get-pr-check-status')
+        return { state: 'failure', total: 2, passed: 1, failed: 1, pending: 0 };
+      return undefined;
+    });
+
+    render(<PRsNeedingAttentionWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('CI failing PR')).toBeDefined();
+    });
+
+    // CheckCircle for approved review
+    expect(screen.getByTestId('icon-checkcircle')).toBeDefined();
+  });
+
+  it('shows CI pending when check status is null (ci result rejected)', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        return {
+          totalCount: 1,
+          items: [
+            {
+              id: 400,
+              number: 99,
+              title: 'No CI PR',
+              state: 'open',
+              htmlUrl: '',
+              createdAt: '',
+              updatedAt: '',
+              closedAt: null,
+              labels: [],
+              repoFullName: 'owner/repo',
+              isPullRequest: true,
+              author: 'testuser',
+            },
+          ],
+        };
+      }
+      if (channel === 'github:list-pr-reviews') return [];
+      // Make PR fetch fail so ci is null
+      if (channel === 'github:get-pull-request') throw new Error('Not found');
+      return undefined;
+    });
+
+    render(<PRsNeedingAttentionWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No CI PR')).toBeDefined();
+    });
+
+    // CI status should be pending (null ci), review should be pending (no reviews)
+    expect(screen.getByTestId('icon-clock')).toBeDefined();
+    expect(screen.getByTestId('icon-circledot')).toBeDefined();
+  });
+
+  it('handles non-Error thrown in outer catch (String fallback)', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        // Return invalid structure to trigger outer catch
+        return { totalCount: 1, items: 'not-an-array' };
+      }
+      return undefined;
+    });
+
+    render(<PRsNeedingAttentionWidget />);
+
+    await waitFor(() => {
+      // Error from trying to call .slice on a non-array
+      const errorEl = screen.queryByText(/is not a function|not iterable|slice/i);
+      expect(errorEl).not.toBeNull();
+    });
+  });
+
+  it('handles string thrown in outer catch', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      // Throw non-Error to hit String() fallback
+      if (channel === 'github:search-issues-and-prs') throw 'raw string error';
+      return undefined;
+    });
+
+    render(<PRsNeedingAttentionWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('raw string error')).toBeDefined();
+    });
   });
 });

@@ -86,6 +86,24 @@ export function setupSettingsHandlers(): void {
       codeServerConfig = undefined;
     }
 
+    let aiConfig: import('../channels').AIConfig | undefined;
+    try {
+      if (settings.aiConfig) {
+        aiConfig = JSON.parse(settings.aiConfig);
+      }
+    } catch {
+      aiConfig = undefined;
+    }
+
+    let notificationPreferences: import('../channels').NotificationPreferences | undefined;
+    try {
+      if (settings.notificationPreferences) {
+        notificationPreferences = JSON.parse(settings.notificationPreferences);
+      }
+    } catch {
+      notificationPreferences = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -98,6 +116,8 @@ export function setupSettingsHandlers(): void {
       aliases,
       bashProfile,
       codeServerConfig,
+      aiConfig,
+      notificationPreferences,
     };
   });
 
@@ -148,6 +168,15 @@ export function setupSettingsHandlers(): void {
     if (updates.codeServerConfig !== undefined) {
       database.setSetting('codeServerConfig', JSON.stringify(updates.codeServerConfig));
     }
+    if (updates.aiConfig !== undefined) {
+      database.setSetting('aiConfig', JSON.stringify(updates.aiConfig));
+    }
+    if (updates.notificationPreferences !== undefined) {
+      database.setSetting(
+        'notificationPreferences',
+        JSON.stringify(updates.notificationPreferences)
+      );
+    }
 
     // Return updated settings
     const settings = database.getAllSettings();
@@ -176,6 +205,24 @@ export function setupSettingsHandlers(): void {
       codeServerConfig = undefined;
     }
 
+    let aiConfig: import('../channels').AIConfig | undefined;
+    try {
+      if (settings.aiConfig) {
+        aiConfig = JSON.parse(settings.aiConfig);
+      }
+    } catch {
+      aiConfig = undefined;
+    }
+
+    let notificationPreferences2: import('../channels').NotificationPreferences | undefined;
+    try {
+      if (settings.notificationPreferences) {
+        notificationPreferences2 = JSON.parse(settings.notificationPreferences);
+      }
+    } catch {
+      notificationPreferences2 = undefined;
+    }
+
     return {
       githubToken: settings.githubToken,
       spotifyClientId: settings.spotifyClientId,
@@ -188,6 +235,8 @@ export function setupSettingsHandlers(): void {
       aliases,
       bashProfile,
       codeServerConfig,
+      aiConfig,
+      notificationPreferences: notificationPreferences2,
     };
   });
 

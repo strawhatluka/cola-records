@@ -39,6 +39,7 @@ const createMockBranchInfo = (overrides: Partial<BranchInfo> = {}): BranchInfo =
 describe('BranchDetailModal', () => {
   const mockOnClose = vi.fn();
   const mockOnDeleted = vi.fn();
+  const mockOnSwitched = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -56,6 +57,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
     // Look for the spinner (has animate-spin class)
@@ -73,6 +75,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -93,6 +96,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -112,6 +116,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -138,6 +143,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -158,6 +164,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -176,6 +183,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -184,7 +192,7 @@ describe('BranchDetailModal', () => {
     });
   });
 
-  it('disables delete button for current branch', async () => {
+  it('disables delete and switch buttons for current branch', async () => {
     const branchInfo = createMockBranchInfo({ isCurrent: true });
     mockInvoke.mockResolvedValue(branchInfo);
 
@@ -194,15 +202,16 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
     await waitFor(() => {
       const deleteBtn = screen.getByText('Delete Branch').closest('button');
       expect(deleteBtn?.disabled).toBe(true);
+      const switchBtn = screen.getByText('Switch Branch').closest('button');
+      expect(switchBtn?.disabled).toBe(true);
     });
-
-    expect(screen.getByText('Cannot delete the current branch')).toBeDefined();
   });
 
   it('disables delete button for protected branch', async () => {
@@ -215,6 +224,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -222,8 +232,6 @@ describe('BranchDetailModal', () => {
       const deleteBtn = screen.getByText('Delete Branch').closest('button');
       expect(deleteBtn?.disabled).toBe(true);
     });
-
-    expect(screen.getByText('Cannot delete protected branches')).toBeDefined();
   });
 
   it('shows confirmation dialog when delete is clicked', async () => {
@@ -237,6 +245,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -267,6 +276,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -308,6 +318,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -334,6 +345,7 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
@@ -360,11 +372,102 @@ describe('BranchDetailModal', () => {
         localPath="/repo"
         onClose={mockOnClose}
         onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
       />
     );
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to get branch info/)).toBeDefined();
     });
+  });
+
+  it('renders Switch Branch button enabled for non-current branch', async () => {
+    const branchInfo = createMockBranchInfo({ isCurrent: false });
+    mockInvoke.mockResolvedValue(branchInfo);
+
+    render(
+      <BranchDetailModal
+        branchName="feature"
+        localPath="/repo"
+        onClose={mockOnClose}
+        onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
+      />
+    );
+
+    await waitFor(() => {
+      const switchBtn = screen.getByText('Switch Branch').closest('button');
+      expect(switchBtn?.disabled).toBe(false);
+    });
+  });
+
+  it('calls git:checkout and onSwitched when Switch Branch is clicked', async () => {
+    const user = userEvent.setup();
+    const branchInfo = createMockBranchInfo({ name: 'feature-to-switch' });
+
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'git:get-branch-info') return Promise.resolve(branchInfo);
+      if (channel === 'git:checkout') return Promise.resolve();
+      return Promise.resolve();
+    });
+
+    render(
+      <BranchDetailModal
+        branchName="feature-to-switch"
+        localPath="/repo"
+        onClose={mockOnClose}
+        onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Switch Branch')).toBeDefined();
+    });
+
+    await user.click(screen.getByText('Switch Branch'));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('git:checkout', '/repo', 'feature-to-switch');
+    });
+
+    expect(mockOnSwitched).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('shows error when switch branch fails', async () => {
+    const user = userEvent.setup();
+    const branchInfo = createMockBranchInfo();
+
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'git:get-branch-info') return Promise.resolve(branchInfo);
+      if (channel === 'git:checkout') {
+        return Promise.reject(new Error('Cannot switch: uncommitted changes'));
+      }
+      return Promise.resolve();
+    });
+
+    render(
+      <BranchDetailModal
+        branchName="feature"
+        localPath="/repo"
+        onClose={mockOnClose}
+        onDeleted={mockOnDeleted}
+        onSwitched={mockOnSwitched}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Switch Branch')).toBeDefined();
+    });
+
+    await user.click(screen.getByText('Switch Branch'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Cannot switch: uncommitted changes/)).toBeDefined();
+    });
+
+    expect(mockOnSwitched).not.toHaveBeenCalled();
+    expect(mockOnClose).not.toHaveBeenCalled();
   });
 });

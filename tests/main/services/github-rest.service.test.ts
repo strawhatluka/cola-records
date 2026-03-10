@@ -1145,6 +1145,7 @@ describe('GitHubRestService', () => {
         title: 'Sub-issue 1',
         state: 'open',
         url: 'https://github.com/org/repo/issues/43',
+        labels: [],
       });
       expect(mockRequest).toHaveBeenCalledWith(
         'GET /repos/{owner}/{repo}/issues/{issue_number}/sub_issues',
@@ -1262,6 +1263,7 @@ describe('GitHubRestService', () => {
         title: 'Parent Issue',
         state: 'open',
         url: 'https://github.com/org/repo/issues/3',
+        labels: [],
       });
       expect(mockRequest).toHaveBeenCalledWith(
         'GET /repos/{owner}/{repo}/issues/{issue_number}/parent',

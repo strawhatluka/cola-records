@@ -88,4 +88,176 @@ describe('MarkdownEditor', () => {
     const textarea = screen.getByPlaceholderText('Write a description...');
     expect((textarea as HTMLTextAreaElement).disabled).toBe(true);
   });
+
+  // ============================================
+  // Toolbar button clicks (insertMarkdown)
+  // ============================================
+  describe('toolbar buttons', () => {
+    it('inserts bold markdown when Bold button clicked', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      // Click the Bold button
+      const boldBtn = screen.getByTestId('icon-bold').closest('button')!;
+      await user.click(boldBtn);
+
+      expect(onChange).toHaveBeenCalledWith('**text**');
+    });
+
+    it('inserts italic markdown when Italic button clicked', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const italicBtn = screen.getByTestId('icon-italic').closest('button')!;
+      await user.click(italicBtn);
+
+      expect(onChange).toHaveBeenCalledWith('_text_');
+    });
+
+    it('inserts strikethrough markdown', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-strikethrough').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('~~text~~');
+    });
+
+    it('inserts heading prefix', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-heading').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('### ');
+    });
+
+    it('inserts quote prefix', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-quote').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('> ');
+    });
+
+    it('inserts inline code wrap', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-code').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('`text`');
+    });
+
+    it('inserts link markdown', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-link').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('[text](url)');
+    });
+
+    it('inserts ordered list prefix', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-listordered').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('1. ');
+    });
+
+    it('inserts unordered list prefix', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-list').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('- ');
+    });
+
+    it('inserts task list prefix', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-listchecks').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('- [ ] ');
+    });
+
+    it('inserts mention @', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-atsign').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('@');
+    });
+
+    it('inserts reference #', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      const btn = screen.getByTestId('icon-hash').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).toHaveBeenCalledWith('#');
+    });
+
+    it('does not insert when disabled button clicked', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} />);
+
+      // Saved replies is disabled
+      const btn = screen.getByTestId('icon-bookmarked').closest('button')!;
+      await user.click(btn);
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not insert when editor is disabled', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(<MarkdownEditor value="" onChange={onChange} disabled />);
+
+      const boldBtn = screen.getByTestId('icon-bold').closest('button')!;
+      await user.click(boldBtn);
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
+  it('switches back from preview to write', async () => {
+    const user = userEvent.setup();
+    render(<MarkdownEditor {...defaultProps} value="test" />);
+
+    await user.click(screen.getByText('Preview'));
+    expect(screen.queryByPlaceholderText('Write a description...')).toBeNull();
+
+    await user.click(screen.getByText('Write'));
+    expect(screen.getByPlaceholderText('Write a description...')).toBeDefined();
+  });
 });

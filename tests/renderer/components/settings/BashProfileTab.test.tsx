@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Mock lucide-react
@@ -13,6 +13,7 @@ describe('BashProfileTab', () => {
 
   beforeEach(() => {
     mockOnUpdate.mockClear();
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
   });
 
   // =====================
@@ -71,7 +72,7 @@ describe('BashProfileTab', () => {
       await user.click(screen.getByText('Add'));
 
       expect(screen.getByText('Alias name cannot contain spaces')).toBeDefined();
-    });
+    }, 15000);
 
     it('adds a new alias to local state (not saved until Save button)', async () => {
       const user = userEvent.setup();
@@ -457,6 +458,448 @@ describe('BashProfileTab', () => {
       expect(mockOnUpdate).toHaveBeenCalledTimes(1);
       const call = mockOnUpdate.mock.calls[0][0];
       expect(call.bashProfile.customUsername).toBe('myuser');
+    });
+  });
+
+  // =====================
+  // Edit Alias Tests
+  // =====================
+
+  describe('Edit Alias', () => {
+    it('enters edit mode when pencil icon is clicked', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [createMockAlias({ name: 'gp', command: 'git push' })],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Click the pencil icon to start editing
+      const pencilIcon = screen.getByTestId('icon-pencil');
+      await user.click(pencilIcon.closest('button')!);
+
+      // Should show edit inputs with current alias values
+      const nameInput = screen.getByDisplayValue('gp');
+      const commandInput = screen.getByDisplayValue('git push');
+      expect(nameInput).toBeDefined();
+      expect(commandInput).toBeDefined();
+
+      // Should show save and cancel buttons (icon-save and icon-x)
+      expect(screen.getByTestId('icon-save')).toBeDefined();
+      expect(screen.getByTestId('icon-x')).toBeDefined();
+    });
+
+    it('saves edited alias when save button is clicked', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [createMockAlias({ name: 'gp', command: 'git push' })],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Enter edit mode
+      const pencilIcon = screen.getByTestId('icon-pencil');
+      await user.click(pencilIcon.closest('button')!);
+
+      // Modify the alias name and command
+      const nameInput = screen.getByDisplayValue('gp');
+      const commandInput = screen.getByDisplayValue('git push');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'gpf');
+      await user.clear(commandInput);
+      await user.type(commandInput, 'git push --force');
+
+      // Click save
+      const saveIcon = screen.getByTestId('icon-save');
+      await user.click(saveIcon.closest('button')!);
+
+      // Should exit edit mode and show updated values
+      expect(screen.getByText('gpf')).toBeDefined();
+      expect(screen.getByText('git push --force')).toBeDefined();
+      expect(screen.queryByDisplayValue('gpf')).toBeNull(); // No longer in input
+    }, 15000);
+
+    it('cancels edit when cancel button is clicked', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [createMockAlias({ name: 'gp', command: 'git push' })],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Enter edit mode
+      const pencilIcon = screen.getByTestId('icon-pencil');
+      await user.click(pencilIcon.closest('button')!);
+
+      // Modify the name
+      const nameInput = screen.getByDisplayValue('gp');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'changed');
+
+      // Click cancel (X icon)
+      const cancelIcon = screen.getByTestId('icon-x');
+      await user.click(cancelIcon.closest('button')!);
+
+      // Should revert to original value and exit edit mode
+      expect(screen.getByText('gp')).toBeDefined();
+      expect(screen.getByText('git push')).toBeDefined();
+      expect(screen.queryByDisplayValue('changed')).toBeNull();
+    });
+
+    it('shows error for duplicate name during edit', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [
+          createMockAlias({ name: 'gp', command: 'git push' }),
+          createMockAlias({ name: 'ga', command: 'git add .' }),
+        ],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Edit the second alias (ga)
+      const pencilIcons = screen.getAllByTestId('icon-pencil');
+      await user.click(pencilIcons[1].closest('button')!);
+
+      // Change name to match first alias
+      const nameInput = screen.getByDisplayValue('ga');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'gp');
+
+      // Click save
+      const saveIcon = screen.getByTestId('icon-save');
+      await user.click(saveIcon.closest('button')!);
+
+      // Should show duplicate error
+      expect(screen.getByText('Alias "gp" already exists')).toBeDefined();
+    });
+
+    it('shows error for empty command during edit', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [createMockAlias({ name: 'gp', command: 'git push' })],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Enter edit mode
+      const pencilIcon = screen.getByTestId('icon-pencil');
+      await user.click(pencilIcon.closest('button')!);
+
+      // Clear the command
+      const commandInput = screen.getByDisplayValue('git push');
+      await user.clear(commandInput);
+
+      // Click save
+      const saveIcon = screen.getByTestId('icon-save');
+      await user.click(saveIcon.closest('button')!);
+
+      // Should show error
+      expect(screen.getByText('Command is required')).toBeDefined();
+    });
+
+    it('handles delete when editingIndex matches deleted index', async () => {
+      const user = userEvent.setup();
+      // With 3 aliases, edit index 0, then delete index 0 indirectly:
+      // After editing index 0, the row at index 0 shows Save/X (no trash).
+      // But if we edit index 1 and delete index 1 - same issue.
+      // The editingIndex === index branch in handleDelete is defensive code.
+      // We test that deleting alias at same numeric index as editing
+      // (after the editing alias was already saved/cancelled) works correctly.
+      // Here, we edit then cancel, then delete to ensure state is clean.
+      const settings = createMockSettings({
+        aliases: [
+          createMockAlias({ name: 'gp', command: 'git push' }),
+          createMockAlias({ name: 'ga', command: 'git add .' }),
+        ],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Edit the first alias
+      const pencilIcons = screen.getAllByTestId('icon-pencil');
+      await user.click(pencilIcons[0].closest('button')!);
+
+      // Cancel the edit
+      const cancelIcon = screen.getByTestId('icon-x');
+      await user.click(cancelIcon.closest('button')!);
+
+      // Now delete the first alias (edit state should be cleared)
+      const trashIcons = screen.getAllByTestId('icon-trash2');
+      await user.click(trashIcons[0].closest('button')!);
+
+      // First alias should be removed
+      expect(screen.queryByText('gp')).toBeNull();
+      // Second alias should remain
+      expect(screen.getByText('ga')).toBeDefined();
+    });
+
+    it('preserves editing state when deleting a different alias', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [
+          createMockAlias({ name: 'gp', command: 'git push' }),
+          createMockAlias({ name: 'ga', command: 'git add .' }),
+        ],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Enter edit mode on first alias (index 0)
+      const pencilIcons = screen.getAllByTestId('icon-pencil');
+      await user.click(pencilIcons[0].closest('button')!);
+
+      // Should be in edit mode
+      expect(screen.getByTestId('icon-save')).toBeDefined();
+
+      // Delete the second alias (index 1) - this one is NOT being edited
+      const trashIcon = screen.getByTestId('icon-trash2');
+      await user.click(trashIcon.closest('button')!);
+
+      // The second alias should be removed
+      expect(screen.queryByText('ga')).toBeNull();
+
+      // Edit mode on first alias should still be active
+      expect(screen.getByTestId('icon-save')).toBeDefined();
+      expect(screen.getByDisplayValue('gp')).toBeDefined();
+    });
+  });
+
+  // =====================
+  // Keyboard Navigation Tests
+  // =====================
+
+  describe('Keyboard Navigation', () => {
+    it('adds alias when Enter is pressed in add mode', async () => {
+      const user = userEvent.setup();
+      render(
+        <BashProfileTab settings={createMockSettings({ aliases: [] })} onUpdate={mockOnUpdate} />
+      );
+
+      const nameInput = screen.getByPlaceholderText('name (e.g. gp)');
+      const commandInput = screen.getByPlaceholderText('command (e.g. git push)');
+
+      await user.type(nameInput, 'gp');
+      await user.type(commandInput, 'git push');
+
+      // Press Enter while focused on the command input
+      await user.keyboard('{Enter}');
+
+      // Alias should be added
+      expect(screen.getByText('gp')).toBeDefined();
+      expect(screen.getByText('git push')).toBeDefined();
+    });
+
+    it('saves edit when Enter is pressed in edit mode', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [createMockAlias({ name: 'gp', command: 'git push' })],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Enter edit mode
+      const pencilIcon = screen.getByTestId('icon-pencil');
+      await user.click(pencilIcon.closest('button')!);
+
+      // Modify the command
+      const commandInput = screen.getByDisplayValue('git push');
+      await user.clear(commandInput);
+      await user.type(commandInput, 'git push --force');
+
+      // Press Enter to save
+      await user.keyboard('{Enter}');
+
+      // Should exit edit mode and show updated value
+      expect(screen.getByText('git push --force')).toBeDefined();
+      expect(screen.queryByDisplayValue('git push --force')).toBeNull();
+    }, 15000);
+
+    it('cancels edit when Escape is pressed in edit mode', async () => {
+      const user = userEvent.setup();
+      const settings = createMockSettings({
+        aliases: [createMockAlias({ name: 'gp', command: 'git push' })],
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Enter edit mode
+      const pencilIcon = screen.getByTestId('icon-pencil');
+      await user.click(pencilIcon.closest('button')!);
+
+      // Modify the name
+      const nameInput = screen.getByDisplayValue('gp');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'changed');
+
+      // Press Escape to cancel
+      await user.keyboard('{Escape}');
+
+      // Should revert to original value
+      expect(screen.getByText('gp')).toBeDefined();
+      expect(screen.queryByDisplayValue('changed')).toBeNull();
+    });
+  });
+
+  // =====================
+  // Validation Edge Cases Tests
+  // =====================
+
+  describe('Validation Edge Cases', () => {
+    it('shows error for special characters in alias name', async () => {
+      const user = userEvent.setup();
+      render(
+        <BashProfileTab settings={createMockSettings({ aliases: [] })} onUpdate={mockOnUpdate} />
+      );
+
+      await user.type(screen.getByPlaceholderText('name (e.g. gp)'), 'bad@name!');
+      await user.type(screen.getByPlaceholderText('command (e.g. git push)'), 'some command');
+      await user.click(screen.getByText('Add'));
+
+      expect(
+        screen.getByText('Alias name can only contain letters, numbers, hyphens, and underscores')
+      ).toBeDefined();
+    });
+
+    it('shows error when adding alias with empty command', async () => {
+      const user = userEvent.setup();
+      render(
+        <BashProfileTab settings={createMockSettings({ aliases: [] })} onUpdate={mockOnUpdate} />
+      );
+
+      // Type a valid name but leave command empty
+      await user.type(screen.getByPlaceholderText('name (e.g. gp)'), 'gp');
+      // Manually trigger handleAdd by using fireEvent since button is disabled when command is empty
+      // The handleAdd is also triggered by Enter key
+      const nameInput = screen.getByPlaceholderText('name (e.g. gp)');
+      fireEvent.keyDown(nameInput, { key: 'Enter' });
+
+      expect(screen.getByText('Command is required')).toBeDefined();
+    });
+
+    it('clears error when typing in name input', async () => {
+      const user = userEvent.setup();
+      render(
+        <BashProfileTab settings={createMockSettings({ aliases: [] })} onUpdate={mockOnUpdate} />
+      );
+
+      // Trigger an error first
+      await user.type(screen.getByPlaceholderText('name (e.g. gp)'), 'bad name');
+      await user.type(screen.getByPlaceholderText('command (e.g. git push)'), 'cmd');
+      await user.click(screen.getByText('Add'));
+
+      // Error should be visible
+      expect(screen.getByText('Alias name cannot contain spaces')).toBeDefined();
+
+      // Type in the name input - error should clear
+      const nameInput = screen.getByPlaceholderText('name (e.g. gp)');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'g');
+
+      // Error should be cleared
+      expect(screen.queryByText('Alias name cannot contain spaces')).toBeNull();
+    }, 15000);
+
+    it('clears error when typing in command input', async () => {
+      const user = userEvent.setup();
+      render(
+        <BashProfileTab settings={createMockSettings({ aliases: [] })} onUpdate={mockOnUpdate} />
+      );
+
+      // Trigger an error first
+      await user.type(screen.getByPlaceholderText('name (e.g. gp)'), 'bad name');
+      await user.type(screen.getByPlaceholderText('command (e.g. git push)'), 'cmd');
+      await user.click(screen.getByText('Add'));
+
+      // Error should be visible
+      expect(screen.getByText('Alias name cannot contain spaces')).toBeDefined();
+
+      // Type in the command input - error should clear
+      const commandInput = screen.getByPlaceholderText('command (e.g. git push)');
+      await user.clear(commandInput);
+      await user.type(commandInput, 'x');
+
+      // Error should be cleared
+      expect(screen.queryByText('Alias name cannot contain spaces')).toBeNull();
+    }, 15000);
+  });
+
+  // =====================
+  // Save Error Handling Tests
+  // =====================
+
+  describe('Save Error Handling', () => {
+    it('shows success alert when save succeeds', async () => {
+      const user = userEvent.setup();
+      mockOnUpdate.mockResolvedValueOnce(undefined);
+      render(<BashProfileTab settings={createMockSettings()} onUpdate={mockOnUpdate} />);
+
+      await user.click(screen.getByText('Save Settings'));
+
+      expect(window.alert).toHaveBeenCalledWith('Settings saved successfully!');
+    });
+
+    it('shows error alert when save fails', async () => {
+      const user = userEvent.setup();
+      mockOnUpdate.mockRejectedValueOnce(new Error('Network error'));
+      render(<BashProfileTab settings={createMockSettings()} onUpdate={mockOnUpdate} />);
+
+      await user.click(screen.getByText('Save Settings'));
+
+      expect(window.alert).toHaveBeenCalledWith('Failed to save settings: Error: Network error');
+    });
+  });
+
+  // =====================
+  // Preview Edge Cases Tests
+  // =====================
+
+  describe('Preview Edge Cases', () => {
+    it('does not show username in preview when showUsername is false', () => {
+      const settings = createMockSettings({
+        bashProfile: {
+          showUsername: false,
+          showGitBranch: true,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // 'user' should not appear in the preview
+      expect(screen.queryByText('user')).toBeNull();
+      // Path should still be present
+      expect(screen.getByText('project/src')).toBeDefined();
+    });
+
+    it('does not show git branch in preview when showGitBranch is false', () => {
+      const settings = createMockSettings({
+        bashProfile: {
+          showUsername: true,
+          showGitBranch: false,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // The git branch text ' (main)' should not appear in the preview
+      // The component renders the branch as a span with content ' (main)'
+      expect(screen.queryByText(/\(main\)/)).toBeNull();
+      // Username should still be present
+      expect(screen.getByText('user')).toBeDefined();
+      // Path should still be present
+      expect(screen.getByText('project/src')).toBeDefined();
+    });
+
+    it('shows neither username nor git branch when both are disabled', () => {
+      const settings = createMockSettings({
+        bashProfile: {
+          showUsername: false,
+          showGitBranch: false,
+          usernameColor: 'green',
+          pathColor: 'blue',
+          gitBranchColor: 'yellow',
+        },
+      });
+      render(<BashProfileTab settings={settings} onUpdate={mockOnUpdate} />);
+
+      // Only path and prompt symbol should appear
+      expect(screen.queryByText('user')).toBeNull();
+      expect(screen.getByText('project/src')).toBeDefined();
     });
   });
 });

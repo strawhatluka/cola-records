@@ -1,9 +1,12 @@
+import { useEffect } from 'react';
 import { SpotifyPlayer } from '../spotify/SpotifyPlayer';
 import { DiscordClient } from '../discord/DiscordClient';
 import { ProjectTabBar } from '../projects/ProjectTabBar';
+import { NotificationCenter } from '../notifications/NotificationCenter';
 import { ipc } from '../../ipc/client';
 import type { OpenProject } from '../../stores/useOpenProjectsStore';
 import { useUpdaterStore } from '../../stores/useUpdaterStore';
+import { useNotificationStore } from '../../stores/useNotificationStore';
 
 interface AppBarProps {
   title: string;
@@ -11,6 +14,7 @@ interface AppBarProps {
   activeProjectId?: string | null;
   onSelectProject?: (id: string) => void;
   onCloseProject?: (id: string) => void;
+  onNavigate?: (screen: string, context?: string) => void;
 }
 
 export function AppBar({
@@ -19,8 +23,15 @@ export function AppBar({
   activeProjectId = null,
   onSelectProject,
   onCloseProject,
+  onNavigate,
 }: AppBarProps) {
   const appVersion = useUpdaterStore((state) => state.appVersion);
+
+  // Initialize notification listeners
+  useEffect(() => {
+    const cleanup = useNotificationStore.getState()._initializeListeners();
+    return cleanup;
+  }, []);
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-6">
@@ -53,6 +64,7 @@ export function AppBar({
       )}
 
       <div className="flex items-center gap-4">
+        <NotificationCenter onNavigate={onNavigate} />
         {appVersion && <span className="text-xs text-muted-foreground">v{appVersion}</span>}
       </div>
     </header>

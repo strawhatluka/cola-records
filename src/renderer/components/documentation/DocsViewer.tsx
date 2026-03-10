@@ -74,7 +74,7 @@ export function DocsViewer({
               return (
                 <a
                   href={href}
-                  onClick={isInternal ? (e) => handleLinkClick(e, href!) : undefined}
+                  onClick={isInternal && href ? (e) => handleLinkClick(e, href) : undefined}
                   className={isInternal ? 'cursor-pointer' : undefined}
                   {...props}
                 >

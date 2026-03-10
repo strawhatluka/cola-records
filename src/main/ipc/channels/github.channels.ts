@@ -35,6 +35,12 @@ export interface GitHubChannels {
   'git:add-remote': (repoPath: string, remoteName: string, url: string) => void;
   'git:get-remotes': (repoPath: string) => { name: string; fetchUrl: string; pushUrl: string }[];
 
+  // Git Diff/Tag Channels
+  'git:diff': (repoPath: string) => string;
+  'git:diff-staged': (repoPath: string) => string;
+  'git:tag': (repoPath: string, tagName: string, message?: string) => void;
+  'git:push-tags': (repoPath: string, remote?: string) => void;
+
   // Gitignore Channels
   'gitignore:is-ignored': (repoPath: string, filePath: string) => boolean;
   'gitignore:get-patterns': (repoPath: string) => string[];

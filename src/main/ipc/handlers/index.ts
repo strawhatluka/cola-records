@@ -10,6 +10,11 @@ import { setupContributionHandlers } from './contribution.handlers';
 import { setupSettingsHandlers } from './settings.handlers';
 import { setupIntegrationHandlers } from './integrations.handlers';
 import { setupDevToolsHandlers } from './dev-tools.handlers';
+import { setupAIHandlers } from './ai.handlers';
+import { setupWorkflowHandlers } from './workflow.handlers';
+import { setupNotificationHandlers } from './notification.handlers';
+import { setupGitHubConfigHandlers } from './github-config.handlers';
+import { setupProjectHandlers } from './project.handlers';
 
 export function setupIpcHandlers(): void {
   setupGitHubHandlers();
@@ -18,4 +23,9 @@ export function setupIpcHandlers(): void {
   setupSettingsHandlers();
   setupIntegrationHandlers();
   setupDevToolsHandlers();
+  setupAIHandlers();
+  setupWorkflowHandlers();
+  setupNotificationHandlers();
+  setupGitHubConfigHandlers();
+  setupProjectHandlers();
 }

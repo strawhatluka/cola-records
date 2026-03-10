@@ -5,15 +5,29 @@ import { APITab } from '../components/settings/APITab';
 import { BashProfileTab } from '../components/settings/BashProfileTab';
 import { SSHRemotesTab } from '../components/settings/SSHRemotesTab';
 import { CodeServerTab } from '../components/settings/CodeServerTab';
+import { AITab } from '../components/settings/AITab';
+import { NotificationsTab } from '../components/settings/NotificationsTab';
+import { GlobalScriptsTab } from '../components/settings/GlobalScriptsTab';
 
-type SettingsTab = 'general' | 'api' | 'bash-profile' | 'ssh-remotes' | 'code-server';
+type SettingsTab =
+  | 'general'
+  | 'api'
+  | 'ai'
+  | 'bash-profile'
+  | 'ssh-remotes'
+  | 'code-server'
+  | 'notifications'
+  | 'global-scripts';
 
 const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'general', label: 'General' },
   { id: 'api', label: 'API' },
+  { id: 'ai', label: 'AI' },
   { id: 'bash-profile', label: 'Bash Profile' },
   { id: 'ssh-remotes', label: 'SSH Remotes' },
   { id: 'code-server', label: 'Code Server' },
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'global-scripts', label: 'Global Scripts' },
 ];
 
 export function SettingsScreen() {
@@ -51,6 +65,7 @@ export function SettingsScreen() {
       {/* Tab content */}
       {activeTab === 'general' && <GeneralTab settings={settings} onUpdate={updateSettings} />}
       {activeTab === 'api' && <APITab settings={settings} onUpdate={updateSettings} />}
+      {activeTab === 'ai' && <AITab settings={settings} onUpdate={updateSettings} />}
       {activeTab === 'bash-profile' && (
         <BashProfileTab settings={settings} onUpdate={updateSettings} />
       )}
@@ -58,6 +73,8 @@ export function SettingsScreen() {
       {activeTab === 'code-server' && (
         <CodeServerTab settings={settings} onUpdate={updateSettings} />
       )}
+      {activeTab === 'notifications' && <NotificationsTab />}
+      {activeTab === 'global-scripts' && <GlobalScriptsTab />}
     </div>
   );
 }

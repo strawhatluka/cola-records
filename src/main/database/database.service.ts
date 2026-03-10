@@ -2,7 +2,13 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import { app } from 'electron';
 import { CREATE_TABLES, SCHEMA_VERSION, MIGRATIONS } from './schema';
-import type { Contribution, DevScript, DevScriptTerminal, DevScriptToggle } from '../ipc/channels';
+import type {
+  Contribution,
+  DevScript,
+  DevScriptTerminal,
+  DevScriptToggle,
+  AppNotification,
+} from '../ipc/channels';
 
 /** Database row type for contributions table */
 interface ContributionRow {
@@ -22,6 +28,13 @@ interface ContributionRow {
   upstream_url: string | null;
   is_fork: number | null;
   remotes_valid: number | null;
+  ecosystem: string | null;
+  framework: string | null;
+  package_manager: string | null;
+  is_monorepo: number | null;
+  monorepo_tool: string | null;
+  database_engine: string | null;
+  database_orm: string | null;
 }
 
 /**
@@ -127,9 +140,9 @@ export class DatabaseService {
     const stmt = db.prepare(`
       INSERT INTO contributions (
         id, repository_url, local_path, issue_number, issue_title, branch_name, status,
-        created_at, updated_at, pr_url, pr_number, pr_status, upstream_url, is_fork, remotes_valid, type
+        created_at, updated_at, pr_url, pr_number, pr_status, upstream_url, is_fork, remotes_valid, type, ecosystem, framework, package_manager, is_monorepo, monorepo_tool, database_engine, database_orm
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -148,7 +161,14 @@ export class DatabaseService {
       contribution.upstreamUrl || null,
       contribution.isFork ? 1 : 0,
       contribution.remotesValid ? 1 : 0,
-      contribution.type || 'contribution'
+      contribution.type || 'contribution',
+      contribution.ecosystem || null,
+      contribution.framework || null,
+      contribution.packageManager || null,
+      contribution.isMonorepo ? 1 : 0,
+      contribution.monorepoTool || null,
+      contribution.databaseEngine || null,
+      contribution.databaseOrm || null
     );
 
     return {
@@ -202,7 +222,7 @@ export class DatabaseService {
       UPDATE contributions
       SET repository_url = ?, local_path = ?, issue_number = ?, issue_title = ?, branch_name = ?, status = ?,
           pr_url = ?, pr_number = ?, pr_status = ?, upstream_url = ?, is_fork = ?, remotes_valid = ?,
-          created_at = ?, updated_at = ?, type = ?
+          created_at = ?, updated_at = ?, type = ?, ecosystem = ?, framework = ?, package_manager = ?, is_monorepo = ?, monorepo_tool = ?, database_engine = ?, database_orm = ?
       WHERE id = ?
     `);
 
@@ -222,6 +242,13 @@ export class DatabaseService {
       createdAtTimestamp,
       now,
       merged.type || 'contribution',
+      merged.ecosystem || null,
+      merged.framework || null,
+      merged.packageManager || null,
+      merged.isMonorepo ? 1 : 0,
+      merged.monorepoTool || null,
+      merged.databaseEngine || null,
+      merged.databaseOrm || null,
       id
     );
 
@@ -373,6 +400,13 @@ export class DatabaseService {
       upstreamUrl: row.upstream_url || undefined,
       isFork: row.is_fork === 1,
       remotesValid: row.remotes_valid === 1,
+      ecosystem: row.ecosystem || undefined,
+      framework: row.framework || undefined,
+      packageManager: row.package_manager || undefined,
+      isMonorepo: row.is_monorepo === 1,
+      monorepoTool: row.monorepo_tool || undefined,
+      databaseEngine: row.database_engine || undefined,
+      databaseOrm: row.database_orm || undefined,
     };
   }
 
@@ -502,6 +536,107 @@ export class DatabaseService {
     const db = this.getDb();
     const stmt = db.prepare('DELETE FROM dev_scripts WHERE id = ?');
     stmt.run(id);
+  }
+
+  // ============================================
+  // Notification Operations
+  // ============================================
+
+  getNotifications(limit: number, offset: number): AppNotification[] {
+    const db = this.getDb();
+    const stmt = db.prepare(
+      'SELECT * FROM notifications WHERE dismissed = 0 ORDER BY timestamp DESC LIMIT ? OFFSET ?'
+    );
+    const rows = stmt.all(limit, offset) as {
+      id: string;
+      category: string;
+      priority: string;
+      title: string;
+      message: string;
+      timestamp: number;
+      read: number;
+      dismissed: number;
+      dedupe_key: string;
+      action_label: string | null;
+      action_screen: string | null;
+      action_context: string | null;
+      group_key: string | null;
+    }[];
+
+    return rows.map((row) => ({
+      id: row.id,
+      category: row.category as AppNotification['category'],
+      priority: row.priority as AppNotification['priority'],
+      title: row.title,
+      message: row.message,
+      timestamp: row.timestamp,
+      read: row.read === 1,
+      dismissed: row.dismissed === 1,
+      dedupeKey: row.dedupe_key,
+      actionLabel: row.action_label || undefined,
+      actionScreen: row.action_screen || undefined,
+      actionContext: row.action_context || undefined,
+      groupKey: row.group_key || undefined,
+    }));
+  }
+
+  addNotification(notification: AppNotification): void {
+    const db = this.getDb();
+    const stmt = db.prepare(`
+      INSERT OR IGNORE INTO notifications (
+        id, category, priority, title, message, timestamp, read, dismissed,
+        dedupe_key, action_label, action_screen, action_context, group_key
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      notification.id,
+      notification.category,
+      notification.priority,
+      notification.title,
+      notification.message,
+      notification.timestamp,
+      notification.read ? 1 : 0,
+      notification.dismissed ? 1 : 0,
+      notification.dedupeKey,
+      notification.actionLabel || null,
+      notification.actionScreen || null,
+      notification.actionContext || null,
+      notification.groupKey || null
+    );
+  }
+
+  markNotificationRead(id: string): void {
+    const db = this.getDb();
+    db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(id);
+  }
+
+  markAllNotificationsRead(): void {
+    const db = this.getDb();
+    db.prepare('UPDATE notifications SET read = 1 WHERE read = 0').run();
+  }
+
+  dismissNotification(id: string): void {
+    const db = this.getDb();
+    db.prepare('UPDATE notifications SET dismissed = 1 WHERE id = ?').run(id);
+  }
+
+  clearAllNotifications(): void {
+    const db = this.getDb();
+    db.prepare('DELETE FROM notifications').run();
+  }
+
+  getUnreadNotificationCount(): number {
+    const db = this.getDb();
+    const row = db
+      .prepare('SELECT COUNT(*) as count FROM notifications WHERE read = 0 AND dismissed = 0')
+      .get() as { count: number };
+    return row.count;
+  }
+
+  purgeOldNotifications(maxAgeDays: number = 30): void {
+    const db = this.getDb();
+    const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+    db.prepare('DELETE FROM notifications WHERE timestamp < ?').run(cutoff);
   }
 }
 

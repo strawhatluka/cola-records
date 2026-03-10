@@ -18,7 +18,7 @@ import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
 import { ReactionDisplay } from '../ui/ReactionPicker';
 import { CreateSubIssueModal } from './CreateSubIssueModal';
 import { AddExistingSubIssueModal } from './AddExistingSubIssueModal';
-import { Dialog, DialogContent, DialogDescription, DialogHeader } from '../ui/Dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -348,14 +348,25 @@ export function DevelopmentIssueDetailModal({
     try {
       const branchName = generateBranchName(issue);
       // Determine the default branch (main or master)
-      const branches = await ipc.invoke('git:get-branches', localPath);
-      const defaultBranch = branches.find((b: string) => b === 'main')
+      const localBranches = await ipc.invoke('git:get-branches', localPath);
+      const defaultBranch = localBranches.find((b: string) => b === 'main')
         ? 'main'
-        : branches.find((b: string) => b === 'master')
+        : localBranches.find((b: string) => b === 'master')
           ? 'master'
-          : branches[0];
-      // Checkout the default branch first, then create the fix branch from it
-      await ipc.invoke('git:checkout', localPath, defaultBranch);
+          : localBranches[0];
+
+      // Sub-issues branch from their parent's branch; standalone/primary branch from main
+      const parentContext = parentIssue || detectedParent;
+      let baseBranch = defaultBranch;
+      if (parentContext) {
+        const parentBranch = localBranches.find((br: string) =>
+          new RegExp(`\\b${parentContext.number}\\b`).test(br)
+        );
+        if (parentBranch) baseBranch = parentBranch;
+      }
+
+      // Checkout the base branch first, then create the fix branch from it
+      await ipc.invoke('git:checkout', localPath, baseBranch);
       await ipc.invoke('git:create-branch', localPath, branchName);
       // Best-effort: assign the issue to ourselves so it appears in dashboard
       try {
@@ -423,10 +434,17 @@ export function DevelopmentIssueDetailModal({
       )}
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h2 className="text-xl font-semibold">
-            {issueDetail?.title || issue.title}
-            <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
-          </h2>
+          {inline ? (
+            <h2 className="text-xl font-semibold">
+              {issueDetail?.title || issue.title}
+              <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
+            </h2>
+          ) : (
+            <DialogTitle className="text-xl font-semibold">
+              {issueDetail?.title || issue.title}
+              <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
+            </DialogTitle>
+          )}
           <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
             {issueStatusBadge(issueState)}
             {branchBadge && (
@@ -546,49 +564,63 @@ export function DevelopmentIssueDetailModal({
             </div>
           )}
 
-          {/* Sub-issues list */}
-          {subIssues.length > 0 && (
+          {/* Sub-issues list (open only) */}
+          {subIssues.filter((s) => s.state === 'open').length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Sub-issues ({subIssues.length})</h3>
+              <h3 className="text-sm font-medium">
+                Sub-issues ({subIssues.filter((s) => s.state === 'open').length})
+              </h3>
               <div className="space-y-1">
-                {subIssues.map((sub) => (
-                  <button
-                    key={sub.id}
-                    onClick={() =>
-                      onNavigateToIssue?.(sub.number, {
-                        number: issue.number,
-                        title: issueDetail?.title || issue.title,
-                      })
-                    }
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm hover:bg-accent/50 cursor-pointer transition-colors text-left"
-                  >
-                    <span
-                      className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                        sub.state === 'open'
-                          ? 'bg-green-500/10 text-green-500'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {sub.state}
-                    </span>
-                    <span className="truncate flex-1">{sub.title}</span>
-                    {(branchBadge ||
-                      branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))) && (
-                      <span
-                        className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))
-                            ? 'bg-blue-500/10 text-blue-500'
-                            : 'bg-yellow-500/10 text-yellow-400'
-                        }`}
+                {subIssues
+                  .filter((s) => s.state === 'open')
+                  .map((sub) => {
+                    const isBranched = branches.some((br) =>
+                      new RegExp(`\\b${sub.number}\\b`).test(br)
+                    );
+                    // Sub-issues inherit badge from parent: Primary's children are Secondary, Secondary takes priority over branched
+                    const subBadge =
+                      branchBadge === 'Primary' ? 'Secondary' : isBranched ? 'branched' : undefined;
+                    // Filter out hierarchy labels (handled by subBadge) — show other labels like "enhancement", "bug", etc.
+                    const displayLabels = (sub.labels ?? []).filter(
+                      (l) => l !== 'Primary' && l !== 'Secondary'
+                    );
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() =>
+                          onNavigateToIssue?.(sub.number, {
+                            number: issue.number,
+                            title: issueDetail?.title || issue.title,
+                          })
+                        }
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/50 text-sm hover:bg-accent/50 cursor-pointer transition-colors text-left"
                       >
-                        {branches.some((br) => new RegExp(`\\b${sub.number}\\b`).test(br))
-                          ? 'branched'
-                          : 'Secondary'}
-                      </span>
-                    )}
-                    <span className="text-muted-foreground text-xs shrink-0">#{sub.number}</span>
-                  </button>
-                ))}
+                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/10 text-green-500">
+                          open
+                        </span>
+                        <span className="truncate flex-1">{sub.title}</span>
+                        {subBadge && (
+                          <Badge
+                            className={
+                              subBadge === 'Secondary'
+                                ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                            }
+                          >
+                            {subBadge}
+                          </Badge>
+                        )}
+                        {displayLabels.map((label) => (
+                          <Badge key={label} variant="secondary">
+                            {label}
+                          </Badge>
+                        ))}
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          #{sub.number}
+                        </span>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -714,12 +746,13 @@ export function DevelopmentIssueDetailModal({
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View on GitHub
                 </Button>
-                {issueState === 'open' && !branchBadge && (
-                  <Button size="sm" onClick={handleFixIssue} disabled={creatingBranch}>
-                    <GitBranch className="h-4 w-4 mr-2" />
-                    {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
-                  </Button>
-                )}
+                {issueState === 'open' &&
+                  !branches.some((br) => new RegExp(`\\b${issue?.number}\\b`).test(br)) && (
+                    <Button size="sm" onClick={handleFixIssue} disabled={creatingBranch}>
+                      <GitBranch className="h-4 w-4 mr-2" />
+                      {creatingBranch ? 'Creating branch...' : 'Fix Issue'}
+                    </Button>
+                  )}
               </div>
               <div className="flex items-center gap-2">
                 {issueState === 'open' ? (

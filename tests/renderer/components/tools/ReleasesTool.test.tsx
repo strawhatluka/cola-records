@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createElement } from 'react';
 
@@ -543,6 +543,832 @@ describe('ReleasesTool', () => {
           draft: true,
         })
       );
+    });
+
+    it('create sends empty target as undefined', async () => {
+      const user = userEvent.setup();
+      setupMocks();
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+
+      const plusIcon = screen.getByTestId('icon-plus');
+      const plusButton = plusIcon.closest('button');
+      await user.click(plusButton as HTMLButtonElement);
+
+      await waitFor(() => {
+        expect(screen.getByText('New Release')).toBeDefined();
+      });
+
+      const tagInput = screen.getByPlaceholderText('v1.0.0');
+      await user.type(tagInput, 'v4.0.0');
+
+      // Clear the target branch field to make it empty
+      const targetInput = screen.getByPlaceholderText('main');
+      await user.clear(targetInput);
+
+      await user.click(screen.getByText('Create Draft'));
+
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'github:create-release',
+        'upstream',
+        'repo',
+        expect.objectContaining({
+          tagName: 'v4.0.0',
+          targetCommitish: undefined,
+        })
+      );
+    });
+
+    it('create draft error shows alert with Error message', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') return mockReleases;
+        if (channel === 'github:create-release') throw new Error('Create failed');
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+
+      const plusIcon = screen.getByTestId('icon-plus');
+      await user.click(plusIcon.closest('button') as HTMLButtonElement);
+
+      await waitFor(() => {
+        expect(screen.getByText('New Release')).toBeDefined();
+      });
+
+      const tagInput = screen.getByPlaceholderText('v1.0.0');
+      await user.type(tagInput, 'v5.0.0');
+      await user.click(screen.getByText('Create Draft'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to create draft: Create failed');
+      });
+    });
+
+    it('create draft error shows alert with non-Error string', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') return mockReleases;
+        if (channel === 'github:create-release') throw 'string error';
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+
+      const plusIcon = screen.getByTestId('icon-plus');
+      await user.click(plusIcon.closest('button') as HTMLButtonElement);
+
+      await waitFor(() => {
+        expect(screen.getByText('New Release')).toBeDefined();
+      });
+
+      const tagInput = screen.getByPlaceholderText('v1.0.0');
+      await user.type(tagInput, 'v5.0.0');
+      await user.click(screen.getByText('Create Draft'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to create draft: string error');
+      });
+    });
+
+    it('toggles prerelease and makeLatest checkboxes in create view', async () => {
+      const user = userEvent.setup();
+      setupMocks();
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+
+      const plusIcon = screen.getByTestId('icon-plus');
+      await user.click(plusIcon.closest('button') as HTMLButtonElement);
+
+      await waitFor(() => {
+        expect(screen.getByText('New Release')).toBeDefined();
+      });
+
+      // Pre-release checkbox should be unchecked, make-latest should be checked
+      const checkboxes = screen.getAllByRole('checkbox') as HTMLInputElement[];
+      const prereleaseCheckbox = checkboxes[0];
+      const makeLatestCheckbox = checkboxes[1];
+
+      expect(prereleaseCheckbox.checked).toBe(false);
+      expect(makeLatestCheckbox.checked).toBe(true);
+
+      // Toggle prerelease on (use fireEvent to avoid label double-click)
+      fireEvent.click(prereleaseCheckbox);
+      expect(prereleaseCheckbox.checked).toBe(true);
+
+      // Toggle makeLatest off
+      fireEvent.click(makeLatestCheckbox);
+      expect(makeLatestCheckbox.checked).toBe(false);
+
+      // Fill tag and create to verify makeLatest='false' branch
+      const tagInput = screen.getByPlaceholderText('v1.0.0');
+      await user.type(tagInput, 'v6.0.0');
+      await user.click(screen.getByText('Create Draft'));
+
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'github:create-release',
+        'upstream',
+        'repo',
+        expect.objectContaining({
+          prerelease: true,
+          makeLatest: 'false',
+        })
+      );
+    });
+
+    it('back button in create view returns to list', async () => {
+      const user = userEvent.setup();
+      setupMocks();
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+
+      const plusIcon = screen.getByTestId('icon-plus');
+      await user.click(plusIcon.closest('button') as HTMLButtonElement);
+
+      await waitFor(() => {
+        expect(screen.getByText('New Release')).toBeDefined();
+      });
+
+      const backIcon = screen.getByTestId('icon-arrowleft');
+      await user.click(backIcon.closest('button') as HTMLButtonElement);
+
+      await waitFor(() => {
+        expect(screen.getByText('Releases')).toBeDefined();
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+    });
+  });
+
+  describe('Branch coverage - error handling', () => {
+    it('fetch error with non-Error object shows stringified error', async () => {
+      mockInvoke.mockRejectedValue('plain string error');
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('plain string error')).toBeDefined();
+      });
+    });
+
+    it('delete does nothing when confirm returns false', async () => {
+      const user = userEvent.setup();
+      setupMocks();
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Release 1.2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete Release')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Delete Release'));
+
+      expect(window.confirm).toHaveBeenCalled();
+      // delete-release should NOT have been called
+      const deleteCalls = mockInvoke.mock.calls.filter(
+        (call: unknown[]) => call[0] === 'github:delete-release'
+      );
+      expect(deleteCalls.length).toBe(0);
+    });
+
+    it('delete error shows alert with Error message', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') return mockReleases;
+        if (channel === 'github:delete-release') throw new Error('Delete failed');
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Release 1.2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete Release')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Delete Release'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to delete release: Delete failed');
+      });
+    });
+
+    it('delete error shows alert with non-Error string', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') return mockReleases;
+        if (channel === 'github:delete-release') throw 'delete string error';
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Release 1.2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete Release')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Delete Release'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to delete release: delete string error');
+      });
+    });
+
+    it('save draft error shows alert with Error message', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') return mockReleases;
+        if (channel === 'github:update-release') throw new Error('Save failed');
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Beta 2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Beta 2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Save Draft')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Save Draft'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to save draft: Save failed');
+      });
+    });
+
+    it('save draft error shows alert with non-Error string', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') return mockReleases;
+        if (channel === 'github:update-release') throw 'save string error';
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Beta 2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Beta 2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Save Draft')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Save Draft'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to save draft: save string error');
+      });
+    });
+
+    it('publish error shows alert with Error message', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') return mockReleases;
+        if (channel === 'github:publish-release') throw new Error('Publish failed');
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Beta 2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Beta 2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Publish')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Publish'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith('Failed to publish release: Publish failed');
+      });
+    });
+
+    it('publish error shows alert with non-Error string', async () => {
+      const user = userEvent.setup();
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') return mockReleases;
+        if (channel === 'github:publish-release') throw 'publish string error';
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Beta 2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Beta 2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Publish')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Publish'));
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith(
+          'Failed to publish release: publish string error'
+        );
+      });
+    });
+  });
+
+  describe('Branch coverage - detail view edge cases', () => {
+    it('shows tagName when release name is empty in detail header', async () => {
+      const user = userEvent.setup();
+      const releaseNoName = {
+        id: 3010,
+        tagName: 'v9.0.0',
+        name: '',
+        body: 'Some notes',
+        draft: false,
+        prerelease: false,
+        createdAt: '2026-02-20T00:00:00Z',
+        publishedAt: '2026-02-20T00:00:00Z',
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v9.0.0',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([releaseNoName]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        // In list view, should show tagName when name is empty
+        expect(screen.getByText('v9.0.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('v9.0.0'));
+
+      await waitFor(() => {
+        // Detail view header should show tagName as fallback
+        const headerTexts = screen.getAllByText('v9.0.0');
+        expect(headerTexts.length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    it('shows "No release notes" when body is empty in detail view', async () => {
+      const user = userEvent.setup();
+      const releaseEmptyBody = {
+        id: 3011,
+        tagName: 'v10.0.0',
+        name: 'Empty Body Release',
+        body: '',
+        draft: false,
+        prerelease: false,
+        createdAt: '2026-02-21T00:00:00Z',
+        publishedAt: '2026-02-21T00:00:00Z',
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v10.0.0',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([releaseEmptyBody]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Empty Body Release')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Empty Body Release'));
+
+      await waitFor(() => {
+        expect(screen.getByText('No release notes')).toBeDefined();
+      });
+    });
+
+    it('shows "No release notes" when body is whitespace-only in detail view', async () => {
+      const user = userEvent.setup();
+      const releaseWhitespaceBody = {
+        id: 3012,
+        tagName: 'v10.1.0',
+        name: 'Whitespace Body',
+        body: '   \n  ',
+        draft: false,
+        prerelease: false,
+        createdAt: '2026-02-21T00:00:00Z',
+        publishedAt: '2026-02-21T00:00:00Z',
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v10.1.0',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([releaseWhitespaceBody]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Whitespace Body')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Whitespace Body'));
+
+      await waitFor(() => {
+        expect(screen.getByText('No release notes')).toBeDefined();
+      });
+    });
+
+    it('shows Pre-release badge in detail view for prerelease', async () => {
+      const user = userEvent.setup();
+      setupMocks([mockReleases[3]]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('RC1')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('RC1'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Pre-release')).toBeDefined();
+      });
+    });
+
+    it('uses createdAt when publishedAt is null in detail view', async () => {
+      const user = userEvent.setup();
+      const releaseNoPubDate = {
+        id: 3013,
+        tagName: 'v11.0.0',
+        name: 'No Pub Date',
+        body: 'Some notes',
+        draft: false,
+        prerelease: false,
+        createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+        publishedAt: null,
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v11.0.0',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([releaseNoPubDate]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No Pub Date')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('No Pub Date'));
+
+      await waitFor(() => {
+        // Should show relative time based on createdAt
+        expect(screen.getByText(/1h ago/)).toBeDefined();
+      });
+    });
+
+    it('detail view does not show Latest badge when isLatest is false', async () => {
+      const user = userEvent.setup();
+      setupMocks([mockReleases[1]]); // Release 1.1.0, isLatest: false
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.1.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Release 1.1.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('v1.1.0')).toBeDefined();
+        expect(screen.queryByText('Latest')).toBeNull();
+      });
+    });
+  });
+
+  describe('Branch coverage - draft edit view edge cases', () => {
+    it('toggles prerelease and makeLatest checkboxes in draft edit', async () => {
+      const user = userEvent.setup();
+      setupMocks();
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Beta 2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Beta 2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Edit Draft')).toBeDefined();
+      });
+
+      const checkboxes = screen.getAllByRole('checkbox') as HTMLInputElement[];
+      const prereleaseCheckbox = checkboxes[0];
+      const makeLatestCheckbox = checkboxes[1];
+
+      // makeLatest defaults to true when entering draft edit
+      expect(makeLatestCheckbox.checked).toBe(true);
+
+      // Toggle makeLatest off and save to hit makeLatest='false' branch (use fireEvent to avoid label double-click)
+      fireEvent.click(makeLatestCheckbox);
+      expect(makeLatestCheckbox.checked).toBe(false);
+
+      // Toggle prerelease on
+      fireEvent.click(prereleaseCheckbox);
+      expect(prereleaseCheckbox.checked).toBe(true);
+
+      await user.click(screen.getByText('Save Draft'));
+
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'github:update-release',
+        'upstream',
+        'repo',
+        3003,
+        expect.objectContaining({
+          prerelease: true,
+          makeLatest: 'false',
+        })
+      );
+    });
+
+    it('opens external link from draft edit view', async () => {
+      const user = userEvent.setup();
+      setupMocks();
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Beta 2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Beta 2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('GitHub')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('GitHub'));
+
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'shell:open-external',
+        'https://github.com/org/repo/releases/tag/v2.0.0-beta'
+      );
+    });
+
+    it('delete from draft edit view works', async () => {
+      const user = userEvent.setup();
+      setupMocks();
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Beta 2.0')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Beta 2.0'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete Draft')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Delete Draft'));
+
+      expect(window.confirm).toHaveBeenCalled();
+      expect(mockInvoke).toHaveBeenCalledWith('github:delete-release', 'upstream', 'repo', 3003);
+    });
+  });
+
+  describe('Branch coverage - repositoryUrl fallback', () => {
+    it('uses repositoryUrl when upstreamUrl is not set', async () => {
+      setupMocks();
+      render(
+        <ReleasesTool
+          contribution={createMockContribution({
+            repositoryUrl: 'https://github.com/myorg/myrepo.git',
+            upstreamUrl: undefined,
+          })}
+        />
+      );
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('github:list-releases', 'myorg', 'myrepo');
+      });
+    });
+  });
+
+  describe('Branch coverage - list view badges and display', () => {
+    it('shows release with no name in list using tagName', async () => {
+      const releaseNoName = {
+        id: 3020,
+        tagName: 'v99.0.0',
+        name: '',
+        body: '',
+        draft: false,
+        prerelease: false,
+        createdAt: '2026-02-25T00:00:00Z',
+        publishedAt: '2026-02-25T00:00:00Z',
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v99.0.0',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([releaseNoName]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        // Should display tagName when name is empty
+        expect(screen.getByText('v99.0.0')).toBeDefined();
+      });
+    });
+
+    it('uses createdAt when publishedAt is null in list item', async () => {
+      const releaseNoPub = {
+        id: 3021,
+        tagName: 'v0.0.1',
+        name: 'NoPubDate List',
+        body: '',
+        draft: true,
+        prerelease: false,
+        createdAt: new Date(Date.now() - 120000).toISOString(), // 2 minutes ago
+        publishedAt: null,
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v0.0.1',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([releaseNoPub]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('NoPubDate List')).toBeDefined();
+        // Should show relative time from createdAt
+        expect(screen.getByText(/2m ago/)).toBeDefined();
+      });
+    });
+
+    it('shows release with all badges (latest + draft + prerelease) in list', async () => {
+      const releaseAllBadges = {
+        id: 3022,
+        tagName: 'v0.0.2',
+        name: 'All Badges',
+        body: '',
+        draft: true,
+        prerelease: true,
+        createdAt: '2026-02-25T00:00:00Z',
+        publishedAt: null,
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v0.0.2',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: true,
+      };
+      setupMocks([releaseAllBadges]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Latest')).toBeDefined();
+        expect(screen.getByText('Draft')).toBeDefined();
+        expect(screen.getByText('Pre-release')).toBeDefined();
+      });
+    });
+  });
+
+  describe('Branch coverage - formatRelativeTime paths', () => {
+    it('shows "just now" for very recent releases', async () => {
+      const recentRelease = {
+        id: 3030,
+        tagName: 'v0.0.3',
+        name: 'Just Now',
+        body: '',
+        draft: false,
+        prerelease: false,
+        createdAt: new Date().toISOString(), // now
+        publishedAt: new Date().toISOString(),
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v0.0.3',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([recentRelease]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/just now/)).toBeDefined();
+      });
+    });
+
+    it('shows minutes ago for releases within the hour', async () => {
+      const minutesAgoRelease = {
+        id: 3031,
+        tagName: 'v0.0.4',
+        name: 'Minutes Ago',
+        body: '',
+        draft: false,
+        prerelease: false,
+        createdAt: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
+        publishedAt: new Date(Date.now() - 1800000).toISOString(),
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v0.0.4',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([minutesAgoRelease]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/30m ago/)).toBeDefined();
+      });
+    });
+
+    it('shows hours ago for releases within the day', async () => {
+      const hoursAgoRelease = {
+        id: 3032,
+        tagName: 'v0.0.5',
+        name: 'Hours Ago',
+        body: '',
+        draft: false,
+        prerelease: false,
+        createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+        publishedAt: new Date(Date.now() - 7200000).toISOString(),
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v0.0.5',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([hoursAgoRelease]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/2h ago/)).toBeDefined();
+      });
+    });
+
+    it('shows days ago for releases older than a day', async () => {
+      const daysAgoRelease = {
+        id: 3033,
+        tagName: 'v0.0.6',
+        name: 'Days Ago',
+        body: '',
+        draft: false,
+        prerelease: false,
+        createdAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+        publishedAt: new Date(Date.now() - 259200000).toISOString(),
+        htmlUrl: 'https://github.com/org/repo/releases/tag/v0.0.6',
+        author: 'dev',
+        authorAvatarUrl: '',
+        isLatest: false,
+      };
+      setupMocks([daysAgoRelease]);
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/3d ago/)).toBeDefined();
+      });
+    });
+  });
+
+  describe('Branch coverage - retry after error', () => {
+    it('retry button refetches releases after error', async () => {
+      const user = userEvent.setup();
+      let callCount = 0;
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:list-releases') {
+          callCount++;
+          if (callCount === 1) throw new Error('Temporary error');
+          return mockReleases;
+        }
+        return undefined;
+      });
+      render(<ReleasesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Temporary error')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Retry'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Release 1.2.0')).toBeDefined();
+      });
     });
   });
 });

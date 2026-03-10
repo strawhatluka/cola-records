@@ -175,8 +175,9 @@ export function CreatePullRequestModal({
       setBase(defaultBase);
 
       // Get current branch for compare default
+      let currentBranch = '';
       try {
-        const currentBranch = await ipc.invoke('git:get-current-branch', localPath);
+        currentBranch = (await ipc.invoke('git:get-current-branch', localPath)) || '';
         const compareBranch = currentBranch || defaultBranchName || branches[1] || '';
         if (isMounted.current) {
           setCompare(compareBranch);
@@ -194,8 +195,42 @@ export function CreatePullRequestModal({
         }
       }
 
-      // Reset other state
+      // Smart base branch: if current branch is for a sub-issue, default base to parent's branch
+      const issueMatch = currentBranch?.match(/\/(\d+)[-/]/);
+      if (issueMatch) {
+        try {
+          const parent = await ipc.invoke(
+            'github:get-parent-issue',
+            owner,
+            repo,
+            Number(issueMatch[1])
+          );
+          if (parent && isMounted.current) {
+            const parentBranch = branches.find((br) =>
+              new RegExp(`\\b${parent.number}\\b`).test(br)
+            );
+            if (parentBranch) setBase(parentBranch);
+          }
+        } catch {
+          // Parent detection failed — keep default base (main)
+        }
+      }
+
+      // Pre-populate body from PR template if available
       setBody('');
+      try {
+        const template = await ipc.invoke(
+          'github-config:read-file',
+          localPath,
+          'PULL_REQUEST_TEMPLATE.md'
+        );
+        if (template && isMounted.current) {
+          setBody(template);
+        }
+      } catch {
+        // No PR template — leave body empty
+      }
+
       setError(null);
       setComparison(null);
       setComparisonError(null);
@@ -207,7 +242,7 @@ export function CreatePullRequestModal({
     return () => {
       isMounted.current = false;
     };
-  }, [open, localPath, branches, defaultBranchName]);
+  }, [open, localPath, branches, defaultBranchName, owner, repo]);
 
   // Fetch comparison when base/compare change (debounced)
   useEffect(() => {

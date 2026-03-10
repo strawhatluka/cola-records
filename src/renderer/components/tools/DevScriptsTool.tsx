@@ -20,6 +20,7 @@ import {
   Terminal,
   Layers,
   Power,
+  Globe,
 } from 'lucide-react';
 import { createLogger } from '../../../renderer/utils/logger';
 
@@ -38,6 +39,7 @@ interface DevScriptsToolProps {
 export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
   const {
     scripts: allScripts,
+    globalScripts,
     loading,
     loadScripts,
     saveScript,
@@ -781,7 +783,7 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
         )}
 
         {/* Scripts List */}
-        {scripts.length === 0 && !isFormOpen ? (
+        {scripts.length === 0 && globalScripts.length === 0 && !isFormOpen ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
             <Code className="h-12 w-12" />
             <div className="text-center">
@@ -887,6 +889,75 @@ export function DevScriptsTool({ workingDirectory }: DevScriptsToolProps) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Global Scripts Section */}
+        {globalScripts.length > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Global Scripts</span>
+            </div>
+            <div className="space-y-2">
+              {globalScripts.map((script) => (
+                <div
+                  key={script.id}
+                  className="group flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-dashed border-border hover:border-primary/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{script.name}</span>
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <Globe className="h-3 w-3" />
+                        Global
+                      </span>
+                      {script.toggle ? (
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <Power className="h-3 w-3" />
+                          Toggle
+                        </span>
+                      ) : script.terminals && script.terminals.length > 0 ? (
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <Layers className="h-3 w-3" />
+                          {script.terminals.length} terminals
+                        </span>
+                      ) : (
+                        script.commands.length > 1 && (
+                          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {script.commands.length} commands
+                          </span>
+                        )
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground font-mono truncate mt-1">
+                      {script.toggle
+                        ? `${script.toggle.firstPressName} / ${script.toggle.secondPressName}`
+                        : script.terminals && script.terminals.length > 0
+                          ? script.terminals.map((t) => t.name).join(', ')
+                          : script.commands.length > 1
+                            ? script.commands.join(' && ')
+                            : script.command}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleExecute(script)}
+                      title="Run script"
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                Manage global scripts in Settings
+              </p>
+            </div>
           </div>
         )}
       </div>

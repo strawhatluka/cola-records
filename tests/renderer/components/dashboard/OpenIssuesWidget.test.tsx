@@ -149,7 +149,7 @@ describe('OpenIssuesWidget', () => {
     });
   });
 
-  it('renders widget title', () => {
+  it('renders widget title', async () => {
     mockInvoke.mockImplementation(async (channel: string) => {
       if (channel === 'github:get-authenticated-user')
         return { login: 'testuser', name: 'Test', email: '' };
@@ -157,6 +157,10 @@ describe('OpenIssuesWidget', () => {
     });
     render(<OpenIssuesWidget />);
     expect(screen.getByText('Open Issues')).toBeDefined();
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalled();
+    });
   });
 
   it('shows empty state when both search queries fail (allSettled catches errors)', async () => {
@@ -314,5 +318,58 @@ describe('OpenIssuesWidget', () => {
     });
 
     expect(screen.queryByTitle('Open in Cola Records')).toBeNull();
+  });
+
+  it('shows error when result processing throws (err instanceof Error branch)', async () => {
+    // To trigger the outer catch, return data that causes a runtime error
+    // during processing. When items is null, spreading [...null] throws TypeError.
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        // Return an object whose items is not iterable to trigger outer catch
+        return { totalCount: 1, items: null };
+      }
+      return undefined;
+    });
+
+    render(<OpenIssuesWidget />);
+
+    await waitFor(() => {
+      // The error message from trying to iterate null (TypeError is an Error instance)
+      const errorEl = screen.queryByText(/is not iterable|Cannot read/i);
+      expect(errorEl).not.toBeNull();
+    });
+  });
+
+  it('renders issue with empty labels (labels.length === 0 hides label section)', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'github:get-authenticated-user')
+        return { login: 'testuser', name: 'Test', email: '' };
+      if (channel === 'github:search-issues-and-prs') {
+        return {
+          totalCount: 1,
+          items: [
+            makeItem({
+              number: 99,
+              title: 'No labels issue',
+              repoFullName: 'owner/repo',
+              labels: [],
+            }),
+          ],
+        };
+      }
+      return undefined;
+    });
+
+    render(<OpenIssuesWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No labels issue')).toBeDefined();
+    });
+
+    // With empty labels, no label badges should appear
+    const labelBadges = document.querySelectorAll('.bg-muted.px-1\\.5');
+    expect(labelBadges.length).toBe(0);
   });
 });

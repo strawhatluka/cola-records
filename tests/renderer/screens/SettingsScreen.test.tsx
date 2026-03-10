@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -26,6 +26,21 @@ vi.mock('../../../src/renderer/providers/ThemeProvider', () => ({
     resolvedTheme: 'light',
   }),
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+// Mock sonner
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), warning: vi.fn(), info: vi.fn(), success: vi.fn() },
+}));
+
+// Mock logger for notification store
+vi.mock('../../../src/renderer/utils/logger', () => ({
+  createLogger: () => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  }),
 }));
 
 import { useSettingsStore } from '../../../src/renderer/stores/useSettingsStore';
@@ -60,13 +75,17 @@ describe('SettingsScreen', () => {
     });
   });
 
-  it('renders settings heading', () => {
-    render(<SettingsScreen />);
+  it('renders settings heading', async () => {
+    await act(async () => {
+      render(<SettingsScreen />);
+    });
     expect(screen.getByText('Settings')).toBeDefined();
   });
 
-  it('renders all 5 tab buttons', () => {
-    render(<SettingsScreen />);
+  it('renders all 6 tab buttons', async () => {
+    await act(async () => {
+      render(<SettingsScreen />);
+    });
     // Use getAllByText since 'General' appears both as tab button and card title
     const generalElements = screen.getAllByText('General');
     expect(generalElements.length).toBeGreaterThanOrEqual(1);
@@ -74,10 +93,13 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Bash Profile')).toBeDefined();
     expect(screen.getByText('SSH Remotes')).toBeDefined();
     expect(screen.getByText('Code Server')).toBeDefined();
+    expect(screen.getByText('Notifications')).toBeDefined();
   });
 
-  it('shows General tab content by default', () => {
-    render(<SettingsScreen />);
+  it('shows General tab content by default', async () => {
+    await act(async () => {
+      render(<SettingsScreen />);
+    });
     expect(screen.getByText('Default Contributions Directory')).toBeDefined();
   });
 
@@ -109,12 +131,23 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('Startup Behavior')).toBeDefined();
   });
 
-  it('default active tab is General', () => {
-    render(<SettingsScreen />);
+  it('default active tab is General', async () => {
+    await act(async () => {
+      render(<SettingsScreen />);
+    });
     // General tab content should be visible
     expect(screen.getByText('Default Contributions Directory')).toBeDefined();
     // Code Server content should NOT be visible
     expect(screen.queryByText('Resource Allocation')).toBeNull();
+  });
+
+  it('switches to Notifications tab', async () => {
+    const user = userEvent.setup();
+    render(<SettingsScreen />);
+
+    await user.click(screen.getByText('Notifications'));
+    // NotificationsTab renders these headings
+    expect(screen.getByText('Enable Notifications')).toBeDefined();
   });
 
   it('tab switching works correctly between all tabs', async () => {

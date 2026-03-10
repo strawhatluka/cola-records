@@ -24,6 +24,7 @@ describe('useDevScriptsStore', () => {
     // Reset store to initial state
     useDevScriptsStore.setState({
       scripts: [],
+      globalScripts: [],
       loading: false,
       error: null,
       executingScriptId: null,
@@ -84,13 +85,16 @@ describe('useDevScriptsStore', () => {
 
     it('should populate scripts from IPC response', async () => {
       const mockScripts = createMockDevScriptsList();
-      mockInvoke.mockResolvedValueOnce(mockScripts);
+      // loadScripts now calls Promise.all with project path + __global__
+      mockInvoke.mockResolvedValueOnce(mockScripts); // project scripts
+      mockInvoke.mockResolvedValueOnce([]); // global scripts
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/test/project');
       });
 
       expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:get-all', '/test/project');
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:get-all', '__global__');
       expect(useDevScriptsStore.getState().scripts).toHaveLength(3);
     });
 
@@ -105,7 +109,8 @@ describe('useDevScriptsStore', () => {
     });
 
     it('should set loading false after completion', async () => {
-      mockInvoke.mockResolvedValueOnce([]);
+      mockInvoke.mockResolvedValueOnce([]); // project
+      mockInvoke.mockResolvedValueOnce([]); // global
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/test/project');
@@ -128,13 +133,31 @@ describe('useDevScriptsStore', () => {
       // Set initial error state
       useDevScriptsStore.setState({ error: 'Previous error' });
 
-      mockInvoke.mockResolvedValueOnce([]);
+      mockInvoke.mockResolvedValueOnce([]); // project
+      mockInvoke.mockResolvedValueOnce([]); // global
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/test/project');
       });
 
       expect(useDevScriptsStore.getState().error).toBeNull();
+    });
+
+    it('should also load global scripts alongside project scripts', async () => {
+      const mockScripts = createMockDevScriptsList();
+      const mockGlobals = [
+        createMockDevScript({ id: 'global_1', projectPath: '__global__', name: 'Format' }),
+      ];
+      mockInvoke.mockResolvedValueOnce(mockScripts); // project
+      mockInvoke.mockResolvedValueOnce(mockGlobals); // global
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadScripts('/test/project');
+      });
+
+      expect(useDevScriptsStore.getState().scripts).toHaveLength(3);
+      expect(useDevScriptsStore.getState().globalScripts).toHaveLength(1);
+      expect(useDevScriptsStore.getState().globalScripts[0].name).toBe('Format');
     });
   });
 
@@ -460,7 +483,8 @@ describe('useDevScriptsStore', () => {
         toggleStates: { script_1: true, script_2: false },
       });
 
-      mockInvoke.mockResolvedValueOnce([]);
+      mockInvoke.mockResolvedValueOnce([]); // project
+      mockInvoke.mockResolvedValueOnce([]); // global
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/test/project');
@@ -478,6 +502,7 @@ describe('useDevScriptsStore', () => {
         ...s,
         projectPath: '/test/project',
       }));
+      // Each loadScripts call makes 2 IPC calls (project + global)
       mockInvoke.mockResolvedValue(scripts);
 
       await act(async () => {
@@ -488,7 +513,7 @@ describe('useDevScriptsStore', () => {
         await useDevScriptsStore.getState().loadScripts('/test/project');
       });
 
-      expect(mockInvoke).toHaveBeenCalledTimes(2);
+      expect(mockInvoke).toHaveBeenCalledTimes(4); // 2 calls x 2 loads
       expect(useDevScriptsStore.getState().scripts).toHaveLength(3);
     });
 
@@ -496,7 +521,8 @@ describe('useDevScriptsStore', () => {
       const scripts1 = [createMockDevScript({ id: 'a1', projectPath: '/project/one' })];
       const scripts2 = [createMockDevScript({ id: 'b1', projectPath: '/project/two' })];
 
-      mockInvoke.mockResolvedValueOnce(scripts1);
+      mockInvoke.mockResolvedValueOnce(scripts1); // project one
+      mockInvoke.mockResolvedValueOnce([]); // global
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/project/one');
@@ -504,7 +530,8 @@ describe('useDevScriptsStore', () => {
 
       expect(useDevScriptsStore.getState().scripts).toEqual(scripts1);
 
-      mockInvoke.mockResolvedValueOnce(scripts2);
+      mockInvoke.mockResolvedValueOnce(scripts2); // project two
+      mockInvoke.mockResolvedValueOnce([]); // global
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/project/two');
@@ -518,7 +545,8 @@ describe('useDevScriptsStore', () => {
     });
 
     it('should handle empty scripts array', async () => {
-      mockInvoke.mockResolvedValueOnce([]);
+      mockInvoke.mockResolvedValueOnce([]); // project
+      mockInvoke.mockResolvedValueOnce([]); // global
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/empty/project');
@@ -541,7 +569,8 @@ describe('useDevScriptsStore', () => {
       const updatedA = [
         createMockDevScript({ id: 'a2', projectPath: '/project/a', name: 'New A' }),
       ];
-      mockInvoke.mockResolvedValueOnce(updatedA);
+      mockInvoke.mockResolvedValueOnce(updatedA); // project
+      mockInvoke.mockResolvedValueOnce([]); // global
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/project/a');
@@ -599,7 +628,8 @@ describe('useDevScriptsStore', () => {
         activeTerminalSession: 'active_session',
       });
 
-      mockInvoke.mockResolvedValueOnce([]);
+      mockInvoke.mockResolvedValueOnce([]); // project
+      mockInvoke.mockResolvedValueOnce([]); // global
 
       await act(async () => {
         await useDevScriptsStore.getState().loadScripts('/test/project');
@@ -612,6 +642,124 @@ describe('useDevScriptsStore', () => {
   });
 
   // ── selectScriptsForProject ──────────────────────────────────────────
+
+  // ── Global Scripts ──────────────────────────────────────────
+
+  describe('loadGlobalScripts', () => {
+    it('should fetch scripts with __global__ path', async () => {
+      const globals = [
+        createMockDevScript({ id: 'g1', projectPath: '__global__', name: 'Format' }),
+      ];
+      mockInvoke.mockResolvedValueOnce(globals);
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadGlobalScripts();
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:get-all', '__global__');
+      expect(useDevScriptsStore.getState().globalScripts).toHaveLength(1);
+      expect(useDevScriptsStore.getState().globalScripts[0].name).toBe('Format');
+    });
+
+    it('should set loading during fetch', async () => {
+      let resolvePromise: (value: unknown) => void;
+      const controlledPromise = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+      mockInvoke.mockReturnValue(controlledPromise);
+
+      const loadPromise = act(async () => {
+        useDevScriptsStore.getState().loadGlobalScripts();
+      });
+
+      expect(useDevScriptsStore.getState().loading).toBe(true);
+
+      resolvePromise!([]);
+      await loadPromise;
+
+      expect(useDevScriptsStore.getState().loading).toBe(false);
+    });
+
+    it('should set error on failure', async () => {
+      mockInvoke.mockRejectedValueOnce(new Error('Global load failed'));
+
+      await act(async () => {
+        await useDevScriptsStore.getState().loadGlobalScripts();
+      });
+
+      expect(useDevScriptsStore.getState().error).toContain('Global load failed');
+    });
+  });
+
+  describe('saveGlobalScript', () => {
+    it('should set projectPath to __global__ and save', async () => {
+      const script = createMockDevScript({ id: 'g1', name: 'Format' });
+      const savedGlobal = { ...script, projectPath: '__global__' };
+      mockInvoke.mockResolvedValueOnce(undefined); // save
+      mockInvoke.mockResolvedValueOnce([savedGlobal]); // reload
+
+      await act(async () => {
+        await useDevScriptsStore.getState().saveGlobalScript(script);
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'dev-scripts:save',
+        expect.objectContaining({ projectPath: '__global__' })
+      );
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:get-all', '__global__');
+      expect(useDevScriptsStore.getState().globalScripts).toHaveLength(1);
+    });
+
+    it('should set error on save failure', async () => {
+      mockInvoke.mockRejectedValueOnce(new Error('Save failed'));
+
+      await expect(
+        act(async () => {
+          await useDevScriptsStore.getState().saveGlobalScript(createMockDevScript({ id: 'g1' }));
+        })
+      ).rejects.toThrow('Save failed');
+
+      expect(useDevScriptsStore.getState().error).toContain('Save failed');
+    });
+  });
+
+  describe('deleteGlobalScript', () => {
+    it('should delete and reload global scripts', async () => {
+      useDevScriptsStore.setState({
+        globalScripts: [
+          createMockDevScript({ id: 'g1', projectPath: '__global__', name: 'Format' }),
+        ],
+      });
+
+      mockInvoke.mockResolvedValueOnce(undefined); // delete
+      mockInvoke.mockResolvedValueOnce([]); // reload
+
+      await act(async () => {
+        await useDevScriptsStore.getState().deleteGlobalScript('g1');
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:delete', 'g1');
+      expect(mockInvoke).toHaveBeenCalledWith('dev-scripts:get-all', '__global__');
+      expect(useDevScriptsStore.getState().globalScripts).toHaveLength(0);
+    });
+
+    it('should not affect project scripts on global delete', async () => {
+      useDevScriptsStore.setState({
+        scripts: [createMockDevScript({ id: 'p1', projectPath: '/project/a' })],
+        globalScripts: [createMockDevScript({ id: 'g1', projectPath: '__global__' })],
+      });
+
+      mockInvoke.mockResolvedValueOnce(undefined); // delete
+      mockInvoke.mockResolvedValueOnce([]); // reload global
+
+      await act(async () => {
+        await useDevScriptsStore.getState().deleteGlobalScript('g1');
+      });
+
+      expect(useDevScriptsStore.getState().scripts).toHaveLength(1);
+      expect(useDevScriptsStore.getState().scripts[0].id).toBe('p1');
+    });
+  });
 
   describe('selectScriptsForProject', () => {
     it('should return only scripts matching the given projectPath', () => {

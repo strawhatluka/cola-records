@@ -12,6 +12,7 @@ import { scannerPool } from './workers/scanner-pool';
 import { updaterService } from './services/updater.service';
 import { gitAskPassService } from './services/git-askpass.service';
 import { gitService } from './services';
+import { notificationService } from './services/notification.service';
 
 // Use separate user data directory in development to avoid cache conflicts with production
 if (!app.isPackaged) {
@@ -80,6 +81,9 @@ const createWindow = () => {
   // Initialize auto-updater (only runs in production)
   updaterService.initialize(mainWindow);
 
+  // Initialize notification polling service
+  notificationService.initialize(mainWindow);
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -134,6 +138,7 @@ async function cleanup(): Promise<void> {
   gitAskPassService.cleanup();
   spotifyService.cleanup();
   discordService.cleanup();
+  notificationService.cleanup();
   scannerPool.terminate();
   removeAllIpcHandlers();
   database.close();

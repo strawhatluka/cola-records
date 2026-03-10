@@ -83,6 +83,9 @@ export function setupContributionHandlers(): void {
       if (existing) {
         // Update existing contribution with latest metadata and correct createdAt from directory
         const updated = database.updateContribution(existing.id, {
+          repositoryUrl: scannedContribution.repositoryUrl,
+          branchName: scannedContribution.branchName,
+          issueNumber: scannedContribution.issueNumber || 0,
           isFork: scannedContribution.isFork,
           remotesValid: scannedContribution.remotesValid,
           upstreamUrl: scannedContribution.upstreamUrl,
@@ -161,6 +164,9 @@ export function setupContributionHandlers(): void {
 
       if (existing) {
         const updated = database.updateContribution(existing.id, {
+          repositoryUrl: scannedItem.repositoryUrl,
+          branchName: scannedItem.branchName,
+          issueNumber: scannedItem.issueNumber || 0,
           isFork: scannedItem.isFork,
           remotesValid: scannedItem.remotesValid,
           upstreamUrl: scannedItem.upstreamUrl,

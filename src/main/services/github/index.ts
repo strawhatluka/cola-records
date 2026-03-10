@@ -258,6 +258,17 @@ export class GitHubRestService extends GitHubRestServiceBase {
     return extras.unstarRepository(this.getClient(), owner, repo);
   }
 
+  async createRepository(
+    name: string,
+    options: {
+      description?: string;
+      isPrivate?: boolean;
+      autoInit?: boolean;
+    }
+  ): Promise<GitHubRepository> {
+    return extras.createRepository(this.getClient(), name, options);
+  }
+
   async getRateLimit() {
     return extras.getRateLimit(this.getClient());
   }

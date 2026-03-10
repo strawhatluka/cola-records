@@ -2,18 +2,78 @@
  * Core IPC channel definitions
  *
  * Covers: echo, fs, contribution, project, settings, dialog, shell,
- * code-server, terminal, dev-scripts, docs, updater
+ * code-server, terminal, dev-scripts, docs, updater, ai, workflow
  */
 import type {
   FileNode,
   FileContent,
   Contribution,
+  AIConfig,
+  AICompletionResponse,
+  VersionInfo,
+  CLIGroup,
+  CLIHelpResult,
   AppSettings,
   SSHRemote,
   ShellType,
   TerminalSession,
   DevScript,
   DocsCategory,
+  ProjectInfo,
+  SetUpActionResult,
+  CleanTarget,
+  DiskUsageResult,
+  Ecosystem,
+  EnvScanResult,
+  EnvFileInfo,
+  EnvSyncResult,
+  HookTool,
+  HookConfig,
+  HooksDetectionResult,
+  HooksSetupResult,
+  GitHookName,
+  HookAction,
+  LintStagedConfig,
+  LintStagedRule,
+  EditorConfigFile,
+  EditorConfigSection,
+  FormatterType,
+  FormatterInfo,
+  FormatterConfig,
+  PrettierConfig,
+  TestFrameworkType,
+  TestFrameworkInfo,
+  TestFrameworkConfig,
+  VitestConfig,
+  JestConfig,
+  CoverageProviderType,
+  CoverageProviderInfo,
+  CoverageConfig,
+  VitestCoverageConfig,
+  BuildToolType,
+  BuildToolInfo,
+  BuildConfig,
+  ViteBuildConfig,
+  LinterType,
+  LinterInfo,
+  LintConfig,
+  ESLintConfig,
+  PMInfo,
+  PackageManager,
+  PackageConfigData,
+  NpmSearchResult,
+  AppNotification,
+  NotificationPreferences,
+  GitHubConfigScanResult,
+  GitHubConfigTemplate,
+  GitHubConfigIssueTemplate,
+  ToolDetectionResult,
+  ToolInstallResult,
+  ScaffoldConfig,
+  ScaffoldResult,
+  DatabaseScaffoldConfig,
+  ORMOption,
+  GitHubRepository,
 } from './types';
 
 export interface CoreChannels {
@@ -43,6 +103,24 @@ export interface CoreChannels {
 
   // Project Channels
   'project:scan-directory': (directoryPath: string) => Contribution[];
+  'project:check-cli-tools': (
+    ecosystem: Ecosystem,
+    isMonorepo?: boolean,
+    monorepoTool?: string
+  ) => ToolDetectionResult[];
+  'project:scaffold': (config: ScaffoldConfig) => ScaffoldResult;
+  'project:scaffold-database': (config: DatabaseScaffoldConfig) => ScaffoldResult;
+  'project:get-orm-options': (ecosystem: Ecosystem, engine: string) => ORMOption[];
+  'project:create-github-repo': (
+    name: string,
+    options: { description?: string; isPrivate?: boolean; autoInit?: boolean }
+  ) => GitHubRepository;
+  'project:initialize-git': (projectPath: string, remoteName?: string, remoteUrl?: string) => void;
+  'project:validate-package-manager': (
+    ecosystem: Ecosystem,
+    packageManager: string
+  ) => ToolDetectionResult;
+  'project:install-tool': (toolName: string) => ToolInstallResult;
 
   // Settings Channels
   'settings:get': () => AppSettings;
@@ -113,4 +191,238 @@ export interface CoreChannels {
     error?: string;
   };
   'updater:get-version': () => string;
+
+  // Dev Tools Channels
+  'dev-tools:detect-project': (workingDirectory: string) => ProjectInfo;
+  'dev-tools:get-install-command': (workingDirectory: string) => string | null;
+  'dev-tools:get-typecheck-command': (workingDirectory: string) => string | null;
+  'dev-tools:get-git-init-command': () => string;
+  'dev-tools:get-hooks-command': (workingDirectory: string) => string | null;
+  'dev-tools:setup-env-file': (workingDirectory: string) => SetUpActionResult;
+  'dev-tools:get-clean-targets': (workingDirectory: string) => CleanTarget[];
+  'dev-tools:disk-usage': (workingDirectory: string) => DiskUsageResult;
+  'dev-tools:project-info': (workingDirectory: string) => ProjectInfo;
+
+  // Dev Tools — Env File Management Channels
+  'dev-tools:scan-env-variables': (workingDirectory: string, ecosystem: Ecosystem) => EnvScanResult;
+  'dev-tools:discover-env-files': (workingDirectory: string) => EnvFileInfo[];
+  'dev-tools:create-env-example': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => SetUpActionResult;
+  'dev-tools:create-env-file': (workingDirectory: string, targetName: string) => SetUpActionResult;
+  'dev-tools:read-env-file': (filePath: string) => string;
+  'dev-tools:write-env-file': (filePath: string, content: string) => SetUpActionResult;
+  'dev-tools:sync-env-files': (workingDirectory: string, ecosystem: Ecosystem) => EnvSyncResult;
+
+  // Dev Tools — Hooks Management Channels
+  'dev-tools:detect-hooks': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => HooksDetectionResult;
+  'dev-tools:setup-hook-tool': (
+    workingDirectory: string,
+    tool: HookTool,
+    ecosystem: Ecosystem
+  ) => HooksSetupResult;
+  'dev-tools:get-hook-install-cmd': (tool: HookTool) => string;
+  'dev-tools:read-hooks-config': (workingDirectory: string, tool: HookTool) => HookConfig;
+  'dev-tools:write-hooks-config': (
+    workingDirectory: string,
+    config: HookConfig
+  ) => SetUpActionResult;
+  'dev-tools:setup-lint-staged': (
+    workingDirectory: string,
+    config: LintStagedConfig
+  ) => SetUpActionResult;
+  'dev-tools:get-hook-presets': (
+    ecosystem: Ecosystem,
+    tool: HookTool
+  ) => Record<GitHookName, HookAction[]>;
+  'dev-tools:get-lint-staged-presets': (ecosystem: Ecosystem) => LintStagedRule[];
+
+  // Dev Tools — EditorConfig Management Channels
+  'dev-tools:read-editorconfig': (workingDirectory: string) => EditorConfigFile;
+  'dev-tools:write-editorconfig': (
+    workingDirectory: string,
+    config: EditorConfigFile
+  ) => SetUpActionResult;
+  'dev-tools:create-editorconfig': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => SetUpActionResult;
+  'dev-tools:delete-editorconfig': (workingDirectory: string) => SetUpActionResult;
+  'dev-tools:get-editorconfig-presets': (ecosystem: Ecosystem) => EditorConfigSection[];
+
+  // Dev Tools — Format Config Management Channels
+  'dev-tools:detect-formatter': (workingDirectory: string, ecosystem: Ecosystem) => FormatterInfo;
+  'dev-tools:read-format-config': (configPath: string, formatter: FormatterType) => FormatterConfig;
+  'dev-tools:write-format-config': (
+    workingDirectory: string,
+    formatter: FormatterType,
+    config: PrettierConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-format-presets': (
+    ecosystem: Ecosystem,
+    formatter: FormatterType | null
+  ) => PrettierConfig | Record<string, unknown>;
+  'dev-tools:create-format-ignore': (
+    workingDirectory: string,
+    formatter: FormatterType
+  ) => SetUpActionResult;
+  'dev-tools:read-format-ignore': (workingDirectory: string, formatter: FormatterType) => string;
+  'dev-tools:write-format-ignore': (
+    workingDirectory: string,
+    formatter: FormatterType,
+    content: string
+  ) => SetUpActionResult;
+
+  // Dev Tools — Test Config Management Channels
+  'dev-tools:detect-test-framework': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => TestFrameworkInfo;
+  'dev-tools:read-test-config': (
+    configPath: string,
+    framework: TestFrameworkType
+  ) => TestFrameworkConfig;
+  'dev-tools:write-test-config': (
+    workingDirectory: string,
+    framework: TestFrameworkType,
+    config: VitestConfig | JestConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-test-presets': (
+    ecosystem: Ecosystem,
+    framework: TestFrameworkType | null
+  ) => VitestConfig | JestConfig | Record<string, unknown>;
+
+  // Dev Tools — Coverage Config Management Channels
+  'dev-tools:detect-coverage': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => CoverageProviderInfo;
+  'dev-tools:read-coverage-config': (
+    configPath: string,
+    provider: CoverageProviderType
+  ) => CoverageConfig;
+  'dev-tools:write-coverage-config': (
+    workingDirectory: string,
+    provider: CoverageProviderType,
+    config: VitestCoverageConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-coverage-presets': (
+    ecosystem: Ecosystem,
+    provider: CoverageProviderType | null
+  ) => VitestCoverageConfig | Record<string, unknown>;
+  'dev-tools:open-coverage-report': (reportPath: string) => SetUpActionResult;
+
+  // Dev Tools — Build Config Management Channels
+  'dev-tools:detect-build-tool': (workingDirectory: string, ecosystem: Ecosystem) => BuildToolInfo;
+  'dev-tools:read-build-config': (configPath: string, buildTool: BuildToolType) => BuildConfig;
+  'dev-tools:write-build-config': (
+    workingDirectory: string,
+    buildTool: BuildToolType,
+    config: ViteBuildConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-build-presets': (
+    ecosystem: Ecosystem,
+    buildTool: BuildToolType | null
+  ) => ViteBuildConfig | Record<string, unknown>;
+
+  // Dev Tools — Lint Config Management Channels
+  'dev-tools:detect-linter': (workingDirectory: string, ecosystem: Ecosystem) => LinterInfo;
+  'dev-tools:read-lint-config': (configPath: string, linter: LinterType) => LintConfig;
+  'dev-tools:write-lint-config': (
+    workingDirectory: string,
+    linter: LinterType,
+    config: ESLintConfig | Record<string, unknown>
+  ) => SetUpActionResult;
+  'dev-tools:get-lint-presets': (
+    ecosystem: Ecosystem,
+    linter: LinterType | null
+  ) => ESLintConfig | Record<string, unknown>;
+
+  // Dev Tools — Package Manager Channels
+  'dev-tools:get-pm-commands': (pm: PackageManager) => Record<string, string | null>;
+  'dev-tools:get-pm-info': (workingDirectory: string, pm: PackageManager) => PMInfo;
+  'dev-tools:get-pm-init-command': (pm: PackageManager) => string | null;
+  'dev-tools:get-pm-dedupe-command': (pm: PackageManager) => string | null;
+  'dev-tools:get-pm-lock-refresh-command': (pm: PackageManager) => string | null;
+
+  // Dev Tools — Package Config Channels
+  'dev-tools:read-package-config': (
+    workingDirectory: string,
+    ecosystem: Ecosystem
+  ) => PackageConfigData | null;
+  'dev-tools:write-package-config': (
+    workingDirectory: string,
+    ecosystem: Ecosystem,
+    data: PackageConfigData
+  ) => SetUpActionResult;
+  'dev-tools:search-npm-registry': (query: string) => NpmSearchResult[];
+
+  // AI Channels
+  'ai:complete': (prompt: string, maxTokens?: number) => AICompletionResponse;
+  'ai:test-connection': () => { success: boolean; message: string; model: string };
+  'ai:get-config': () => AIConfig | null;
+
+  // Workflow — AI-powered generation
+  'workflow:generate-changelog': (
+    repoPath: string,
+    issueNumber?: string,
+    branchName?: string
+  ) => { entry: string; hasChanges: boolean };
+  'workflow:generate-commit-message': (
+    repoPath: string,
+    issueNumber?: string,
+    branchName?: string
+  ) => string;
+  // Workflow — Apply operations
+  'workflow:apply-changelog': (repoPath: string, entry: string) => void;
+
+  // Version management
+  'workflow:detect-versions': (repoPath: string) => VersionInfo[];
+  'workflow:bump-version': (current: string, type: 'major' | 'minor' | 'patch') => string;
+  'workflow:update-version': (
+    repoPath: string,
+    newVersion: string,
+    files: string[]
+  ) => SetUpActionResult;
+
+  // CLI scanning
+  'workflow:scan-clis': (ecosystem?: string) => CLIGroup[];
+  'workflow:get-cli-help': (cliPath: string, subcommand?: string) => CLIHelpResult;
+
+  // GitHub Config Management Channels
+  'github-config:scan': (workingDirectory: string) => GitHubConfigScanResult;
+  'github-config:read-file': (workingDirectory: string, relativePath: string) => string;
+  'github-config:write-file': (
+    workingDirectory: string,
+    relativePath: string,
+    content: string
+  ) => SetUpActionResult;
+  'github-config:delete-file': (
+    workingDirectory: string,
+    relativePath: string
+  ) => SetUpActionResult;
+  'github-config:create-from-template': (
+    workingDirectory: string,
+    featureId: string,
+    templateId: string
+  ) => SetUpActionResult;
+  'github-config:list-templates': (featureId: string) => GitHubConfigTemplate[];
+  'github-config:list-issue-templates': (workingDirectory: string) => GitHubConfigIssueTemplate[];
+
+  // Notification Channels
+  'notification:add': (notification: AppNotification) => void;
+  'notification:get-all': (limit?: number, offset?: number) => AppNotification[];
+  'notification:mark-read': (id: string) => void;
+  'notification:mark-all-read': () => void;
+  'notification:dismiss': (id: string) => void;
+  'notification:clear-all': () => void;
+  'notification:get-preferences': () => NotificationPreferences;
+  'notification:update-preferences': (
+    preferences: Partial<NotificationPreferences>
+  ) => NotificationPreferences;
+  'notification:get-unread-count': () => number;
 }

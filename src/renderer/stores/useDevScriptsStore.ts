@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import type { DevScript } from '../../main/ipc/channels';
+import { GLOBAL_SCRIPTS_PATH } from '../../main/ipc/channels/types';
 import { ipc } from '../ipc/client';
 
 interface DevScriptsState {
   scripts: DevScript[];
+  globalScripts: DevScript[];
   loading: boolean;
   error: string | null;
   executingScriptId: string | null;
@@ -13,8 +15,11 @@ interface DevScriptsState {
 
   // Actions
   loadScripts: (projectPath: string) => Promise<void>;
+  loadGlobalScripts: () => Promise<void>;
   saveScript: (script: DevScript) => Promise<void>;
   deleteScript: (id: string) => Promise<void>;
+  saveGlobalScript: (script: DevScript) => Promise<void>;
+  deleteGlobalScript: (id: string) => Promise<void>;
   setExecutingScript: (id: string | null) => void;
   setActiveTerminalSession: (sessionId: string | null) => void;
   flipToggleState: (scriptId: string) => void;
@@ -23,6 +28,7 @@ interface DevScriptsState {
 
 export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
   scripts: [],
+  globalScripts: [],
   loading: false,
   error: null,
   executingScriptId: null,
@@ -32,11 +38,25 @@ export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
   loadScripts: async (projectPath: string) => {
     set({ loading: true, error: null, toggleStates: {} });
     try {
-      const loaded = await ipc.invoke('dev-scripts:get-all', projectPath);
+      const [loaded, globals] = await Promise.all([
+        ipc.invoke('dev-scripts:get-all', projectPath),
+        ipc.invoke('dev-scripts:get-all', GLOBAL_SCRIPTS_PATH),
+      ]);
       set((state) => ({
         scripts: [...state.scripts.filter((s) => s.projectPath !== projectPath), ...loaded],
+        globalScripts: globals,
         loading: false,
       }));
+    } catch (error) {
+      set({ error: String(error), loading: false });
+    }
+  },
+
+  loadGlobalScripts: async () => {
+    set({ loading: true, error: null });
+    try {
+      const globals = await ipc.invoke('dev-scripts:get-all', GLOBAL_SCRIPTS_PATH);
+      set({ globalScripts: globals, loading: false });
     } catch (error) {
       set({ error: String(error), loading: false });
     }
@@ -72,6 +92,31 @@ export const useDevScriptsStore = create<DevScriptsState>((set, get) => ({
         scripts: [...state.scripts.filter((s) => s.projectPath !== script.projectPath), ...loaded],
         loading: false,
       }));
+    } catch (error) {
+      set({ error: String(error), loading: false });
+      throw error;
+    }
+  },
+
+  saveGlobalScript: async (script: DevScript) => {
+    const globalScript = { ...script, projectPath: GLOBAL_SCRIPTS_PATH };
+    set({ loading: true, error: null });
+    try {
+      await ipc.invoke('dev-scripts:save', globalScript);
+      const globals = await ipc.invoke('dev-scripts:get-all', GLOBAL_SCRIPTS_PATH);
+      set({ globalScripts: globals, loading: false });
+    } catch (error) {
+      set({ error: String(error), loading: false });
+      throw error;
+    }
+  },
+
+  deleteGlobalScript: async (id: string) => {
+    set({ loading: true, error: null });
+    try {
+      await ipc.invoke('dev-scripts:delete', id);
+      const globals = await ipc.invoke('dev-scripts:get-all', GLOBAL_SCRIPTS_PATH);
+      set({ globalScripts: globals, loading: false });
     } catch (error) {
       set({ error: String(error), loading: false });
       throw error;

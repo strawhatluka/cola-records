@@ -4,7 +4,7 @@
  * SQLite database schema for Cola Records
  */
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 9;
 
 /**
  * SQL statements to create all tables
@@ -96,5 +96,37 @@ export const MIGRATIONS: Record<number, string> = {
   // Version 7: Add toggle column (JSON) for toggle-mode scripts
   7: `
     ALTER TABLE dev_scripts ADD COLUMN toggle TEXT;
+  `,
+  // Version 8: Add notifications table for notification persistence
+  8: `
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      priority TEXT NOT NULL CHECK(priority IN ('high', 'medium', 'low')),
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      timestamp INTEGER NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0,
+      dismissed INTEGER NOT NULL DEFAULT 0,
+      dedupe_key TEXT NOT NULL,
+      action_label TEXT,
+      action_screen TEXT,
+      action_context TEXT,
+      group_key TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_notifications_timestamp ON notifications(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+    CREATE INDEX IF NOT EXISTS idx_notifications_dedupe_key ON notifications(dedupe_key);
+    CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);
+  `,
+  // Version 9: Add project creation metadata columns
+  9: `
+    ALTER TABLE contributions ADD COLUMN ecosystem TEXT;
+    ALTER TABLE contributions ADD COLUMN framework TEXT;
+    ALTER TABLE contributions ADD COLUMN package_manager TEXT;
+    ALTER TABLE contributions ADD COLUMN is_monorepo INTEGER DEFAULT 0;
+    ALTER TABLE contributions ADD COLUMN monorepo_tool TEXT;
+    ALTER TABLE contributions ADD COLUMN database_engine TEXT;
+    ALTER TABLE contributions ADD COLUMN database_orm TEXT;
   `,
 };

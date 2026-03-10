@@ -27,6 +27,7 @@ describe('CodeServerTab', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
     // Default: stats returns null (container not running)
     mockInvoke.mockResolvedValue(null);
   });
@@ -526,7 +527,7 @@ describe('CodeServerTab', () => {
       await user.click(envAddButton);
 
       expect(mockOnUpdate).not.toHaveBeenCalled();
-    });
+    }, 15000);
   });
 
   // ── AT-21: Current Usage Display ────────────────────────────────

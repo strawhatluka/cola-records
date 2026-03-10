@@ -108,3 +108,86 @@ export const Menu = createIcon('Menu');
 export const GripVertical = createIcon('GripVertical');
 export const Layers = createIcon('Layers');
 export const Power = createIcon('Power');
+
+// Dev Tools icons
+export const Package = createIcon('Package');
+export const FileKey = createIcon('FileKey');
+export const Anchor = createIcon('Anchor');
+export const ShieldCheck = createIcon('ShieldCheck');
+export const Info = createIcon('Info');
+
+// Workflow icons
+export const GitBranchPlus = createIcon('GitBranchPlus');
+export const SearchCheck = createIcon('SearchCheck');
+export const AlignLeft = createIcon('AlignLeft');
+export const FlaskConical = createIcon('FlaskConical');
+export const PieChart = createIcon('PieChart');
+export const Hammer = createIcon('Hammer');
+
+// Update section icons
+export const ArrowUpCircle = createIcon('ArrowUpCircle');
+export const ShieldAlert = createIcon('ShieldAlert');
+export const ArrowDownToLine = createIcon('ArrowDownToLine');
+
+// Info section icons
+export const Activity = createIcon('Activity');
+export const Globe = createIcon('Globe');
+export const Github = createIcon('Github');
+export const HardDrive = createIcon('HardDrive');
+export const FolderSearch = createIcon('FolderSearch');
+
+// Env panel icons
+export const FilePlus = createIcon('FilePlus');
+export const FileEdit = createIcon('FileEdit');
+export const FileCog = createIcon('FileCog');
+
+// Format panel icons
+export const FileX = createIcon('FileX');
+
+// Test panel icons
+export const Eye = createIcon('Eye');
+
+// Hooks panel/editor icons
+export const Download = createIcon('Download');
+export const Sparkles = createIcon('Sparkles');
+
+// Workflow action button icons
+export const GitCommitHorizontal = createIcon('GitCommitHorizontal');
+export const TerminalSquare = createIcon('TerminalSquare');
+export const AlertCircle = createIcon('AlertCircle');
+
+// Stage editor icons
+export const CheckSquare = createIcon('CheckSquare');
+export const Square = createIcon('Square');
+
+// Notification icons
+export const Bell = createIcon('Bell');
+export const BellOff = createIcon('BellOff');
+export const Workflow = createIcon('Workflow');
+export const Plug = createIcon('Plug');
+
+// Discord icons
+export const BarChart3 = createIcon('BarChart3');
+export const TrendingUp = createIcon('TrendingUp');
+export const Smile = createIcon('Smile');
+export const Upload = createIcon('Upload');
+
+// GitHub Config icons
+export const Rocket = createIcon('Rocket');
+export const RotateCcw = createIcon('RotateCcw');
+
+// MessageList / Discord panel icons
+export const Pin = createIcon('Pin');
+export const PanelLeftOpen = createIcon('PanelLeftOpen');
+export const PanelLeftClose = createIcon('PanelLeftClose');
+
+// Package Manager panel icons
+export const FolderCog = createIcon('FolderCog');
+export const FolderPlus = createIcon('FolderPlus');
+export const FileJson = createIcon('FileJson');
+
+// Package Config Editor icons
+export const ArrowRightLeft = createIcon('ArrowRightLeft');
+
+// Issue modal icons
+export const Inbox = createIcon('Inbox');

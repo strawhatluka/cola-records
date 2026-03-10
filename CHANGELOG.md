@@ -7,6 +7,410 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `setTimeout` call to `src/renderer/components/tools/ChangelogResult.tsx` to automatically close the component after 1200ms. (Relates to #72)
+- Add `GitHubIssueDetail` interface to `src/main/ipc/channels/types.ts` for detailed GitHub issue information. (Relates to #72)
+- Add `GitHubPullRequestResult` interface to `src/main/ipc/channels/types.ts` for GitHub pull request creation results. (Relates to #72)
+- Add `GitHubUserRepository` interface to `src/main/ipc/channels/types.ts` for user-specific GitHub repository details. (Relates to #72)
+- Add `npm-registry.service.ts` to provide functionality for searching the npm registry. (Relates to #72)
+- Add `package-config.service.ts` to manage reading and writing package configuration files. (Relates to #72)
+- Add `PackageConfigEditor.tsx` component for editing package configuration files. (Relates to #72)
+- Add `npm-registry.service.test.ts` for `NpmRegistryService`. (Relates to #72)
+- Add `package-config.service.test.ts` for `PackageConfigService`. (Relates to #72)
+- Add `PackageConfigEditor.test.tsx` for `PackageConfigEditor` component. (Relates to #72)
+- Add `PackageConfigData` and `NpmSearchResult` interfaces to `src/main/ipc/channels/types.ts`. (Relates to #72)
+- Add `PackageConfigData` and `NpmSearchResult` types to `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Add new IPC channels `dev-tools:read-package-config`, `dev-tools:write-package-config`, and `dev-tools:search-npm-registry` in `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Register new IPC handlers for package configuration and npm registry search in `src/main/ipc/handlers.ts`. (Relates to #72)
+- Add imports for `packageConfigService` and `npmRegistryService` in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Implement IPC handlers for `dev-tools:read-package-config`, `dev-tools:write-package-config`, and `dev-tools:search-npm-registry` in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add import for `PackageConfigEditor` component in `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Implement conditional rendering for `PackageConfigEditor` within `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Pass `onOpenEditor` prop to `PackageManagerPanel` in `src/renderer/components/tools/MaintenanceTool.tsx` to trigger opening the `PackageConfigEditor`. (Relates to #72)
+- Add `onOpenEditor` prop to `PackageManagerPanel` component in `src/renderer/components/tools/PackageManagerPanel.tsx`. (Relates to #72)
+- Add 'Package Config' action button with `FileJson` icon to `PackageManagerPanel` in `src/renderer/components/tools/PackageManagerPanel.tsx`. (Relates to #72)
+- Add mock implementations for `FileJson` and `ArrowRightLeft` icons in `tests/mocks/lucide-react.tsx`. (Relates to #72)
+- Add test case to verify `PackageConfigEditor` opens from `PackageManagerPanel` in `tests/renderer/components/tools/MaintenanceTool.test.tsx`. (Relates to #72)
+- Add `package-manager.service.ts` to manage package manager operations. (Relates to #72)
+- Add `PackageManagerPanel.tsx` component to display package manager information and controls. (Relates to #72)
+- Add `package-manager.service.test.ts` for `PackageManagerService`. (Relates to #72)
+- Add `PackageManagerPanel.test.tsx` for `PackageManagerPanel` component. (Relates to #72)
+- Add `PMInfo` interface to `src/main/ipc/channels/types.ts`. (Relates to #72)
+- Add new IPC channel definitions for package manager operations (`dev-tools:get-pm-commands`, `dev-tools:get-pm-info`, `dev-tools:get-pm-init-command`, `dev-tools:get-pm-dedupe-command`, `dev-tools:get-pm-lock-refresh-command`) in `src/main/ipc/channels/core.channels.ts`. (Relates to #72)
+- Add new IPC handler registrations for package manager channels in `src/main/ipc/handlers.ts`. (Relates to #72)
+- Add `packageManagerService` import to `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add new IPC handler implementations for package manager channels in `src/main/ipc/handlers/dev-tools.handlers.ts`. (Relates to #72)
+- Add `FolderCog` and `FolderPlus` icons to `tests/mocks/lucide-react.tsx`. (Relates to #72)
+- Add `PackageManagerPanel` import to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add `package-manager` button and its handler to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add `Lint`, `Test`, `Coverage`, `Format`, and `Build` buttons to `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Add test case to `tests/renderer/components/tools/ToolsPanel.test.tsx` to verify the order of navigation items. (Relates to #72)
+- Add test suite for `code-server.service` concurrent start handling in `tests/main/services/code-server.service.test.ts`. (Relates to #72)
+- Add mock implementations for `tag` and `pushTags` in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test cases for `getRemoteUrl` and `fetch` error handling in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test case for `git.service` to use `master` as base branch when `main` does not exist in `tests/main/services/git.service.test.ts`. (Relates to #72)
+- Add test suite for `hooks.service` `setupHookTool` with `simple-git-hooks` in `tests/main/services/hooks.service.test.ts`. (Relates to #72)
+- Add test suite for `spotify.service` edge cases and fallbacks, including `getPlaybackState` when device info is missing in `tests/main/services/spotify.service.test.ts`. (Relates to #72)
+- Add test case for `updater.service` to filter out null release notes in `tests/main/services/updater.service.test.ts`. (Relates to #72)
+- Add test suites for `contribution-scanner.worker` error handling branches for URL parsing and GitHub API failures in `tests/main/workers/contribution-scanner.worker.test.ts`. (Relates to #72)
+- Add test suite for `scanner-pool` `getWorkerPath` in packaged mode in `tests/main/workers/scanner-pool.test.ts`. (Relates to #72)
+- Add `waitFor` import to `tests/renderer/components/contributions/ContributionCard.test.tsx`.
+- Add test suite for fork and remote badges in `ContributionCard.test.tsx`. (Relates to #72)
+- Add test cases for `CICDStatusWidget` to handle authentication and non-authentication errors from workflow runs in `tests/renderer/components/dashboard/CICDStatusWidget.test.tsx`. (Relates to #72)
+- Add test cases for `ContributionStatusWidget` to handle authentication and non-authentication errors from search results in `tests/renderer/components/dashboard/ContributionStatusWidget.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/dashboard/GitHubProfileWidget.test.tsx`.
+- Add test case for `GitHubProfileWidget` to show "Other" language segment for repositories with more than 3 languages in `tests/renderer/components/dashboard/GitHubProfileWidget.test.tsx`. (Relates to #72)
+- Add test case for `OpenIssuesWidget` to show error when result processing throws in `tests/renderer/components/dashboard/OpenIssuesWidget.test.tsx`. (Relates to #72)
+- Add test case for `PRsNeedingAttentionWidget` to show pending review state with a Clock icon when no reviews are available in `tests/renderer/components/dashboard/PRsNeedingAttentionWidget.test.tsx`. (Relates to #72)
+- Add test case for `RecentActivityWidget` to render `DeleteEvent` descriptions and icons in `tests/renderer/components/dashboard/RecentActivityWidget.test.tsx`. (Relates to #72)
+- Add test suites for `CreateIssueModal` inline mode and template handling in `tests/renderer/components/issues/CreateIssueModal.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/settings/BashProfileTab.test.tsx`.
+- Add test suite for `BashProfileTab` alias editing functionality in `tests/renderer/components/settings/BashProfileTab.test.tsx`. (Relates to #72)
+- Add test suite for `GeneralTab` directory selection cancellation behavior in `tests/renderer/components/settings/GeneralTab.test.tsx`. (Relates to #72)
+- Add `act` import and timer control setup to `tests/renderer/components/settings/NotificationsTab.test.tsx`.
+- Add test case for `NotificationsTab` master toggle switch functionality in `tests/renderer/components/settings/NotificationsTab.test.tsx`. (Relates to #72)
+- Add test cases for `ActionsTool` log display, including empty states and truncation, in `tests/renderer/components/tools/ActionsTool.test.tsx`. (Relates to #72)
+- Add test suite for `BuildPanel` `handleDevBuild` branch coverage, including conditional display of "Dev Build" button, in `tests/renderer/components/tools/BuildPanel.test.tsx`. (Relates to #72)
+- Add test suite for `CoveragePanel` `handleOpenReport` branch coverage in `tests/renderer/components/tools/CoveragePanel.test.tsx`. (Relates to #72)
+- Add test suites for `FormatPanel` detection error handling and conditional display of "Format Check" button for formatters without a check flag in `tests/renderer/components/tools/FormatPanel.test.tsx`. (Relates to #72)
+- Add test suite for `LintPanel` `handleLintFix` branch coverage for different linters in `tests/renderer/components/tools/LintPanel.test.tsx`. (Relates to #72)
+- Add `fireEvent` import to `tests/renderer/components/tools/ReleasesTool.test.tsx`.
+- Add test case for `ReleasesTool` to send empty target as undefined during release creation in `tests/renderer/components/tools/ReleasesTool.test.tsx`. (Relates to #72)
+- Add test suite for `TestPanel` `handleRunTests` branch coverage when `testCommand` is null in `tests/renderer/components/tools/TestPanel.test.tsx`. (Relates to #72)
+- Add mock components for `IssuesTool`, `PullRequestsTool`, `ActionsTool`, and `ReleasesTool` in `tests/renderer/components/tools/ToolsPanel.test.tsx`. (Relates to #72)
+- Add test suite for `DocumentationScreen` `loadFileContent` error handling in `tests/renderer/screens/DocumentationScreen.test.tsx`. (Relates to #72)
+- Add new test file `tests/renderer/components/pull-requests/pr-detail-utils.test.tsx` for `pr-detail-utils`. (Relates to #72)
+
+- Add `fs` mock implementations (`existsSync`, `rmSync`, `readdirSync`, `chmodSync`, `unlinkSync`, `rmdirSync`) in `tests/main/ipc/contribution-handlers.test.ts`. (Relates to #72)
+- Add `github-rest.service` mock implementation (`checkPRStatus`) in `tests/main/ipc/contribution-handlers.test.ts`. (Relates to #72)
+- Add import for `database` in `tests/main/ipc/contribution-handlers.test.ts`.
+- Add `path` import in `tests/main/ipc/core-handlers.test.ts`.
+- Add new test suite for `docs:get-structure` IPC handler, including tests for empty directories, category detection, and file structure in `tests/main/ipc/core-handlers.test.ts`.
+- Add test case to detect `pyproject.toml` version in `tests/main/services/version.service.test.ts`.
+- Add test case to detect `setup.py` version in `tests/main/services/version.service.test.ts`.
+- Add tests for `mapUser` and `mapChannel` fallback logic in `tests/main/services/discord.service.test.ts`. (Relates to #72)
+- Mock `MarkdownEditor` component in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Add new tests for comparison functionality in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Add test for saving changes when editing an existing remote in `tests/renderer/components/settings/SSHRemotesTab.test.tsx`. (Relates to #72)
+- Add tests for sourcemap selection functionality in `tests/renderer/components/tools/BuildEditor.test.tsx`. (Relates to #72)
+- Mock `useNotificationStore` in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Add test for showing generic error messages when commit generation fails in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Add test for adding a coverage reporter via Enter key in `tests/renderer/components/tools/CoverageEditor.test.tsx`. (Relates to #72)
+- Add `findFormSubmitButton` helper function in `tests/renderer/components/tools/DevScriptsTool.test.tsx`. (Relates to #72)
+- Add test for adding new command fields in `tests/renderer/components/tools/DevScriptsTool.test.tsx`. (Relates to #72)
+- Add tests for changing `indent_style` and `end_of_line` properties in `tests/renderer/components/tools/EditorConfigEditor.test.tsx`. (Relates to #72)
+- Add test for loading generic mode with raw text for non-Prettier formatters in `tests/renderer/components/tools/FormatEditor.test.tsx`. (Relates to #72)
+- Add test for handling detection errors in `tests/renderer/components/tools/HooksPanel.test.tsx`. (Relates to #72)
+- Add test for toggling environment checkboxes in ESLint rich mode in `tests/renderer/components/tools/LintEditor.test.tsx`. (Relates to #72)
+- Add test for enabling Git Init button and command execution in `tests/renderer/components/tools/MaintenanceTool.test.tsx`. (Relates to #72)
+- Add test for changing Jest `collectCoverage` toggle in `tests/renderer/components/tools/TestEditor.test.tsx`. (Relates to #72)
+- Add new test file `tests/main/services/github/github-extras.service.test.ts`. (Relates to #72)
+- Add new test file `tests/renderer/screens/DevelopmentScreen.test.tsx`. (Relates to #72)
+- Add `Pin`, `PanelLeftOpen`, and `PanelLeftClose` icons to `tests/mocks/lucide-react.tsx` for Discord `MessageList` component.
+- Add `Inbox` icon to `tests/mocks/lucide-react.tsx` for issue modals.
+- Add mock `CreateSubIssueModal` and `AddExistingSubIssueModal` components for testing in `tests/renderer/components/issues/DevelopmentIssueDetailModal.test.tsx`.
+- Add test to verify the `close issue menu` shows all options in `tests/renderer/components/issues/DevelopmentIssueDetailModal.test.tsx`.
+- Add test to verify `Toggle` badge display for toggle scripts in `tests/renderer/components/settings/GlobalScriptsTab.test.tsx`.
+- Add test to verify terminals count display for multi-terminal scripts in `tests/renderer/components/settings/GlobalScriptsTab.test.tsx`.
+- Add test to verify navigation to create view and template display when "New" button is clicked in `tests/renderer/components/tools/GitHubConfigWorkflowsEditor.test.tsx`.
+- Add test to verify deploying a template and returning to list view in `tests/renderer/components/tools/GitHubConfigWorkflowsEditor.test.tsx`.
+- Add test to verify toggling an action enabled/disabled in `tests/renderer/components/tools/HooksEditor.test.tsx`.
+- Add new test suite for Discord `MessageList` component (`tests/renderer/components/discord/MessageList.test.tsx`) (#72).
+- Add new test suite for root application component (`tests/renderer/App.test.tsx`) (#72)
+- Add new test suite for Discord `MessageInput` component (`tests/renderer/components/discord/MessageInput.test.tsx`) (#72)
+- Add new test suite for `NotificationGroup` component (`tests/renderer/components/notifications/NotificationGroup.test.tsx`) (#72)
+- Add new test suite for `NotificationItem` component (`tests/renderer/components/notifications/NotificationItem.test.tsx`) (#72)
+- Add new test suite for main process entry point (`tests/main/index.test.ts`) (#72)
+- Add new test suite for project detection service (`tests/main/services/project-detection.service.test.ts`) (#72)
+- Add new test suite for Discord `CreatePollModal` component (`tests/renderer/components/discord/CreatePollModal.test.tsx`) (#72)
+- Add new test suite for Discord `EmbedRenderer` component (`tests/renderer/components/discord/EmbedRenderer.test.ts`) (#72)
+- Add new test suite for Discord `GifPicker` component (`tests/renderer/components/discord/GifPicker.test.tsx`) (#72)
+- Add new test suite for Discord `PickerPanel` component (`tests/renderer/components/discord/PickerPanel.test.tsx`) (#72)
+- Add new test suite for Discord `PollRenderer` component (`tests/renderer/components/discord/PollRenderer.test.tsx`) (#72)
+- Add new test suite for SSH remotes settings tab (`tests/renderer/components/settings/SSHRemotesTab.test.tsx`) (#72)
+- Add new test suite for renderer IPC client (`tests/renderer/ipc/client.test.ts`) (#72)
+- Add `BarChart3` and `TrendingUp` icons to `tests/mocks/lucide-react.tsx` for Discord components (#72)
+- Add tests for MarkdownEditor toolbar buttons to verify correct markdown insertion in `MarkdownEditor.test.tsx` (#72)
+- Add tests for editing global scripts in `GlobalScriptsTab.test.tsx`, covering opening the edit form and saving changes (#72)
+- Add new test suite for AI IPC handlers (`tests/main/ipc/ai-handlers.test.ts`) (#72)
+- Add new test suite for core IPC handlers (`tests/main/ipc/core-handlers.test.ts`) (#72)
+- Add new test suite for dev tools IPC handlers (`tests/main/ipc/dev-tools-handlers.test.ts`) (#72)
+- Add new test suite for GitHub configuration IPC handlers (`tests/main/ipc/github-config-handlers.test.ts`) (#72)
+- Add new test suite for GitHub IPC handlers (`tests/main/ipc/github-handlers.test.ts`) (#72)
+- Add new test suite for IPC handlers index (`tests/main/ipc/handlers-index.test.ts`) (#72)
+- Add new test suite for IPC handlers wrapper (`tests/main/ipc/handlers-wrapper.test.ts`) (#72)
+- Add new test suite for integrations IPC handlers (`tests/main/ipc/integrations-handlers.test.ts`) (#72)
+- Add new test suite for notification IPC handlers (`tests/main/ipc/notification-handlers.test.ts`) (#72)
+- Add new test suite for project IPC handlers (`tests/main/ipc/project-handlers.test.ts`) (#72)
+- Add new test suite for settings IPC handlers (`tests/main/ipc/settings-handlers.test.ts`) (#72)
+- Add new test suite for workflow IPC handlers (`tests/main/ipc/workflow-handlers.test.ts`) (#72)
+- **New Project Wizard** — interactive multi-step wizard for creating new projects from My Projects and Professional Projects screens (#55)
+  - **6-step guided wizard**: Basics (name, location, type) > Ecosystem (7 ecosystems, frameworks, monorepo tools, package managers) > Options (GitHub repo, extras, license) > Database (5 engines, ORM selection, Docker Compose, env vars) > GitHub Config (template selection from 12 existing templates) > Review & Create (summary + live progress)
+  - **CLI Detection Service** (`cli-detection.service.ts`): detects installed CLI tools per ecosystem with version info, required/optional classification, and monorepo tool support
+  - **Project Scaffold Service** (`project-scaffold.service.ts`): orchestrates project creation via ecosystem-specific CLI commands (npm create vite, cargo init, go mod init, rails new, etc.) with manual fallbacks, extras writing (.gitignore, .editorconfig, LICENSE, README), and monorepo setup (Turborepo, Nx, pnpm/Cargo/Go/uv workspaces)
+  - **Database Scaffold Service** (`database-scaffold.service.ts`): generates Docker Compose configs, environment variables, and Prisma schemas for PostgreSQL, MySQL, MongoDB, SQLite, and Redis with ORM options across 7 ecosystems
+  - **Template files**: per-ecosystem `.gitignore` templates and 6 open-source license templates (MIT, Apache-2.0, GPL-3.0, BSD-2-Clause, ISC, Unlicense)
+  - **GitHub repo creation**: `createRepository()` added to GitHub REST service for creating new repos via API
+  - **Smart package manager validation**: pre-flight check when leaving Ecosystem step detects if selected PM (bun, pnpm, yarn, uv, poetry) is installed; inline banner offers to switch to an installed alternative, install the tool globally, or continue anyway; auto-advances after successful install
+  - **8 new IPC channels**: `project:check-cli-tools`, `project:scaffold`, `project:scaffold-database`, `project:get-orm-options`, `project:create-github-repo`, `project:initialize-git`, `project:validate-package-manager`, `project:install-tool`
+  - **Database schema v9**: 7 new columns on contributions table (ecosystem, framework, package_manager, is_monorepo, monorepo_tool, database_engine, database_orm) for project metadata persistence
+  - **Creation pipeline**: validates CLI tools > creates directory > scaffolds project > scaffolds database > applies GitHub config templates > git init with main+dev branches > creates GitHub repo > pushes > saves to DB > auto-opens in Development screen
+  - **"New Project" button** on both My Projects and Professional Projects screens with auto-filled category and default location from settings
+- **GitHub Config Tool** — 7th tool in ToolsPanel for managing `.github/` directory configurations
+  - **Dev Tools-style layout**: two category sections (Repository + Community) with icon headers, bordered cards, and 64px feature buttons with green/grey status dots — matching MaintenanceTool pattern
+  - **GitHubConfigService** (`github-config.service.ts`): file system service for scanning, reading, writing, deleting, and deploying `.github/` configs with 12 feature templates and YAML front-matter parser
+  - **12 features**: Workflows, Dependabot, Release Notes, Issue Templates, PR Template, Labeler, CODEOWNERS, Auto-Assign, Copilot Instructions, Funding, Security Policy, Stale — each with detect/deploy/edit/delete lifecycle
+  - **Inline panels** (`GitHubConfigPanel.tsx`): expand below feature buttons showing file list per feature, card-style action buttons (Edit/Reset/Delete), setup mode with template selector + deploy
+  - **GUI form editors** with fully interactive controls (`GitHubConfigFields.tsx` shared component library):
+    - **Shared components**: `ConfigToggle`, `ConfigNumber`, `ConfigSelect`, `ConfigText`, `ConfigTextarea`, `ConfigSwitch` (Radix toggle), `ConfigSlider` (Radix range), `ConfigChipInput` (interactive tag input), `ActionRow` — matching FormatEditor/HooksEditor design patterns (120px font-mono labels, 2-column grid, `text-[10px]` compact controls)
+    - **ChipInput** (`ChipInput.tsx`): reusable interactive tag/chip input — renders values as removable pill chips with inline text input, Enter/comma to add, Backspace to remove, duplicate prevention; replaces all comma-separated text fields across editors
+    - **MarkdownEditor**: section-based form parsing markdown into heading+content pairs with add/remove sections
+    - **YamlEditor**: 6 feature-specific forms — Dependabot (ecosystem/schedule/limit + ChipInput for labels/assignees), Release Notes (ActionRow category list + ChipInput for labels), Labeler (ActionRow label + ChipInput for patterns), Auto-Assign (Radix Switch toggle + ChipInput for reviewers), Funding (platform inputs), Stale (Radix Sliders for day counts + ChipInput for exempt labels + textarea messages)
+    - **WorkflowsEditor**: interactive trigger builder with clickable ToggleChips to enable/disable triggers (push, pull_request, schedule, release, workflow_dispatch), per-trigger config panels (ChipInput for branches/types, cron input with Daily/Weekly/Monthly presets), jobs-only YAML textarea with Tab-to-indent (2-space) support
+    - **IssueTemplatesEditor**: structured metadata grid (name/description/title + ChipInput for labels/assignees) + markdown body
+    - **CodeownersEditor**: row-based with glob patterns + owners (unchanged — already GUI)
+  - **7 IPC channels**: `github-config:scan`, `github-config:read-file`, `github-config:write-file`, `github-config:delete-file`, `github-config:create-from-template`, `github-config:list-templates`, `github-config:list-issue-templates`
+  - **3 integrations**: PR Template auto-populates CreatePullRequestModal body, Issue Templates add template selector dropdown to CreateIssueModal, ActionsTool "Edit" button cross-links to GitHub Config workflows editor
+  - **12+ templates**: CI Node.js, Release, Auto-Close Issues, Dependabot npm, Release Notes categories, Bug Report, Feature Request, Issue Config, PR checklist, Labeler rules, CODEOWNERS solo, Auto-Assign self, Copilot conventions, Funding placeholder, Security policy, Stale management
+- **Global Dev Scripts** — new Settings tab for creating dev scripts accessible by all projects (#71)
+  - `GLOBAL_SCRIPTS_PATH` sentinel (`__global__`) reuses existing `dev_scripts` table and IPC channels with zero schema migration
+  - **GlobalScriptsTab** (`GlobalScriptsTab.tsx`): full CRUD settings tab with same 3-mode form (Single, Multi-Terminal, Toggle) as DevScriptsTool
+  - Zustand store extended with `globalScripts` state, `loadGlobalScripts()`, `saveGlobalScript()`, `deleteGlobalScript()` actions — `loadScripts()` now fetches both project + global scripts in parallel via `Promise.all`
+  - **DevScriptsTool** shows global scripts in a separate "Global Scripts" section with dashed-border cards, Globe badge, run-only buttons (no edit/delete), and "Manage global scripts in Settings" hint
+  - **DevelopmentScreen** header bar renders global script buttons alongside project-specific scripts for one-click execution from any project
+- Dev Tools — Set Up category with 6 ecosystem-aware action buttons: Install, Env File, Git Init, Hooks, Editor Config, TypeCheck
+  - **Project Detection Service** (`project-detection.service.ts`): scans working directory to detect ecosystem (Node, Python, Rust, Go, Ruby, PHP, Java), package manager, available scripts, and tooling
+  - 7 new IPC channels (`dev-tools:detect-project`, `dev-tools:get-install-command`, `dev-tools:get-typecheck-command`, `dev-tools:get-git-init-command`, `dev-tools:get-hooks-command`, `dev-tools:setup-env-file`, `dev-tools:setup-editor-config`)
+  - Buttons auto-detect correct commands per ecosystem (e.g., `npm install` vs `pip install -e .` vs `cargo build`)
+  - Git Init disabled when `.git/` exists, Editor Config disabled when `.editorconfig` exists, TypeCheck disabled when no type checker detected
+  - Terminal auto-expands and receives commands on button click via `TerminalTool` imperative handle
+  - Env File creates `.env` from `.env.example` or creates empty `.env`; Editor Config writes standard template
+- `TerminalTool` imperative handle (`sendCommand`) for external command injection via `forwardRef`/`useImperativeHandle`
+- Dev Tools — Workflows category with 5 command buttons and New Branch dialog
+  - **WorkflowButtons** (`WorkflowButtons.tsx`): Lint, Format, Test, Coverage, Build buttons driven by `ProjectCommands` from the detection service
+  - Buttons auto-detect correct commands per ecosystem (e.g., `npm run lint` vs `cargo clippy` vs `ruff check .`)
+  - Buttons disabled when no command is detected for that action (e.g., no `format` script in `package.json`)
+  - **NewBranchDialog** (`NewBranchDialog.tsx`): branch creation dialog with 7 conventional prefixes (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`, `test/`, `hotfix/`), auto-slugified name input, live preview, and Enter key support
+  - New Branch calls existing `git:create-branch` IPC to create and checkout in one step
+- Dev Tools — Update category with 5 action buttons for keeping projects current
+  - **UpdateSection** (`UpdateSection.tsx`): Update Deps, Audit, Pull Latest, Sync Fork, Clean buttons
+  - `ProjectCommands` extended with `outdated`, `audit`, `clean` fields; commands resolved per ecosystem (e.g., `npm outdated` vs `cargo outdated` vs `pip list --outdated`)
+  - New `CleanTarget` type and `dev-tools:get-clean-targets` IPC channel for scanning build artifacts with sizes
+  - **Pull Latest** always enabled — runs `git pull`
+  - **Sync Fork** auto-detects `upstream` remote via existing `git:get-remotes` IPC; disabled with explanatory tooltip when no upstream found
+  - **Clean** opens inline confirmation dialog showing target paths, individual sizes, total size, and warning text before executing `rm -rf` (or ecosystem-specific clean command like `cargo clean`)
+  - Update Deps and Audit disabled when their command is unavailable for the detected ecosystem
+- Dev Tools — Info category with 6 read-only buttons for project insight
+  - **InfoSection** (`InfoSection.tsx`): Status, Log, Branches, Remotes (git terminal commands) + Disk Usage, Project Info (inline data panels)
+  - **DiskUsageService** (`disk-usage.service.ts`): scans 13 well-known artifact directories (`node_modules`, `.git`, `dist`, `build`, `coverage`, `target`, etc.) with recursive size calculation and depth limit
+  - **InfoInlinePanel** (`InfoInlinePanel.tsx`): two display modes — Disk Usage (proportional progress bars with formatted sizes, total, scan duration) and Project Info (key-value metadata, scripts list)
+  - **info-formatters** (`info-formatters.ts`): pure utility functions for `formatBytes`, `calculatePercentage`, `formatDuration`
+  - 2 new IPC channels (`dev-tools:disk-usage`, `dev-tools:project-info`) with `DiskUsageEntry` and `DiskUsageResult` types
+  - Only one inline panel visible at a time; toggle on re-click; close button dismisses
+  - All 4 git buttons always enabled — no detection dependency
+- Dev Tools — Env File button expanded into full-featured env file management tool ([#56](https://github.com/lukadfagundes/cola-records/issues/56))
+  - **Env File button** always enabled (no longer disabled when `.env` exists); click toggles an inline management panel
+  - **EnvPanel** (`EnvPanel.tsx`): 6 action buttons — Create `.env.example` (scans codebase), Create `.env`, Create `.env.local`, Create `.env.CUSTOM` (inline suffix input), Edit Example, ENV Sync
+  - **EnvEditor** (`EnvEditor.tsx`): full-size multi-tab text editor replacing Tool Box view; file tabs for all discovered `.env` files, Save button, Ctrl+S, per-tab dirty tracking, unsaved changes prompt
+  - **EnvScannerService** (`env-scanner.service.ts`): recursive codebase scanner detecting env variable references across 7 ecosystems (Node, Python, Rust, Go, Ruby, PHP, Java) with ecosystem-specific regex patterns; heuristic categorization (credential, url, network, config, general) and auto-generated comments
+  - **Service provider detection**: variables auto-grouped by service (Discord, GitHub, NextAuth, Stripe, AWS, PostgreSQL, Redis, Sentry, Rollbar, etc.) — 35+ service prefixes recognized; `.env.example` sections organized by service instead of generic category
+  - **Multi-file occurrence tracking**: all source file locations recorded per variable and shown in `.env.example` comments (e.g. `found in auth.ts:17, middleware.ts:42`) instead of only the first occurrence
+  - **Platform-injected variable filtering**: auto-set variables (`VERCEL`, `VERCEL_ENV`, `NODE_ENV`, `CI`, `VERCEL_GIT_COMMIT_SHA`, etc.) automatically excluded from `.env.example` since users don't configure them
+  - **Docker Compose/Dockerfile scanning**: detects `${VAR}` and `${VAR:-default}` references in `docker-compose.yml`, `docker-compose.*.yml`, `Dockerfile`, and `Dockerfile.*` — infrastructure variables (e.g. `POSTGRES_USER`, `POSTGRES_PASSWORD`) now surfaced alongside source code variables
+  - **EnvFileService** (`env-file.service.ts`): discover, create, read, write, and sync `.env` files including nested subdirectories; sync operation rescans codebase → appends new vars to `.env.example` → propagates missing keys to sibling `.env*` files
+  - 7 new IPC channels (`dev-tools:scan-env-variables`, `dev-tools:discover-env-files`, `dev-tools:create-env-example`, `dev-tools:create-env-file`, `dev-tools:read-env-file`, `dev-tools:write-env-file`, `dev-tools:sync-env-files`)
+  - 5 new types (`EnvSourceLocation`, `EnvVariable`, `EnvScanResult`, `EnvFileInfo`, `EnvSyncResult`)
+- Dev Tools — Hooks button expanded into full-featured Git hooks management tool ([#57](https://github.com/lukadfagundes/cola-records/issues/57))
+  - **Hooks button** always enabled (no longer disabled when no hook tool detected); click toggles an inline management panel
+  - **HooksPanel** (`HooksPanel.tsx`): setup wizard when no hooks detected (tool selection cards with recommendations, lint-staged checkbox, "Set Up" button), action buttons when hooks detected (Install, Edit Config, Add Presets, Lint-Staged, Info)
+  - **HooksEditor** (`HooksEditor.tsx`): full-view tabbed config editor replacing Tool Box view; tabs per git hook stage (pre-commit, commit-msg, pre-push, post-merge, post-checkout), toggleable action rows with enable/disable switches, add custom actions or select from presets, lint-staged sub-panel with glob pattern rules, Save (Ctrl+S), dirty tracking, unsaved changes prompt
+  - **HooksService** (`hooks.service.ts`): detect, read, write, and manage Git hooks for all 4 hook systems — Husky (shell scripts in `.husky/`), pre-commit (`.pre-commit-config.yaml` via line-based templating), Lefthook (`lefthook.yml` via line-based templating), simple-git-hooks (`.simple-git-hooks.json` or `package.json` key)
+  - **Ecosystem-aware presets**: Node.js (lint-staged, npm test, tsc --noEmit, commitlint), Python (ruff check/format), Rust (cargo fmt/clippy/test), Go (go vet/test) with npm script support for pre-commit actions
+  - **lint-staged integration**: read/write `lint-staged` config in `package.json`, preset rules per ecosystem (e.g. `*.{ts,tsx}` → eslint --fix + prettier --write), shown only for Husky/simple-git-hooks
+  - **simple-git-hooks support** added to project detection (`.simple-git-hooks.json` or `package.json` key), extending detection from 3 to 4 hook systems
+  - 8 new IPC channels (`dev-tools:detect-hooks`, `dev-tools:setup-hook-tool`, `dev-tools:get-hook-install-cmd`, `dev-tools:read-hooks-config`, `dev-tools:write-hooks-config`, `dev-tools:setup-lint-staged`, `dev-tools:get-hook-presets`, `dev-tools:get-lint-staged-presets`)
+  - 9 new types (`HookTool`, `GitHookName`, `HookAction`, `LintStagedRule`, `LintStagedConfig`, `HookConfig`, `HookToolRecommendation`, `HooksDetectionResult`, `HooksSetupResult`)
+- Dev Tools — Editor Config button expanded into full-featured `.editorconfig` management GUI ([#58](https://github.com/lukadfagundes/cola-records/issues/58))
+  - **Editor Config button** always enabled (no longer disabled when `.editorconfig` exists); click toggles an inline management panel
+  - **EditorConfigPanel** (`EditorConfigPanel.tsx`): setup mode with ecosystem preset dropdown, live preview, and "Create" button when no config exists; actions mode with Edit Config, Reset to Default (with confirmation), and Delete (with confirmation) when config exists
+  - **EditorConfigEditor** (`EditorConfigEditor.tsx`): full-view section-based property editor replacing Tool Box view; `root = true` toggle, section cards with glob input and 2-column property grid (dropdowns for indent_style/end_of_line/charset, number inputs for indent_size/tab_width, toggles for trim_trailing_whitespace/insert_final_newline, max_line_length with "off" option), add/remove sections, Add Preset button, Save (Ctrl+S), dirty tracking, unsaved changes prompt
+  - **EditorConfigService** (`editorconfig.service.ts`): INI-style parser and serializer for `.editorconfig` format with comment and section handling; read, write, create with ecosystem presets, and delete operations
+  - **Ecosystem-aware presets**: Node.js (space/2 + `*.md` trim_ws override), Python (space/4), Go (tab/4), Rust (space/4), Ruby (space/2), PHP (space/4), Java (space/4) — all with lf, utf-8, trim trailing whitespace, insert final newline
+  - Replaced single `dev-tools:setup-editor-config` channel with 5 new channels (`dev-tools:read-editorconfig`, `dev-tools:write-editorconfig`, `dev-tools:create-editorconfig`, `dev-tools:delete-editorconfig`, `dev-tools:get-editorconfig-presets`)
+  - 3 new types (`EditorConfigProperties`, `EditorConfigSection`, `EditorConfigFile`)
+- Dev Tools — Format button expanded into full-featured formatter configuration GUI ([#59](https://github.com/lukadfagundes/cola-records/issues/59))
+  - **Format button** in Workflows section now opens an inline panel instead of running a terminal command directly; always enabled (even when no format command detected via `onFormatClick` callback intercept)
+  - **FormatPanel** (`FormatPanel.tsx`): detects project formatter on mount (6 supported: Prettier, Ruff, Black, rustfmt, gofmt, RuboCop); no-config mode with "Create Config" button using ecosystem-aware presets; config-exists mode with 5 action buttons — Run Format (sends command to terminal), Format Check (dry-run with `--check` flag), Edit Config (opens FormatEditor), Create Ignore / Edit Ignore (smart toggle — creates `.prettierignore` or `.ruff_ignore` when absent, opens full-view editor when present)
+  - **FormatEditor** (`FormatEditor.tsx`): full-view config editor replacing Tool Box view; **Prettier mode**: 2-column rich GUI with 12 property controls — 5 toggles (semi, singleQuote, useTabs, bracketSpacing, jsxSingleQuote), 2 number inputs (printWidth 40–300, tabWidth 1–16), 5 dropdowns (trailingComma, arrowParens, endOfLine, quoteProps, proseWrap); **Generic mode**: textarea editor for TOML/YAML configs (Ruff, rustfmt, etc.); Save (Ctrl+S), dirty tracking, unsaved changes prompt with "Save and close" / "Close without saving"
+  - **FormatConfigService** (`format-config.service.ts`): detect formatters across 7 ecosystems with cross-ecosystem fallback, read/write JSON configs (Prettier) and simple line-based TOML (Ruff/rustfmt), ecosystem-aware presets, ignore file generation
+  - **Formatter detection**: Node → Prettier (`.prettierrc.json`, `.prettierrc`, `package.json` key, 8 more config files); Python → Ruff (`ruff.toml`, `pyproject.toml [tool.ruff]`) or Black (`pyproject.toml [tool.black]`); Rust → rustfmt (`rustfmt.toml`); Go → gofmt (no config); Ruby → RuboCop (`.rubocop.yml`)
+  - **IgnoreFileEditor** (`IgnoreFileEditor.tsx`): full-view textarea editor for formatter ignore files (`.prettierignore`, `.ruff_ignore`); Save (Ctrl+S), dirty tracking, unsaved changes prompt, hint text for pattern syntax
+  - 7 new IPC channels (`dev-tools:detect-formatter`, `dev-tools:read-format-config`, `dev-tools:write-format-config`, `dev-tools:get-format-presets`, `dev-tools:create-format-ignore`, `dev-tools:read-format-ignore`, `dev-tools:write-format-ignore`)
+  - 4 new types (`FormatterType`, `FormatterInfo`, `PrettierConfig`, `FormatterConfig`)
+- Dev Tools — Test button expanded into full-featured test framework configuration GUI
+  - **Test button** in Set Up section now opens an inline panel instead of running a terminal command directly; always enabled (even when no test command detected via `onTestClick` callback intercept)
+  - **TestPanel** (`TestPanel.tsx`): detects test framework on mount (9 supported: Vitest, Jest, Mocha, pytest, go test, RSpec, PHPUnit, cargo test, JUnit); no-framework mode with "Create Config" button (Node only, creates `vitest.config.json` with ecosystem presets); framework-detected mode with up to 4 action buttons — Run Tests (sends command to terminal), Coverage (shown only when coverage command detected), Watch (shown only when watch command detected), Edit Config (opens TestEditor)
+  - **TestEditor** (`TestEditor.tsx`): full-view config editor replacing Tool Box view; **Vitest mode**: 2-column rich GUI with 8 property controls — 2 dropdowns (environment: jsdom/happy-dom/node/edge-runtime, coverageProvider: v8/istanbul), 1 toggle (globals), 1 number input (testTimeout), 4 coverage threshold sliders (statements/branches/functions/lines 0–100%); **Jest mode**: 3 property controls — 1 dropdown (testEnvironment: jsdom/node), 1 toggle (collectCoverage), 1 dropdown (coverageProvider: v8/babel); **Generic mode**: textarea editor for TS/JS configs; Save (Ctrl+S), dirty tracking, unsaved changes prompt with "Save and close" / "Close without saving"
+  - **TestConfigService** (`test-config.service.ts`): detect test frameworks across 7 ecosystems with config file priority, read/write JSON configs (Vitest nested `test.coverage.thresholds` structure, Jest flat), ecosystem-aware presets with sensible defaults (80% coverage thresholds, 5000ms timeout)
+  - **Framework detection**: Node → Vitest (`vitest.config.*`), Jest (`jest.config.*`, `package.json` key), Mocha (`.mocharc.*`); Python → pytest (`pytest.ini`, `pyproject.toml [tool.pytest]`, `setup.cfg`); Rust → cargo test (built-in); Go → go test (built-in); Ruby → RSpec (`.rspec`, `Gemfile`); PHP → PHPUnit (`phpunit.xml`); Java → JUnit (built-in)
+  - 4 new IPC channels (`dev-tools:detect-test-framework`, `dev-tools:read-test-config`, `dev-tools:write-test-config`, `dev-tools:get-test-presets`)
+  - 4 new types (`TestFrameworkType`, `TestFrameworkInfo`, `VitestConfig`, `JestConfig`, `TestFrameworkConfig`)
+- Dev Tools — Coverage button expanded into full-featured coverage configuration GUI
+  - **Coverage button** in Workflows section now opens an inline panel instead of running a terminal command directly; always enabled (even when no coverage command detected via `onCoverageClick` callback intercept)
+  - **CoveragePanel** (`CoveragePanel.tsx`): detects coverage provider on mount (9 supported: v8, istanbul, nyc, coverage-py, go-cover, simplecov, phpunit, tarpaulin, jacoco); no-provider mode with "Create Config" button (Node only, creates config with ecosystem presets); provider-detected mode with up to 4 action buttons — Run Coverage (sends command to terminal), Open Report (opens HTML coverage report in system browser via `shell.openPath()`, shown only when report exists), Edit Config (opens CoverageEditor), Create Config (when no config file exists)
+  - **CoverageEditor** (`CoverageEditor.tsx`): full-view config editor replacing Tool Box view; **v8/istanbul rich mode**: 2-column GUI with 11 property controls — 1 dropdown (provider: v8/istanbul), 2 toggles (all, cleanOnRerun), 1 text input (reportsDirectory), 4 threshold number inputs (statements/branches/functions/lines 0–100%), 3 StringListEditor arrays (reporters with datalist suggestions, include, exclude); **Generic mode**: textarea editor for TS/JS configs; Save (Ctrl+S), dirty tracking, unsaved changes prompt with "Save and close" / "Close without saving"
+  - **CoverageConfigService** (`coverage-config.service.ts`): detect coverage providers across 7 ecosystems with config file priority and cross-ecosystem fallback, read/write JSON configs (Vitest nested `test.coverage.thresholds` structure, Jest `coverageThreshold.global`), ecosystem-aware presets with 80% thresholds, coverage report scanning (5 common paths)
+  - **Provider detection**: Node → v8/Vitest (`vitest.config.*`, `package.json` devDep), istanbul/Jest (`jest.config.*`, `package.json` devDep), nyc (`.nycrc*`, `nyc.config.js`); Python → coverage-py (`.coveragerc`, `pyproject.toml [tool.coverage]`); Rust → tarpaulin (built-in); Go → go-cover (built-in); Ruby → simplecov (`Gemfile`); PHP → PHPUnit (`phpunit.xml`); Java → jacoco (built-in)
+  - **Open Report**: scans for HTML coverage reports at 5 common paths (`coverage/index.html`, `coverage/lcov-report/index.html`, `htmlcov/index.html`, `coverage-report/index.html`, `cover/index.html`) and opens in system default browser via Electron `shell.openPath()`
+  - 5 new IPC channels (`dev-tools:detect-coverage`, `dev-tools:read-coverage-config`, `dev-tools:write-coverage-config`, `dev-tools:get-coverage-presets`, `dev-tools:open-coverage-report`)
+  - 4 new types (`CoverageProviderType`, `CoverageProviderInfo`, `VitestCoverageConfig`, `CoverageConfig`)
+- Dev Tools — Build button expanded into full-featured build tool configuration GUI
+  - **Build button** in Workflows section now opens an inline panel instead of running a terminal command directly; always enabled (even when no build command detected via `onBuildClick` callback intercept)
+  - **BuildPanel** (`BuildPanel.tsx`): detects build tool on mount (14 supported: Vite, Webpack, Rollup, esbuild, tsc, Parcel, setuptools, Poetry Build, go build, cargo build, Gradle, Maven, Bundler, Composer); no-tool mode with "Create Config" button (Node only, creates `vite.config.json` with ecosystem presets); tool-detected mode with up to 4 action buttons — Run Build (sends command to terminal), Dev Build (shown only for Vite/Webpack/Parcel — starts dev server), Clean Build (deletes output directories then rebuilds), Edit Config (opens BuildEditor)
+  - **BuildEditor** (`BuildEditor.tsx`): full-view config editor replacing Tool Box view; **Vite mode**: 2-column rich GUI with 9 property controls — 1 text input (outDir), 1 dropdown (target: 8 ES versions), 1 dropdown (sourcemap: true/false/inline/hidden), 1 dropdown (minify: true/false/terser/esbuild), 3 toggles (cssMinify, manifest, emptyOutDir), 2 number inputs (assetsInlineLimit, chunkSizeWarningLimit); **Generic mode**: textarea editor for TS/JS configs; Save (Ctrl+S), dirty tracking, unsaved changes prompt with "Save and close" / "Close without saving"
+  - **BuildConfigService** (`build-config.service.ts`): detect build tools across 7 ecosystems with config file priority and cross-ecosystem fallback, read/write JSON configs (Vite nested `build` block), ecosystem-aware presets with sensible defaults (es2020 target, esbuild minifier)
+  - **Build tool detection**: Node → Vite (`vite.config.*`), Webpack (`webpack.config.*`), Rollup (`rollup.config.*`), esbuild (`esbuild.config.*`), tsc (`tsconfig.json` with `outDir`), Parcel (`.parcelrc`); Python → setuptools (`setup.py`), Poetry Build (`pyproject.toml [tool.poetry]`); Rust → cargo build (built-in); Go → go build (built-in); Ruby → Bundler (`Gemfile`); PHP → Composer (`composer.json`); Java → Gradle (`build.gradle`), Maven (`pom.xml`)
+  - **Dev Build**: per-tool dev server commands — Vite (`npx vite`), Webpack (`npx webpack serve`), Parcel (`npx parcel`); button only shown when dev command is available
+  - **Clean Build**: per-tool output directory targets — Vite (`dist`), Webpack (`dist`, `build`), Rollup (`dist`), tsc (`dist`, `build`), cargo build (`target`), Gradle (`build`), Maven (`target`); combines `rm -rf <targets>` with build command in a single terminal execution
+  - 4 new IPC channels (`dev-tools:detect-build-tool`, `dev-tools:read-build-config`, `dev-tools:write-build-config`, `dev-tools:get-build-presets`)
+  - 4 new types (`BuildToolType`, `BuildToolInfo`, `ViteBuildConfig`, `BuildConfig`)
+- Dev Tools — Lint button expanded into full-featured linter configuration GUI ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
+  - **Lint button** in Workflows section now opens an inline panel instead of running a terminal command directly; always enabled (even when no lint command detected via `onLintClick` callback intercept)
+  - **LintPanel** (`LintPanel.tsx`): detects linter on mount (7 supported: ESLint, Ruff, Clippy, golangci-lint, RuboCop, PHPStan, Checkstyle); no-linter mode with "Create Config" button (Node only, creates `.eslintrc.json` with ecosystem presets); linter-detected mode with up to 3 action buttons — Run Lint (sends command to terminal), Lint Fix (shown only for ESLint/Ruff/RuboCop — runs `--fix` variant), Edit Config (opens LintEditor)
+  - **LintEditor** (`LintEditor.tsx`): full-view config editor replacing Tool Box view; **ESLint mode**: 2-column rich GUI with 7 property sections — Environments (7 common env checkboxes), Extends (string list), Plugins (string list), Parser (text input), Ignore Patterns (string list), Rules (key/value editor with off/warn/error dropdowns); **Generic mode**: textarea editor for JS/TS ESLint configs and non-ESLint linters; Save (Ctrl+S), dirty tracking, unsaved changes prompt with "Save and close" / "Close without saving"
+  - **LintConfigService** (`lint-config.service.ts`): detect linters across 7 ecosystems with config file priority and cross-ecosystem fallback, read/write JSON configs (ESLint structured parsing), ecosystem-aware presets for ESLint and Ruff
+  - **Linter detection**: Node → ESLint (`.eslintrc.json`, `eslint.config.js`, `eslint.config.mjs`, `eslint.config.ts`, `package.json` devDep); Python → Ruff (`ruff.toml`, `pyproject.toml [tool.ruff]`); Rust → Clippy (built-in); Go → golangci-lint (`.golangci.yml`, `.golangci.yaml`); Ruby → RuboCop (`.rubocop.yml`); PHP → PHPStan (`phpstan.neon`, `phpstan.neon.dist`); Java → Checkstyle (`checkstyle.xml`)
+  - 4 new IPC channels (`dev-tools:detect-linter`, `dev-tools:read-lint-config`, `dev-tools:write-lint-config`, `dev-tools:get-lint-presets`)
+  - 4 new types (`LinterType`, `LinterInfo`, `ESLintConfig`, `LintConfig`)
+- Dev Tools — Maintenance section with 8 AI-powered workflow action buttons and multi-provider AI abstraction layer ([#22](https://github.com/lukadfagundes/cola-records/issues/22))
+  - **AI Abstraction Layer** (`ai.service.ts`): multi-provider AI service supporting Gemini (default), Anthropic, OpenAI, and Ollama; single-shot completions via native `fetch` (no npm dependencies); per-provider request/response mapping; connection testing; config stored in SQLite via `database.getSetting('aiConfig')`
+  - **AI Settings Tab** (`AITab.tsx`): new tab in Settings screen for AI provider configuration — provider dropdown (Gemini/Anthropic/OpenAI/Ollama), model selection from curated per-provider lists, API key input (password field), custom base URL for Ollama, Test Connection button with success/failure feedback
+  - **WorkflowService** (`workflow.service.ts`): orchestrates AI-powered code analysis workflows — `generateChangelog` (diff → CHANGELOG entry), `generateReadmeUpdate` (diff → updated README), `generateDocsUpdate` (diff → new/updated doc files as JSON), `generateCommitMessage` (staged diff → conventional commit message), `generatePRDescription` (branch comparison → PR body); each method reads git state, constructs a targeted prompt, and sends a single AI completion
+  - **WorkflowActionButtons** (`WorkflowActionButtons.tsx`): 8 action buttons in Maintenance section — Changelog, Readme, Docs (AI-powered generation with inline result panels), Stage, Commit (git workflow with full-view editors), Pull Request (switches to PR tool with AI-generated description), Version (full-view version manager), CLI (full-view CLI explorer)
+  - **ChangelogResult** (`ChangelogResult.tsx`): inline result panel showing AI-generated CHANGELOG entry with Apply button (writes to `CHANGELOG.md` via `workflow:apply-changelog`)
+  - **ReadmeResult** (`ReadmeResult.tsx`): inline result panel showing AI-generated README update with Apply button (writes to `README.md` via `workflow:apply-readme`)
+  - **DocsResult** (`DocsResult.tsx`): inline result panel showing multiple doc file updates with NEW/UPD badges, individual Apply buttons per file, and Apply All button (writes via `workflow:apply-docs-update`)
+  - **StageEditor** (`StageEditor.tsx`): full-view file staging UI — lists changed files from `git:status`, checkbox selection (pre-selects all), stage/unstage via `git:stage-files`/`git:unstage-files`, file count in confirm button
+  - **CommitModal** (`CommitModal.tsx`): full-view commit UI — AI-generated commit message (editable textarea), Commit button calls `git:commit`, loading state while message generates
+  - **VersionEditor** (`VersionEditor.tsx`): full-view version management — detects version files on mount via `workflow:detect-versions`, displays file/version/package-manager per entry, patch/minor/major bump buttons via `workflow:bump-version`, editable version input, Save (writes via `workflow:update-version`), Save & Push (writes + sends `git add/commit/push` to terminal)
+  - **CLIExplorer** (`CLIExplorer.tsx`): full-view CLI browser — scans PATH on mount via `workflow:scan-clis`, groups executables by source (System, Node.js, Python, Rust, Go, Ruby, Homebrew, Snap), search/filter bar, expandable entries with `workflow:get-cli-help` for subcommands/flags/usage, "Run in Terminal" button
+  - **VersionService** (`version.service.ts`): detect version files (package.json, Cargo.toml, pyproject.toml, build.gradle), bump versions (patch/minor/major), update version strings in files
+  - **CLIScannerService** (`cli-scanner.service.ts`): scan PATH directories for executables, classify by source, parse `--help` output into structured subcommands/flags/usage via `execFile`
+  - **PR integration**: Maintenance "Pull Request" button generates AI PR description asynchronously, then switches to Pull Requests tool with pre-filled body via `onSwitchTool` data parameter threading through `ToolsPanel` → `PullRequestsTool` → `CreatePullRequestModal`
+  - **Ecosystem-based CLI filtering**: `scanCLIs(ecosystem?)` filters PATH scan results to only show tools relevant to the detected project ecosystem (e.g., Node project hides Python/Rust tools); curated `CORE_SYSTEM_TOOLS` allowlist ensures common dev tools (`git`, `docker`, `curl`, etc.) are always visible regardless of ecosystem; `ECOSYSTEM_GROUPS` mapping controls which PATH source categories are included per ecosystem
+  - **CLI Explorer command builder**: subcommand and flag tables with click-to-select highlighting, composed command preview (`$ git clone --depth`), subcommand-specific flag loading via secondary `workflow:get-cli-help` call, Copy and Run buttons for the composed command
+  - **Issue number extraction from branch name**: `extractIssueFromBranch()` parses conventional branch names (e.g., `feat/22-maintenance-tools` → `#22`) using regex; used by `generateCommitMessage`, `generateChangelog`, and `generatePRDescription` as fallback when no explicit issue number is provided
+  - **PR description template**: `generatePRDescription` now outputs Summary (bullet points), Changes (`| File | Change |` table with **New** markers), Test plan (verification steps), and `Closes #N` footer
+  - **README generation**: `generateReadmeUpdate` now generates a new README from scratch when none exists, scanning `package.json` and project structure for context
+  - **Docs generation**: `generateDocsUpdate` now generates initial documentation files when no `docs/` directory exists, using project structure and `package.json` as context
+  - 16 new IPC channels (`ai:get-config`, `ai:save-config`, `ai:test-connection`, `ai:get-models`, `workflow:generate-changelog`, `workflow:generate-readme`, `workflow:generate-docs`, `workflow:generate-commit-message`, `workflow:generate-pr-description`, `workflow:apply-changelog`, `workflow:apply-readme`, `workflow:apply-docs-update`, `workflow:detect-versions`, `workflow:bump-version`, `workflow:update-version`, `workflow:scan-clis`, `workflow:get-cli-help`)
+  - 10 new types (`AIProvider`, `AIConfig`, `AICompletionRequest`, `AICompletionResult`, `AIConnectionTestResult`, `CLIGroup`, `CLIEntry`, `CLIHelpResult`, `VersionFileInfo`, `DocsUpdateEntry`)
+- Styled scrollbar (`styled-scroll`) added to ChangelogResult, ReadmeResult inline panels and DashboardScreen main scroll area
+- **CommitModal popup terminal**: commit flow now spawns a PTY terminal via `terminal:spawn`, runs `git commit -m "..."` with live xterm output, then shows Copy Output and Push buttons in post-commit phase
+- **Push button**: added to both CommitModal (post-commit header) and WorkflowActionButtons (9th button between Commit and Pull Request); auto-detects when `--set-upstream` is needed by checking `git:status` tracking field
+- Docs generation logging: `electron-log` instrumentation throughout `generateDocsUpdate()` for debugging timing issues (start, diff stats, AI response, JSON parse, error paths)
+- **GitHub button** in Info section: opens repository on GitHub by extracting origin remote URL and converting SSH/HTTPS git URLs to browser-friendly URLs via `shell:open-external`
+- **AI service logging**: comprehensive `electron-log` instrumentation in `ai.service.ts` — logs provider/model/maxTokens/prompt preview before each call, elapsed time/response length/tokens after completion, API error status/body for all 4 providers, empty content warnings with finish reasons
+- **Docs path enforcement**: `applyDocsUpdate()` now programmatically enforces `CONTRIBUTING.md` and `LICENSE.md` to root and all other docs to `docs/` directory, regardless of AI-suggested paths
+- **CLI Explorer improvements**: subcommand usage example shown next to "Flags (N) for 'sub command'" header; raw help output fallback when no structured subcommands/flags are parsed (tools like `claude` now show their help text); known alias dedup (`python3`→`python`, `nodejs`→`node`, `pip3`→`pip`); code-server PATH dedup prevents tools appearing twice in host+container environments
+- **CLI help parsing**: flags with angle-bracket arguments (`--flag <value>`) and bracket arguments (`--flag [value]`) now correctly captured; subcommand entries with arguments (`install [options] [target]`) now parsed; multi-strategy help (`-h` first for subcommands, fallback to `--help`) prevents browser launch on `git <sub> --help`
+- **Smart branching for grouped issues**: sub-issues now branch from their parent issue's branch instead of main when clicking Fix Issue; PR base branch auto-defaults to parent's branch when creating a PR from a sub-issue branch; falls back to main when parent is not branched or detection fails
+- **Notification system** ([#53](https://github.com/lukadfagundes/cola-records/issues/53)): comprehensive 3-tier notification infrastructure
+  - **Notification store** (`useNotificationStore.ts`): Zustand store with in-memory history (300 cap), deduplication via `dedupeKey`, category/DND filtering, unread count tracking, IPC event listeners for main→renderer push
+  - **Sonner toast activation**: wired `toast()` calls from sonner (previously unused despite `<Toaster />` being mounted), with `richColors` and `closeButton` props; priority-based toast types (high→error, medium→warning, low→info)
+  - **Notification center** (`NotificationCenter.tsx`): Radix Popover dropdown in AppBar with bell icon, unread badge, DND indicator (BellOff), filter tabs (All/Unread), grouped + ungrouped notification rendering, mark all read / clear all actions, deep linking via `onNavigate`
+  - **Notification items** (`NotificationItem.tsx`, `NotificationGroup.tsx`): category icons, priority border colors, relative time formatting, expandable groups with unread badges, click-to-mark-read, dismiss button
+  - **Settings > Notifications tab** (`NotificationsTab.tsx`): master enable/disable toggle, delivery method toggles (in-app toasts, native OS, sound, DND), per-category toggles (6 categories: PR, Issue, CI/CD, Git, System, Integration), GitHub poll interval selector (1–30 min)
+  - **Git operation toasts**: push success/failure notifications in CommitModal and MaintenanceTool
+  - **Code-server error toasts**: integration error notifications in App.tsx handleOpenIDE
+  - **GitHub polling service** (`notification.service.ts`): main process poller using Octokit `listNotificationsForAuthenticatedUser`, configurable interval, GitHub notification→AppNotification mapping (PullRequest→github-pr, Issue→github-issue, CheckSuite→github-ci), reason-based priority (review_requested→high, mention→medium)
+  - **Native OS notifications**: Electron `Notification` API when window unfocused, respects DND and per-category native toggle
+  - **Database persistence**: migration v8 adds `notifications` table with indexes on timestamp/read/dedupe_key/category; 8 CRUD methods in `database.service.ts` (add, get, markRead, markAllRead, dismiss, clearAll, getUnreadCount, purgeOld); auto-purge of entries older than 30 days on app startup
+  - **IPC infrastructure**: 9 new notification channels (`notification:add`, `notification:get-all`, `notification:mark-read`, `notification:mark-all-read`, `notification:dismiss`, `notification:clear-all`, `notification:get-preferences`, `notification:update-preferences`, `notification:get-unread-count`), 2 event channels (`notification:push`, `notification:batch`)
+  - **Types**: `AppNotification`, `NotificationCategory` (6), `NotificationPriority` (3), `NotificationCategoryPreference`, `NotificationPreferences`
+
+### Changed
+
+- Update `src/main/services/github.service.ts` to import and utilize specific GitHub API response types from `../ipc/channels/types.ts`. (Relates to #72)
+- Refactor `getIssueDetail` method in `src/main/services/github.service.ts` to return `Promise<GitHubIssueDetail>`. (Relates to #72)
+- Refactor `createPullRequest` method in `src/main/services/github.service.ts` to return `Promise<GitHubPullRequestResult>`. (Relates to #72)
+- Refactor `getUserRepositories` method in `src/main/services/github.service.ts` to return `Promise<GitHubUserRepository[]>`. (Relates to #72)
+- Refactor `searchRepositoriesByTopic` method in `src/main/services/github.service.ts` to return `Promise<GitHubRepositorySearchResult[]>`. (Relates to #72)
+- Refactor `getRateLimit` method in `src/main/services/github.service.ts` to return `Promise<GitHubRateLimit>`. (Relates to #72)
+- Refactor `getRepositoryTree` method in `src/main/services/github.service.ts` to return `Promise<RepositoryTreeEntry[]>`. (Relates to #72)
+- Remove `eslint-disable` comment for `no-explicit-any` in `src/main/services/github.service.ts` due to improved type definitions. (Relates to #72)
+- Update `minimatch` to `5.1.9` in `package-lock.json`. (Relates to #72)
+- Update `minimatch` to `9.0.9` in `package-lock.json`. (Relates to #72)
+- Update `brace-expansion` dependency range to `^2.0.2` in `package-lock.json`. (Relates to #72)
+- Update `@rollup/rollup-android-arm-eabi` to `4.59.0` in `package-lock.json`. (Relates to #72)
+- Update `dompurify` dependency to `^3.3.2` in `package.json` and `package-lock.json`.
+- Update `lucide-react` icon imports in `src/renderer/components/tools/PackageManagerPanel.tsx` to include `FileJson`. (Relates to #72)
+- Update `PackageManagerPanel` tests in `tests/renderer/components/tools/PackageManagerPanel.test.tsx` to include the `onOpenEditor` prop. (Relates to #72)
+- Adjust `PackageManagerPanel` tests in `tests/renderer/components/tools/PackageManagerPanel.test.tsx` to verify the 'Package Config' action button and its position. (Relates to #72)
+- Refactor and unify Set Up buttons in `src/renderer/components/tools/MaintenanceTool.tsx` into a single `allButtons` array, including new and existing buttons. (Relates to #72)
+- Update `tests/renderer/components/tools/MaintenanceTool.test.tsx` to reflect the new number (12) and order of Set Up buttons. (Relates to #72)
+- Adjust the internal order of navigation items in `src/renderer/components/tools/ToolsPanel.tsx`. (Relates to #72)
+- Refactor `src/main/services/workflow.service.ts` to improve logic for adding new entries to `CHANGELOG.md`, ensuring proper blank line spacing after headings and inserting new entries before existing bullets. (Relates to #72)
+- Update `tests/main/services/workflow.service.test.ts` to verify the new `workflow.service` logic for changelog entry insertion, including blank line spacing after headings and correct ordering of new entries. (Relates to #72)
+- Update `updater.service` mock environment service to be mutable for improved test flexibility in `tests/main/services/updater.service.test.ts`. (Relates to #72)
+- Change mock reset method from `vi.clearAllMocks()` to `vi.resetAllMocks()` in `tests/main/services/version.service.test.ts`.
+- Change test object property `name` to `source` for 'Node.js' entry in `tests/renderer/components/tools/MaintenanceTool.test.tsx`.
+- Clean up empty lines in `CHANGELOG.md`. (Relates to #72)
+- Update imports to include `afterEach` and `fireEvent` in `tests/renderer/components/pull-requests/CreatePullRequestModal.test.tsx`. (Relates to #72)
+- Update imports to include `act` in `tests/renderer/components/tools/CommitModal.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/CoverageEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/EditorConfigEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/HooksPanel.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/LintEditor.test.tsx`. (Relates to #72)
+- Update imports to include `fireEvent` in `tests/renderer/components/tools/TestEditor.test.tsx`. (Relates to #72)
+- Add `Smile` and `Upload` icon exports to `lucide-react` mock (`tests/mocks/lucide-react.tsx`) (#72)
+- Refactor test setup for `GitHubConfigYamlEditor` to use `vi.hoisted` for IPC mock and introduce mocks for `Button` and `GitHubConfigFields` components (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
+- Update `GitHubConfigYamlEditor` test imports, replacing `userEvent` with `fireEvent` (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
+- Refactor test mocks in `tests/main/services/notification.service.test.ts` to use `vi.hoisted` for better isolation and control (#72)
+- Remove generic test cases for service initialization in `tests/main/services/notification.service.test.ts` (#72)
+- Git hooks pre-push actions now disabled by default for all ecosystem presets (Node, Python, Rust) — users can enable them via the Hooks GUI after installation ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
+- CLI Explorer command input now editable — users can type custom arguments directly in the `$` input field, with Enter key support to run
+- CLI `--help` parser improved: `parseSubcommands()` now detects git-style lowercase section headers with indented commands; `parseFlags()` handles `--flag=VALUE` patterns
+
+### Removed
+
+- Remove `WorkflowButtons` import from `src/renderer/components/tools/MaintenanceTool.tsx`. (Relates to #72)
+- Remove explicit `env-file`, `hooks`, and `typecheck` button definitions and their associated handlers from the old structure in `src/renderer/components/tools/MaintenanceTool.tsx` as they are now part of the unified `allButtons` array. (Relates to #72)
+- Remove pre-commit hooks configuration from `.pre-commit-config.yaml`. (Relates to #72)
+- Remotes dropdown button from Development screen header — redundant now that Dev Tools Info section has a Remotes button running `git remote -v` in the terminal (remotes data fetching preserved for fork-aware PR creation)
+
+### Fixed
+
+- Sub-issue detail view now hides closed sub-issues, inherits Secondary badge from parent's `branchBadge` prop, and displays actual GitHub labels (e.g. `enhancement`, `bug`) as separate badges — added `labels: string[]` to `SubIssue` type, filtered sub-issue list to open-only, hierarchy labels (Primary/Secondary) excluded from display to avoid duplication with computed badge
+- Clean button failing on Windows — trailing slashes in `CLEAN_TARGETS` patterns caused backslash-escaped quotes in `rm -rf` commands, and Windows `path.join` produced backslash paths incompatible with Git Bash; paths now normalized to POSIX forward slashes
+- MaintenanceTool crash when project detection returns `undefined` — strengthened null check to handle both `null` and `undefined` states
+- Removed non-null assertion in `DocsViewer.tsx` link click handler (ESLint warning cleanup)
+- Contribution rescan not updating `repositoryUrl`, `branchName`, or `issueNumber` — projects first scanned without a remote were permanently stuck with `unknown/<dirName>` URL, breaking PR listing, sync, and other GitHub-dependent features; same bug existed in `project:scan-directory` handler
+- Removed non-null assertions in `MaintenanceTool.tsx` — replaced `projectInfo!.commands` with narrowed `projectInfo` access via `&&` guard
+- Fix Issue button was hidden for Secondary (sub-issue) issues that had not yet been branched — button visibility now checks direct branch existence instead of badge type
+- Secondary badge was overridden by "branched" badge after creating a sub-issue's branch — Secondary now takes priority over branched/Primary for inherited sub-issues in both list and detail views
+- `DevelopmentIssueDetailModal` crash (`'DialogTitle' must be used within 'Dialog'`) when rendering in inline mode — `DialogTitle` was used in a shared `header` variable rendered outside a `Dialog` context; now conditionally renders `<h2>` for inline mode and `<DialogTitle>` for dialog mode
+
+### Tests
+
+- Global Dev Scripts tests: GlobalScriptsTab (14 tests — rendering, form validation, save, delete confirmation), useDevScriptsStore global actions (8 tests — loadGlobalScripts, saveGlobalScript, deleteGlobalScript, project isolation), DevScriptsTool global display (8 tests — section rendering, badge, run execution, no edit/delete, alongside project scripts)
+- GitHub Config service tests (`github-config.service.test.ts`): 56 tests covering scan, readFile, writeFile, deleteFile, createFromTemplate (overwrite protection, subdirectory targeting), listTemplates (all 12 features), listIssueTemplates (YAML front-matter parsing, label formats, quote stripping)
+- GitHub Config component tests: GitHubConfigTool (10 tests), GitHubConfigPanel (15 tests), MarkdownEditor (5), YamlEditor (5), WorkflowsEditor (7), IssueTemplatesEditor (7), CodeownersEditor (5)
+- ChipInput component tests (`ChipInput.test.tsx`): 8 tests covering chip rendering, add via Enter/comma, remove via X/Backspace, duplicate prevention, empty prevention, placeholder
+- Workflow service tests (`workflow.service.test.ts`): 15 tests covering changelog generation, commit message generation, PR description generation, README update/generation, docs update/generation, issue number extraction from branch names
+- CLI scanner service tests (`cli-scanner.service.test.ts`): 10 tests covering PATH scanning, empty PATH, directory read errors, ecosystem filtering, unfiltered scanning, alias dedup, code-server dedup, angle-bracket flag parsing, raw output fallback, and timeout handling
+- AI service tests (`ai.service.test.ts`): tests for multi-provider AI abstraction layer (Gemini, Anthropic, OpenAI, Ollama)
+- Version service tests (`version.service.test.ts`): tests for version file detection and version bumping
+- CLIExplorer component tests (`CLIExplorer.test.tsx`): 16 tests covering scanning, group display, entry expansion, help loading, search filtering, command builder with subcommand selection and flag toggling, ecosystem prop passing, error/empty states, subcommand usage display, and raw help output fallback
+- WorkflowActionButtons tests (`WorkflowActionButtons.test.tsx`): tests for 9 action button rendering and click handlers (including Push)
+- CommitModal tests (`CommitModal.test.tsx`): 8 tests covering AI message generation, editing, terminal spawn on commit, cancel, issue/branch passthrough, closed state, disabled button guard
+- ChangelogResult, ReadmeResult, DocsResult, StageEditor, VersionEditor component tests: inline result panels and full-view editors
+- AITab settings component tests (`AITab.test.tsx`): AI provider configuration UI
+- Inline rendering tests (`DevelopmentIssueDetailModal.test.tsx`): 4 tests for inline mode — renders without crash (no Dialog context), title renders as `<h2>`, labels/body/comments display correctly, no Dialog wrapper present
+- Smart branching tests (`DevelopmentIssueDetailModal.test.tsx`): 4 tests for sub-issue parent branching (via prop, via API auto-detection, fallback to main when parent not branched, standalone issue branches from main)
+- Smart base branch tests (`CreatePullRequestModal.test.tsx`): 4 tests for PR base branch auto-detection (sub-issue defaults to parent branch, non-sub-issue stays on main, API error fallback, parent branch not in local branches)
+
 ## [1.0.10] - 2026-02-24
 
 ### Added

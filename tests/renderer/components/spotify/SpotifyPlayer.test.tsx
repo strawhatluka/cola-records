@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -42,7 +42,7 @@ vi.mock('@radix-ui/react-popover', () => ({
   ),
   Anchor: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   Portal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Content: ({ children, ...props }: any) => (
+  Content: ({ children, sideOffset, align, ...props }: any) => (
     <div data-testid="popover-content" {...props}>
       {children}
     </div>
@@ -54,6 +54,12 @@ import { SpotifyPlayer } from '../../../../src/renderer/components/spotify/Spoti
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: checkConnection resolves to true (most tests expect connected state).
+  // The "not connected" test overrides this to return false.
+  mockInvoke.mockImplementation(async (channel: string) => {
+    if (channel === 'spotify:is-connected') return true;
+    return undefined;
+  });
   useSpotifyStore.setState({
     connected: false,
     activeTab: 'now-playing',
@@ -67,62 +73,73 @@ beforeEach(() => {
   });
 });
 
+// Helper: render and flush async useEffect (checkConnection on mount)
+async function renderPlayer() {
+  await act(async () => {
+    render(<SpotifyPlayer />);
+  });
+}
+
 describe('SpotifyPlayer', () => {
-  it('renders SpotifyConnect when not connected', () => {
+  it('renders SpotifyConnect when not connected', async () => {
+    mockInvoke.mockImplementation(async (channel: string) => {
+      if (channel === 'spotify:is-connected') return false;
+      return undefined;
+    });
     useSpotifyStore.setState({ connected: false });
 
-    render(<SpotifyPlayer />);
+    await renderPlayer();
 
     expect(screen.getByTestId('spotify-connect')).toBeDefined();
     expect(screen.queryByText('Now Playing')).toBeNull();
   });
 
-  it('renders Now Playing tab by default when connected', () => {
+  it('renders Now Playing tab by default when connected', async () => {
     useSpotifyStore.setState({ connected: true, activeTab: 'now-playing' });
 
-    render(<SpotifyPlayer />);
+    await renderPlayer();
 
     expect(screen.getByText('Now Playing')).toBeDefined();
     expect(screen.getByTestId('now-playing-panel')).toBeDefined();
     expect(screen.queryByTestId('spotify-connect')).toBeNull();
   });
 
-  it('shows Playlists tab content when playlists tab is selected', () => {
+  it('shows Playlists tab content when playlists tab is selected', async () => {
     useSpotifyStore.setState({ connected: true, activeTab: 'playlists' });
 
-    render(<SpotifyPlayer />);
+    await renderPlayer();
 
     expect(screen.getByTestId('playlist-panel')).toBeDefined();
     expect(screen.queryByTestId('now-playing-panel')).toBeNull();
   });
 
-  it('shows Search tab content when search tab is selected', () => {
+  it('shows Search tab content when search tab is selected', async () => {
     useSpotifyStore.setState({ connected: true, activeTab: 'search' });
 
-    render(<SpotifyPlayer />);
+    await renderPlayer();
 
     expect(screen.getByTestId('search-panel')).toBeDefined();
     expect(screen.queryByTestId('now-playing-panel')).toBeNull();
     expect(screen.queryByTestId('playlist-panel')).toBeNull();
   });
 
-  it('renders disconnect button in footer when connected', () => {
+  it('renders disconnect button in footer when connected', async () => {
     useSpotifyStore.setState({ connected: true });
 
-    render(<SpotifyPlayer />);
+    await renderPlayer();
 
     const disconnectButton = screen.getByTitle('Disconnect Spotify');
     expect(disconnectButton).toBeDefined();
     expect(screen.getByTestId('icon-logout')).toBeDefined();
   });
 
-  it('shows user-friendly error when error state is set', () => {
+  it('shows user-friendly error when error state is set', async () => {
     useSpotifyStore.setState({
       connected: true,
       error: 'Something went wrong with Spotify',
     });
 
-    render(<SpotifyPlayer />);
+    await renderPlayer();
 
     // The component still renders tabs when connected, even with an error.
     // The error state is available in the store but SpotifyPlayer itself
@@ -133,10 +150,10 @@ describe('SpotifyPlayer', () => {
     expect(screen.getByText('Search')).toBeDefined();
   });
 
-  it('switches tabs when a tab button is clicked', () => {
+  it('switches tabs when a tab button is clicked', async () => {
     useSpotifyStore.setState({ connected: true, activeTab: 'now-playing' });
 
-    render(<SpotifyPlayer />);
+    await renderPlayer();
 
     // Verify Now Playing is active initially
     expect(screen.getByTestId('now-playing-panel')).toBeDefined();

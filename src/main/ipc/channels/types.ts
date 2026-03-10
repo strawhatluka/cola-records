@@ -113,6 +113,7 @@ export interface SubIssue {
   title: string;
   state: string;
   url: string;
+  labels: string[];
 }
 
 // PR Check Status Types
@@ -152,6 +153,61 @@ export interface GitHubRepository {
   defaultBranch?: string;
 }
 
+// GitHub Issue Detail (from REST API — includes state and author info)
+export interface GitHubIssueDetail {
+  id: string;
+  number: number;
+  title: string;
+  body: string;
+  url: string;
+  state: string;
+  labels: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  author: string;
+  authorAvatarUrl: string;
+}
+
+// GitHub Pull Request Creation Result
+export interface GitHubPullRequestResult {
+  number: number;
+  url: string;
+  state: string;
+}
+
+// GitHub User Repository (from REST API — includes clone URL and visibility)
+export interface GitHubUserRepository {
+  id: string;
+  name: string;
+  fullName: string;
+  description: string;
+  url: string;
+  cloneUrl: string;
+  language: string;
+  stars: number;
+  forks: number;
+  private: boolean;
+}
+
+// GitHub Repository Search Result (from GraphQL — subset of full repo info)
+export interface GitHubRepositorySearchResult {
+  id: string;
+  name: string;
+  fullName: string;
+  description: string;
+  url: string;
+  language: string;
+  stars: number;
+  forks: number;
+}
+
+// GitHub Rate Limit Status
+export interface GitHubRateLimit {
+  limit: number;
+  remaining: number;
+  reset: Date;
+}
+
 // Repository Tree Types (for GitHub API)
 export interface RepositoryTreeEntry {
   name: string;
@@ -184,6 +240,14 @@ export interface Contribution {
   upstreamUrl?: string;
   isFork?: boolean;
   remotesValid?: boolean;
+  // Project creation metadata
+  ecosystem?: string;
+  framework?: string;
+  packageManager?: string;
+  isMonorepo?: boolean;
+  monorepoTool?: string;
+  databaseEngine?: string;
+  databaseOrm?: string;
 }
 
 // Spotify Types
@@ -430,6 +494,9 @@ export interface DevScriptToggle {
   secondPressCommand: string;
 }
 
+/** Sentinel project_path for global dev scripts (accessible by all projects) */
+export const GLOBAL_SCRIPTS_PATH = '__global__';
+
 export interface DevScript {
   id: string;
   projectPath: string;
@@ -444,6 +511,403 @@ export interface DevScript {
   toggle?: DevScriptToggle;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Project Detection Types
+export type Ecosystem = 'node' | 'python' | 'rust' | 'go' | 'ruby' | 'php' | 'java' | 'unknown';
+
+export type PackageManager =
+  | 'npm'
+  | 'yarn'
+  | 'pnpm'
+  | 'bun'
+  | 'pip'
+  | 'poetry'
+  | 'uv'
+  | 'cargo'
+  | 'go'
+  | 'bundler'
+  | 'composer'
+  | 'maven'
+  | 'gradle'
+  | 'unknown';
+
+export interface ProjectScript {
+  name: string;
+  command: string;
+}
+
+export interface ProjectCommands {
+  install: string | null;
+  lint: string | null;
+  format: string | null;
+  test: string | null;
+  coverage: string | null;
+  build: string | null;
+  typecheck: string | null;
+  outdated: string | null;
+  audit: string | null;
+  clean: string | null;
+}
+
+export interface CleanTarget {
+  name: string;
+  path: string;
+  sizeBytes: number;
+}
+
+export interface DiskUsageEntry {
+  name: string;
+  path: string;
+  sizeBytes: number;
+  exists: boolean;
+}
+
+export interface DiskUsageResult {
+  totalBytes: number;
+  entries: DiskUsageEntry[];
+  scanDurationMs: number;
+}
+
+// CLI Detection Types
+export interface ToolDetectionResult {
+  name: string;
+  installed: boolean;
+  version?: string;
+  path?: string;
+  required: boolean;
+}
+
+// Hook Tool Types
+export type HookTool = 'husky' | 'lefthook' | 'pre-commit' | 'simple-git-hooks';
+export type GitHookName = 'pre-commit' | 'commit-msg' | 'pre-push' | 'post-merge' | 'post-checkout';
+
+export interface HookAction {
+  id: string;
+  label: string;
+  command: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface LintStagedRule {
+  id: string;
+  pattern: string;
+  commands: string[];
+  enabled: boolean;
+}
+
+export interface LintStagedConfig {
+  enabled: boolean;
+  rules: LintStagedRule[];
+}
+
+export interface HookConfig {
+  hookTool: HookTool;
+  hooks: Record<GitHookName, HookAction[]>;
+  lintStaged: LintStagedConfig | null;
+}
+
+export interface HookToolRecommendation {
+  tool: HookTool;
+  reason: string;
+  supportsLintStaged: boolean;
+}
+
+export interface HooksDetectionResult {
+  detected: HookTool | null;
+  recommendations: HookToolRecommendation[];
+  ecosystem: Ecosystem;
+  hasLintStaged: boolean;
+  existingConfig: HookConfig | null;
+}
+
+export interface HooksSetupResult {
+  success: boolean;
+  message: string;
+}
+
+export interface ProjectInfo {
+  ecosystem: Ecosystem;
+  packageManager: PackageManager;
+  scripts: ProjectScript[];
+  commands: ProjectCommands;
+  hasGit: boolean;
+  hasEnv: boolean;
+  hasEnvExample: boolean;
+  hasEditorConfig: boolean;
+  hookTool: HookTool | null;
+  typeChecker: string | null;
+}
+
+export interface SetUpActionResult {
+  success: boolean;
+  message: string;
+}
+
+export interface PMInfo {
+  name: string;
+  version: string | null;
+  lockFile: string | null;
+  registry: string | null;
+}
+
+export interface PackageConfigData {
+  ecosystem: Ecosystem;
+  fileName: string;
+  structured: Record<string, unknown> | null;
+  raw: string;
+  indent: string | number;
+}
+
+export interface NpmSearchResult {
+  name: string;
+  description: string;
+  version: string;
+  date: string;
+}
+
+// Env Scanner Types
+export interface EnvSourceLocation {
+  file: string;
+  line: number;
+}
+
+export interface EnvVariable {
+  name: string;
+  sourceFile: string;
+  lineNumber: number;
+  sourceFiles: EnvSourceLocation[];
+  category: 'credential' | 'url' | 'network' | 'config' | 'general';
+  service: string;
+  comment: string;
+}
+
+export interface EnvScanResult {
+  variables: EnvVariable[];
+  filesScanned: number;
+  scanDurationMs: number;
+}
+
+export interface EnvFileInfo {
+  name: string;
+  relativePath: string;
+  absolutePath: string;
+  content: string;
+  isExample: boolean;
+}
+
+export interface EnvSyncResult {
+  newVariablesFound: number;
+  filesUpdated: string[];
+  message: string;
+}
+
+// EditorConfig Types
+export interface EditorConfigProperties {
+  indent_style?: 'tab' | 'space';
+  indent_size?: number;
+  tab_width?: number;
+  end_of_line?: 'lf' | 'cr' | 'crlf';
+  charset?: 'utf-8' | 'utf-8-bom' | 'latin1' | 'utf-16be' | 'utf-16le';
+  trim_trailing_whitespace?: boolean;
+  insert_final_newline?: boolean;
+  max_line_length?: number | 'off';
+}
+
+export interface EditorConfigSection {
+  glob: string;
+  properties: EditorConfigProperties;
+}
+
+export interface EditorConfigFile {
+  root: boolean;
+  sections: EditorConfigSection[];
+}
+
+// Format Config Types
+export type FormatterType = 'prettier' | 'ruff' | 'black' | 'rustfmt' | 'gofmt' | 'rubocop';
+
+export interface FormatterInfo {
+  formatter: FormatterType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+}
+
+export interface PrettierConfig {
+  semi?: boolean;
+  trailingComma?: 'none' | 'es5' | 'all';
+  singleQuote?: boolean;
+  printWidth?: number;
+  tabWidth?: number;
+  useTabs?: boolean;
+  arrowParens?: 'avoid' | 'always';
+  endOfLine?: 'lf' | 'crlf' | 'cr' | 'auto';
+  bracketSpacing?: boolean;
+  jsxSingleQuote?: boolean;
+  quoteProps?: 'as-needed' | 'consistent' | 'preserve';
+  proseWrap?: 'always' | 'never' | 'preserve';
+}
+
+export interface FormatterConfig {
+  formatter: FormatterType;
+  config: PrettierConfig | Record<string, unknown>;
+  configPath: string;
+}
+
+// Test Config Types
+export type TestFrameworkType =
+  | 'vitest'
+  | 'jest'
+  | 'mocha'
+  | 'pytest'
+  | 'go-test'
+  | 'rspec'
+  | 'phpunit'
+  | 'cargo-test'
+  | 'junit';
+
+export interface TestFrameworkInfo {
+  framework: TestFrameworkType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+  coverageCommand: string | null;
+  watchCommand: string | null;
+}
+
+export interface VitestConfig {
+  environment?: 'jsdom' | 'happy-dom' | 'node' | 'edge-runtime';
+  globals?: boolean;
+  coverageProvider?: 'v8' | 'istanbul';
+  coverageStatements?: number;
+  coverageBranches?: number;
+  coverageFunctions?: number;
+  coverageLines?: number;
+  testTimeout?: number;
+}
+
+export interface JestConfig {
+  testEnvironment?: 'jsdom' | 'node';
+  collectCoverage?: boolean;
+  coverageProvider?: 'v8' | 'babel';
+}
+
+export interface TestFrameworkConfig {
+  framework: TestFrameworkType;
+  config: VitestConfig | JestConfig | Record<string, unknown>;
+  configPath: string;
+}
+
+// Coverage Config Types
+export type CoverageProviderType =
+  | 'v8'
+  | 'istanbul'
+  | 'nyc'
+  | 'coverage-py'
+  | 'go-cover'
+  | 'simplecov'
+  | 'phpunit'
+  | 'tarpaulin'
+  | 'jacoco';
+
+export interface CoverageProviderInfo {
+  provider: CoverageProviderType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+  reportPath: string | null;
+}
+
+export interface VitestCoverageConfig {
+  provider?: 'v8' | 'istanbul';
+  statements?: number;
+  branches?: number;
+  functions?: number;
+  lines?: number;
+  include?: string[];
+  exclude?: string[];
+  reporters?: string[];
+  reportsDirectory?: string;
+  all?: boolean;
+  cleanOnRerun?: boolean;
+}
+
+export interface CoverageConfig {
+  provider: CoverageProviderType;
+  config: VitestCoverageConfig | Record<string, unknown>;
+  configPath: string;
+}
+
+// Build Config Types
+export type BuildToolType =
+  | 'vite'
+  | 'webpack'
+  | 'rollup'
+  | 'esbuild'
+  | 'tsc'
+  | 'parcel'
+  | 'setuptools'
+  | 'poetry-build'
+  | 'go-build'
+  | 'cargo-build'
+  | 'gradle'
+  | 'maven'
+  | 'bundler'
+  | 'composer';
+
+export interface BuildToolInfo {
+  buildTool: BuildToolType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+}
+
+export interface ViteBuildConfig {
+  outDir?: string;
+  target?: string;
+  sourcemap?: boolean | 'inline' | 'hidden';
+  minify?: boolean | 'terser' | 'esbuild';
+  cssMinify?: boolean;
+  manifest?: boolean;
+  emptyOutDir?: boolean;
+  assetsInlineLimit?: number;
+  chunkSizeWarningLimit?: number;
+}
+
+export interface BuildConfig {
+  buildTool: BuildToolType;
+  config: ViteBuildConfig | Record<string, unknown>;
+  configPath: string;
+}
+
+// Lint Config Types
+export type LinterType =
+  | 'eslint'
+  | 'ruff'
+  | 'clippy'
+  | 'golangci-lint'
+  | 'rubocop'
+  | 'phpstan'
+  | 'checkstyle';
+
+export interface LinterInfo {
+  linter: LinterType | null;
+  configPath: string | null;
+  hasConfig: boolean;
+}
+
+export interface ESLintConfig {
+  env?: Record<string, boolean>;
+  extends?: string[];
+  rules?: Record<string, unknown>;
+  parser?: string;
+  parserOptions?: Record<string, unknown>;
+  plugins?: string[];
+  ignorePatterns?: string[];
+}
+
+export interface LintConfig {
+  linter: LinterType;
+  config: ESLintConfig | Record<string, unknown>;
+  configPath: string;
 }
 
 export interface EnvVar {
@@ -478,4 +942,236 @@ export interface AppSettings {
   aliases?: Alias[];
   bashProfile?: BashProfileSettings;
   codeServerConfig?: CodeServerConfig;
+  aiConfig?: AIConfig;
+  notificationPreferences?: NotificationPreferences;
+}
+
+// AI Types
+export type AIProvider = 'gemini' | 'anthropic' | 'openai' | 'ollama';
+
+export interface AIConfig {
+  provider: AIProvider;
+  apiKey: string;
+  model: string;
+  baseUrl?: string;
+}
+
+export interface AICompletionRequest {
+  prompt: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface AICompletionResponse {
+  content: string;
+  tokensUsed: number;
+  model: string;
+}
+
+// Version Types
+export interface VersionInfo {
+  file: string;
+  relativePath: string;
+  currentVersion: string;
+  packageManager: string;
+}
+
+// CLI Types
+export interface CLIEntry {
+  name: string;
+  path: string;
+  version?: string;
+}
+
+export interface CLIGroup {
+  source: string;
+  entries: CLIEntry[];
+}
+
+export interface CLISubcommand {
+  name: string;
+  description: string;
+}
+
+export interface CLIFlag {
+  flag: string;
+  description: string;
+  required: boolean;
+}
+
+export interface CLIHelpResult {
+  description: string;
+  usage: string;
+  subcommands: CLISubcommand[];
+  flags: CLIFlag[];
+  rawOutput: string;
+}
+
+// GitHub Config Types
+export interface GitHubConfigFeature {
+  id: string;
+  label: string;
+  description: string;
+  /** Relative path(s) within .github/ — single file or directory */
+  path: string;
+  /** Whether the feature is currently deployed */
+  exists: boolean;
+  /** List of files found (for multi-file features like workflows, issue templates) */
+  files: string[];
+}
+
+export interface GitHubConfigScanResult {
+  features: GitHubConfigFeature[];
+}
+
+export interface GitHubConfigTemplate {
+  id: string;
+  label: string;
+  description: string;
+  content: string;
+  /** Relative target path within .github/ */
+  targetPath: string;
+}
+
+export interface GitHubConfigIssueTemplate {
+  name: string;
+  description: string;
+  title: string;
+  labels: string[];
+  body: string;
+  fileName: string;
+}
+
+// Notification Types
+export type NotificationCategory =
+  | 'github-pr'
+  | 'github-issue'
+  | 'github-ci'
+  | 'git'
+  | 'system'
+  | 'integration';
+
+export type NotificationPriority = 'high' | 'medium' | 'low';
+
+export interface AppNotification {
+  id: string;
+  category: NotificationCategory;
+  priority: NotificationPriority;
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  dismissed: boolean;
+  dedupeKey: string;
+  actionLabel?: string;
+  actionScreen?: string;
+  actionContext?: string;
+  groupKey?: string;
+}
+
+export interface NotificationCategoryPreference {
+  enabled: boolean;
+  toast: boolean;
+  native: boolean;
+}
+
+export interface NotificationPreferences {
+  enabled: boolean;
+  toastsEnabled: boolean;
+  nativeEnabled: boolean;
+  soundEnabled: boolean;
+  dndEnabled: boolean;
+  pollInterval: number;
+  categories: Record<NotificationCategory, NotificationCategoryPreference>;
+}
+
+// Project Creation Types
+export interface ToolDetectionResult {
+  name: string;
+  installed: boolean;
+  version?: string;
+  path?: string;
+  required: boolean;
+}
+
+export interface ToolInstallResult {
+  success: boolean;
+  message: string;
+  version?: string;
+}
+
+export interface ScaffoldConfig {
+  projectName: string;
+  projectPath: string;
+  ecosystem: Ecosystem;
+  framework?: string;
+  packageManager?: string;
+  isMonorepo: boolean;
+  monorepoTool?: string;
+  extras: {
+    gitignore: boolean;
+    editorconfig: boolean;
+    envFile: boolean;
+    readme: boolean;
+    license?: string;
+  };
+}
+
+export interface ScaffoldResult {
+  success: boolean;
+  message: string;
+  filesCreated: string[];
+  warnings: string[];
+}
+
+export interface DatabaseScaffoldConfig {
+  projectPath: string;
+  projectName: string;
+  ecosystem: Ecosystem;
+  engine: 'postgresql' | 'mysql' | 'mongodb' | 'sqlite' | 'redis' | 'none';
+  orm?: string;
+  includeDocker: boolean;
+  includeEnvVars: boolean;
+  additionalEngines: string[];
+}
+
+export interface ORMOption {
+  id: string;
+  name: string;
+  recommended: boolean;
+}
+
+export interface ProjectGitHubConfigSelection {
+  featureId: string;
+  templateId: string;
+}
+
+export interface WizardConfig {
+  projectName: string;
+  category: 'personal' | 'professional';
+  location: string;
+  projectType: 'single' | 'monorepo';
+  ecosystem: Ecosystem;
+  framework?: string;
+  monorepoTool?: string;
+  packageManager: string;
+  createGitHubRepo: boolean;
+  repoVisibility: 'public' | 'private';
+  repoDescription: string;
+  extras: {
+    gitignore: boolean;
+    editorconfig: boolean;
+    readme: boolean;
+    envFile: boolean;
+    hooks: boolean;
+    license: string | null;
+  };
+  database: {
+    engine: 'postgresql' | 'mysql' | 'mongodb' | 'sqlite' | 'redis' | 'none';
+    orm?: string;
+    includeDocker: boolean;
+    includeEnvVars: boolean;
+    additionalEngines: string[];
+  };
+  githubConfigSelections: ProjectGitHubConfigSelection[];
 }

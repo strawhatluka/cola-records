@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
 import { MarkdownEditor } from '../pull-requests/MarkdownEditor';
 import { ipc } from '../../ipc/client';
+import type { GitHubConfigIssueTemplate } from '../../../main/ipc/channels/types';
 
 interface CreateIssueModalProps {
   open: boolean;
   owner: string;
   repo: string;
+  localPath: string;
   onClose: () => void;
   onCreated: () => void;
   /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
@@ -20,6 +23,7 @@ export function CreateIssueModal({
   open,
   owner,
   repo,
+  localPath,
   onClose,
   onCreated,
   inline,
@@ -29,6 +33,32 @@ export function CreateIssueModal({
   const [labels, setLabels] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<GitHubConfigIssueTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('none');
+
+  // Fetch issue templates on mount
+  useEffect(() => {
+    if (!open) return;
+    ipc
+      .invoke('github-config:list-issue-templates', localPath)
+      .then((result) => setTemplates(result))
+      .catch(() => setTemplates([]));
+  }, [open, localPath]);
+
+  const handleTemplateChange = (value: string) => {
+    setSelectedTemplate(value);
+    if (value === 'none') {
+      setTitle('');
+      setBody('');
+      setLabels('');
+      return;
+    }
+    const tmpl = templates.find((t) => t.name === value);
+    if (!tmpl) return;
+    setTitle(tmpl.title || '');
+    setBody(tmpl.body);
+    setLabels((tmpl.labels ?? []).join(', '));
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
@@ -71,6 +101,30 @@ export function CreateIssueModal({
           <p className="text-sm text-muted-foreground">
             Submit a new issue to {owner}/{repo}
           </p>
+        </div>
+      )}
+
+      {templates.length > 0 && (
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Template</label>
+          <Select
+            value={selectedTemplate}
+            onValueChange={handleTemplateChange}
+            disabled={submitting}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a template" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">(None)</SelectItem>
+              {templates.map((t) => (
+                <SelectItem key={t.name} value={t.name}>
+                  {t.name}
+                  {t.description ? ` — ${t.description}` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 

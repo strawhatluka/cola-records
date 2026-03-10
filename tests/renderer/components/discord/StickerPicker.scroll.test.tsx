@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
@@ -76,48 +76,32 @@ describe('StickerPicker Scroll Throttling', () => {
 
   it('scroll handler uses requestAnimationFrame', async () => {
     const onSelect = vi.fn();
-    const { container } = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+      container = result.container;
+    });
 
-    // Wait for async data loading
-    await vi
-      .waitFor(
-        () => {
-          const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
-          return scrollContainer !== null;
-        },
-        { timeout: 1000 }
-      )
-      .catch(() => null);
-
-    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
+    const scrollContainer = container!.querySelector('.styled-scroll, [class*="overflow"]');
 
     // If scroll container exists and has scroll handling, test RAF
-    // Some components may not implement RAF-throttled scroll if they don't need it
     if (scrollContainer) {
       rafSpy.mockClear();
       fireEvent.scroll(scrollContainer);
-      // Test passes if component renders correctly with scroll events
-      // The RAF check is conditional since implementation details may vary
     }
     // Component should render without errors
-    expect(container).toBeInTheDocument();
+    expect(container!).toBeInTheDocument();
   });
 
   it('rapid scroll events are throttled', async () => {
     const onSelect = vi.fn();
-    const { container } = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+      container = result.container;
+    });
 
-    await vi
-      .waitFor(
-        () => {
-          const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
-          return scrollContainer !== null;
-        },
-        { timeout: 1000 }
-      )
-      .catch(() => null);
-
-    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
+    const scrollContainer = container!.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       rafSpy.mockClear();
@@ -134,26 +118,22 @@ describe('StickerPicker Scroll Throttling', () => {
 
   it('cleanup cancels pending rAF on unmount', async () => {
     const onSelect = vi.fn();
-    const { container, unmount } = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+    let container: HTMLElement;
+    let unmount: () => void;
+    await act(async () => {
+      const result = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+      container = result.container;
+      unmount = result.unmount;
+    });
 
-    await vi
-      .waitFor(
-        () => {
-          const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
-          return scrollContainer !== null;
-        },
-        { timeout: 1000 }
-      )
-      .catch(() => null);
-
-    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
+    const scrollContainer = container!.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       fireEvent.scroll(scrollContainer);
     }
 
     // Unmount should clean up without errors
-    unmount();
+    unmount!();
 
     // Test passes if no errors thrown during unmount
     expect(true).toBe(true);
@@ -161,29 +141,23 @@ describe('StickerPicker Scroll Throttling', () => {
 
   it('active section updates correctly after throttle', async () => {
     const onSelect = vi.fn();
-    render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+    await act(async () => {
+      render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+    });
 
-    // Component should render
-    // StickerPicker may or may not have a search input depending on implementation
-    // At minimum, the component should render without errors
+    // Component should render without errors
     expect(true).toBe(true);
   });
 
   it('scroll handler executes within RAF callback', async () => {
     const onSelect = vi.fn();
-    const { container } = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(<StickerPicker onSelect={onSelect} onClose={vi.fn()} />);
+      container = result.container;
+    });
 
-    await vi
-      .waitFor(
-        () => {
-          const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
-          return scrollContainer !== null;
-        },
-        { timeout: 1000 }
-      )
-      .catch(() => null);
-
-    const scrollContainer = container.querySelector('.styled-scroll, [class*="overflow"]');
+    const scrollContainer = container!.querySelector('.styled-scroll, [class*="overflow"]');
 
     if (scrollContainer) {
       rafSpy.mockClear();
@@ -196,11 +170,13 @@ describe('StickerPicker Scroll Throttling', () => {
 
       // Execute the RAF callback
       if (rafCallbacks.length > 0) {
-        rafCallbacks.forEach((cb) => cb(performance.now()));
+        act(() => {
+          rafCallbacks.forEach((cb) => cb(performance.now()));
+        });
       }
 
       // Component should still be functional
-      expect(container).toBeInTheDocument();
+      expect(container!).toBeInTheDocument();
     }
   });
 });

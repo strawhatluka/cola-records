@@ -669,4 +669,370 @@ describe('SpotifyService', () => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Edge cases & fallbacks
+  // ---------------------------------------------------------------------------
+  describe('Edge cases & fallbacks', () => {
+    beforeEach(() => {
+      setupValidToken();
+    });
+
+    it('getPlaybackState falls back when device info is missing', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          is_playing: true,
+          item: {
+            id: 'track_no_device',
+            name: 'No Device Track',
+            uri: 'spotify:track:no_device',
+            artists: [{ name: 'Artist' }],
+            album: { name: 'Album', images: [] },
+            duration_ms: 200000,
+          },
+          progress_ms: null,
+          shuffle_state: null,
+          // no device key at all
+        })
+      );
+
+      const state = await service.getPlaybackState();
+
+      expect(state).not.toBeNull();
+      expect(state!.progressMs).toBe(0);
+      expect(state!.shuffleState).toBe(false);
+      expect(state!.volumePercent).toBe(100);
+      expect(state!.deviceName).toBe('Unknown');
+    });
+
+    it('getPlaybackState returns null when data has item: null', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          is_playing: false,
+          item: null,
+          progress_ms: 0,
+          shuffle_state: false,
+          device: { volume_percent: 50, name: 'Device' },
+        })
+      );
+
+      const state = await service.getPlaybackState();
+
+      expect(state).toBeNull();
+    });
+
+    it('mapTrack falls back when artists, album, and duration are missing', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          is_playing: true,
+          item: {
+            id: 'track_sparse',
+            name: 'Sparse Track',
+            uri: 'spotify:track:sparse',
+            artists: null,
+            album: null,
+            duration_ms: 0,
+          },
+          progress_ms: 1000,
+          shuffle_state: true,
+          device: { volume_percent: 80, name: 'Speaker' },
+        })
+      );
+
+      const state = await service.getPlaybackState();
+
+      expect(state).not.toBeNull();
+      expect(state!.track).not.toBeNull();
+      const track = state!.track!;
+      expect(track.artists).toEqual([]);
+      expect(track.album.name).toBe('');
+      expect(track.album.images).toEqual([]);
+      expect(track.durationMs).toBe(0);
+    });
+
+    it('mapTrack falls back album image width/height to 0 when null', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          is_playing: true,
+          item: {
+            id: 'track_img',
+            name: 'Image Track',
+            uri: 'spotify:track:img',
+            artists: [{ name: 'Artist' }],
+            album: {
+              name: 'Album',
+              images: [{ url: 'https://img.url', width: null, height: null }],
+            },
+            duration_ms: 100000,
+          },
+          progress_ms: 0,
+          shuffle_state: false,
+          device: { volume_percent: 50, name: 'Device' },
+        })
+      );
+
+      const state = await service.getPlaybackState();
+
+      expect(state).not.toBeNull();
+      expect(state!.track).not.toBeNull();
+      const track = state!.track!;
+      expect(track.album.images).toEqual([{ url: 'https://img.url', width: 0, height: 0 }]);
+    });
+
+    it('play with both uri and contextUri gives precedence to contextUri', async () => {
+      mockFetch.mockResolvedValueOnce(noContentResponse());
+
+      await service.play('spotify:track:abc', 'spotify:playlist:xyz');
+
+      const [, options] = mockFetch.mock.calls[0];
+      const body = JSON.parse(options.body);
+      expect(body).toEqual({ context_uri: 'spotify:playlist:xyz' });
+      expect(body.uris).toBeUndefined();
+    });
+
+    it('getPlaylists falls back when tracks and images are null', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          items: [
+            {
+              id: 'pl_null',
+              name: 'Null Playlist',
+              uri: 'spotify:playlist:null',
+              tracks: null,
+              images: null,
+            },
+          ],
+        })
+      );
+
+      const playlists = await service.getPlaylists();
+
+      expect(playlists).toEqual([
+        {
+          id: 'pl_null',
+          name: 'Null Playlist',
+          uri: 'spotify:playlist:null',
+          trackCount: 0,
+          images: [],
+        },
+      ]);
+    });
+
+    it('getPlaylists falls back image dimensions to 0 when null', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          items: [
+            {
+              id: 'pl_img',
+              name: 'Image Playlist',
+              uri: 'spotify:playlist:img',
+              tracks: { total: 5 },
+              images: [{ url: 'https://img.url', width: null, height: null }],
+            },
+          ],
+        })
+      );
+
+      const playlists = await service.getPlaylists();
+
+      expect(playlists[0].images).toEqual([{ url: 'https://img.url', width: 0, height: 0 }]);
+    });
+
+    it('search returns empty array when data.tracks.items is null', async () => {
+      mockFetch.mockResolvedValueOnce(
+        okResponse({
+          tracks: { items: null },
+        })
+      );
+
+      const result = await service.search('test');
+
+      expect(result.tracks).toEqual([]);
+    });
+
+    it('search returns empty tracks array when data is null', async () => {
+      mockFetch.mockResolvedValueOnce(okResponse(null));
+
+      const result = await service.search('test');
+
+      expect(result.tracks).toEqual([]);
+    });
+
+    it('isTrackSaved returns false when response is not an array', async () => {
+      mockFetch.mockResolvedValueOnce(okResponse({ notAnArray: true }));
+
+      const saved = await service.isTrackSaved('track_1');
+
+      expect(saved).toBe(false);
+    });
+
+    it('cleanup does not throw when no callback server exists', () => {
+      // service is freshly created, no callbackServer
+      expect(() => service.cleanup()).not.toThrow();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Token refresh edge cases
+  // ---------------------------------------------------------------------------
+  describe('Token refresh edge cases', () => {
+    it('returns null when no refresh token exists (not connected)', async () => {
+      mockSecureStorage.getItem.mockImplementation(async () => null);
+
+      const state = await service.getPlaybackState();
+
+      expect(state).toBeNull();
+      // fetch should not be called since refreshAccessToken throws before any API call
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('returns null when refresh token exists but no clientId configured', async () => {
+      mockSecureStorage.getItem.mockImplementation(async (key: string) => {
+        if (key === 'spotify_expires_at') return String(Date.now() - 1000);
+        if (key === 'spotify_access_token') return 'expired-token';
+        if (key === 'spotify_refresh_token') return 'mock-refresh-token';
+        return null;
+      });
+      mockDatabase.getSetting.mockReturnValue(null);
+
+      const state = await service.getPlaybackState();
+
+      expect(state).toBeNull();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('storeTokens does not call setItem for refresh_token when absent', async () => {
+      setupExpiredToken();
+
+      mockFetch
+        .mockResolvedValueOnce(
+          okResponse({
+            access_token: 'new-token',
+            // no refresh_token
+            expires_in: 3600,
+          })
+        )
+        .mockResolvedValueOnce(noContentResponse());
+
+      await service.getPlaybackState();
+
+      const setItemCalls = mockSecureStorage.setItem.mock.calls;
+      const refreshTokenCalls = setItemCalls.filter((call) => call[0] === 'spotify_refresh_token');
+      expect(refreshTokenCalls).toHaveLength(0);
+
+      // access_token and expires_at should still be stored
+      const accessTokenCalls = setItemCalls.filter((call) => call[0] === 'spotify_access_token');
+      expect(accessTokenCalls).toHaveLength(1);
+    });
+
+    it('storeTokens defaults expires_in to 3600 when absent', async () => {
+      setupExpiredToken();
+
+      const beforeTime = Date.now();
+      mockFetch
+        .mockResolvedValueOnce(
+          okResponse({
+            access_token: 'new-token',
+            refresh_token: 'new-refresh',
+            // no expires_in
+          })
+        )
+        .mockResolvedValueOnce(noContentResponse());
+
+      await service.getPlaybackState();
+
+      const setItemCalls = mockSecureStorage.setItem.mock.calls;
+      const expiresAtCall = setItemCalls.find((call) => call[0] === 'spotify_expires_at');
+      expect(expiresAtCall).toBeDefined();
+
+      const expiresAt = parseInt(expiresAtCall![1], 10);
+      // Should be approximately now + 3600 * 1000 (within 5s tolerance)
+      const expectedMin = beforeTime + 3600 * 1000 - 5000;
+      const expectedMax = beforeTime + 3600 * 1000 + 5000;
+      expect(expiresAt).toBeGreaterThanOrEqual(expectedMin);
+      expect(expiresAt).toBeLessThanOrEqual(expectedMax);
+    });
+
+    it('triggers refresh when expiresAt is null (not stored)', async () => {
+      mockSecureStorage.getItem.mockImplementation(async (key: string) => {
+        if (key === 'spotify_expires_at') return null;
+        if (key === 'spotify_access_token') return 'some-token';
+        if (key === 'spotify_refresh_token') return 'mock-refresh-token';
+        return null;
+      });
+      mockDatabase.getSetting.mockReturnValue('mock-client-id');
+
+      mockFetch
+        .mockResolvedValueOnce(
+          okResponse({
+            access_token: 'refreshed-token',
+            expires_in: 3600,
+          })
+        )
+        .mockResolvedValueOnce(noContentResponse());
+
+      await service.getPlaybackState();
+
+      // First fetch should be to token endpoint (refresh), second to API
+      expect(mockFetch.mock.calls[0][0]).toBe('https://accounts.spotify.com/api/token');
+      expect(mockFetch.mock.calls[1][0]).toContain('api.spotify.com');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // API error paths
+  // ---------------------------------------------------------------------------
+  describe('API error paths', () => {
+    beforeEach(() => {
+      setupValidToken();
+    });
+
+    it('apiPut throws on server error response', async () => {
+      mockFetch.mockResolvedValueOnce(serverErrorResponse());
+
+      await expect(service.pause()).rejects.toThrow('Spotify API error');
+    });
+
+    it('apiPost throws on server error response', async () => {
+      mockFetch.mockResolvedValueOnce(serverErrorResponse());
+
+      await expect(service.next()).rejects.toThrow('Spotify API error');
+    });
+
+    it('apiDelete throws on server error response', async () => {
+      mockFetch.mockResolvedValueOnce(serverErrorResponse());
+
+      await expect(service.removeTrack('track_1')).rejects.toThrow('Spotify API error');
+    });
+
+    it('apiPost returns null when response body is empty text', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse('', { status: 200, statusText: 'OK' }));
+
+      // next() calls apiPost which returns the parsed result
+      // But next() discards the return value, so we test via addToQueue
+      // Actually, apiPost is also used by next/previous which discard result.
+      // We need a method that exposes apiPost return - addToQueue also discards.
+      // The apiPost logic: empty text → returns null. We verify no throw.
+      const result = await service.next();
+
+      expect(result).toBeUndefined(); // void method, should not throw
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('401 retry exhaustion — both attempts return 401, only 2 fetch calls', async () => {
+      setupValidToken();
+
+      // First API call returns 401
+      mockFetch.mockResolvedValueOnce(unauthorizedResponse());
+      // Retry also returns 401 — no further retries
+      mockFetch.mockResolvedValueOnce(unauthorizedResponse());
+
+      // getPlaybackState catches all errors and returns null
+      const state = await service.getPlaybackState();
+
+      expect(state).toBeNull();
+      // Exactly 2 fetch calls: original + one retry, no infinite loop
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
 });

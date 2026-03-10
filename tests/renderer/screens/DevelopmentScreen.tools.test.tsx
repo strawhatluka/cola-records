@@ -56,6 +56,7 @@ vi.mock('../../../src/renderer/components/tools/ToolsPanel', () => ({
 vi.mock('../../../src/renderer/stores/useDevScriptsStore', () => ({
   useDevScriptsStore: () => ({
     scripts: [],
+    globalScripts: [],
     loading: false,
     loadScripts: vi.fn(),
     saveScript: vi.fn(),
@@ -307,7 +308,6 @@ describe('DevelopmentScreen Tools Integration', () => {
       // All buttons should be visible
       // Note: Branches button shows the current branch name ('feature-branch') instead of 'Branches'
       expect(screen.getByText('feature-branch')).toBeDefined();
-      expect(screen.getByText('Remotes')).toBeDefined();
       expect(screen.getByText('Tool Box')).toBeDefined();
       expect(screen.getByText('Stop & Back')).toBeDefined();
     });

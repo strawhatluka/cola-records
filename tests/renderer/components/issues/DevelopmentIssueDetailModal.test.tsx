@@ -21,6 +21,17 @@ vi.mock('react-markdown', () => ({
 // Mock lucide-react
 vi.mock('lucide-react', async () => import('../../../mocks/lucide-react'));
 
+// Mock sub-issue modals
+vi.mock('../../../../src/renderer/components/issues/CreateSubIssueModal', () => ({
+  CreateSubIssueModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="create-sub-issue-modal" /> : null,
+}));
+
+vi.mock('../../../../src/renderer/components/issues/AddExistingSubIssueModal', () => ({
+  AddExistingSubIssueModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="add-existing-sub-issue-modal" /> : null,
+}));
+
 import { DevelopmentIssueDetailModal } from '../../../../src/renderer/components/issues/DevelopmentIssueDetailModal';
 
 const baseIssue = {
@@ -589,11 +600,18 @@ describe('DevelopmentIssueDetailModal', () => {
 
   describe('sub-issue navigation', () => {
     const mockSubIssues = [
-      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '' },
-      { id: 202, number: 21, title: 'Sub issue B', state: 'closed', url: '' },
+      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '', labels: ['Secondary'] },
+      {
+        id: 202,
+        number: 21,
+        title: 'Sub issue B',
+        state: 'closed',
+        url: '',
+        labels: ['Secondary'],
+      },
     ];
 
-    it('renders sub-issue rows as clickable buttons', async () => {
+    it('renders open sub-issue rows as clickable buttons and hides closed', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         if (channel === 'github:get-issue') return baseIssueDetail;
         if (channel === 'github:list-issue-comments') return [];
@@ -614,11 +632,11 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Sub issue A')).toBeDefined();
       });
-      // Sub-issue rows should be buttons
+      // Open sub-issue should be a button
       const btnA = screen.getByText('Sub issue A').closest('button');
       expect(btnA).not.toBeNull();
-      const btnB = screen.getByText('Sub issue B').closest('button');
-      expect(btnB).not.toBeNull();
+      // Closed sub-issue should not render
+      expect(screen.queryByText('Sub issue B')).toBeNull();
     });
 
     it('calls onNavigateToIssue with sub-issue number and parent context on click', async () => {
@@ -773,11 +791,18 @@ describe('DevelopmentIssueDetailModal', () => {
 
   describe('sub-issue branched badges', () => {
     const mockSubIssues = [
-      { id: 201, number: 20, title: 'Sub issue A', state: 'open', url: '' },
-      { id: 202, number: 21, title: 'Sub issue B', state: 'closed', url: '' },
+      {
+        id: 201,
+        number: 20,
+        title: 'Sub issue A',
+        state: 'open',
+        url: '',
+        labels: ['Secondary', 'enhancement'],
+      },
+      { id: 202, number: 21, title: 'Sub issue B', state: 'open', url: '', labels: ['Secondary'] },
     ];
 
-    it('shows "Secondary" badge on sub-issue rows when parent has branchBadge', async () => {
+    it('shows Secondary badge on sub-issues when parent has branchBadge Primary', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         if (channel === 'github:get-issue') return baseIssueDetail;
         if (channel === 'github:list-issue-comments') return [];
@@ -799,11 +824,14 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Sub issue A')).toBeDefined();
       });
-      const badges = screen.getAllByText('Secondary');
-      expect(badges.length).toBe(2);
+      // Both sub-issues get Secondary badge inherited from parent
+      const secondaryBadges = screen.getAllByText('Secondary');
+      expect(secondaryBadges.length).toBe(2);
+      // Other labels like 'enhancement' still render
+      expect(screen.getByText('enhancement')).toBeDefined();
     });
 
-    it('does not show branched badge on sub-issue rows when parent has no branchBadge', async () => {
+    it('does not show Secondary badge when parent has no branchBadge', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         if (channel === 'github:get-issue') return baseIssueDetail;
         if (channel === 'github:list-issue-comments') return [];
@@ -824,6 +852,7 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(screen.getByText('Sub issue A')).toBeDefined();
       });
+      // No Secondary badge since parent has no branchBadge (and label 'Secondary' is filtered from display)
       expect(screen.queryByText('Secondary')).toBeNull();
       expect(screen.queryByText('branched')).toBeNull();
     });
@@ -925,6 +954,529 @@ describe('DevelopmentIssueDetailModal', () => {
       await waitFor(() => {
         expect(onClose).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('close issue menu', () => {
+    it('shows close menu with all options', async () => {
+      setupMockIPC();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      let closeBtn!: HTMLElement;
+      await waitFor(() => {
+        const match = screen
+          .getAllByText('Close')
+          .find((el) => el.closest('button[data-variant="destructive"]'));
+        expect(match).toBeDefined();
+        closeBtn = match!;
+      });
+
+      await user.click(closeBtn);
+      expect(screen.getByText('Close as completed')).toBeDefined();
+      expect(screen.getByText('Close as not planned')).toBeDefined();
+      expect(screen.getByText('Close as duplicate')).toBeDefined();
+    });
+
+    it('closes issue as not planned', async () => {
+      setupMockIPC();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      let closeBtn!: HTMLElement;
+      await waitFor(() => {
+        const match = screen
+          .getAllByText('Close')
+          .find((el) => el.closest('button[data-variant="destructive"]'));
+        expect(match).toBeDefined();
+        closeBtn = match!;
+      });
+
+      await user.click(closeBtn);
+      await user.click(screen.getByText('Close as not planned'));
+
+      await waitFor(() => {
+        const calls = mockInvoke.mock.calls.filter(
+          (c: unknown[]) => c[0] === 'github:update-issue'
+        );
+        expect(calls.length).toBeGreaterThanOrEqual(1);
+        expect(calls[0]).toEqual([
+          'github:update-issue',
+          'org',
+          'repo',
+          10,
+          { state: 'closed', state_reason: 'not_planned' },
+        ]);
+      });
+    });
+
+    it('opens duplicate search when clicking Close as duplicate', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        if (channel === 'github:get-issue') return baseIssueDetail;
+        if (channel === 'github:list-issue-comments') return [];
+        if (channel === 'github:list-issue-reactions') return [];
+        if (channel === 'github:list-sub-issues') return [];
+        if (channel === 'github:get-parent-issue') return null;
+        if (channel === 'github:list-issues')
+          return [{ number: 5, title: 'Similar bug', state: 'open', labels: [] }];
+        return undefined;
+      });
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      let closeBtn!: HTMLElement;
+      await waitFor(() => {
+        const match = screen
+          .getAllByText('Close')
+          .find((el) => el.closest('button[data-variant="destructive"]'));
+        expect(match).toBeDefined();
+        closeBtn = match!;
+      });
+
+      await user.click(closeBtn);
+      await user.click(screen.getByText('Close as duplicate'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Select duplicate issue')).toBeDefined();
+      });
+
+      // Should show the issue from the search results
+      await waitFor(() => {
+        expect(screen.getByText('Similar bug')).toBeDefined();
+      });
+    });
+  });
+
+  describe('inline rendering', () => {
+    it('renders without crashing when inline is true (no Dialog context)', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          inline
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+    });
+
+    it('renders title as h2 element in inline mode', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          inline
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      const heading = screen.getByRole('heading', { level: 2 });
+      expect(heading.textContent).toContain('Detailed Issue Title');
+      expect(heading.textContent).toContain('#10');
+    });
+
+    it('shows issue content (labels, body, comments) in inline mode', async () => {
+      setupMockIPC({
+        comments: [baseComment],
+      });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          inline
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Labels
+      expect(screen.getByText('bug')).toBeDefined();
+      expect(screen.getByText('help wanted')).toBeDefined();
+
+      // Issue body and comment both render via mocked react-markdown
+      const markdownElements = screen.getAllByTestId('markdown');
+      expect(markdownElements).toHaveLength(2);
+
+      // Comment
+      expect(screen.getByText('This is a comment')).toBeDefined();
+    });
+
+    it('does not render Dialog wrapper in inline mode', async () => {
+      setupMockIPC();
+      const { container } = render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          inline
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Inline mode renders a plain div, not a dialog
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+    });
+  });
+
+  describe('sub-issue modals', () => {
+    it('opens create sub-issue modal from dropdown', async () => {
+      setupMockIPC();
+      const user = userEvent.setup();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Click 'Create sub-issue' button to open dropdown
+      await user.click(screen.getByText('Create sub-issue'));
+
+      // Wait for dropdown to appear with both options
+      await waitFor(() => {
+        expect(screen.getByText('Add existing issue')).toBeDefined();
+      });
+
+      // Click 'Create sub-issue' menu item (second one in the dropdown)
+      const createItems = screen.getAllByText('Create sub-issue');
+      // The dropdown menu item should be the last one
+      await user.click(createItems[createItems.length - 1]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-sub-issue-modal')).toBeDefined();
+      });
+    });
+
+    it('opens add existing sub-issue modal from dropdown', async () => {
+      setupMockIPC();
+      const user = userEvent.setup();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Create sub-issue'));
+      await waitFor(() => {
+        expect(screen.getByText('Add existing issue')).toBeDefined();
+      });
+      await user.click(screen.getByText('Add existing issue'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-existing-sub-issue-modal')).toBeDefined();
+      });
+    });
+  });
+
+  describe('branchBadge variants', () => {
+    it('renders Primary badge with purple styling', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          branchBadge="Primary"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Primary')).toBeDefined();
+      });
+    });
+
+    it('renders Secondary badge with yellow styling', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          branchBadge="Secondary"
+          onClose={vi.fn()}
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Secondary')).toBeDefined();
+      });
+    });
+  });
+
+  describe('Fix Issue smart branching', () => {
+    it('branches from parent issue branch when sub-issue has parentIssue prop', async () => {
+      setupMockIPC();
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          branchBadge={undefined}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+          parentIssue={{ number: 22, title: 'Parent Feature' }}
+          branches={['main', 'feat/22-maintenance-tools', 'dev']}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'feat/22-maintenance-tools', 'dev'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      // Should checkout the parent's branch, not main
+      const checkoutCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'git:checkout');
+      expect(checkoutCalls).toHaveLength(1);
+      expect(checkoutCalls[0][2]).toBe('feat/22-maintenance-tools');
+    });
+
+    it('branches from parent branch when parent is auto-detected via API', async () => {
+      setupMockIPC({
+        parentIssue: { id: 50, number: 22, title: 'Auto Parent', state: 'open', url: '' },
+      });
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          branchBadge={undefined}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+          onNavigateToIssue={vi.fn()}
+          branches={['main', 'feat/22-maintenance-tools']}
+        />
+      );
+
+      // Wait for detail load
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Wait for parent detection to complete (renders breadcrumb)
+      await waitFor(() => {
+        expect(screen.getByText(/Sub-issue of #22 Auto Parent/)).toBeDefined();
+      });
+
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'feat/22-maintenance-tools'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      const checkoutCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'git:checkout');
+      expect(checkoutCalls).toHaveLength(1);
+      expect(checkoutCalls[0][2]).toBe('feat/22-maintenance-tools');
+    });
+
+    it('falls back to main when sub-issue parent branch does not exist', async () => {
+      setupMockIPC();
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          branchBadge={undefined}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+          parentIssue={{ number: 99, title: 'Unbranched Parent' }}
+          branches={['main', 'dev']}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'dev'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      // No parent branch found — should fall back to main
+      const checkoutCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'git:checkout');
+      expect(checkoutCalls).toHaveLength(1);
+      expect(checkoutCalls[0][2]).toBe('main');
+    });
+
+    it('standalone issue (no parent) branches from main', async () => {
+      setupMockIPC();
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          branchBadge={undefined}
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={onClose}
+          branches={['main', 'feat/22-maintenance-tools']}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-branches':
+            return ['main', 'feat/22-maintenance-tools'];
+          case 'git:checkout':
+          case 'git:create-branch':
+            return undefined;
+          case 'github:get-authenticated-user':
+            return { login: 'testuser' };
+          case 'github:add-assignees':
+            return undefined;
+          default:
+            return undefined;
+        }
+      });
+
+      await user.click(screen.getByText('Fix Issue'));
+
+      await waitFor(() => {
+        expect(onClose).toHaveBeenCalled();
+      });
+
+      // No parent — should checkout main
+      const checkoutCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'git:checkout');
+      expect(checkoutCalls).toHaveLength(1);
+      expect(checkoutCalls[0][2]).toBe('main');
     });
   });
 });
