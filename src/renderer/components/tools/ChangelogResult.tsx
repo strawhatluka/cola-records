@@ -70,6 +70,7 @@ export function ChangelogResult({
     try {
       await ipc.invoke('workflow:apply-changelog', workingDirectory, entry);
       setApplied(true);
+      setTimeout(onClose, 1200);
     } catch {
       setError('Failed to apply changelog entry');
     } finally {

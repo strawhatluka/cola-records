@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `setTimeout` call to `src/renderer/components/tools/ChangelogResult.tsx` to automatically close the component after 1200ms. (Relates to #72)
 - Add `GitHubIssueDetail` interface to `src/main/ipc/channels/types.ts` for detailed GitHub issue information. (Relates to #72)
 - Add `GitHubPullRequestResult` interface to `src/main/ipc/channels/types.ts` for GitHub pull request creation results. (Relates to #72)
 - Add `GitHubUserRepository` interface to `src/main/ipc/channels/types.ts` for user-specific GitHub repository details. (Relates to #72)
