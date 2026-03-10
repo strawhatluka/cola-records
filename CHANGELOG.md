@@ -328,6 +328,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update `dompurify` dependency to `^3.3.2` in `package.json` and `package-lock.json`.
 - Update `lucide-react` icon imports in `src/renderer/components/tools/PackageManagerPanel.tsx` to include `FileJson`. (Relates to #72)
 - Update `PackageManagerPanel` tests in `tests/renderer/components/tools/PackageManagerPanel.test.tsx` to include the `onOpenEditor` prop. (Relates to #72)
 - Adjust `PackageManagerPanel` tests in `tests/renderer/components/tools/PackageManagerPanel.test.tsx` to verify the 'Package Config' action button and its position. (Relates to #72)
