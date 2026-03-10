@@ -390,6 +390,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed non-null assertions in `MaintenanceTool.tsx` — replaced `projectInfo!.commands` with narrowed `projectInfo` access via `&&` guard
 - Fix Issue button was hidden for Secondary (sub-issue) issues that had not yet been branched — button visibility now checks direct branch existence instead of badge type
 - Secondary badge was overridden by "branched" badge after creating a sub-issue's branch — Secondary now takes priority over branched/Primary for inherited sub-issues in both list and detail views
+- `DevelopmentIssueDetailModal` crash (`'DialogTitle' must be used within 'Dialog'`) when rendering in inline mode — `DialogTitle` was used in a shared `header` variable rendered outside a `Dialog` context; now conditionally renders `<h2>` for inline mode and `<DialogTitle>` for dialog mode
 
 ### Tests
 
@@ -406,6 +407,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CommitModal tests (`CommitModal.test.tsx`): 8 tests covering AI message generation, editing, terminal spawn on commit, cancel, issue/branch passthrough, closed state, disabled button guard
 - ChangelogResult, ReadmeResult, DocsResult, StageEditor, VersionEditor component tests: inline result panels and full-view editors
 - AITab settings component tests (`AITab.test.tsx`): AI provider configuration UI
+- Inline rendering tests (`DevelopmentIssueDetailModal.test.tsx`): 4 tests for inline mode — renders without crash (no Dialog context), title renders as `<h2>`, labels/body/comments display correctly, no Dialog wrapper present
 - Smart branching tests (`DevelopmentIssueDetailModal.test.tsx`): 4 tests for sub-issue parent branching (via prop, via API auto-detection, fallback to main when parent not branched, standalone issue branches from main)
 - Smart base branch tests (`CreatePullRequestModal.test.tsx`): 4 tests for PR base branch auto-detection (sub-issue defaults to parent branch, non-sub-issue stays on main, API error fallback, parent branch not in local branches)
 

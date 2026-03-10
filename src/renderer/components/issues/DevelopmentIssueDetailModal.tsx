@@ -434,10 +434,17 @@ export function DevelopmentIssueDetailModal({
       )}
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <DialogTitle className="text-xl font-semibold">
-            {issueDetail?.title || issue.title}
-            <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
-          </DialogTitle>
+          {inline ? (
+            <h2 className="text-xl font-semibold">
+              {issueDetail?.title || issue.title}
+              <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
+            </h2>
+          ) : (
+            <DialogTitle className="text-xl font-semibold">
+              {issueDetail?.title || issue.title}
+              <span className="text-muted-foreground font-normal ml-2">#{issue.number}</span>
+            </DialogTitle>
+          )}
           <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
             {issueStatusBadge(issueState)}
             {branchBadge && (

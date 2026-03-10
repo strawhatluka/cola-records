@@ -1071,8 +1071,99 @@ describe('DevelopmentIssueDetailModal', () => {
     });
   });
 
-  // NOTE: inline rendering test skipped — component uses DialogTitle in header
-  // which requires Dialog context even in inline mode (known tech debt).
+  describe('inline rendering', () => {
+    it('renders without crashing when inline is true (no Dialog context)', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          inline
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+    });
+
+    it('renders title as h2 element in inline mode', async () => {
+      setupMockIPC();
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          inline
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      const heading = screen.getByRole('heading', { level: 2 });
+      expect(heading.textContent).toContain('Detailed Issue Title');
+      expect(heading.textContent).toContain('#10');
+    });
+
+    it('shows issue content (labels, body, comments) in inline mode', async () => {
+      setupMockIPC({
+        comments: [baseComment],
+      });
+      render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          inline
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Labels
+      expect(screen.getByText('bug')).toBeDefined();
+      expect(screen.getByText('help wanted')).toBeDefined();
+
+      // Issue body and comment both render via mocked react-markdown
+      const markdownElements = screen.getAllByTestId('markdown');
+      expect(markdownElements).toHaveLength(2);
+
+      // Comment
+      expect(screen.getByText('This is a comment')).toBeDefined();
+    });
+
+    it('does not render Dialog wrapper in inline mode', async () => {
+      setupMockIPC();
+      const { container } = render(
+        <DevelopmentIssueDetailModal
+          issue={baseIssue}
+          owner="org"
+          repo="repo"
+          localPath="/mock/path"
+          githubUsername="testuser"
+          onClose={vi.fn()}
+          inline
+        />
+      );
+      await waitFor(() => {
+        expect(screen.getByText('Detailed Issue Title')).toBeDefined();
+      });
+
+      // Inline mode renders a plain div, not a dialog
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+    });
+  });
 
   describe('sub-issue modals', () => {
     it('opens create sub-issue modal from dropdown', async () => {
