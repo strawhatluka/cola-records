@@ -2,7 +2,7 @@
 
 ## Overview
 
-Cola Records is an Electron desktop application for tracking open-source contributions with integrated GitHub workflow management. Built with React 19, TypeScript, and SQLite, it provides a seamless experience for managing your contributions across multiple repositories.
+Cola Records is an Electron desktop application and Developer Workspace Engine for tracking open-source contributions with integrated GitHub workflow management, development tools, and AI-powered automation. Built with React 19, TypeScript, and SQLite, it provides a seamless experience for managing your contributions across multiple repositories.
 
 ## Prerequisites
 
@@ -125,13 +125,23 @@ src/
   main/                     # Main Process (Node.js)
     index.ts               # Main entry point
     preload.ts             # Preload script (IPC bridge)
-    database/              # SQLite database service
-    services/              # Backend services
+    database/              # SQLite database service (schema v9, 6 tables)
+    ipc/handlers/          # IPC handler modules (11 domain modules)
+    services/              # Backend services (38 top-level + 9 sub-modules)
       git.service.ts       # Local git operations
       github.service.ts    # GitHub API integration
+      github/              # Domain-split GitHub REST modules
+      code-server/         # Domain-split Code Server modules
+      ai.service.ts        # Multi-provider AI abstraction
+      workflow.service.ts  # AI-powered changelog/commit generation
+      notification.service.ts  # GitHub event polling and notifications
+      # Maintenance services (build, coverage, editorconfig, env, format, hooks, lint, package, test)
+      # Project services (detection, scaffold, database-scaffold, cli-detection, cli-scanner)
+      # Utility services (version, package-manager, env-scanner, npm-registry, disk-usage)
       spotify.service.ts   # Spotify integration
       discord.service.ts   # Discord integration
       terminal.service.ts  # PTY terminal handling
+      templates/           # Project scaffolding templates
 
   renderer/                # Renderer Process (React)
     index.tsx              # React entry point
@@ -144,18 +154,23 @@ src/
       DevelopmentScreen.tsx
       SettingsScreen.tsx
       DocumentationScreen.tsx
-    components/            # React components (100 total)
-    stores/                # Zustand state stores (10 files, 5 exported via index.ts)
+    components/            # React components (156 total)
+      notifications/       # NotificationCenter, NotificationGroup, NotificationItem
+      projects/            # ProjectTabBar, ProjectTab, NewProjectWizard, WizardStep*
+      tools/               # 50 components: panels, editors, workflow, GitHub config, utilities
+      settings/            # 8 tabs: General, API, AI, SSH, Bash, CodeServer, GlobalScripts, Notifications
+    stores/                # Zustand state stores (11 files, 5 exported via index.ts)
     hooks/                 # Custom React hooks
 ```
 
 ### State Stores Note
 
-The application uses 10 Zustand store files:
+The application uses 11 Zustand store files:
 
 - **5 stores** are exported from `stores/index.ts` for convenient imports
-- **5 stores** must be imported directly from their files:
+- **6 stores** must be imported directly from their files:
   - `useDiscordStore` - Discord connection state
+  - `useNotificationStore` - Notification state management
   - `useProfessionalProjectsStore` - Professional project tracking
   - `useProjectsStore` - Open source project tracking
   - `useSpotifyStore` - Spotify playback state
@@ -189,10 +204,24 @@ The Dashboard screen provides an at-a-glance overview of your GitHub activity th
 ### Development Tools
 
 - Integrated terminal with PTY support
-- Custom dev scripts per project
+- Custom dev scripts per project (with multi-command and toggle mode)
 - Monaco editor integration
 - GitHub Actions workflow viewer with job logs
 - Repository issues, pull requests, and releases panels
+- **Maintenance tools** -- env file management, git hooks configuration, .editorconfig management, code formatters, linters, test framework config, build tool config, code coverage, package management
+- **GitHub configuration management** -- visual editor for .github/ directory (workflows, issue templates, CODEOWNERS, dependabot, labeler, etc.)
+- **CLI explorer** -- discover and explore installed CLI tools across ecosystems
+- **AI-powered workflows** -- automatic changelog generation, commit message generation, version bumping
+- **New Project Wizard** -- multi-step project scaffolding with ecosystem detection, CLI tool installation, database setup, and GitHub repo creation
+
+### Notifications
+
+Cola Records includes a real-time notification system that monitors GitHub events and pushes alerts to the app:
+
+- PR review requests, CI failures, issue assignments
+- Configurable notification preferences per category
+- In-app notification center with filtering, grouping, and bulk actions
+- Native OS notifications when the window is unfocused
 
 ### Documentation
 
@@ -213,6 +242,7 @@ Cola Records uses SQLite (better-sqlite3) for local data persistence:
 | settings       | Application configuration    |
 | github_cache   | API response caching         |
 | dev_scripts    | Custom project scripts       |
+| notifications  | Notification persistence     |
 | schema_version | Database migration tracking  |
 
 ## Next Steps
@@ -223,14 +253,18 @@ Cola Records uses SQLite (better-sqlite3) for local data persistence:
 
 ## Quick Reference
 
-| Command             | Description            |
-| ------------------- | ---------------------- |
-| `npm start`         | Start development mode |
-| `npm test`          | Run test suite         |
-| `npm run lint`      | Lint code              |
-| `npm run format`    | Format code            |
-| `npm run typecheck` | Type check TypeScript  |
-| `npm run make`      | Build for production   |
+| Command                 | Description            |
+| ----------------------- | ---------------------- |
+| `npm start`             | Start development mode |
+| `npm test`              | Run test suite         |
+| `npm run test:watch`    | Watch mode testing     |
+| `npm run test:coverage` | Run coverage report    |
+| `npm run lint`          | Lint code              |
+| `npm run lint:fix`      | Auto-fix lint issues   |
+| `npm run format`        | Format code            |
+| `npm run format:check`  | Check formatting       |
+| `npm run typecheck`     | Type check TypeScript  |
+| `npm run make`          | Build for production   |
 
 ## Getting Help
 

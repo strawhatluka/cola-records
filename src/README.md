@@ -42,6 +42,4 @@ Cola Records uses Electron's multi-process architecture:
 
 ## Documentation
 
-- See [CLAUDE.md](CLAUDE.md) for React/TypeScript coding standards
-- See [main/CLAUDE.md](main/CLAUDE.md) for main process patterns
-- See [renderer/CLAUDE.md](renderer/CLAUDE.md) for renderer patterns
+- See [CLAUDE.md](CLAUDE.md) for React/TypeScript coding standards, main process patterns, and renderer patterns

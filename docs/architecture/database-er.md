@@ -2,10 +2,10 @@
 
 ## Overview
 
-Cola Records uses SQLite with better-sqlite3 for local data persistence. The database stores contribution tracking data, application settings, API cache, and development scripts.
+Cola Records uses SQLite with better-sqlite3 for local data persistence. The database stores contribution tracking data, application settings, API cache, development scripts, and notifications across 6 tables.
 
 **Database Type:** SQLite (better-sqlite3)
-**Schema Version:** 6
+**Schema Version:** 9
 **Location:** Application data directory
 
 ## Entity Relationship Diagram
@@ -27,6 +27,13 @@ erDiagram
         text upstream_url "Upstream repository URL"
         int is_fork "Boolean: is forked repo"
         int remotes_valid "Boolean: remotes configured"
+        text ecosystem "Project ecosystem"
+        text framework "Project framework"
+        text package_manager "Package manager used"
+        int is_monorepo "Boolean: monorepo flag"
+        text monorepo_tool "Monorepo tool"
+        text database_engine "Database engine"
+        text database_orm "ORM used"
         int created_at "Unix timestamp"
         int updated_at "Unix timestamp"
     }
@@ -50,8 +57,25 @@ erDiagram
         text command "Single command"
         text commands "JSON array of commands"
         text terminals "JSON array of terminal configs"
+        text toggle "JSON toggle-mode config"
         int created_at "Unix timestamp"
         int updated_at "Unix timestamp"
+    }
+
+    NOTIFICATIONS {
+        text id PK "UUID primary key"
+        text category "Notification category"
+        text priority "high|medium|low"
+        text title "Notification title"
+        text message "Notification message"
+        int timestamp "Unix timestamp"
+        int read "Boolean: has been read"
+        int dismissed "Boolean: has been dismissed"
+        text dedupe_key "Deduplication key"
+        text action_label "Optional action button label"
+        text action_screen "Optional target screen"
+        text action_context "Optional action context JSON"
+        text group_key "Optional grouping key"
     }
 
     SCHEMA_VERSION {
@@ -61,6 +85,7 @@ erDiagram
 
     DEV_SCRIPTS ||--o{ CONTRIBUTIONS : "project_path references local_path"
     GITHUB_CACHE ||--o{ CONTRIBUTIONS : "caches API data for repository"
+    SETTINGS ||--o{ NOTIFICATIONS : "configures notification preferences"
 ```
 
 ## Tables
@@ -69,24 +94,31 @@ erDiagram
 
 Primary table for tracking open source contributions.
 
-| Column         | Type    | Constraints            | Description                    |
-| -------------- | ------- | ---------------------- | ------------------------------ |
-| id             | TEXT    | PRIMARY KEY            | UUID identifier                |
-| repository_url | TEXT    | NOT NULL               | GitHub repository URL          |
-| local_path     | TEXT    | NOT NULL               | Local clone directory          |
-| issue_number   | INTEGER | NOT NULL               | GitHub issue number            |
-| issue_title    | TEXT    | NOT NULL               | Issue title for display        |
-| branch_name    | TEXT    | NOT NULL               | Working branch name            |
-| status         | TEXT    | NOT NULL               | Workflow status                |
-| type           | TEXT    | DEFAULT 'contribution' | Contribution type              |
-| pr_url         | TEXT    | NULLABLE               | Pull request URL               |
-| pr_number      | INTEGER | NULLABLE               | Pull request number            |
-| pr_status      | TEXT    | NULLABLE               | PR status (open/closed/merged) |
-| upstream_url   | TEXT    | NULLABLE               | Original repository URL        |
-| is_fork        | INTEGER | DEFAULT 0              | Is forked repository           |
-| remotes_valid  | INTEGER | DEFAULT 0              | Git remotes configured         |
-| created_at     | INTEGER | NOT NULL               | Creation timestamp             |
-| updated_at     | INTEGER | NOT NULL               | Last update timestamp          |
+| Column          | Type    | Constraints            | Description                             |
+| --------------- | ------- | ---------------------- | --------------------------------------- |
+| id              | TEXT    | PRIMARY KEY            | UUID identifier                         |
+| repository_url  | TEXT    | NOT NULL               | GitHub repository URL                   |
+| local_path      | TEXT    | NOT NULL               | Local clone directory                   |
+| issue_number    | INTEGER | NOT NULL               | GitHub issue number                     |
+| issue_title     | TEXT    | NOT NULL               | Issue title for display                 |
+| branch_name     | TEXT    | NOT NULL               | Working branch name                     |
+| status          | TEXT    | NOT NULL               | Workflow status                         |
+| type            | TEXT    | DEFAULT 'contribution' | Contribution type                       |
+| pr_url          | TEXT    | NULLABLE               | Pull request URL                        |
+| pr_number       | INTEGER | NULLABLE               | Pull request number                     |
+| pr_status       | TEXT    | NULLABLE               | PR status (open/closed/merged)          |
+| upstream_url    | TEXT    | NULLABLE               | Original repository URL                 |
+| is_fork         | INTEGER | DEFAULT 0              | Is forked repository                    |
+| remotes_valid   | INTEGER | DEFAULT 0              | Git remotes configured                  |
+| ecosystem       | TEXT    | NULLABLE               | Project ecosystem (e.g., node, python)  |
+| framework       | TEXT    | NULLABLE               | Project framework (e.g., react, django) |
+| package_manager | TEXT    | NULLABLE               | Package manager (e.g., npm, yarn)       |
+| is_monorepo     | INTEGER | DEFAULT 0              | Monorepo flag                           |
+| monorepo_tool   | TEXT    | NULLABLE               | Monorepo tool (e.g., nx, turborepo)     |
+| database_engine | TEXT    | NULLABLE               | Database engine used                    |
+| database_orm    | TEXT    | NULLABLE               | ORM used                                |
+| created_at      | INTEGER | NOT NULL               | Creation timestamp                      |
+| updated_at      | INTEGER | NOT NULL               | Last update timestamp                   |
 
 **Indexes:**
 
@@ -149,6 +181,7 @@ Stores custom development scripts for projects.
 | command      | TEXT    | NOT NULL    | Single shell command           |
 | commands     | TEXT    | NULLABLE    | JSON array of commands         |
 | terminals    | TEXT    | NULLABLE    | JSON array of terminal configs |
+| toggle       | TEXT    | NULLABLE    | JSON toggle-mode config        |
 | created_at   | INTEGER | NOT NULL    | Creation timestamp             |
 | updated_at   | INTEGER | NOT NULL    | Last update timestamp          |
 
@@ -167,6 +200,48 @@ Stores custom development scripts for projects.
   "name": "Terminal Name",
   "command": "npm run dev",
   "cwd": "/path/to/project"
+}
+```
+
+### notifications
+
+Stores persistent notifications for GitHub events, CI status, and application alerts.
+
+| Column         | Type    | Constraints                                 | Description                      |
+| -------------- | ------- | ------------------------------------------- | -------------------------------- |
+| id             | TEXT    | PRIMARY KEY                                 | UUID identifier                  |
+| category       | TEXT    | NOT NULL                                    | Notification category            |
+| priority       | TEXT    | NOT NULL, CHECK(IN ('high','medium','low')) | Notification priority level      |
+| title          | TEXT    | NOT NULL                                    | Notification title               |
+| message        | TEXT    | NOT NULL                                    | Notification message body        |
+| timestamp      | INTEGER | NOT NULL                                    | Creation timestamp               |
+| read           | INTEGER | NOT NULL, DEFAULT 0                         | Has been read (0=unread, 1=read) |
+| dismissed      | INTEGER | NOT NULL, DEFAULT 0                         | Has been dismissed               |
+| dedupe_key     | TEXT    | NOT NULL                                    | Deduplication key                |
+| action_label   | TEXT    | NULLABLE                                    | Action button label              |
+| action_screen  | TEXT    | NULLABLE                                    | Target screen for action         |
+| action_context | TEXT    | NULLABLE                                    | JSON context for action          |
+| group_key      | TEXT    | NULLABLE                                    | Grouping key for display         |
+
+**Indexes:**
+
+- `idx_notifications_timestamp` - Chronological sorting
+- `idx_notifications_read` - Fast filtering by read status
+- `idx_notifications_dedupe_key` - Efficient deduplication checks
+- `idx_notifications_category` - Filtering by category
+
+**Deduplication Strategy:**
+
+- Uses `INSERT OR IGNORE` with unique `dedupe_key` to prevent duplicate notifications
+- Deduplication key is typically composed of event type + entity ID (e.g., `pr-review:owner/repo#123`)
+
+**Toggle Config Structure:**
+
+```json
+{
+  "onCommand": "npm run dev",
+  "offCommand": "kill-port 3000",
+  "isOn": false
 }
 ```
 
@@ -201,9 +276,14 @@ graph TD
         SV[schema_version]
     end
 
+    subgraph Alerts["Notification System"]
+        N[notifications]
+    end
+
     DS -->|project_path| C
     GC -->|caches data for| C
     S -->|configures| C
+    S -->|configures preferences| N
 ```
 
 ## Query Patterns
@@ -240,15 +320,57 @@ DELETE FROM github_cache
 WHERE expires_at < ?;
 ```
 
+**Get unread notifications:**
+
+```sql
+SELECT * FROM notifications
+WHERE read = 0 AND dismissed = 0
+ORDER BY timestamp DESC
+LIMIT ? OFFSET ?;
+```
+
+**Get unread notification count:**
+
+```sql
+SELECT COUNT(*) as count FROM notifications
+WHERE read = 0 AND dismissed = 0;
+```
+
+**Mark notification as read:**
+
+```sql
+UPDATE notifications SET read = 1 WHERE id = ?;
+```
+
+**Mark all as read:**
+
+```sql
+UPDATE notifications SET read = 1 WHERE read = 0;
+```
+
+**Dismiss notification:**
+
+```sql
+UPDATE notifications SET dismissed = 1 WHERE id = ?;
+```
+
+**Cleanup old notifications:**
+
+```sql
+DELETE FROM notifications WHERE timestamp < ?;
+```
+
 ## Data Integrity
 
 - **Foreign Keys:** Not enforced (SQLite default) - logical relationships only
 - **Unique Constraints:** Applied on settings.key, dev_scripts(project_path, name)
+- **Check Constraints:** contributions.status, contributions.pr_status, notifications.priority
 - **Indexes:** Optimized for common query patterns
 - **Timestamps:** Unix timestamps for consistency
+- **Deduplication:** notifications use `INSERT OR IGNORE` with `dedupe_key`
 
 ---
 
 **Generated by:** APO (Documentation Specialist)
 **Source:** JUNO Audit Report 2026-02-11
-**Schema Version:** 6
+**Schema Version:** 9

@@ -151,29 +151,35 @@ graph TD
 
 ## IPC Channel Categories
 
-| Category     | Prefix          | Channels | Purpose                      |
-| ------------ | --------------- | -------- | ---------------------------- |
-| File System  | `fs:`           | 8        | Local file operations        |
-| Git          | `git:`          | 17       | Git CLI operations           |
-| GitHub       | `github:`       | 53       | GitHub API interactions      |
-| Contribution | `contribution:` | 7        | Contribution CRUD            |
-| Settings     | `settings:`     | 4        | Application settings         |
-| Spotify      | `spotify:`      | 18       | Music playback               |
-| Discord      | `discord:`      | 29       | Discord messaging            |
-| Terminal     | `terminal:`     | 4        | PTY terminal                 |
-| Dev Scripts  | `dev-scripts:`  | 3        | Custom scripts               |
-| Code Server  | `code-server:`  | 7        | VS Code server               |
-| Updater      | `updater:`      | 5        | Auto-update functionality    |
-| Project      | `project:`      | 1        | Project scanning             |
-| Gitignore    | `gitignore:`    | 2        | Git ignore operations        |
-| Dialog       | `dialog:`       | 1        | Native dialogs               |
-| Shell        | `shell:`        | 3        | Shell operations             |
-| Docs         | `docs:`         | 1        | Documentation file structure |
-| **Total**    |                 | **163**  | **+ 9 event channels**       |
+| Category      | Prefix           | Channels | Purpose                        |
+| ------------- | ---------------- | -------- | ------------------------------ |
+| File System   | `fs:`            | 8        | Local file operations          |
+| Git           | `git:`           | 21       | Git CLI operations             |
+| GitHub        | `github:`        | 54       | GitHub API interactions        |
+| Contribution  | `contribution:`  | 7        | Contribution CRUD              |
+| Settings      | `settings:`      | 4        | Application settings           |
+| Spotify       | `spotify:`       | 18       | Music playback                 |
+| Discord       | `discord:`       | 29       | Discord messaging              |
+| Terminal      | `terminal:`      | 5        | PTY terminal                   |
+| Dev Scripts   | `dev-scripts:`   | 3        | Custom scripts                 |
+| Code Server   | `code-server:`   | 7        | VS Code server                 |
+| Updater       | `updater:`       | 5        | Auto-update functionality      |
+| Project       | `project:`       | 9        | Project scanning and creation  |
+| Gitignore     | `gitignore:`     | 2        | Git ignore operations          |
+| Dialog        | `dialog:`        | 1        | Native dialogs                 |
+| Shell         | `shell:`         | 3        | Shell operations               |
+| Docs          | `docs:`          | 1        | Documentation file structure   |
+| Dev Tools     | `dev-tools:`     | 61       | Development tool configuration |
+| AI            | `ai:`            | 3        | AI/LLM integration             |
+| Workflow      | `workflow:`      | 8        | AI-powered workflows           |
+| Notification  | `notification:`  | 9        | Notification management        |
+| GitHub Config | `github-config:` | 7        | GitHub repository config       |
+| Echo          | `echo:`          | 1        | Echo test channel              |
+| **Total**     |                  | **266**  | **+ 11 event channels**        |
 
 ## Service Layer
 
-The Main Process contains 15 top-level services plus 9 domain-split sub-modules handling specific domains:
+The Main Process contains 38 top-level services plus 9 domain-split sub-modules handling specific domains:
 
 ```mermaid
 graph TD
@@ -187,12 +193,14 @@ graph TD
     subgraph Git["Git Services"]
         GitService[git.service.ts]
         GitIgnore[gitignore.service.ts]
+        GitAskpass[git-askpass.service.ts]
     end
 
     subgraph GitHub["GitHub Services"]
         GitHubMain[github.service.ts]
         GitHubREST[github-rest.service.ts]
         GitHubGraphQL[github-graphql.service.ts]
+        GitHubConfig[github-config.service.ts]
         subgraph GitHubSplit["Domain-Split Modules (github/)"]
             GitHubIssues[github-issues.service.ts]
             GitHubPRs[github-pull-requests.service.ts]
@@ -213,10 +221,44 @@ graph TD
         end
     end
 
+    subgraph MaintenanceServices["Maintenance Services"]
+        BuildConfig[build-config.service.ts]
+        CoverageConfig[coverage-config.service.ts]
+        EditorConfig[editorconfig.service.ts]
+        EnvFile[env-file.service.ts]
+        FormatConfig[format-config.service.ts]
+        Hooks[hooks.service.ts]
+        LintConfig[lint-config.service.ts]
+        PackageConfig[package-config.service.ts]
+        TestConfig[test-config.service.ts]
+    end
+
+    subgraph AIServices["AI Services"]
+        AIService[ai.service.ts]
+        WorkflowService[workflow.service.ts]
+    end
+
+    subgraph ProjectServices["Project Services"]
+        ProjectDetection[project-detection.service.ts]
+        ProjectScaffold[project-scaffold.service.ts]
+        DatabaseScaffold[database-scaffold.service.ts]
+        CLIDetection[cli-detection.service.ts]
+        CLIScanner[cli-scanner.service.ts]
+    end
+
+    subgraph Notification["Notification"]
+        NotificationService[notification.service.ts]
+    end
+
     subgraph Utilities["Utility Services"]
         Terminal[terminal.service.ts]
         Scanner[contribution-scanner.service.ts]
         Updater[updater.service.ts]
+        VersionService[version.service.ts]
+        PackageManager[package-manager.service.ts]
+        EnvScanner[env-scanner.service.ts]
+        NpmRegistry[npm-registry.service.ts]
+        DiskUsage[disk-usage.service.ts]
     end
 ```
 
@@ -238,6 +280,7 @@ Renderer process uses Zustand stores for state management:
 | useDevScriptsStore           | Development scripts           |
 | useOpenProjectsStore         | Currently open projects       |
 | useUpdaterStore              | Auto-update state management  |
+| useNotificationStore         | Notification state management |
 
 ---
 
@@ -692,6 +735,451 @@ The `XTermTerminal` component wraps xterm.js with:
 - `xterm-addon-webgl` for GPU-accelerated rendering
 - Event listeners for IPC data and exit events
 - Cleanup on component unmount
+
+---
+
+## Notification System Architecture
+
+Cola Records includes a real-time notification system that polls GitHub for new events (PR reviews, CI failures, issue assignments) and pushes them to the renderer process. Notifications are persisted to SQLite and deduplicated via `dedupe_key`.
+
+### Architecture Overview
+
+```mermaid
+graph TD
+    subgraph Main["Main Process"]
+        NotifService[NotificationService]
+        GitHubAPI[GitHub Notifications API]
+        DB[(SQLite notifications table)]
+        NativeNotif[Electron Notification]
+    end
+
+    subgraph Renderer["Renderer Process"]
+        NotifStore[useNotificationStore]
+        NotifCenter[NotificationCenter]
+        NotifGroup[NotificationGroup]
+        NotifItem[NotificationItem]
+        Toasts[Sonner Toasts]
+    end
+
+    NotifService -->|Poll every N minutes| GitHubAPI
+    GitHubAPI -->|GitHub events| NotifService
+    NotifService -->|Persist| DB
+    NotifService -->|notification:batch event| NotifStore
+    NotifService -->|Native OS notification| NativeNotif
+
+    NotifStore --> NotifCenter
+    NotifCenter --> NotifGroup
+    NotifCenter --> NotifItem
+    NotifGroup --> NotifItem
+    NotifStore -->|Toast on new| Toasts
+```
+
+### Data Flow
+
+1. **NotificationService** initializes with the main BrowserWindow and starts polling after a 10-second delay
+2. Polls GitHub Notifications API at a configurable interval (default: 5 minutes)
+3. Maps GitHub notification events to `AppNotification` objects with category (github-pr, github-issue, github-ci), priority (high, medium, low), and deduplication key
+4. Persists each notification to the SQLite `notifications` table via `database.addNotification()`
+5. Pushes a batch to the renderer via `notification:batch` event channel
+6. Shows native OS notification (Electron `Notification`) when window is unfocused and preferences allow
+7. **useNotificationStore** receives the batch, deduplicates against in-memory cache (max 300), updates unread count, and fires Sonner toasts
+8. **NotificationCenter** renders notifications grouped by `groupKey` with filter tabs
+
+### IPC Channels
+
+| Channel                           | Direction        | Purpose                              |
+| --------------------------------- | ---------------- | ------------------------------------ |
+| `notification:add`                | Renderer -> Main | Add notification to DB               |
+| `notification:get-all`            | Renderer -> Main | Fetch notifications with pagination  |
+| `notification:mark-read`          | Renderer -> Main | Mark single notification as read     |
+| `notification:mark-all-read`      | Renderer -> Main | Mark all as read                     |
+| `notification:dismiss`            | Renderer -> Main | Dismiss a notification               |
+| `notification:clear-all`          | Renderer -> Main | Clear all notifications              |
+| `notification:get-preferences`    | Renderer -> Main | Get notification preferences         |
+| `notification:update-preferences` | Renderer -> Main | Update preferences (deep merge)      |
+| `notification:get-unread-count`   | Renderer -> Main | Get unread count                     |
+| `notification:push`               | Main -> Renderer | Push single notification to renderer |
+| `notification:batch`              | Main -> Renderer | Push batch of notifications          |
+
+### Persistence Strategy
+
+Notifications are stored in the `notifications` SQLite table with 13 columns including `dedupe_key` (unique constraint for deduplication) and `group_key` (for UI grouping). Old notifications are auto-purged after 30 days on service startup. The store maintains an in-memory cache of 300 notifications for fast rendering.
+
+### Notification Categories
+
+| Category       | Priority Mapping                                 | Icon           |
+| -------------- | ------------------------------------------------ | -------------- |
+| `github-pr`    | review_requested=high, mention=medium, other=low | GitPullRequest |
+| `github-issue` | assign=medium, mention=medium, other=low         | CircleDot      |
+| `github-ci`    | medium                                           | Workflow       |
+| `git`          | low                                              | GitBranch      |
+| `system`       | low                                              | Monitor        |
+| `integration`  | low                                              | Plug           |
+
+---
+
+## Maintenance Tools Architecture
+
+The Maintenance Tools system provides a comprehensive suite of development tool configuration management (hooks, formatters, linters, test frameworks, build tools, coverage, editorconfig, env files, and package management) through a detect-read-write pattern.
+
+### Architecture Overview
+
+```mermaid
+graph TD
+    subgraph Renderer["Renderer Process"]
+        ToolsPanel[ToolsPanel]
+        MaintenanceTool[MaintenanceTool]
+
+        subgraph Panels["Configuration Panels"]
+            HooksPanel[HooksPanel]
+            FormatPanel[FormatPanel]
+            LintPanel[LintPanel]
+            TestPanel[TestPanel]
+            CoveragePanel[CoveragePanel]
+            BuildPanel[BuildPanel]
+            EditorConfigPanel[EditorConfigPanel]
+            EnvPanel[EnvPanel]
+            PackageManagerPanel[PackageManagerPanel]
+        end
+
+        subgraph Editors["Configuration Editors"]
+            HooksEditor[HooksEditor]
+            FormatEditor[FormatEditor]
+            LintEditor[LintEditor]
+            TestEditor[TestEditor]
+            CoverageEditor[CoverageEditor]
+            BuildEditor[BuildEditor]
+            EditorConfigEditor[EditorConfigEditor]
+            EnvEditor[EnvEditor]
+            PackageConfigEditor[PackageConfigEditor]
+        end
+    end
+
+    subgraph Main["Main Process"]
+        subgraph Services["Configuration Services"]
+            HooksService[hooks.service.ts]
+            FormatService[format-config.service.ts]
+            LintService[lint-config.service.ts]
+            TestService[test-config.service.ts]
+            CoverageService[coverage-config.service.ts]
+            BuildService[build-config.service.ts]
+            EditorConfigService[editorconfig.service.ts]
+            EnvService[env-file.service.ts]
+            PMService[package-manager.service.ts]
+        end
+        DetectionService[project-detection.service.ts]
+    end
+
+    ToolsPanel --> MaintenanceTool
+    MaintenanceTool --> Panels
+    Panels --> Editors
+
+    Panels -->|dev-tools:detect-*| DetectionService
+    Panels -->|dev-tools:read-*| Services
+    Editors -->|dev-tools:write-*| Services
+```
+
+### Detect-Read-Write Pattern
+
+Every configuration tool follows the same three-phase lifecycle:
+
+1. **Detect**: The panel calls `dev-tools:detect-<tool>` to determine which tool is installed (e.g., which formatter: Prettier, Biome, dprint), its config file path, and whether it is properly configured
+2. **Read**: Once detected, the panel calls `dev-tools:read-<tool>-config` to load the current configuration into an editor component
+3. **Write**: The editor component calls `dev-tools:write-<tool>-config` to persist changes back to the configuration file
+
+Each service also provides `get-<tool>-presets` for ecosystem-aware default configurations.
+
+### Supported Tool Types
+
+| Tool Type    | Service                      | Supported Tools                               |
+| ------------ | ---------------------------- | --------------------------------------------- |
+| Hooks        | `hooks.service.ts`           | Husky, pre-commit, Lefthook, simple-git-hooks |
+| Formatters   | `format-config.service.ts`   | Prettier, Biome, dprint                       |
+| Linters      | `lint-config.service.ts`     | ESLint, Biome, Ruff, Clippy                   |
+| Test         | `test-config.service.ts`     | Vitest, Jest, Pytest, Cargo test              |
+| Coverage     | `coverage-config.service.ts` | V8, Istanbul/nyc, C8, coverage.py             |
+| Build        | `build-config.service.ts`    | Vite, Webpack, Rollup, esbuild, tsup          |
+| EditorConfig | `editorconfig.service.ts`    | .editorconfig standard                        |
+| Env Files    | `env-file.service.ts`        | .env, .env.example, .env.local                |
+| Package Mgr  | `package-manager.service.ts` | npm, yarn, pnpm, bun, pip, poetry, cargo      |
+
+---
+
+## AI Integration Architecture
+
+Cola Records integrates AI/LLM capabilities for automated content generation through a multi-provider abstraction layer.
+
+### Architecture Overview
+
+```mermaid
+graph TD
+    subgraph Renderer["Renderer Process"]
+        AITab[Settings AITab]
+        WorkflowButtons[WorkflowButtons]
+        ChangelogResult[ChangelogResult]
+        CommitModal[CommitModal]
+        VersionEditor[VersionEditor]
+    end
+
+    subgraph Main["Main Process"]
+        AIService[ai.service.ts]
+        WorkflowService[workflow.service.ts]
+        VersionService[version.service.ts]
+        GitService[git.service.ts]
+
+        subgraph Providers["AI Providers"]
+            Gemini[Gemini API]
+            Anthropic[Anthropic API]
+            OpenAI[OpenAI API]
+            Ollama[Ollama Local]
+        end
+    end
+
+    AITab -->|ai:get-config, ai:test-connection| AIService
+    WorkflowButtons -->|workflow:generate-changelog| WorkflowService
+    WorkflowButtons -->|workflow:generate-commit-message| WorkflowService
+    ChangelogResult -->|workflow:apply-changelog| WorkflowService
+    VersionEditor -->|workflow:detect-versions| VersionService
+    VersionEditor -->|workflow:bump-version| VersionService
+    VersionEditor -->|workflow:update-version| VersionService
+
+    WorkflowService -->|Get diff| GitService
+    WorkflowService -->|Generate text| AIService
+    AIService --> Providers
+```
+
+### AI Service
+
+The `AIService` class provides a unified `complete()` method that dispatches to the configured provider. Configuration (provider, API key, model, base URL) is stored in the `settings` table as JSON under the `aiConfig` key.
+
+**Supported Providers:**
+
+| Provider  | Models                                             | Auth         |
+| --------- | -------------------------------------------------- | ------------ |
+| Gemini    | gemini-2.5-flash, gemini-2.0-flash, gemini-1.5-pro | API Key      |
+| Anthropic | claude-sonnet-4-5, claude-haiku-4-5                | API Key      |
+| OpenAI    | gpt-4o, gpt-4o-mini, gpt-4-turbo                   | API Key      |
+| Ollama    | Any local model                                    | None (local) |
+
+### Workflow Generation Flows
+
+**Changelog Generation:**
+
+1. `WorkflowService.generateChangelog()` fetches the full git diff and file status
+2. Builds a per-file change summary to ensure all changed files are covered
+3. Constructs a Keep-a-Changelog-format prompt with existing changelog style context
+4. Sends to AI provider via `aiService.complete()`
+5. Post-processes response: strips code fences, trims incomplete trailing lines
+6. Returns structured entry with category headings (Added, Changed, Fixed, etc.)
+7. `applyChangelog()` merges entries into CHANGELOG.md under `[Unreleased]`
+
+**Commit Message Generation:**
+
+1. `WorkflowService.generateCommitMessage()` fetches staged diff via `git:diff-staged`
+2. Constructs a prompt for conventional commit format (type(scope): description)
+3. Sends to AI with low temperature (0.3) and 512 max tokens
+4. Returns a single-line conventional commit message
+
+### IPC Channels
+
+| Channel                            | Direction        | Purpose                              |
+| ---------------------------------- | ---------------- | ------------------------------------ |
+| `ai:complete`                      | Renderer -> Main | AI text completion                   |
+| `ai:test-connection`               | Renderer -> Main | Test AI provider connectivity        |
+| `ai:get-config`                    | Renderer -> Main | Get AI configuration                 |
+| `workflow:generate-changelog`      | Renderer -> Main | Generate changelog from git diff     |
+| `workflow:generate-commit-message` | Renderer -> Main | Generate commit message from staging |
+| `workflow:apply-changelog`         | Renderer -> Main | Write changelog entry to file        |
+
+---
+
+## Project Creation Wizard Architecture
+
+The New Project Wizard provides a multi-step project creation flow that scaffolds projects using ecosystem-specific CLI tools, configures databases, sets up GitHub repositories, and initializes git.
+
+### Wizard Flow
+
+```mermaid
+graph LR
+    subgraph Steps["Wizard Steps"]
+        S1[Step 1: Basics]
+        S2[Step 2: Ecosystem]
+        S3[Step 3: Options]
+        S4[Step 4: Database]
+        S5[Step 5: GitHub Config]
+        S6[Step 6: Review]
+    end
+
+    S1 -->|Name, Path, Category| S2
+    S2 -->|Ecosystem, PM, Framework| S3
+    S3 -->|Extras: gitignore, hooks, etc.| S4
+    S4 -->|DB engine, ORM, Docker| S5
+    S5 -->|GitHub config templates| S6
+    S6 -->|Confirm| Execute[Execute Scaffolding]
+```
+
+### Scaffolding Pipeline
+
+```mermaid
+sequenceDiagram
+    participant Wizard as NewProjectWizard
+    participant IPC as IPC Handlers
+    participant Scaffold as ProjectScaffoldService
+    participant CLI as CLI Tools
+    participant DBScaffold as DatabaseScaffoldService
+    participant Git as GitService
+    participant GitHub as GitHubRestService
+
+    Wizard->>IPC: project:scaffold(config)
+    IPC->>Scaffold: scaffold(config)
+    Scaffold->>CLI: Execute scaffold command (e.g., npm create vite)
+    CLI-->>Scaffold: Project created
+    Scaffold->>Scaffold: Add extras (gitignore, editorconfig, license, README)
+
+    opt Database selected
+        Wizard->>IPC: project:scaffold-database(config)
+        IPC->>DBScaffold: scaffoldDatabase(config)
+        DBScaffold-->>Wizard: DB files created
+    end
+
+    opt Create GitHub repo
+        Wizard->>IPC: project:create-github-repo(name, options)
+        IPC->>GitHub: createRepository(name, options)
+        GitHub-->>Wizard: Repo URL
+    end
+
+    Wizard->>IPC: project:initialize-git(path, remote, url)
+    IPC->>Git: init, create branches, commit, push
+    Git-->>Wizard: Git initialized
+```
+
+### CLI Detection and Installation
+
+Before scaffolding, the wizard validates required CLI tools via `project:check-cli-tools`. The `CLIDetectionService` checks for ecosystem-specific tools (Node.js, Python, Rust, Go, Ruby, PHP, Java) and can install missing tools via `project:install-tool`.
+
+### IPC Channels
+
+| Channel                            | Direction        | Purpose                                 |
+| ---------------------------------- | ---------------- | --------------------------------------- |
+| `project:scan-directory`           | Renderer -> Main | Scan directory for project metadata     |
+| `project:check-cli-tools`          | Renderer -> Main | Check CLI tool availability             |
+| `project:validate-package-manager` | Renderer -> Main | Validate package manager is installed   |
+| `project:install-tool`             | Renderer -> Main | Install a CLI tool                      |
+| `project:scaffold`                 | Renderer -> Main | Scaffold new project                    |
+| `project:scaffold-database`        | Renderer -> Main | Scaffold database layer                 |
+| `project:get-orm-options`          | Renderer -> Main | Get ORM options for ecosystem/engine    |
+| `project:create-github-repo`       | Renderer -> Main | Create GitHub repository                |
+| `project:initialize-git`           | Renderer -> Main | Initialize git with branches and remote |
+
+---
+
+## GitHub Configuration Management
+
+Cola Records provides a visual editor for managing the `.github/` directory, supporting 12 GitHub configuration features with built-in templates.
+
+### Architecture Overview
+
+```mermaid
+graph TD
+    subgraph Renderer["Renderer Process"]
+        GitHubConfigTool[GitHubConfigTool]
+        GitHubConfigPanel[GitHubConfigPanel]
+        subgraph FileEditors["File Editors"]
+            YamlEditor[GitHubConfigYamlEditor]
+            MarkdownEditor[GitHubConfigMarkdownEditor]
+            WorkflowsEditor[GitHubConfigWorkflowsEditor]
+            IssueTemplatesEditor[GitHubConfigIssueTemplatesEditor]
+            CodeownersEditor[GitHubConfigCodeownersEditor]
+        end
+    end
+
+    subgraph Main["Main Process"]
+        ConfigService[github-config.service.ts]
+        Templates[Built-in Templates]
+        FS[File System]
+    end
+
+    GitHubConfigTool --> GitHubConfigPanel
+    GitHubConfigPanel --> FileEditors
+
+    GitHubConfigPanel -->|github-config:scan| ConfigService
+    FileEditors -->|github-config:read-file| ConfigService
+    FileEditors -->|github-config:write-file| ConfigService
+    GitHubConfigPanel -->|github-config:create-from-template| ConfigService
+    ConfigService --> FS
+    ConfigService --> Templates
+```
+
+### Supported Features (12)
+
+| Feature              | Path                       | Tier       | Description                       |
+| -------------------- | -------------------------- | ---------- | --------------------------------- |
+| Workflows            | `workflows/`               | Repository | GitHub Actions CI/CD workflows    |
+| Dependabot           | `dependabot.yml`           | Repository | Automated dependency updates      |
+| Release Notes        | `release.yml`              | Repository | Auto-generated release categories |
+| Issue Templates      | `ISSUE_TEMPLATE/`          | Repository | Structured issue forms            |
+| PR Template          | `PULL_REQUEST_TEMPLATE.md` | Repository | Pull request description template |
+| Labeler              | `labeler.yml`              | Repository | Auto-label PRs by file path       |
+| CODEOWNERS           | `CODEOWNERS`               | Repository | Automatic PR review assignment    |
+| Auto-Assign          | `auto_assign.yml`          | Community  | Auto-assign reviewers             |
+| Copilot Instructions | `copilot-instructions.md`  | Community  | AI coding conventions             |
+| Funding              | `FUNDING.yml`              | Community  | Sponsor button configuration      |
+| Security Policy      | `SECURITY.md`              | Community  | Vulnerability reporting           |
+| Stale                | `stale.yml`                | Community  | Auto-close inactive issues/PRs    |
+
+### Template System
+
+Each feature has one or more built-in templates that can be deployed via `github-config:create-from-template`. Templates are string literals with sensible defaults (e.g., Node.js CI workflow, bug report form, PR checklist). The service prevents overwriting existing files.
+
+---
+
+## Version Management Architecture
+
+The Version Management system detects, bumps, and updates version numbers across multiple manifest file formats.
+
+### Architecture Overview
+
+```mermaid
+graph TD
+    subgraph Renderer["Renderer Process"]
+        VersionEditor[VersionEditor]
+    end
+
+    subgraph Main["Main Process"]
+        VersionService[version.service.ts]
+        ManifestFiles["Manifest Files"]
+    end
+
+    VersionEditor -->|workflow:detect-versions| VersionService
+    VersionService -->|Scan for files| ManifestFiles
+    VersionService -->|Extract version| ManifestFiles
+
+    VersionEditor -->|workflow:bump-version| VersionService
+    VersionEditor -->|workflow:update-version| VersionService
+    VersionService -->|Write new version| ManifestFiles
+```
+
+### Supported Manifest Files
+
+| File                | Package Manager | Version Extraction Method         |
+| ------------------- | --------------- | --------------------------------- |
+| `package.json`      | npm             | JSON parse `version` field        |
+| `package-lock.json` | npm             | JSON parse `version` field        |
+| `Cargo.toml`        | cargo           | Regex under `[package]` section   |
+| `pyproject.toml`    | pip             | Regex `version = "..."`           |
+| `setup.py`          | pip             | Regex `version='...'`             |
+| `build.gradle`      | gradle          | Regex `version = '...'`           |
+| `pom.xml`           | maven           | XML `<version>` under `<project>` |
+
+### Version Bumping
+
+The `bumpVersion()` method implements standard semantic versioning:
+
+- **major**: `1.2.3` -> `2.0.0`
+- **minor**: `1.2.3` -> `1.3.0`
+- **patch**: `1.2.3` -> `1.2.4`
+
+The `updateVersion()` method writes the new version to all specified files, using format-aware replacement (JSON for package.json, regex for TOML/XML/Gradle).
 
 ---
 
