@@ -15,6 +15,7 @@ import type {
 import { RESERVED_ENV_VARS } from './types';
 import {
   findFreePort,
+  findFreePortWithRetry,
   getUserDataDir,
   getExtensionsDir,
   toDockerPath,
@@ -259,8 +260,7 @@ class CodeServerService {
         port = existingPort;
       } else {
         logger.info('[CodeServer] Creating new container with workspace mounts...');
-        port = await findFreePort();
-        await this.createContainer(projectPath, port, userDataDir);
+        port = await this.createContainerWithRetry(projectPath, userDataDir);
       }
 
       await waitForReady(port);
@@ -352,6 +352,62 @@ class CodeServerService {
     ];
 
     await dockerExec(args);
+  }
+
+  /**
+   * Create container with retry logic to handle port binding failures.
+   * This addresses Windows Hyper-V port conflicts and race conditions.
+   */
+  private async createContainerWithRetry(
+    projectPath: string,
+    userDataDir: string
+  ): Promise<number> {
+    const MAX_PORT_RETRIES = 3;
+    const failedPorts: number[] = [];
+
+    for (let attempt = 1; attempt <= MAX_PORT_RETRIES; attempt++) {
+      const port = await findFreePortWithRetry(5, failedPorts);
+
+      try {
+        await this.createContainer(projectPath, port, userDataDir);
+        logger.info(`[CodeServer] Container created successfully on port ${port}`);
+        return port;
+      } catch (err) {
+        const errorMsg = String(err);
+        const isPortError =
+          errorMsg.includes('port') ||
+          errorMsg.includes('bind') ||
+          errorMsg.includes('address already in use');
+
+        if (isPortError) {
+          logger.warn(
+            `[CodeServer] Port ${port} binding failed (attempt ${attempt}/${MAX_PORT_RETRIES}): ${errorMsg}`
+          );
+          failedPorts.push(port);
+
+          // Clean up failed container attempt
+          await removeContainer().catch(() => {});
+
+          if (attempt === MAX_PORT_RETRIES) {
+            throw new Error(
+              'Failed to start code-server: Could not bind to any available port after multiple attempts.\n\n' +
+                'This is often caused by Windows Hyper-V port reservations or Docker Desktop issues.\n' +
+                'Try one of the following:\n' +
+                '1. Restart Docker Desktop\n' +
+                '2. Restart your computer\n' +
+                '3. Run in PowerShell (Admin): netsh interface ipv4 show excludedportrange protocol=tcp'
+            );
+          }
+          continue;
+        }
+
+        // Non-port error - don't retry
+        throw err;
+      }
+    }
+
+    // Should never reach here, but TypeScript needs a return
+    throw new Error('Unexpected error in container creation retry loop');
   }
 
   async stop(): Promise<void> {

@@ -29,6 +29,57 @@ export async function findFreePort(): Promise<number> {
   });
 }
 
+/**
+ * Validate that a port is truly available for binding.
+ * This double-checks availability after findFreePort() to handle race conditions.
+ */
+export async function validatePortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+/**
+ * Find a free port with retry logic to handle Windows Hyper-V port conflicts
+ * and race conditions between port discovery and Docker binding.
+ */
+export async function findFreePortWithRetry(
+  maxRetries = 5,
+  excludePorts: number[] = []
+): Promise<number> {
+  const attemptedPorts: number[] = [];
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const port = await findFreePort();
+
+    if (excludePorts.includes(port) || attemptedPorts.includes(port)) {
+      continue;
+    }
+
+    attemptedPorts.push(port);
+
+    // Double-check port is still available (handles race conditions)
+    const isAvailable = await validatePortAvailable(port);
+    if (isAvailable) {
+      return port;
+    }
+
+    // Small delay before retry to allow port release
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
+  throw new Error(
+    `Failed to find available port after ${maxRetries} attempts. ` +
+      'This may be caused by Windows Hyper-V port reservations or another process. ' +
+      'Try restarting Docker Desktop or run: netsh interface ipv4 show excludedportrange protocol=tcp'
+  );
+}
+
 // ── Persistent Storage Paths ─────────────────────────────────────
 
 export function getUserDataDir(): string {

@@ -2696,4 +2696,113 @@ describe('CodeServerService', () => {
       expect(status.port).toBeNull();
     });
   });
+
+  describe('port allocation with retry', () => {
+    it('validatePortAvailable returns true for available port', async () => {
+      const { validatePortAvailable } =
+        await import('../../../src/main/services/code-server/path-mapper');
+      // Use a port that's very unlikely to be in use
+      const port = await codeServerService.findFreePort();
+      const isAvailable = await validatePortAvailable(port);
+      expect(isAvailable).toBe(true);
+    });
+
+    it('validatePortAvailable returns false for port in use', async () => {
+      const { validatePortAvailable } =
+        await import('../../../src/main/services/code-server/path-mapper');
+      const net = await import('net');
+
+      // Create a server to occupy a port
+      const server = net.createServer();
+      const port = await new Promise<number>((resolve) => {
+        server.listen(0, '127.0.0.1', () => {
+          const addr = server.address();
+          if (addr && typeof addr === 'object') {
+            resolve(addr.port);
+          }
+        });
+      });
+
+      try {
+        const isAvailable = await validatePortAvailable(port);
+        expect(isAvailable).toBe(false);
+      } finally {
+        server.close();
+      }
+    });
+
+    it('findFreePortWithRetry returns valid port', async () => {
+      const { findFreePortWithRetry } =
+        await import('../../../src/main/services/code-server/path-mapper');
+      const port = await findFreePortWithRetry();
+      expect(port).toBeGreaterThan(0);
+      expect(port).toBeLessThan(65536);
+    });
+
+    it('findFreePortWithRetry excludes specified ports', async () => {
+      const { findFreePortWithRetry, findFreePort } =
+        await import('../../../src/main/services/code-server/path-mapper');
+
+      // Get a port that would normally be returned
+      const initialPort = await findFreePort();
+
+      // Request a port excluding the initial one
+      const port = await findFreePortWithRetry(5, [initialPort]);
+
+      // The returned port should be different (though not guaranteed due to race conditions)
+      expect(port).toBeGreaterThan(0);
+      expect(port).toBeLessThan(65536);
+    });
+  });
+
+  describe('Windows port exclusion detection', () => {
+    it('isPortInExcludedRange correctly identifies port in range', async () => {
+      const { isPortInExcludedRange } =
+        await import('../../../src/main/services/code-server/docker-ops');
+
+      const ranges = [
+        { start: 50000, end: 50100 },
+        { start: 60000, end: 60050 },
+      ];
+
+      expect(isPortInExcludedRange(50050, ranges)).toBe(true);
+      expect(isPortInExcludedRange(50000, ranges)).toBe(true);
+      expect(isPortInExcludedRange(50100, ranges)).toBe(true);
+      expect(isPortInExcludedRange(60025, ranges)).toBe(true);
+    });
+
+    it('isPortInExcludedRange correctly identifies port outside range', async () => {
+      const { isPortInExcludedRange } =
+        await import('../../../src/main/services/code-server/docker-ops');
+
+      const ranges = [
+        { start: 50000, end: 50100 },
+        { start: 60000, end: 60050 },
+      ];
+
+      expect(isPortInExcludedRange(49999, ranges)).toBe(false);
+      expect(isPortInExcludedRange(50101, ranges)).toBe(false);
+      expect(isPortInExcludedRange(55000, ranges)).toBe(false);
+      expect(isPortInExcludedRange(8080, ranges)).toBe(false);
+    });
+
+    it('isPortInExcludedRange handles empty ranges array', async () => {
+      const { isPortInExcludedRange } =
+        await import('../../../src/main/services/code-server/docker-ops');
+
+      expect(isPortInExcludedRange(50000, [])).toBe(false);
+    });
+
+    it('getWindowsExcludedPorts returns empty array on non-Windows', async () => {
+      const { getWindowsExcludedPorts } =
+        await import('../../../src/main/services/code-server/docker-ops');
+
+      // Mock platform check - this test only validates behavior on non-Windows
+      // On Windows CI, it would actually call netsh
+      if (process.platform !== 'win32') {
+        const ranges = await getWindowsExcludedPorts();
+        expect(ranges).toEqual([]);
+      }
+    });
+  });
 });

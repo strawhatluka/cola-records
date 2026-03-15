@@ -341,6 +341,57 @@ export async function ensureImageExists(): Promise<void> {
   }
 }
 
+// ── Windows Port Exclusion Detection ────────────────────────────
+
+export interface PortRange {
+  start: number;
+  end: number;
+}
+
+/**
+ * Get Windows Hyper-V excluded port ranges.
+ * These ports are reserved by Windows and cannot be used by Docker.
+ */
+export async function getWindowsExcludedPorts(): Promise<PortRange[]> {
+  if (process.platform !== 'win32') {
+    return [];
+  }
+
+  try {
+    const { stdout } = await execFileAsync(
+      'netsh',
+      ['interface', 'ipv4', 'show', 'excludedportrange', 'protocol=tcp'],
+      { timeout: 5000 }
+    );
+
+    const ranges: PortRange[] = [];
+    const lines = stdout.split('\n');
+
+    for (const line of lines) {
+      // Match lines like "    50000    50059"
+      const match = line.match(/^\s*(\d+)\s+(\d+)/);
+      if (match) {
+        ranges.push({
+          start: parseInt(match[1], 10),
+          end: parseInt(match[2], 10),
+        });
+      }
+    }
+
+    return ranges;
+  } catch {
+    // Best effort - don't fail if netsh unavailable
+    return [];
+  }
+}
+
+/**
+ * Check if a port falls within any excluded range.
+ */
+export function isPortInExcludedRange(port: number, ranges: PortRange[]): boolean {
+  return ranges.some((r) => port >= r.start && port <= r.end);
+}
+
 // ── SSH Permissions ──────────────────────────────────────────────
 
 export async function fixSSHPermissions(): Promise<void> {

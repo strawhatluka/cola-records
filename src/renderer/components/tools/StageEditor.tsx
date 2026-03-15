@@ -51,7 +51,8 @@ export function buildFileGroups(files: GitFileStatus[]): FileGroups {
     } else {
       const dir = file.path.slice(0, slashIndex);
       if (!dirMap.has(dir)) dirMap.set(dir, []);
-      dirMap.get(dir)!.push(file);
+      const dirFiles = dirMap.get(dir);
+      if (dirFiles) dirFiles.push(file);
     }
   }
 
@@ -258,7 +259,7 @@ export function StageEditor({ workingDirectory, onClose }: StageEditorProps) {
 
             {/* Directory groups */}
             {sortedDirNames.map((dirName) => {
-              const dirFiles = directoryGroups.get(dirName)!;
+              const dirFiles = directoryGroups.get(dirName) ?? [];
               const childPaths = dirFiles.map((f) => f.path);
               const isExpanded = expandedDirs.has(dirName);
               const selState = getDirSelectionState(childPaths);
