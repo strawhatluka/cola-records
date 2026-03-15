@@ -10,6 +10,7 @@ import { ipc } from '../ipc/client';
 import type { Contribution, DevScript } from '../../main/ipc/channels';
 import { BranchDetailModal } from '../components/branches/BranchDetailModal';
 import { ToolsPanel } from '../components/tools/ToolsPanel';
+import { CodeServerPanel } from '../components/tools/CodeServerPanel';
 import { ScriptButton } from '../components/tools/ScriptButton';
 import { ScriptExecutionModal } from '../components/tools/ScriptExecutionModal';
 import { useDevScriptsStore, selectScriptsForProject } from '../stores/useDevScriptsStore';
@@ -305,59 +306,9 @@ export function DevelopmentScreen({
     };
   }, [startCodeServer, codeServerUrl]);
 
-  // ── Idle State ───────────────────────────────────────────────────
-  if (state === 'idle') {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Initializing...
-      </div>
-    );
-  }
-
-  // ── Starting State ───────────────────────────────────────────────
-  if (state === 'starting') {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
-        <p className="text-muted-foreground text-sm">Starting VS Code...</p>
-        <p className="text-muted-foreground text-xs">
-          First launch may be slower while Docker pulls the image.
-        </p>
-        <button
-          onClick={stopAndGoBack}
-          className="mt-4 px-4 py-2 text-sm rounded-md border border-border hover:bg-accent transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-    );
-  }
-
-  // ── Error State ──────────────────────────────────────────────────
-  if (state === 'error') {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 max-w-md mx-auto text-center">
-        <div className="text-destructive text-lg font-medium">Failed to start VS Code</div>
-        <p className="text-muted-foreground text-sm whitespace-pre-wrap">{error}</p>
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={startCodeServer}
-            className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Retry
-          </button>
-          <button
-            onClick={onNavigateBack}
-            className="px-4 py-2 text-sm rounded-md border border-border hover:bg-accent transition-colors"
-          >
-            Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Running State ────────────────────────────────────────────────
+  // ── Always render header, CodeServerPanel, and ToolsPanel ────────
+  // CodeServerPanel handles its own idle/starting/error/running states
+  // This allows tools to be accessible regardless of code-server status
 
   return (
     <div className="flex flex-col h-full">
@@ -471,25 +422,18 @@ export function DevelopmentScreen({
       <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
         {/* Invisible overlay during drag to prevent webview from capturing mouse events */}
         {isResizing && <div className="absolute inset-0 z-10" style={{ cursor: 'col-resize' }} />}
-        {/* eslint-disable react/no-unknown-property -- Electron webview attributes */}
-        {url && (
-          <webview
-            ref={webviewRef}
-            src={url}
-            style={{
-              flex: toolsPanelOpen ? 'none' : 1,
-              width: toolsPanelOpen
-                ? toolsPanelWidth > 0
-                  ? `calc(100% - ${toolsPanelWidth + 4}px)`
-                  : '60%'
-                : '100%',
-              height: '100%',
-            }}
-            // @ts-expect-error - webview attributes not in React types
-            allowpopups="true"
-          />
-        )}
-        {/* eslint-enable react/no-unknown-property */}
+
+        {/* Code Server Panel - handles its own loading/error states */}
+        <CodeServerPanel
+          url={url}
+          state={state}
+          error={error}
+          onRetry={startCodeServer}
+          onCancel={stopAndGoBack}
+          toolsPanelOpen={toolsPanelOpen}
+          toolsPanelWidth={toolsPanelWidth}
+          webviewRef={webviewRef}
+        />
 
         {/* Resizable Tools Panel */}
         {toolsPanelOpen && (

@@ -70,6 +70,56 @@ vi.mock('../../../src/renderer/components/tools/ToolsPanel', () => ({
   ),
 }));
 
+// Mock CodeServerPanel
+vi.mock('../../../src/renderer/components/tools/CodeServerPanel', () => ({
+  CodeServerPanel: ({
+    url,
+    state,
+    error,
+    onRetry,
+    onCancel,
+  }: {
+    url: string | null;
+    state: 'idle' | 'starting' | 'running' | 'error';
+    error: string | null;
+    onRetry: () => void;
+    onCancel: () => void;
+    toolsPanelOpen: boolean;
+    toolsPanelWidth: number;
+    webviewRef: React.RefObject<HTMLWebViewElement | null>;
+  }) => {
+    if (state === 'idle') {
+      return <div data-testid="code-server-panel-idle">Initializing VS Code...</div>;
+    }
+    if (state === 'starting') {
+      return (
+        <div data-testid="code-server-panel-starting">
+          <span>Starting VS Code...</span>
+          <span>First launch may be slower while Docker pulls the image.</span>
+          <button onClick={onCancel}>Cancel</button>
+        </div>
+      );
+    }
+    if (state === 'error') {
+      return (
+        <div data-testid="code-server-panel-error">
+          <span>Failed to start VS Code</span>
+          <span>{error}</span>
+          <button onClick={onRetry}>Retry</button>
+        </div>
+      );
+    }
+    if (url) {
+      return (
+        <div data-testid="code-server-panel-running">
+          <webview src={url} />
+        </div>
+      );
+    }
+    return <div data-testid="code-server-panel-waiting">Waiting for VS Code URL...</div>;
+  },
+}));
+
 // Mock useDevScriptsStore
 vi.mock('../../../src/renderer/stores/useDevScriptsStore', () => ({
   useDevScriptsStore: () => ({
@@ -243,6 +293,8 @@ describe('DevelopmentScreen', () => {
   });
 
   // ── State Machine Tests ────────────────────────────────────────
+  // Note: With the new architecture, header and ToolsPanel always render
+  // CodeServerPanel handles its own loading/error states inline
 
   describe('idle state', () => {
     it('renders initializing text when projectState is idle', async () => {
@@ -260,7 +312,41 @@ describe('DevelopmentScreen', () => {
         );
       });
 
-      expect(screen.getByText('Initializing...')).toBeDefined();
+      expect(screen.getByText('Initializing VS Code...')).toBeDefined();
+    });
+
+    it('renders ToolsPanel even when code-server is in idle state', async () => {
+      const onNavigateBack = vi.fn();
+      mockInvoke.mockResolvedValue(undefined);
+
+      await act(async () => {
+        render(
+          <DevelopmentScreen
+            contribution={baseContribution}
+            onNavigateBack={onNavigateBack}
+            projectState="idle"
+          />
+        );
+      });
+
+      expect(screen.getByTestId('tools-panel')).toBeDefined();
+    });
+
+    it('renders header with Stop & Back button even when code-server is idle', async () => {
+      const onNavigateBack = vi.fn();
+      mockInvoke.mockResolvedValue(undefined);
+
+      await act(async () => {
+        render(
+          <DevelopmentScreen
+            contribution={baseContribution}
+            onNavigateBack={onNavigateBack}
+            projectState="idle"
+          />
+        );
+      });
+
+      expect(screen.getByText('Stop & Back')).toBeDefined();
     });
   });
 
@@ -323,6 +409,40 @@ describe('DevelopmentScreen', () => {
         expect(onNavigateBack).toHaveBeenCalled();
       });
     });
+
+    it('renders ToolsPanel even when code-server is starting', async () => {
+      const onNavigateBack = vi.fn();
+      mockInvoke.mockResolvedValue(undefined);
+
+      await act(async () => {
+        render(
+          <DevelopmentScreen
+            contribution={baseContribution}
+            onNavigateBack={onNavigateBack}
+            projectState="starting"
+          />
+        );
+      });
+
+      expect(screen.getByTestId('tools-panel')).toBeDefined();
+    });
+
+    it('renders header with Stop & Back button even when code-server is starting', async () => {
+      const onNavigateBack = vi.fn();
+      mockInvoke.mockResolvedValue(undefined);
+
+      await act(async () => {
+        render(
+          <DevelopmentScreen
+            contribution={baseContribution}
+            onNavigateBack={onNavigateBack}
+            projectState="starting"
+          />
+        );
+      });
+
+      expect(screen.getByText('Stop & Back')).toBeDefined();
+    });
   });
 
   describe('error state', () => {
@@ -345,7 +465,7 @@ describe('DevelopmentScreen', () => {
       expect(screen.getByText('Docker daemon is not running')).toBeDefined();
     });
 
-    it('renders Retry and Back buttons in error state', async () => {
+    it('renders Retry button in error state', async () => {
       const onNavigateBack = vi.fn();
       mockInvoke.mockResolvedValue(undefined);
 
@@ -361,28 +481,6 @@ describe('DevelopmentScreen', () => {
       });
 
       expect(screen.getByText('Retry')).toBeDefined();
-      expect(screen.getByText('Back')).toBeDefined();
-    });
-
-    it('calls onNavigateBack when Back button is clicked in error state', async () => {
-      const user = userEvent.setup();
-      const onNavigateBack = vi.fn();
-      mockInvoke.mockResolvedValue(undefined);
-
-      await act(async () => {
-        render(
-          <DevelopmentScreen
-            contribution={baseContribution}
-            onNavigateBack={onNavigateBack}
-            projectState="error"
-            projectError="Failure"
-          />
-        );
-      });
-
-      await user.click(screen.getByText('Back'));
-
-      expect(onNavigateBack).toHaveBeenCalledOnce();
     });
 
     it('invokes code-server:start when Retry is clicked in error state', async () => {
@@ -405,6 +503,65 @@ describe('DevelopmentScreen', () => {
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('code-server:start', baseContribution.localPath);
+      });
+    });
+
+    it('renders ToolsPanel even when code-server is in error state', async () => {
+      const onNavigateBack = vi.fn();
+      mockInvoke.mockResolvedValue(undefined);
+
+      await act(async () => {
+        render(
+          <DevelopmentScreen
+            contribution={baseContribution}
+            onNavigateBack={onNavigateBack}
+            projectState="error"
+            projectError="Docker not running"
+          />
+        );
+      });
+
+      expect(screen.getByTestId('tools-panel')).toBeDefined();
+    });
+
+    it('renders header with Stop & Back button even when code-server is in error state', async () => {
+      const onNavigateBack = vi.fn();
+      mockInvoke.mockResolvedValue(undefined);
+
+      await act(async () => {
+        render(
+          <DevelopmentScreen
+            contribution={baseContribution}
+            onNavigateBack={onNavigateBack}
+            projectState="error"
+            projectError="Docker not running"
+          />
+        );
+      });
+
+      expect(screen.getByText('Stop & Back')).toBeDefined();
+    });
+
+    it('can navigate back using Stop & Back even when code-server failed', async () => {
+      const user = userEvent.setup();
+      const onNavigateBack = vi.fn();
+      mockInvoke.mockResolvedValue(undefined);
+
+      await act(async () => {
+        render(
+          <DevelopmentScreen
+            contribution={baseContribution}
+            onNavigateBack={onNavigateBack}
+            projectState="error"
+            projectError="Failure"
+          />
+        );
+      });
+
+      await user.click(screen.getByText('Stop & Back'));
+
+      await waitFor(() => {
+        expect(onNavigateBack).toHaveBeenCalled();
       });
     });
   });
@@ -847,7 +1004,7 @@ describe('DevelopmentScreen', () => {
   // ── Code-server start failure ──────────────────────────────────
 
   describe('code-server start failure', () => {
-    it('shows error state when code-server:start rejects', async () => {
+    it('shows error state when code-server:start rejects but ToolsPanel still available', async () => {
       mockInvoke.mockImplementation(async (channel: string) => {
         switch (channel) {
           case 'code-server:start':
@@ -879,6 +1036,9 @@ describe('DevelopmentScreen', () => {
         expect(screen.getByText('Failed to start VS Code')).toBeDefined();
         expect(screen.getByText('Docker not found')).toBeDefined();
       });
+
+      // ToolsPanel should still be available even when code-server failed
+      expect(screen.getByTestId('tools-panel')).toBeDefined();
     });
 
     it('shows error state when code-server:start rejects with non-Error', async () => {

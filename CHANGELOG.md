@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `validatePortAvailable` function to `src/main/services/code-server/path-mapper.ts` to double-check port availability after initial discovery.
+- Add `findFreePortWithRetry` function to `src/main/services/code-server/path-mapper.ts` with configurable retry logic and port exclusion support.
+- Add `createContainerWithRetry` method to `src/main/services/code-server/index.ts` to handle Docker port binding failures with automatic retry.
+- Add `getWindowsExcludedPorts` function to `src/main/services/code-server/docker-ops.ts` to detect Windows Hyper-V reserved port ranges.
+- Add `isPortInExcludedRange` function to `src/main/services/code-server/docker-ops.ts` to check if a port falls within excluded ranges.
+- Add `PortRange` interface to `src/main/services/code-server/docker-ops.ts` for Windows port exclusion detection.
+- Add `CodeServerPanel` component to `src/renderer/components/tools/CodeServerPanel.tsx` to encapsulate VS Code webview with independent loading/error states.
+- Add unit tests for port allocation retry logic in `tests/main/services/code-server.service.test.ts`.
+- Add unit tests for Windows port exclusion detection in `tests/main/services/code-server.service.test.ts`.
+- Add tests to verify ToolsPanel renders independently of code-server status in `tests/renderer/screens/DevelopmentScreen.test.tsx`.
+
+### Changed
+
+- Refactor `DevelopmentScreen` in `src/renderer/screens/DevelopmentScreen.tsx` to always render header bar and ToolsPanel regardless of code-server status.
+- Update container creation in `src/main/services/code-server/index.ts` to use `createContainerWithRetry` for robust port binding.
+- Improve error messages for port binding failures to include actionable troubleshooting steps for Windows Hyper-V issues.
+
+### Fixed
+
+- Fix Docker port binding failures on Windows caused by Hyper-V port reservations and race conditions between port discovery and Docker binding.
+- Fix development screen blocking all tools when code-server fails to start - tools are now accessible regardless of VS Code status.
+
 ## [1.1.1] - 2026-03-14
 
 ### Added
