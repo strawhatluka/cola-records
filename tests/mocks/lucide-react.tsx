@@ -159,6 +159,7 @@ export const AlertCircle = createIcon('AlertCircle');
 // Stage editor icons
 export const CheckSquare = createIcon('CheckSquare');
 export const Square = createIcon('Square');
+export const MinusSquare = createIcon('MinusSquare');
 
 // Notification icons
 export const Bell = createIcon('Bell');

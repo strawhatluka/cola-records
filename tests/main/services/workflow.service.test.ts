@@ -342,7 +342,89 @@ describe('WorkflowService', () => {
 
       const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
       expect(written).toContain('## [Unreleased]');
-      expect(written).toContain('### Added\n- New feature');
+      // Entry must appear between [Unreleased] and [1.0.0], not under [1.0.0]
+      const unreleasedIdx = written.indexOf('## [Unreleased]');
+      const v100Idx = written.indexOf('## [1.0.0]');
+      const newFeatureIdx = written.indexOf('- New feature');
+      expect(newFeatureIdx).toBeGreaterThan(unreleasedIdx);
+      expect(newFeatureIdx).toBeLessThan(v100Idx);
+      // Released section must remain untouched
+      expect(written.indexOf('- Old')).toBeGreaterThan(v100Idx);
+    });
+
+    it('should insert under [Unreleased] category, not matching released version category', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        '# Changelog\n\n## [Unreleased]\n\n### Changed\n\n- Existing change\n\n## [1.1.0]\n\n### Added\n\n- Old feature\n\n### Changed\n\n- Old change\n'
+      );
+
+      await workflowService.applyChangelog(
+        '/test/repo',
+        '### Added\n- New feature\n### Changed\n- New change'
+      );
+
+      const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
+      const unreleasedIdx = written.indexOf('## [Unreleased]');
+      const v110Idx = written.indexOf('## [1.1.0]');
+      const newFeatureIdx = written.indexOf('- New feature');
+      const newChangeIdx = written.indexOf('- New change');
+      // Both entries must be in [Unreleased], not in [1.1.0]
+      expect(newFeatureIdx).toBeGreaterThan(unreleasedIdx);
+      expect(newFeatureIdx).toBeLessThan(v110Idx);
+      expect(newChangeIdx).toBeGreaterThan(unreleasedIdx);
+      expect(newChangeIdx).toBeLessThan(v110Idx);
+      // Released section must remain untouched
+      expect(written.indexOf('- Old feature')).toBeGreaterThan(v110Idx);
+      expect(written.indexOf('- Old change')).toBeGreaterThan(v110Idx);
+    });
+
+    it('should not modify released version sections when [Unreleased] is empty', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        '# Changelog\n\n## [Unreleased]\n\n## [1.0.0]\n\n### Added\n\n- Old feature\n'
+      );
+
+      await workflowService.applyChangelog('/test/repo', '### Added\n- New feature');
+
+      const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
+      const unreleasedIdx = written.indexOf('## [Unreleased]');
+      const v100Idx = written.indexOf('## [1.0.0]');
+      const newFeatureIdx = written.indexOf('- New feature');
+      // New entry in [Unreleased], not in [1.0.0]
+      expect(newFeatureIdx).toBeGreaterThan(unreleasedIdx);
+      expect(newFeatureIdx).toBeLessThan(v100Idx);
+      // Old feature stays under [1.0.0]
+      expect(written.indexOf('- Old feature')).toBeGreaterThan(v100Idx);
+    });
+
+    it('should handle multiple categories with some existing in [Unreleased] and some only in released', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        '# Changelog\n\n## [Unreleased]\n\n### Fixed\n\n- Existing fix\n\n## [1.0.0]\n\n### Added\n\n- Old\n'
+      );
+
+      await workflowService.applyChangelog(
+        '/test/repo',
+        '### Added\n- New feature\n### Fixed\n- Another fix'
+      );
+
+      const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
+      const unreleasedIdx = written.indexOf('## [Unreleased]');
+      const v100Idx = written.indexOf('## [1.0.0]');
+      // ### Added created as new section under [Unreleased]
+      const newFeatureIdx = written.indexOf('- New feature');
+      expect(newFeatureIdx).toBeGreaterThan(unreleasedIdx);
+      expect(newFeatureIdx).toBeLessThan(v100Idx);
+      // ### Fixed merged into existing [Unreleased] > ### Fixed
+      const anotherFixIdx = written.indexOf('- Another fix');
+      expect(anotherFixIdx).toBeGreaterThan(unreleasedIdx);
+      expect(anotherFixIdx).toBeLessThan(v100Idx);
+      // Existing fix still in [Unreleased]
+      const existingFixIdx = written.indexOf('- Existing fix');
+      expect(existingFixIdx).toBeGreaterThan(unreleasedIdx);
+      expect(existingFixIdx).toBeLessThan(v100Idx);
+      // Released section untouched
+      expect(written.indexOf('- Old')).toBeGreaterThan(v100Idx);
     });
   });
 });

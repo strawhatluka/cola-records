@@ -25,6 +25,9 @@ type View = { type: 'list' } | { type: 'edit'; fileName: string } | { type: 'cre
 
 interface TriggerConfig {
   branches?: string[];
+  tags?: string[];
+  paths?: string[];
+  pathsIgnore?: string[];
   types?: string[];
   cron?: string;
 }
@@ -63,43 +66,72 @@ function parseWorkflowMeta(content: string): WorkflowMeta {
     const afterOn = content.slice((onBlockMatch.index ?? 0) + onBlockMatch[0].length);
     const lines = afterOn.split('\n');
     let currentTrigger = '';
+    let currentSubProp: 'branches' | 'tags' | 'paths' | 'pathsIgnore' | 'types' | '' = '';
+
+    const SUB_PROP_MAP: Record<string, keyof TriggerConfig> = {
+      branches: 'branches',
+      tags: 'tags',
+      paths: 'paths',
+      'paths-ignore': 'pathsIgnore',
+      types: 'types',
+    };
+
+    const parseInlineArray = (raw: string): string[] =>
+      raw
+        .split(',')
+        .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
+        .filter(Boolean);
 
     for (const line of lines) {
       // Top-level trigger (2 spaces)
-      const triggerMatch = line.match(/^ {2}(\w+):\s*(.*)$/);
+      const triggerMatch = line.match(/^ {2}(\w[\w-]*):\s*(.*)$/);
       if (triggerMatch) {
         currentTrigger = triggerMatch[1];
         triggers[currentTrigger] = {};
+        currentSubProp = '';
+        continue;
+      }
+      // List items (6+ spaces) under a sub-property — check before 4-space block
+      if (currentTrigger && currentSubProp && /^ {6}/.test(line)) {
+        const listItem = line.match(/^\s+-\s+['"]?(.+?)['"]?\s*$/);
+        if (listItem) {
+          const arr = triggers[currentTrigger][currentSubProp] as string[] | undefined;
+          if (Array.isArray(arr)) {
+            arr.push(listItem[1]);
+          }
+        }
         continue;
       }
       // Sub-property (4 spaces) under current trigger
       if (currentTrigger && /^ {4}/.test(line)) {
-        const branchesMatch = line.match(/^\s+branches:\s*\[(.+)\]/);
-        if (branchesMatch) {
-          triggers[currentTrigger].branches = branchesMatch[1]
-            .split(',')
-            .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
-            .filter(Boolean);
+        // Check for inline array sub-properties: branches: [main, dev]
+        const inlineMatch = line.match(/^\s+([\w-]+):\s*\[(.+)\]/);
+        if (inlineMatch) {
+          const prop = SUB_PROP_MAP[inlineMatch[1]];
+          if (prop && prop !== 'cron') {
+            (triggers[currentTrigger] as Record<string, string[]>)[prop] = parseInlineArray(
+              inlineMatch[2]
+            );
+          }
+          currentSubProp = '';
           continue;
         }
-        const typesMatch = line.match(/^\s+types:\s*\[(.+)\]/);
-        if (typesMatch) {
-          triggers[currentTrigger].types = typesMatch[1]
-            .split(',')
-            .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
-            .filter(Boolean);
+        // Check for sub-property header with no inline value: tags:
+        const subPropMatch = line.match(/^\s+([\w-]+):\s*$/);
+        if (subPropMatch && SUB_PROP_MAP[subPropMatch[1]]) {
+          const prop = SUB_PROP_MAP[subPropMatch[1]];
+          if (prop && prop !== 'cron') {
+            currentSubProp = prop as typeof currentSubProp;
+            (triggers[currentTrigger] as Record<string, string[]>)[prop] = [];
+          }
           continue;
         }
+        // Check for cron entry
         const cronMatch = line.match(/^\s+-\s+cron:\s*['"](.+)['"]/);
         if (cronMatch) {
           triggers[currentTrigger].cron = cronMatch[1];
+          currentSubProp = '';
           continue;
-        }
-        // branches as multiline list
-        const branchItem = line.match(/^\s+-\s+(.+)/);
-        if (branchItem && !triggers[currentTrigger].cron) {
-          // Could be branch item if we're inside branches:
-          // We'll handle this by checking the previous context
         }
         continue;
       }
@@ -136,15 +168,29 @@ function serializeWorkflowMeta(meta: WorkflowMeta): string {
     lines.push('on:');
     for (const [trigger, config] of triggerEntries) {
       const hasBranches = config.branches && config.branches.length > 0;
+      const hasTags = config.tags && config.tags.length > 0;
+      const hasPaths = config.paths && config.paths.length > 0;
+      const hasPathsIgnore = config.pathsIgnore && config.pathsIgnore.length > 0;
       const hasTypes = config.types && config.types.length > 0;
       const hasCron = trigger === 'schedule' && config.cron;
 
-      if (!hasBranches && !hasTypes && !hasCron) {
+      const hasConfig = hasBranches || hasTags || hasPaths || hasPathsIgnore || hasTypes || hasCron;
+
+      if (!hasConfig) {
         lines.push(`  ${trigger}:`);
       } else {
         lines.push(`  ${trigger}:`);
         if (hasBranches) {
           lines.push(`    branches: [${config.branches?.join(', ')}]`);
+        }
+        if (hasTags) {
+          lines.push(`    tags: [${config.tags?.join(', ')}]`);
+        }
+        if (hasPaths) {
+          lines.push(`    paths: [${config.paths?.join(', ')}]`);
+        }
+        if (hasPathsIgnore) {
+          lines.push(`    paths-ignore: [${config.pathsIgnore?.join(', ')}]`);
         }
         if (hasTypes) {
           lines.push(`    types: [${config.types?.join(', ')}]`);
@@ -590,6 +636,19 @@ function TriggerConfigPanel({
             testId={`trigger-${trigger}-branches`}
           />
         </div>
+        {trigger === 'push' && (
+          <div className="flex items-start gap-1.5">
+            <span className="text-[9px] text-muted-foreground w-[80px] truncate font-mono pt-1">
+              tags
+            </span>
+            <ChipInput
+              values={config.tags ?? []}
+              onChange={(v) => onChange({ tags: v })}
+              placeholder="v*, v1.0.0"
+              testId={`trigger-${trigger}-tags`}
+            />
+          </div>
+        )}
         {trigger === 'pull_request' && (
           <div className="flex items-start gap-1.5">
             <span className="text-[9px] text-muted-foreground w-[80px] truncate font-mono pt-1">
@@ -603,6 +662,28 @@ function TriggerConfigPanel({
             />
           </div>
         )}
+        <div className="flex items-start gap-1.5">
+          <span className="text-[9px] text-muted-foreground w-[80px] truncate font-mono pt-1">
+            paths
+          </span>
+          <ChipInput
+            values={config.paths ?? []}
+            onChange={(v) => onChange({ paths: v })}
+            placeholder="src/**, *.ts"
+            testId={`trigger-${trigger}-paths`}
+          />
+        </div>
+        <div className="flex items-start gap-1.5">
+          <span className="text-[9px] text-muted-foreground w-[80px] truncate font-mono pt-1">
+            paths-ignore
+          </span>
+          <ChipInput
+            values={config.pathsIgnore ?? []}
+            onChange={(v) => onChange({ pathsIgnore: v })}
+            placeholder="docs/**, *.md"
+            testId={`trigger-${trigger}-paths-ignore`}
+          />
+        </div>
       </div>
     );
   }

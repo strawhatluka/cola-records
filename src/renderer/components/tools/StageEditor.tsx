@@ -4,12 +4,82 @@
  * Full-view file staging UI. Shows a list of changed files with
  * checkboxes, colored status indicators (M/A/D/?), Stage All toggle,
  * and Confirm button that stages selected files via git:add IPC.
+ * Untracked directories are compacted into expandable folder rows.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { X, RefreshCw, Loader2, CheckSquare, Square } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  X,
+  RefreshCw,
+  Loader2,
+  CheckSquare,
+  Square,
+  MinusSquare,
+  ChevronRight,
+  ChevronDown,
+  Folder,
+  FolderOpen,
+} from 'lucide-react';
 import { ipc } from '../../ipc/client';
 import type { GitFileStatus } from '../../../main/ipc/channels/types';
+
+export interface FileGroups {
+  individualFiles: GitFileStatus[];
+  directoryGroups: Map<string, GitFileStatus[]>;
+}
+
+export function buildFileGroups(files: GitFileStatus[]): FileGroups {
+  const untracked: GitFileStatus[] = [];
+  const tracked: GitFileStatus[] = [];
+
+  for (const file of files) {
+    if (file.index === '?' && file.working_dir === '?') {
+      untracked.push(file);
+    } else {
+      tracked.push(file);
+    }
+  }
+
+  // Group untracked files by top-level directory
+  const dirMap = new Map<string, GitFileStatus[]>();
+  const rootUntracked: GitFileStatus[] = [];
+
+  for (const file of untracked) {
+    const slashIndex = file.path.indexOf('/');
+    if (slashIndex === -1) {
+      rootUntracked.push(file);
+    } else {
+      const dir = file.path.slice(0, slashIndex);
+      if (!dirMap.has(dir)) dirMap.set(dir, []);
+      dirMap.get(dir)!.push(file);
+    }
+  }
+
+  // Collect directories with tracked files (mixed = cannot compact)
+  const trackedDirs = new Set<string>();
+  for (const file of tracked) {
+    const slashIndex = file.path.indexOf('/');
+    if (slashIndex !== -1) {
+      trackedDirs.add(file.path.slice(0, slashIndex));
+    }
+  }
+
+  const individualFiles: GitFileStatus[] = [...tracked, ...rootUntracked];
+  const directoryGroups = new Map<string, GitFileStatus[]>();
+
+  for (const [dir, dirFiles] of dirMap) {
+    if (trackedDirs.has(dir) || dirFiles.length < 2) {
+      // Mixed directory or single file — keep individual
+      individualFiles.push(...dirFiles);
+    } else {
+      directoryGroups.set(dir, dirFiles);
+    }
+  }
+
+  individualFiles.sort((a, b) => a.path.localeCompare(b.path));
+
+  return { individualFiles, directoryGroups };
+}
 
 interface StageEditorProps {
   workingDirectory: string;
@@ -39,19 +109,28 @@ function getFileStatus(file: GitFileStatus): string {
   return '?';
 }
 
+function DirCheckbox({ state }: { state: 'all' | 'some' | 'none' }) {
+  if (state === 'all') return <CheckSquare className="h-4 w-4 text-primary shrink-0" />;
+  if (state === 'some') return <MinusSquare className="h-4 w-4 text-primary shrink-0" />;
+  return <Square className="h-4 w-4 text-muted-foreground shrink-0" />;
+}
+
 export function StageEditor({ workingDirectory, onClose }: StageEditorProps) {
   const [files, setFiles] = useState<GitFileStatus[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [staging, setStaging] = useState(false);
+
+  const { individualFiles, directoryGroups } = useMemo(() => buildFileGroups(files), [files]);
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
     try {
       const status = await ipc.invoke('git:status', workingDirectory);
       setFiles(status.files);
-      // Auto-select all files
       setSelected(new Set(status.files.map((f) => f.path)));
+      setExpandedDirs(new Set());
     } catch {
       setFiles([]);
     } finally {
@@ -66,13 +145,39 @@ export function StageEditor({ workingDirectory, onClose }: StageEditorProps) {
   const toggleFile = (path: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  };
+
+  const toggleDir = (childPaths: string[]) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const allSelected = childPaths.every((p) => next.has(p));
+      if (allSelected) {
+        for (const p of childPaths) next.delete(p);
       } else {
-        next.add(path);
+        for (const p of childPaths) next.add(p);
       }
       return next;
     });
+  };
+
+  const toggleExpandDir = (dirName: string) => {
+    setExpandedDirs((prev) => {
+      const next = new Set(prev);
+      if (next.has(dirName)) next.delete(dirName);
+      else next.add(dirName);
+      return next;
+    });
+  };
+
+  const getDirSelectionState = (childPaths: string[]): 'all' | 'some' | 'none' => {
+    const count = childPaths.filter((p) => selected.has(p)).length;
+    if (count === 0) return 'none';
+    if (count === childPaths.length) return 'all';
+    return 'some';
   };
 
   const toggleAll = () => {
@@ -95,6 +200,7 @@ export function StageEditor({ workingDirectory, onClose }: StageEditorProps) {
   };
 
   const allSelected = files.length > 0 && selected.size === files.length;
+  const sortedDirNames = [...directoryGroups.keys()].sort();
 
   return (
     <div className="flex flex-col h-full">
@@ -150,8 +256,75 @@ export function StageEditor({ workingDirectory, onClose }: StageEditorProps) {
 
             <div className="border-t border-border mt-1 pt-1" />
 
-            {/* File list */}
-            {files.map((file) => {
+            {/* Directory groups */}
+            {sortedDirNames.map((dirName) => {
+              const dirFiles = directoryGroups.get(dirName)!;
+              const childPaths = dirFiles.map((f) => f.path);
+              const isExpanded = expandedDirs.has(dirName);
+              const selState = getDirSelectionState(childPaths);
+
+              return (
+                <div key={`dir-${dirName}`}>
+                  <div className="flex items-center gap-1 w-full px-2 py-1.5 rounded hover:bg-accent transition-colors">
+                    <button
+                      onClick={() => toggleDir(childPaths)}
+                      className="shrink-0"
+                      data-testid={`dir-checkbox-${dirName}`}
+                    >
+                      <DirCheckbox state={selState} />
+                    </button>
+                    <button
+                      onClick={() => toggleExpandDir(dirName)}
+                      className="flex items-center gap-1.5 flex-1 text-left min-w-0"
+                      data-testid={`dir-expand-${dirName}`}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                      )}
+                      {isExpanded ? (
+                        <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <Folder className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="text-xs text-foreground truncate">{dirName}/</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        ({dirFiles.length} files)
+                      </span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">Untracked</span>
+                    </button>
+                  </div>
+
+                  {isExpanded &&
+                    dirFiles.map((file) => {
+                      const isFileSelected = selected.has(file.path);
+                      return (
+                        <button
+                          key={file.path}
+                          onClick={() => toggleFile(file.path)}
+                          className="flex items-center gap-2 w-full pl-8 pr-2 py-1 rounded hover:bg-accent transition-colors text-left"
+                        >
+                          {isFileSelected ? (
+                            <CheckSquare className="h-3.5 w-3.5 text-primary shrink-0" />
+                          ) : (
+                            <Square className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          )}
+                          <span className="text-xs font-mono font-bold w-4 text-center shrink-0 text-muted-foreground">
+                            ?
+                          </span>
+                          <span className="text-xs text-foreground truncate flex-1">
+                            {file.path}
+                          </span>
+                        </button>
+                      );
+                    })}
+                </div>
+              );
+            })}
+
+            {/* Individual files */}
+            {individualFiles.map((file) => {
               const status = getFileStatus(file);
               const colorClass = STATUS_COLORS[status] || STATUS_COLORS['?'];
               const label = STATUS_LABELS[status] || '';

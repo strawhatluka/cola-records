@@ -443,6 +443,212 @@ describe('GitHubConfigWorkflowsEditor', () => {
     });
   });
 
+  it('parses push trigger with inline tags and shows tags ChipInput', async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'github-config:scan')
+        return Promise.resolve({
+          features: [
+            {
+              id: 'workflows',
+              files: ['release.yml'],
+              exists: true,
+              label: '',
+              path: '',
+              category: 'directory',
+              description: '',
+            },
+          ],
+        });
+      if (channel === 'github-config:list-templates') return Promise.resolve([]);
+      if (channel === 'github-config:read-file')
+        return Promise.resolve(
+          'name: Release\n\non:\n  push:\n    tags: [v*]\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n'
+        );
+      return Promise.resolve(null);
+    });
+
+    render(<GitHubConfigWorkflowsEditor {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('release.yml')).toBeDefined());
+    await user.click(screen.getByText('release.yml'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trigger-config-push')).toBeDefined();
+      expect(screen.getByTestId('trigger-push-tags')).toBeDefined();
+    });
+
+    const tagsChip = screen.getByTestId('trigger-push-tags');
+    expect(tagsChip.textContent).toContain('v*');
+  });
+
+  it('parses push trigger with multiline tags', async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'github-config:scan')
+        return Promise.resolve({
+          features: [
+            {
+              id: 'workflows',
+              files: ['release.yml'],
+              exists: true,
+              label: '',
+              path: '',
+              category: 'directory',
+              description: '',
+            },
+          ],
+        });
+      if (channel === 'github-config:list-templates') return Promise.resolve([]);
+      if (channel === 'github-config:read-file')
+        return Promise.resolve(
+          "name: Release\n\non:\n  push:\n    tags:\n      - 'v*.*.*'\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n"
+        );
+      return Promise.resolve(null);
+    });
+
+    render(<GitHubConfigWorkflowsEditor {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('release.yml')).toBeDefined());
+    await user.click(screen.getByText('release.yml'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trigger-push-tags')).toBeDefined();
+    });
+
+    const tagsChip = screen.getByTestId('trigger-push-tags');
+    expect(tagsChip.textContent).toContain('v*.*.*');
+  });
+
+  it('parses push trigger with both branches and tags', async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'github-config:scan')
+        return Promise.resolve({
+          features: [
+            {
+              id: 'workflows',
+              files: ['ci.yml'],
+              exists: true,
+              label: '',
+              path: '',
+              category: 'directory',
+              description: '',
+            },
+          ],
+        });
+      if (channel === 'github-config:list-templates') return Promise.resolve([]);
+      if (channel === 'github-config:read-file')
+        return Promise.resolve(
+          'name: CI\n\non:\n  push:\n    branches: [main]\n    tags: [v*]\n\njobs:\n  ci:\n    runs-on: ubuntu-latest\n'
+        );
+      return Promise.resolve(null);
+    });
+
+    render(<GitHubConfigWorkflowsEditor {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('ci.yml')).toBeDefined());
+    await user.click(screen.getByText('ci.yml'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trigger-push-branches')).toBeDefined();
+      expect(screen.getByTestId('trigger-push-tags')).toBeDefined();
+    });
+
+    const branchesChip = screen.getByTestId('trigger-push-branches');
+    expect(branchesChip.textContent).toContain('main');
+
+    const tagsChip = screen.getByTestId('trigger-push-tags');
+    expect(tagsChip.textContent).toContain('v*');
+  });
+
+  it('round-trips tags through parse and serialize (save preserves tags)', async () => {
+    const user = userEvent.setup();
+    let savedContent = '';
+    mockInvoke.mockImplementation((channel: string, ...args: unknown[]) => {
+      if (channel === 'github-config:scan')
+        return Promise.resolve({
+          features: [
+            {
+              id: 'workflows',
+              files: ['release.yml'],
+              exists: true,
+              label: '',
+              path: '',
+              category: 'directory',
+              description: '',
+            },
+          ],
+        });
+      if (channel === 'github-config:list-templates') return Promise.resolve([]);
+      if (channel === 'github-config:read-file')
+        return Promise.resolve(
+          'name: Release\n\non:\n  push:\n    tags: [v*]\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n'
+        );
+      if (channel === 'github-config:write-file') {
+        savedContent = args[2] as string;
+        return Promise.resolve({ success: true, message: 'Saved' });
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<GitHubConfigWorkflowsEditor {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('release.yml')).toBeDefined());
+    await user.click(screen.getByText('release.yml'));
+
+    await waitFor(() => expect(screen.getByTestId('trigger-push-tags')).toBeDefined());
+
+    // Toggle schedule to make dirty so we can save
+    await user.click(screen.getByTestId('trigger-schedule'));
+    await waitFor(() => expect(screen.getByText('unsaved')).toBeDefined());
+
+    await user.click(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'github-config:write-file',
+        '/test/project',
+        'workflows/release.yml',
+        expect.any(String)
+      );
+    });
+
+    // Verify saved content preserves tags
+    expect(savedContent).toContain('tags: [v*]');
+  });
+
+  it('shows paths and paths-ignore ChipInputs for push trigger', async () => {
+    const user = userEvent.setup();
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'github-config:scan')
+        return Promise.resolve({
+          features: [
+            {
+              id: 'workflows',
+              files: ['ci.yml'],
+              exists: true,
+              label: '',
+              path: '',
+              category: 'directory',
+              description: '',
+            },
+          ],
+        });
+      if (channel === 'github-config:list-templates') return Promise.resolve([]);
+      if (channel === 'github-config:read-file')
+        return Promise.resolve(
+          'name: CI\n\non:\n  push:\n    branches: [main]\n\njobs:\n  ci:\n    runs-on: ubuntu-latest\n'
+        );
+      return Promise.resolve(null);
+    });
+
+    render(<GitHubConfigWorkflowsEditor {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText('ci.yml')).toBeDefined());
+    await user.click(screen.getByText('ci.yml'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trigger-push-paths')).toBeDefined();
+      expect(screen.getByTestId('trigger-push-paths-ignore')).toBeDefined();
+    });
+  });
+
   it('shows empty state when no workflows exist', async () => {
     mockInvoke.mockImplementation((channel: string) => {
       if (channel === 'github-config:scan') {
