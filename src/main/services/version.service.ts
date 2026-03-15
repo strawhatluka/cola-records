@@ -126,6 +126,9 @@ export class VersionService {
       try {
         const json = JSON.parse(content);
         json.version = newVersion;
+        if (fileName === 'package-lock.json' && json.packages?.['']) {
+          json.packages[''].version = newVersion;
+        }
         // Preserve original indentation
         const indent = content.match(/^(\s+)"/)?.[1] || '  ';
         return JSON.stringify(json, null, indent) + '\n';
