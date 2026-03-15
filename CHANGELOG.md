@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-03-14
+
 ### Added
 
 - Add `useMemo` import in `src/renderer/components/tools/StageEditor.tsx`.
@@ -36,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update `triggerMatch` regex in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to correctly parse trigger names containing hyphens.
 - Refactor trigger sub-property parsing mechanism in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to generically support `branches`, `tags`, `paths`, `paths-ignore`, and `types`.
 
-## [1.1.0] - 2026-02-24
+## [1.1.0] - 2026-03-11
 
 ### Added
 
