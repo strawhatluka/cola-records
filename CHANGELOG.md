@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `useMemo` import in `src/renderer/components/tools/StageEditor.tsx`.
+- Add `MinusSquare`, `ChevronRight`, `ChevronDown`, `Folder`, `FolderOpen` icon imports in `src/renderer/components/tools/StageEditor.tsx` to support new UI elements.
+- Introduce `FileGroups` interface in `src/renderer/components/tools/StageEditor.tsx` for structured file grouping.
+- Implement `buildFileGroups` function in `src/renderer/components/tools/StageEditor.tsx` to organize files, compacting untracked directories into expandable rows.
+- Add mock for `MinusSquare` icon in `tests/mocks/lucide-react.tsx`.
+- Add new test suite for `buildFileGroups` function in `tests/renderer/components/tools/StageEditor.test.tsx`.
+- Add test case in `tests/renderer/components/tools/StageEditor.test.tsx` to verify `buildFileGroups` correctly handles individual files when no untracked files exist.
+- Add test case in `tests/renderer/components/tools/StageEditor.test.tsx` to verify `buildFileGroups` correctly groups fully untracked directories.
 - Add new test case in `tests/main/services/workflow.service.test.ts` to verify that changelog entries are inserted under the `[Unreleased]` category and not under a released version's category.
 - Improve assertions in `tests/main/services/workflow.service.test.ts` to confirm that new changelog entries are correctly positioned between the `[Unreleased]` and the first released version section.
 - Add assertions in `tests/main/services/workflow.service.test.ts` to ensure released changelog sections remain unchanged after new entries are added to `[Unreleased]`.
@@ -19,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Refactor `StageEditor` component in `src/renderer/components/tools/StageEditor.tsx` to display untracked directories as expandable folder rows, replacing the previous flat file list rendering.
+- Modify file selection behavior in `src/renderer/components/tools/StageEditor.tsx` by removing the explicit auto-selection of all files.
+- Update imports in `tests/renderer/components/tools/StageEditor.test.tsx` to include `StageEditor` and `buildFileGroups` for testing purposes.
 - Refine `src/main/services/workflow.service.ts` to ensure changelog entries are inserted exclusively within the `[Unreleased]` section, preventing accidental modification of released version sections.
 - Update `src/main/services/workflow.service.ts` to recompute the `[Unreleased]` section's end boundary dynamically after each insertion to maintain correct indexing.
 - Modify `src/main/services/workflow.service.ts` to scope heading searches to the `[Unreleased]` section only when merging new changelog entries.
