@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add new test case in `tests/main/services/workflow.service.test.ts` to verify that changelog entries are inserted under the `[Unreleased]` category and not under a released version's category.
+- Improve assertions in `tests/main/services/workflow.service.test.ts` to confirm that new changelog entries are correctly positioned between the `[Unreleased]` and the first released version section.
+- Add assertions in `tests/main/services/workflow.service.test.ts` to ensure released changelog sections remain unchanged after new entries are added to `[Unreleased]`.
 - Add support for parsing `tags`, `paths`, and `paths-ignore` properties within GitHub Actions workflow triggers in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx`.
 - Introduce `parseInlineArray` utility function to `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` for parsing comma-separated string lists from workflow files.
 - Implement new parsing logic in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to handle 6-space indented list items under trigger sub-properties.
@@ -16,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Refine `src/main/services/workflow.service.ts` to ensure changelog entries are inserted exclusively within the `[Unreleased]` section, preventing accidental modification of released version sections.
+- Update `src/main/services/workflow.service.ts` to recompute the `[Unreleased]` section's end boundary dynamically after each insertion to maintain correct indexing.
+- Modify `src/main/services/workflow.service.ts` to scope heading searches to the `[Unreleased]` section only when merging new changelog entries.
 - Update `triggerMatch` regex in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to correctly parse trigger names containing hyphens.
 - Refactor trigger sub-property parsing mechanism in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to generically support `branches`, `tags`, `paths`, `paths-ignore`, and `types`.
 

@@ -255,14 +255,25 @@ ${diff.slice(0, 12000)}`;
     // Parse new entries by category
     const newSections = this.parseChangelogSections(entry);
 
-    // Merge each category's bullets into the matching ### heading
+    // Compute [Unreleased] section boundaries for scoped search
+    const unreleasedStart = content.indexOf('## [Unreleased]');
+
+    // Merge each category's bullets into the matching ### heading within [Unreleased] only
     for (const [category, bullets] of newSections) {
       const heading = `### ${category}`;
-      const headingIndex = content.indexOf(heading);
       const bulletBlock = bullets.join('\n');
 
-      if (headingIndex !== -1) {
-        // Find the end of the heading line
+      // Recompute end boundary each iteration (content length changes after insertions)
+      const nextVersionIndex = content.indexOf('\n## [', unreleasedStart + 1);
+      const unreleasedEnd = nextVersionIndex === -1 ? content.length : nextVersionIndex;
+
+      // Search for heading ONLY within [Unreleased] section
+      const unreleasedSlice = content.slice(unreleasedStart, unreleasedEnd);
+      const localHeadingIndex = unreleasedSlice.indexOf(heading);
+
+      if (localHeadingIndex !== -1) {
+        // Heading found within [Unreleased] — merge bullets into it
+        const headingIndex = unreleasedStart + localHeadingIndex;
         const endOfLine = content.indexOf('\n', headingIndex);
         const afterHeading = content.slice(endOfLine + 1);
 
@@ -277,9 +288,8 @@ ${diff.slice(0, 12000)}`;
           content = content.slice(0, endOfLine) + '\n\n' + bulletBlock + content.slice(endOfLine);
         }
       } else {
-        // Category doesn't exist — add it at end of [Unreleased] section
-        const nextVersionIndex = content.indexOf('\n## [', content.indexOf('## [Unreleased]') + 1);
-        const insertAt = nextVersionIndex === -1 ? content.length : nextVersionIndex;
+        // Category doesn't exist in [Unreleased] — add it at end of [Unreleased] section
+        const insertAt = unreleasedEnd;
         content =
           content.slice(0, insertAt).trimEnd() +
           '\n\n' +
