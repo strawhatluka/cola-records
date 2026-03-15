@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add support for parsing `tags`, `paths`, and `paths-ignore` properties within GitHub Actions workflow triggers in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx`.
+- Introduce `parseInlineArray` utility function to `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` for parsing comma-separated string lists from workflow files.
+- Implement new parsing logic in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to handle 6-space indented list items under trigger sub-properties.
+- Add test case to `tests/renderer/components/tools/GitHubConfigWorkflowsEditor.test.tsx` to verify parsing of `tags` in a `push` trigger and rendering of the associated `ChipInput`.
+
+### Changed
+
+- Update `triggerMatch` regex in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to correctly parse trigger names containing hyphens.
+- Refactor trigger sub-property parsing mechanism in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to generically support `branches`, `tags`, `paths`, `paths-ignore`, and `types`.
+
 ## [1.1.0] - 2026-02-24
 
 ### Added
