@@ -207,6 +207,50 @@ describe('VersionService', () => {
       expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
     });
 
+    it('should update packages[""].version in package-lock.json', () => {
+      const lockContent = JSON.stringify(
+        {
+          name: 'myapp',
+          version: '1.0.0',
+          lockfileVersion: 3,
+          packages: {
+            '': { name: 'myapp', version: '1.0.0' },
+            'node_modules/dep': { version: '2.0.0' },
+          },
+        },
+        null,
+        2
+      );
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(lockContent);
+
+      const result = versionService.updateVersion('/test/repo', '1.1.0', ['package-lock.json']);
+
+      expect(result.success).toBe(true);
+      const writtenContent = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
+      const parsed = JSON.parse(writtenContent);
+      expect(parsed.version).toBe('1.1.0');
+      expect(parsed.packages[''].version).toBe('1.1.0');
+      expect(parsed.packages['node_modules/dep'].version).toBe('2.0.0');
+    });
+
+    it('should handle package-lock.json without packages field', () => {
+      const lockContent = JSON.stringify(
+        { name: 'myapp', version: '1.0.0', lockfileVersion: 1 },
+        null,
+        2
+      );
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(lockContent);
+
+      const result = versionService.updateVersion('/test/repo', '1.1.0', ['package-lock.json']);
+
+      expect(result.success).toBe(true);
+      const writtenContent = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
+      const parsed = JSON.parse(writtenContent);
+      expect(parsed.version).toBe('1.1.0');
+    });
+
     it('should handle write errors', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ version: '1.0.0' }));

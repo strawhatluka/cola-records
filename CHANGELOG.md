@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a test case in `tests/main/services/version.service.test.ts` to verify the update of `packages[''].version` in `package-lock.json`.
 - Add `useMemo` import in `src/renderer/components/tools/StageEditor.tsx`.
 - Add `MinusSquare`, `ChevronRight`, `ChevronDown`, `Folder`, `FolderOpen` icon imports in `src/renderer/components/tools/StageEditor.tsx` to support new UI elements.
 - Introduce `FileGroups` interface in `src/renderer/components/tools/StageEditor.tsx` for structured file grouping.
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modify `src/main/services/workflow.service.ts` to scope heading searches to the `[Unreleased]` section only when merging new changelog entries.
 - Update `triggerMatch` regex in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to correctly parse trigger names containing hyphens.
 - Refactor trigger sub-property parsing mechanism in `src/renderer/components/tools/GitHubConfigWorkflowsEditor.tsx` to generically support `branches`, `tags`, `paths`, `paths-ignore`, and `types`.
+- Update `updateVersion` service in `src/main/services/version.service.ts` to correctly modify the `packages[''].version` field in `package-lock.json`.
 
 ## [1.1.0] - 2026-03-11
 
