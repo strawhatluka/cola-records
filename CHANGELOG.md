@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update `src/main/services/workflow.service.ts` to modify changelog generation rules, specifically removing blank line enforcement between bullet entries and adjusting rule numbering.
+- Modify `src/main/services/workflow.service.ts` to adjust the insertion logic for new changelog bullets, ensuring exactly one blank line after the heading.
+- Update `src/renderer/components/tools/ChangelogResult.tsx` to replace `pre` tag with a resizable `textarea` for displaying changelog entries, allowing user editing.
+
+### Added
+
+- Add a test case to `tests/main/services/workflow.service.test.ts` to verify the AI service prompt includes the rule about "NO blank lines between bullet entries".
+- Add a test case to `tests/main/services/workflow.service.test.ts` to ensure AI output is passed through without normalizing blank lines between bullets.
+- Add a test case to `tests/renderer/components/tools/ChangelogResult.test.tsx` to verify the changelog entry is displayed in an editable textarea.
+- Add a test case to `tests/renderer/components/tools/ChangelogResult.test.tsx` to ensure the user can edit the generated entry and apply the edited content.
+
+### Removed
+
+- Remove a test case from `tests/renderer/components/tools/ChangelogResult.test.tsx` that checked for changelog entry display in a non-editable format.
+
 ## [1.1.2] - 2026-03-15
 
 ### Added

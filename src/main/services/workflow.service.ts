@@ -143,12 +143,13 @@ RULES:
    ### Fixed — for bug fixes
    ### Security — for vulnerability fixes
 4. Each entry starts with "- " (bullet)
-5. Use imperative mood ("Add X" not "Added X")
-6. Be specific — mention component names, file names, or feature names
-7. One bullet per distinct change. Cover ALL files listed below.
-8. No version numbers, no dates, no ## headings
-${resolvedIssue ? `9. Reference issue #${resolvedIssue} where relevant` : ''}
-${branchName ? `10. Branch context: ${branchName}` : ''}
+5. NO blank lines between bullet entries within the same category. Bullets must be consecutive lines.
+6. Use imperative mood ("Add X" not "Added X")
+7. Be specific — mention component names, file names, or feature names
+8. One bullet per distinct change. Cover ALL files listed below.
+9. No version numbers, no dates, no ## headings
+${resolvedIssue ? `10. Reference issue #${resolvedIssue} where relevant` : ''}
+${branchName ? `11. Branch context: ${branchName}` : ''}
 
 EXISTING CHANGELOG STYLE (match this tone and detail level):
 ${existingChangelog.slice(0, 800)}
@@ -280,9 +281,14 @@ ${diff.slice(0, 12000)}`;
         // Find the first bullet line, skipping any blank lines after the heading
         const firstBulletMatch = afterHeading.match(/^(\n*)(- )/);
         if (firstBulletMatch) {
-          // Insert new bullets before existing bullets, preserving the blank line after heading
-          const insertAt = endOfLine + 1 + firstBulletMatch[1].length;
-          content = content.slice(0, insertAt) + bulletBlock + '\n' + content.slice(insertAt);
+          // Insert new bullets before existing bullets, normalizing to exactly ONE blank line after heading
+          const insertAt = endOfLine + 1;
+          content =
+            content.slice(0, insertAt) +
+            '\n' +
+            bulletBlock +
+            '\n' +
+            content.slice(insertAt).replace(/^\n+/, '');
         } else {
           // No existing bullets under this heading — add after heading with blank line
           content = content.slice(0, endOfLine) + '\n\n' + bulletBlock + content.slice(endOfLine);
