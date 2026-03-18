@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-03-18
+
 ### Changed
 
 - Update `src/main/services/workflow.service.ts` to modify changelog generation rules, specifically removing blank line enforcement between bullet entries and adjusting rule numbering.
