@@ -35,7 +35,7 @@ describe('ChangelogResult', () => {
     expect(screen.getByText(/generating/i)).toBeDefined();
   });
 
-  it('should display generated changelog entry', async () => {
+  it('should display generated changelog entry in editable textarea', async () => {
     mockInvoke.mockResolvedValue({
       entry: '### Added\n- New button component',
       hasChanges: true,
@@ -44,7 +44,9 @@ describe('ChangelogResult', () => {
     render(<ChangelogResult {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/New button component/)).toBeDefined();
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toBeDefined();
+      expect((textarea as HTMLTextAreaElement).value).toContain('New button component');
     });
   });
 
@@ -128,6 +130,40 @@ describe('ChangelogResult', () => {
 
     await userEvent.click(screen.getByTitle('Close'));
     expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it('should allow user to edit the generated entry and apply edited content', async () => {
+    mockInvoke.mockImplementation((channel: string) => {
+      if (channel === 'workflow:generate-changelog') {
+        return Promise.resolve({
+          entry: '### Added\n- Feature X',
+          hasChanges: true,
+        });
+      }
+      return Promise.resolve();
+    });
+
+    render(<ChangelogResult {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeDefined();
+    });
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+
+    // User edits the draft
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, '### Added\n- Feature X (updated)\n- Feature Y');
+
+    await userEvent.click(screen.getByText(/Apply to CHANGELOG/));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'workflow:apply-changelog',
+        '/test/project',
+        '### Added\n- Feature X (updated)\n- Feature Y'
+      );
+    });
   });
 
   it('should pass issue number and branch name', async () => {

@@ -105,9 +105,12 @@ export function ChangelogResult({
         <p className="text-[10px] text-muted-foreground">No changes detected.</p>
       ) : (
         <>
-          <pre className="text-[10px] text-foreground bg-background rounded p-2 overflow-auto styled-scroll max-h-48 whitespace-pre-wrap font-mono border border-border">
-            {entry}
-          </pre>
+          <textarea
+            className="text-[10px] text-foreground bg-background rounded p-2 overflow-auto styled-scroll max-h-48 whitespace-pre-wrap font-mono border border-border w-full resize-y"
+            value={entry}
+            onChange={(e) => setEntry(e.target.value)}
+            rows={entry.split('\n').length + 1}
+          />
           <div className="flex items-center gap-2 mt-2">
             {applied ? (
               <span className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">

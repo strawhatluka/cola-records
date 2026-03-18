@@ -107,6 +107,33 @@ describe('WorkflowService', () => {
       expect(aiService.complete).toHaveBeenCalledWith(
         expect.objectContaining({ prompt: expect.stringContaining('Keep a Changelog') })
       );
+      expect(aiService.complete).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining('NO blank lines between bullet entries'),
+        })
+      );
+    });
+
+    it('should pass through AI output without normalizing blank lines between bullets', async () => {
+      vi.mocked(gitService.getStatus).mockResolvedValue({
+        current: 'main',
+        tracking: null,
+        ahead: 0,
+        behind: 0,
+        files: [{ path: 'src/index.ts', index: 'M', working_dir: ' ' }],
+      });
+      vi.mocked(gitService.getDiff).mockResolvedValue('diff content');
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(aiService.complete).mockResolvedValue({
+        content: '### Fixed\n- Fix A\n\n- Fix B',
+        tokensUsed: 100,
+        model: 'gemini-2.5-flash',
+      });
+
+      const result = await workflowService.generateChangelog('/test/repo');
+
+      // generateChangelog should NOT normalize spacing — user can edit in textarea
+      expect(result.entry).toBe('### Fixed\n- Fix A\n\n- Fix B');
     });
 
     it('should strip conversational preamble from AI response', async () => {
@@ -425,6 +452,55 @@ describe('WorkflowService', () => {
       expect(existingFixIdx).toBeLessThan(v100Idx);
       // Released section untouched
       expect(written.indexOf('- Old')).toBeGreaterThan(v100Idx);
+    });
+
+    it('should normalize spacing to one blank line when injecting bullets (regression test for extra blank lines)', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      // Changelog with EXTRA blank lines after heading (malformed source)
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        '# Changelog\n\n## [Unreleased]\n\n### Added\n\n\n- Existing feature\n\n## [1.0.0]\n'
+      );
+
+      await workflowService.applyChangelog('/test/repo', '### Added\n- New feature');
+
+      const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
+
+      // Extract the ### Added section from [Unreleased]
+      const addedHeadingIdx = written.indexOf('### Added');
+      const nextSectionIdx = written.indexOf('## [1.0.0]', addedHeadingIdx);
+      const addedSection = written.slice(addedHeadingIdx, nextSectionIdx);
+
+      // Verify exactly ONE blank line after heading, then bullets with no blank lines between them
+      const expectedSpacing = '### Added\n\n- New feature\n- Existing feature\n';
+      expect(addedSection).toContain(expectedSpacing);
+
+      // Verify no double newlines between bullets
+      expect(addedSection).not.toContain('- New feature\n\n- Existing feature');
+    });
+
+    it('should normalize AI-generated content with blank lines between bullets', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        '# Changelog\n\n## [Unreleased]\n\n### Fixed\n\n- Existing fix\n\n## [1.0.0]\n'
+      );
+
+      // AI generates with blank lines between bullets (common AI output format)
+      await workflowService.applyChangelog(
+        '/test/repo',
+        '### Fixed\n- New fix A\n\n- New fix B\n\n- New fix C'
+      );
+
+      const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
+
+      const fixedIdx = written.indexOf('### Fixed');
+      const v100Idx = written.indexOf('## [1.0.0]', fixedIdx);
+      const fixedSection = written.slice(fixedIdx, v100Idx);
+
+      // Verify all bullets are present with NO blank lines between them
+      expect(fixedSection).toContain('- New fix A\n- New fix B\n- New fix C\n- Existing fix');
+
+      // Verify no double newlines between any bullets
+      expect(fixedSection).not.toMatch(/- [^\n]+\n\n- /);
     });
   });
 });
