@@ -56,7 +56,7 @@ class UpdaterService {
     // Set GitHub as the update provider
     autoUpdater.setFeedURL({
       provider: 'github',
-      owner: 'lukadfagundes',
+      owner: 'strawhatluka',
       repo: 'cola-records',
     });
 

@@ -121,7 +121,7 @@ describe('Forge Configuration', () => {
       });
 
       it('has homepage URL', () => {
-        expect(configContent).toContain('https://github.com/lukadfagundes/cola-records');
+        expect(configContent).toContain('https://github.com/strawhatluka/cola-records');
       });
     });
 
@@ -153,7 +153,7 @@ describe('Forge Configuration', () => {
       });
 
       it('has correct repository owner', () => {
-        expect(configContent).toContain("owner: 'lukadfagundes'");
+        expect(configContent).toContain("owner: 'strawhatluka'");
       });
 
       it('has correct repository name', () => {

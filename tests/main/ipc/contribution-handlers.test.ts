@@ -118,7 +118,7 @@ describe('contribution.handlers - scan-directory', () => {
 
     const scannedResult = {
       localPath: '/home/user/projects/my-project',
-      repositoryUrl: 'https://github.com/lukadfagundes/my-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/my-project.git',
       branchName: 'main',
       isFork: false,
       remotesValid: true,
@@ -134,7 +134,7 @@ describe('contribution.handlers - scan-directory', () => {
 
     const updatedContribution = {
       ...baseContribution,
-      repositoryUrl: 'https://github.com/lukadfagundes/my-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/my-project.git',
       remotesValid: true,
     };
     mocks.mockUpdateContribution.mockReturnValue(updatedContribution);
@@ -146,12 +146,12 @@ describe('contribution.handlers - scan-directory', () => {
     expect(mocks.mockUpdateContribution).toHaveBeenCalledWith(
       'test-id-1',
       expect.objectContaining({
-        repositoryUrl: 'https://github.com/lukadfagundes/my-project.git',
+        repositoryUrl: 'https://github.com/strawhatluka/my-project.git',
       })
     );
 
     expect((result as (typeof updatedContribution)[])[0].repositoryUrl).toBe(
-      'https://github.com/lukadfagundes/my-project.git'
+      'https://github.com/strawhatluka/my-project.git'
     );
   });
 
@@ -197,7 +197,7 @@ describe('contribution.handlers - scan-directory', () => {
 
     const scannedResult = {
       localPath: '/home/user/projects/new-project',
-      repositoryUrl: 'https://github.com/lukadfagundes/new-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/new-project.git',
       branchName: 'main',
       isFork: false,
       remotesValid: true,
@@ -221,7 +221,7 @@ describe('contribution.handlers - scan-directory', () => {
 
     expect(mocks.mockCreateContribution).toHaveBeenCalledWith(
       expect.objectContaining({
-        repositoryUrl: 'https://github.com/lukadfagundes/new-project.git',
+        repositoryUrl: 'https://github.com/strawhatluka/new-project.git',
       }),
       scannedResult.createdAt
     );
@@ -233,7 +233,7 @@ describe('contribution.handlers - scan-directory', () => {
 
     const scannedResult = {
       localPath: '/home/user/projects/my-project',
-      repositoryUrl: 'https://github.com/lukadfagundes/my-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/my-project.git',
       branchName: 'feat/issue-5-auth',
       isFork: true,
       remotesValid: true,
@@ -253,7 +253,7 @@ describe('contribution.handlers - scan-directory', () => {
     await handler!({}, '/home/user/projects');
 
     expect(mocks.mockUpdateContribution).toHaveBeenCalledWith('test-id-1', {
-      repositoryUrl: 'https://github.com/lukadfagundes/my-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/my-project.git',
       branchName: 'feat/issue-5-auth',
       issueNumber: 5,
       isFork: true,
@@ -486,14 +486,14 @@ describe('contribution.handlers - sync-with-github', () => {
     // Arrange
     const contribution = {
       ...baseContribution,
-      repositoryUrl: 'https://github.com/lukadfagundes/my-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/my-project.git',
       branchName: 'feat/issue-42-auth',
     };
     vi.mocked(database.getContributionById).mockReturnValue(contribution as never);
 
     const prStatus = {
       number: 10,
-      url: 'https://github.com/lukadfagundes/my-project/pull/10',
+      url: 'https://github.com/strawhatluka/my-project/pull/10',
       status: 'open' as const,
     };
     mocks.mockCheckPRStatus.mockResolvedValue(prStatus);
@@ -513,7 +513,7 @@ describe('contribution.handlers - sync-with-github', () => {
 
     // Assert
     expect(mocks.mockCheckPRStatus).toHaveBeenCalledWith(
-      'lukadfagundes',
+      'strawhatluka',
       'my-project',
       'feat/issue-42-auth'
     );
@@ -529,7 +529,7 @@ describe('contribution.handlers - sync-with-github', () => {
     // Arrange
     const contribution = {
       ...baseContribution,
-      repositoryUrl: 'https://github.com/lukadfagundes/my-project',
+      repositoryUrl: 'https://github.com/strawhatluka/my-project',
       branchName: 'main',
     };
     vi.mocked(database.getContributionById).mockReturnValue(contribution as never);
@@ -587,7 +587,7 @@ describe('contribution.handlers - project:scan-directory', () => {
 
     const scannedResult = {
       localPath: '/home/user/projects/new-project',
-      repositoryUrl: 'https://github.com/lukadfagundes/new-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/new-project.git',
       branchName: 'main',
       isFork: false,
       remotesValid: true,
@@ -643,7 +643,7 @@ describe('contribution.handlers - project:scan-directory', () => {
 
     const scannedResult = {
       localPath: '/home/user/projects/existing-project',
-      repositoryUrl: 'https://github.com/lukadfagundes/existing-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/existing-project.git',
       branchName: 'feat/new-branch',
       isFork: true,
       remotesValid: true,
@@ -688,7 +688,7 @@ describe('contribution.handlers - project:scan-directory', () => {
 
     const scannedResult = {
       localPath: '/home/user/projects/no-title-project',
-      repositoryUrl: 'https://github.com/lukadfagundes/no-title-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/no-title-project.git',
       branchName: 'main',
       isFork: false,
       remotesValid: false,
@@ -724,7 +724,7 @@ describe('contribution.handlers - project:scan-directory', () => {
 
     const scannedResult = {
       localPath: '/home/user/projects/no-issue-project',
-      repositoryUrl: 'https://github.com/lukadfagundes/no-issue-project.git',
+      repositoryUrl: 'https://github.com/strawhatluka/no-issue-project.git',
       branchName: 'develop',
       isFork: false,
       remotesValid: true,

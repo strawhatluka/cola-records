@@ -1,7 +1,7 @@
 # Cola Records
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/lukadfagundes/cola-records/actions/workflows/ci.yml/badge.svg)](https://github.com/lukadfagundes/cola-records/actions/workflows/ci.yml)
+[![CI](https://github.com/strawhatluka/cola-records/actions/workflows/ci.yml/badge.svg)](https://github.com/strawhatluka/cola-records/actions/workflows/ci.yml)
 [![Electron](https://img.shields.io/badge/Electron-40-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -61,7 +61,7 @@ A cross-platform desktop developer workspace that brings together GitHub project
 
 ### Download
 
-Download the latest release from [GitHub Releases](https://github.com/lukadfagundes/cola-records/releases).
+Download the latest release from [GitHub Releases](https://github.com/strawhatluka/cola-records/releases).
 
 ### Windows
 
@@ -109,7 +109,7 @@ sudo rpm -i cola-records-<version>.x86_64.rpm
 
 ```bash
 # Clone the repository
-git clone https://github.com/lukadfagundes/cola-records.git
+git clone https://github.com/strawhatluka/cola-records.git
 cd cola-records
 
 # Install dependencies
@@ -254,5 +254,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Support
 
-- [GitHub Issues](https://github.com/lukadfagundes/cola-records/issues) - Bug reports and feature requests
-- [Discussions](https://github.com/lukadfagundes/cola-records/discussions) - Questions and community
+- [GitHub Issues](https://github.com/strawhatluka/cola-records/issues) - Bug reports and feature requests
+- [Discussions](https://github.com/strawhatluka/cola-records/discussions) - Questions and community

@@ -19,7 +19,7 @@ git clone https://github.com/YOUR_USERNAME/cola-records.git
 cd cola-records
 
 # Add upstream remote
-git remote add upstream https://github.com/lukadfagundes/cola-records.git
+git remote add upstream https://github.com/strawhatluka/cola-records.git
 
 # Install dependencies
 npm install

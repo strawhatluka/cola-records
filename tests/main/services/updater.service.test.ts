@@ -88,7 +88,7 @@ describe('UpdaterService', () => {
 
       expect(mockSetFeedURL).toHaveBeenCalledWith({
         provider: 'github',
-        owner: 'lukadfagundes',
+        owner: 'strawhatluka',
         repo: 'cola-records',
       });
     });

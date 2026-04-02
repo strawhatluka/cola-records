@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update former github username (lukadfagundes) to current username (strawhatluka) across codebase.
+
 ## [1.1.3] - 2026-03-18
 
 ### Changed
@@ -289,7 +293,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 2 new IPC channels (`dev-tools:disk-usage`, `dev-tools:project-info`) with `DiskUsageEntry` and `DiskUsageResult` types
   - Only one inline panel visible at a time; toggle on re-click; close button dismisses
   - All 4 git buttons always enabled — no detection dependency
-- Dev Tools — Env File button expanded into full-featured env file management tool ([#56](https://github.com/lukadfagundes/cola-records/issues/56))
+- Dev Tools — Env File button expanded into full-featured env file management tool ([#56](https://github.com/strawhatluka/cola-records/issues/56))
   - **Env File button** always enabled (no longer disabled when `.env` exists); click toggles an inline management panel
   - **EnvPanel** (`EnvPanel.tsx`): 6 action buttons — Create `.env.example` (scans codebase), Create `.env`, Create `.env.local`, Create `.env.CUSTOM` (inline suffix input), Edit Example, ENV Sync
   - **EnvEditor** (`EnvEditor.tsx`): full-size multi-tab text editor replacing Tool Box view; file tabs for all discovered `.env` files, Save button, Ctrl+S, per-tab dirty tracking, unsaved changes prompt
@@ -301,7 +305,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **EnvFileService** (`env-file.service.ts`): discover, create, read, write, and sync `.env` files including nested subdirectories; sync operation rescans codebase → appends new vars to `.env.example` → propagates missing keys to sibling `.env*` files
   - 7 new IPC channels (`dev-tools:scan-env-variables`, `dev-tools:discover-env-files`, `dev-tools:create-env-example`, `dev-tools:create-env-file`, `dev-tools:read-env-file`, `dev-tools:write-env-file`, `dev-tools:sync-env-files`)
   - 5 new types (`EnvSourceLocation`, `EnvVariable`, `EnvScanResult`, `EnvFileInfo`, `EnvSyncResult`)
-- Dev Tools — Hooks button expanded into full-featured Git hooks management tool ([#57](https://github.com/lukadfagundes/cola-records/issues/57))
+- Dev Tools — Hooks button expanded into full-featured Git hooks management tool ([#57](https://github.com/strawhatluka/cola-records/issues/57))
   - **Hooks button** always enabled (no longer disabled when no hook tool detected); click toggles an inline management panel
   - **HooksPanel** (`HooksPanel.tsx`): setup wizard when no hooks detected (tool selection cards with recommendations, lint-staged checkbox, "Set Up" button), action buttons when hooks detected (Install, Edit Config, Add Presets, Lint-Staged, Info)
   - **HooksEditor** (`HooksEditor.tsx`): full-view tabbed config editor replacing Tool Box view; tabs per git hook stage (pre-commit, commit-msg, pre-push, post-merge, post-checkout), toggleable action rows with enable/disable switches, add custom actions or select from presets, lint-staged sub-panel with glob pattern rules, Save (Ctrl+S), dirty tracking, unsaved changes prompt
@@ -311,7 +315,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **simple-git-hooks support** added to project detection (`.simple-git-hooks.json` or `package.json` key), extending detection from 3 to 4 hook systems
   - 8 new IPC channels (`dev-tools:detect-hooks`, `dev-tools:setup-hook-tool`, `dev-tools:get-hook-install-cmd`, `dev-tools:read-hooks-config`, `dev-tools:write-hooks-config`, `dev-tools:setup-lint-staged`, `dev-tools:get-hook-presets`, `dev-tools:get-lint-staged-presets`)
   - 9 new types (`HookTool`, `GitHookName`, `HookAction`, `LintStagedRule`, `LintStagedConfig`, `HookConfig`, `HookToolRecommendation`, `HooksDetectionResult`, `HooksSetupResult`)
-- Dev Tools — Editor Config button expanded into full-featured `.editorconfig` management GUI ([#58](https://github.com/lukadfagundes/cola-records/issues/58))
+- Dev Tools — Editor Config button expanded into full-featured `.editorconfig` management GUI ([#58](https://github.com/strawhatluka/cola-records/issues/58))
   - **Editor Config button** always enabled (no longer disabled when `.editorconfig` exists); click toggles an inline management panel
   - **EditorConfigPanel** (`EditorConfigPanel.tsx`): setup mode with ecosystem preset dropdown, live preview, and "Create" button when no config exists; actions mode with Edit Config, Reset to Default (with confirmation), and Delete (with confirmation) when config exists
   - **EditorConfigEditor** (`EditorConfigEditor.tsx`): full-view section-based property editor replacing Tool Box view; `root = true` toggle, section cards with glob input and 2-column property grid (dropdowns for indent_style/end_of_line/charset, number inputs for indent_size/tab_width, toggles for trim_trailing_whitespace/insert_final_newline, max_line_length with "off" option), add/remove sections, Add Preset button, Save (Ctrl+S), dirty tracking, unsaved changes prompt
@@ -319,7 +323,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Ecosystem-aware presets**: Node.js (space/2 + `*.md` trim_ws override), Python (space/4), Go (tab/4), Rust (space/4), Ruby (space/2), PHP (space/4), Java (space/4) — all with lf, utf-8, trim trailing whitespace, insert final newline
   - Replaced single `dev-tools:setup-editor-config` channel with 5 new channels (`dev-tools:read-editorconfig`, `dev-tools:write-editorconfig`, `dev-tools:create-editorconfig`, `dev-tools:delete-editorconfig`, `dev-tools:get-editorconfig-presets`)
   - 3 new types (`EditorConfigProperties`, `EditorConfigSection`, `EditorConfigFile`)
-- Dev Tools — Format button expanded into full-featured formatter configuration GUI ([#59](https://github.com/lukadfagundes/cola-records/issues/59))
+- Dev Tools — Format button expanded into full-featured formatter configuration GUI ([#59](https://github.com/strawhatluka/cola-records/issues/59))
   - **Format button** in Workflows section now opens an inline panel instead of running a terminal command directly; always enabled (even when no format command detected via `onFormatClick` callback intercept)
   - **FormatPanel** (`FormatPanel.tsx`): detects project formatter on mount (6 supported: Prettier, Ruff, Black, rustfmt, gofmt, RuboCop); no-config mode with "Create Config" button using ecosystem-aware presets; config-exists mode with 5 action buttons — Run Format (sends command to terminal), Format Check (dry-run with `--check` flag), Edit Config (opens FormatEditor), Create Ignore / Edit Ignore (smart toggle — creates `.prettierignore` or `.ruff_ignore` when absent, opens full-view editor when present)
   - **FormatEditor** (`FormatEditor.tsx`): full-view config editor replacing Tool Box view; **Prettier mode**: 2-column rich GUI with 12 property controls — 5 toggles (semi, singleQuote, useTabs, bracketSpacing, jsxSingleQuote), 2 number inputs (printWidth 40–300, tabWidth 1–16), 5 dropdowns (trailingComma, arrowParens, endOfLine, quoteProps, proseWrap); **Generic mode**: textarea editor for TOML/YAML configs (Ruff, rustfmt, etc.); Save (Ctrl+S), dirty tracking, unsaved changes prompt with "Save and close" / "Close without saving"
@@ -355,7 +359,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Clean Build**: per-tool output directory targets — Vite (`dist`), Webpack (`dist`, `build`), Rollup (`dist`), tsc (`dist`, `build`), cargo build (`target`), Gradle (`build`), Maven (`target`); combines `rm -rf <targets>` with build command in a single terminal execution
   - 4 new IPC channels (`dev-tools:detect-build-tool`, `dev-tools:read-build-config`, `dev-tools:write-build-config`, `dev-tools:get-build-presets`)
   - 4 new types (`BuildToolType`, `BuildToolInfo`, `ViteBuildConfig`, `BuildConfig`)
-- Dev Tools — Lint button expanded into full-featured linter configuration GUI ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
+- Dev Tools — Lint button expanded into full-featured linter configuration GUI ([#65](https://github.com/strawhatluka/cola-records/issues/65))
   - **Lint button** in Workflows section now opens an inline panel instead of running a terminal command directly; always enabled (even when no lint command detected via `onLintClick` callback intercept)
   - **LintPanel** (`LintPanel.tsx`): detects linter on mount (7 supported: ESLint, Ruff, Clippy, golangci-lint, RuboCop, PHPStan, Checkstyle); no-linter mode with "Create Config" button (Node only, creates `.eslintrc.json` with ecosystem presets); linter-detected mode with up to 3 action buttons — Run Lint (sends command to terminal), Lint Fix (shown only for ESLint/Ruff/RuboCop — runs `--fix` variant), Edit Config (opens LintEditor)
   - **LintEditor** (`LintEditor.tsx`): full-view config editor replacing Tool Box view; **ESLint mode**: 2-column rich GUI with 7 property sections — Environments (7 common env checkboxes), Extends (string list), Plugins (string list), Parser (text input), Ignore Patterns (string list), Rules (key/value editor with off/warn/error dropdowns); **Generic mode**: textarea editor for JS/TS ESLint configs and non-ESLint linters; Save (Ctrl+S), dirty tracking, unsaved changes prompt with "Save and close" / "Close without saving"
@@ -363,7 +367,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Linter detection**: Node → ESLint (`.eslintrc.json`, `eslint.config.js`, `eslint.config.mjs`, `eslint.config.ts`, `package.json` devDep); Python → Ruff (`ruff.toml`, `pyproject.toml [tool.ruff]`); Rust → Clippy (built-in); Go → golangci-lint (`.golangci.yml`, `.golangci.yaml`); Ruby → RuboCop (`.rubocop.yml`); PHP → PHPStan (`phpstan.neon`, `phpstan.neon.dist`); Java → Checkstyle (`checkstyle.xml`)
   - 4 new IPC channels (`dev-tools:detect-linter`, `dev-tools:read-lint-config`, `dev-tools:write-lint-config`, `dev-tools:get-lint-presets`)
   - 4 new types (`LinterType`, `LinterInfo`, `ESLintConfig`, `LintConfig`)
-- Dev Tools — Maintenance section with 8 AI-powered workflow action buttons and multi-provider AI abstraction layer ([#22](https://github.com/lukadfagundes/cola-records/issues/22))
+- Dev Tools — Maintenance section with 8 AI-powered workflow action buttons and multi-provider AI abstraction layer ([#22](https://github.com/strawhatluka/cola-records/issues/22))
   - **AI Abstraction Layer** (`ai.service.ts`): multi-provider AI service supporting Gemini (default), Anthropic, OpenAI, and Ollama; single-shot completions via native `fetch` (no npm dependencies); per-provider request/response mapping; connection testing; config stored in SQLite via `database.getSetting('aiConfig')`
   - **AI Settings Tab** (`AITab.tsx`): new tab in Settings screen for AI provider configuration — provider dropdown (Gemini/Anthropic/OpenAI/Ollama), model selection from curated per-provider lists, API key input (password field), custom base URL for Ollama, Test Connection button with success/failure feedback
   - **WorkflowService** (`workflow.service.ts`): orchestrates AI-powered code analysis workflows — `generateChangelog` (diff → CHANGELOG entry), `generateReadmeUpdate` (diff → updated README), `generateDocsUpdate` (diff → new/updated doc files as JSON), `generateCommitMessage` (staged diff → conventional commit message), `generatePRDescription` (branch comparison → PR body); each method reads git state, constructs a targeted prompt, and sends a single AI completion
@@ -396,7 +400,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI Explorer improvements**: subcommand usage example shown next to "Flags (N) for 'sub command'" header; raw help output fallback when no structured subcommands/flags are parsed (tools like `claude` now show their help text); known alias dedup (`python3`→`python`, `nodejs`→`node`, `pip3`→`pip`); code-server PATH dedup prevents tools appearing twice in host+container environments
 - **CLI help parsing**: flags with angle-bracket arguments (`--flag <value>`) and bracket arguments (`--flag [value]`) now correctly captured; subcommand entries with arguments (`install [options] [target]`) now parsed; multi-strategy help (`-h` first for subcommands, fallback to `--help`) prevents browser launch on `git <sub> --help`
 - **Smart branching for grouped issues**: sub-issues now branch from their parent issue's branch instead of main when clicking Fix Issue; PR base branch auto-defaults to parent's branch when creating a PR from a sub-issue branch; falls back to main when parent is not branched or detection fails
-- **Notification system** ([#53](https://github.com/lukadfagundes/cola-records/issues/53)): comprehensive 3-tier notification infrastructure
+- **Notification system** ([#53](https://github.com/strawhatluka/cola-records/issues/53)): comprehensive 3-tier notification infrastructure
   - **Notification store** (`useNotificationStore.ts`): Zustand store with in-memory history (300 cap), deduplication via `dedupeKey`, category/DND filtering, unread count tracking, IPC event listeners for main→renderer push
   - **Sonner toast activation**: wired `toast()` calls from sonner (previously unused despite `<Toaster />` being mounted), with `richColors` and `closeButton` props; priority-based toast types (high→error, medium→warning, low→info)
   - **Notification center** (`NotificationCenter.tsx`): Radix Popover dropdown in AppBar with bell icon, unread badge, DND indicator (BellOff), filter tabs (All/Unread), grouped + ungrouped notification rendering, mark all read / clear all actions, deep linking via `onNavigate`
@@ -449,7 +453,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update `GitHubConfigYamlEditor` test imports, replacing `userEvent` with `fireEvent` (`tests/renderer/components/tools/GitHubConfigYamlEditor.test.tsx`) (#72)
 - Refactor test mocks in `tests/main/services/notification.service.test.ts` to use `vi.hoisted` for better isolation and control (#72)
 - Remove generic test cases for service initialization in `tests/main/services/notification.service.test.ts` (#72)
-- Git hooks pre-push actions now disabled by default for all ecosystem presets (Node, Python, Rust) — users can enable them via the Hooks GUI after installation ([#65](https://github.com/lukadfagundes/cola-records/issues/65))
+- Git hooks pre-push actions now disabled by default for all ecosystem presets (Node, Python, Rust) — users can enable them via the Hooks GUI after installation ([#65](https://github.com/strawhatluka/cola-records/issues/65))
 - CLI Explorer command input now editable — users can type custom arguments directly in the `$` input field, with Enter key support to run
 - CLI `--help` parser improved: `parseSubcommands()` now detects git-style lowercase section headers with indented commands; `parseFlags()` handles `--flag=VALUE` patterns
 
@@ -495,7 +499,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Sub-issue branch inheritance with three-tier badge hierarchy in Issues tool ([#49](https://github.com/lukadfagundes/cola-records/issues/49))
+- Sub-issue branch inheritance with three-tier badge hierarchy in Issues tool ([#49](https://github.com/strawhatluka/cola-records/issues/49))
   - **Primary** (purple): branched issues that have sub-issues
   - **Secondary** (yellow): sub-issues of Primary issues, shown in list view and detail view sub-issue rows
   - **branched** (blue): standalone branched issues without sub-issues (unchanged)
@@ -503,16 +507,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Inherited sub-issues sorted alongside directly-branched issues in the list
   - Detail modal receives `branches` prop to show branched/Secondary badges on sub-issue row items
   - Graceful degradation: API errors per-call caught with empty fallback, zero additional calls when no issues are branched
-- "Project" documentation category showing root-level files (README, CHANGELOG, CONTRIBUTING, LICENSE) in the Documentation screen ([#48](https://github.com/lukadfagundes/cola-records/issues/48))
+- "Project" documentation category showing root-level files (README, CHANGELOG, CONTRIBUTING, LICENSE) in the Documentation screen ([#48](https://github.com/strawhatluka/cola-records/issues/48))
 
 ### Fixed
 
-- Documentation screen showing "No documentation found" in packaged builds — `docs/` directory was not included in `extraResource` and path resolution used incorrect APIs ([#48](https://github.com/lukadfagundes/cola-records/issues/48))
-- Clicking relative `.md` links in documentation now navigates to the linked document within the docs viewer instead of doing nothing ([#48](https://github.com/lukadfagundes/cola-records/issues/48))
+- Documentation screen showing "No documentation found" in packaged builds — `docs/` directory was not included in `extraResource` and path resolution used incorrect APIs ([#48](https://github.com/strawhatluka/cola-records/issues/48))
+- Clicking relative `.md` links in documentation now navigates to the linked document within the docs viewer instead of doing nothing ([#48](https://github.com/strawhatluka/cola-records/issues/48))
 
 ### Tests
 
-- Sub-issue branch inheritance tests ([#49](https://github.com/lukadfagundes/cola-records/issues/49))
+- Sub-issue branch inheritance tests ([#49](https://github.com/strawhatluka/cola-records/issues/49))
   - `IssuesTool.test.tsx`: 5 new tests for Secondary badge display, Primary badge display, sorting with branched parents, no badge without branched parent, and `isBranched` prop passing to detail modal
   - `DevelopmentIssueDetailModal.test.tsx`: 2 new tests for sub-issue row badge rendering with/without branched parent
 
@@ -520,16 +524,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Removed `credential.helper` override from GIT_ASKPASS env injection — blanking the system credential helper caused "Invalid username or token" errors when the app token differed from the system credential ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
-- Fixed Windows batch askpass script using delayed expansion (`!TOKEN!`) so the token is actually read at execution time instead of parse time ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
-- Moved git-credentials file from host `~/.git-credentials` to app-private `userData/git-credentials` — prevents Cola Records from overriding the system Git credential helper in VS Code, Git Bash, and other terminals ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
-- Added one-time migration to remove `x-access-token` entries Cola Records previously wrote to host `~/.git-credentials` ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
+- Removed `credential.helper` override from GIT_ASKPASS env injection — blanking the system credential helper caused "Invalid username or token" errors when the app token differed from the system credential ([#37](https://github.com/strawhatluka/cola-records/issues/37))
+- Fixed Windows batch askpass script using delayed expansion (`!TOKEN!`) so the token is actually read at execution time instead of parse time ([#37](https://github.com/strawhatluka/cola-records/issues/37))
+- Moved git-credentials file from host `~/.git-credentials` to app-private `userData/git-credentials` — prevents Cola Records from overriding the system Git credential helper in VS Code, Git Bash, and other terminals ([#37](https://github.com/strawhatluka/cola-records/issues/37))
+- Added one-time migration to remove `x-access-token` entries Cola Records previously wrote to host `~/.git-credentials` ([#37](https://github.com/strawhatluka/cola-records/issues/37))
 
 ## [1.0.8] - 2026-02-23
 
 ### Added
 
-- GIT_ASKPASS credential helper for Tool Box Terminal — Git operations (`push`, `pull`, `fetch`) now authenticate automatically using the app's stored GitHub token ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
+- GIT_ASKPASS credential helper for Tool Box Terminal — Git operations (`push`, `pull`, `fetch`) now authenticate automatically using the app's stored GitHub token ([#37](https://github.com/strawhatluka/cola-records/issues/37))
   - Platform-specific askpass script (`.sh` on Unix, `.bat` on Windows) using the `x-access-token` pattern
   - Token stored in separate file with 0o600 permissions — script contains no secrets
   - Token file updates immediately when GitHub token changes in Settings
@@ -537,36 +541,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Sub-issues are now clickable — clicking a sub-issue navigates to its detail view with a parent issue breadcrumb for easy back-navigation ([#41](https://github.com/lukadfagundes/cola-records/issues/41))
+- Sub-issues are now clickable — clicking a sub-issue navigates to its detail view with a parent issue breadcrumb for easy back-navigation ([#41](https://github.com/strawhatluka/cola-records/issues/41))
   - Sub-issues opened from the issues list auto-detect their parent via the GitHub parent issue API
-- Actions tool now displays the workflow name for each run in the list view and run detail summary ([#36](https://github.com/lukadfagundes/cola-records/issues/36))
-- Fixed terminal cursor/focus loss when switching branches — branch polling triggered unnecessary re-renders that destroyed and recreated the xterm.js terminal every 5 seconds ([#39](https://github.com/lukadfagundes/cola-records/issues/39))
+- Actions tool now displays the workflow name for each run in the list view and run detail summary ([#36](https://github.com/strawhatluka/cola-records/issues/36))
+- Fixed terminal cursor/focus loss when switching branches — branch polling triggered unnecessary re-renders that destroyed and recreated the xterm.js terminal every 5 seconds ([#39](https://github.com/strawhatluka/cola-records/issues/39))
   - Stabilized `XTermTerminal` init effect by using refs for callbacks (empty dependency array — runs once on mount)
   - Guarded `setCurrentBranch` polling to skip no-op state updates when the branch hasn't changed
 - Dev Scripts panel now uses `styled-scroll` for consistent scrollbar styling
-- Multi-terminal dev scripts now retain full output across tab switches ([#42](https://github.com/lukadfagundes/cola-records/issues/42))
+- Multi-terminal dev scripts now retain full output across tab switches ([#42](https://github.com/strawhatluka/cola-records/issues/42))
   - Added server-side output buffer (512 KB cap) per PTY session — `XTermTerminal` replays the buffer on mount
   - `ScriptExecutionModal` now renders all terminal instances simultaneously (CSS `visibility:hidden` for inactive tabs) so every terminal receives live data and initializes with proper dimensions
-- Project names with spaces now display correctly in open project tabs and contribution cards — URL-encoded `%20` characters are properly decoded ([#43](https://github.com/lukadfagundes/cola-records/issues/43))
+- Project names with spaces now display correctly in open project tabs and contribution cards — URL-encoded `%20` characters are properly decoded ([#43](https://github.com/strawhatluka/cola-records/issues/43))
 - Added `Workflows: Read/Write` to the required GitHub token scopes listed in Settings API tab
 
 ### Tests
 
-- GIT_ASKPASS service tests covering initialization, platform script generation, token file management, env var injection, and cleanup ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
-- Terminal service tests for GIT_ASKPASS env var injection into PTY spawn ([#37](https://github.com/lukadfagundes/cola-records/issues/37))
-- Added tests for workflow name visibility in Actions tool list view and run detail view ([#36](https://github.com/lukadfagundes/cola-records/issues/36))
-- XTermTerminal init stability tests — verifies terminal is not re-initialized when callback references change, and latest callback is used via ref ([#39](https://github.com/lukadfagundes/cola-records/issues/39))
-- Sub-issue navigation tests for clickable rows, parent breadcrumb rendering, parent/child navigation, and auto-detection via getParentIssue API in DevelopmentIssueDetailModal and IssuesTool ([#41](https://github.com/lukadfagundes/cola-records/issues/41))
-- `getParentIssue` service tests for parent lookup, 404/403 handling, and error propagation ([#41](https://github.com/lukadfagundes/cola-records/issues/41))
-- Terminal output buffer tests covering accumulation, size cap, and cleanup on kill ([#42](https://github.com/lukadfagundes/cola-records/issues/42))
-- `XTermTerminal` buffer replay tests for mount-time fetch, `initialOutput` skip, and null handling ([#42](https://github.com/lukadfagundes/cola-records/issues/42))
-- `ScriptExecutionModal` multi-terminal rendering tests verifying all tabs mount simultaneously with CSS visibility toggling ([#42](https://github.com/lukadfagundes/cola-records/issues/42))
+- GIT_ASKPASS service tests covering initialization, platform script generation, token file management, env var injection, and cleanup ([#37](https://github.com/strawhatluka/cola-records/issues/37))
+- Terminal service tests for GIT_ASKPASS env var injection into PTY spawn ([#37](https://github.com/strawhatluka/cola-records/issues/37))
+- Added tests for workflow name visibility in Actions tool list view and run detail view ([#36](https://github.com/strawhatluka/cola-records/issues/36))
+- XTermTerminal init stability tests — verifies terminal is not re-initialized when callback references change, and latest callback is used via ref ([#39](https://github.com/strawhatluka/cola-records/issues/39))
+- Sub-issue navigation tests for clickable rows, parent breadcrumb rendering, parent/child navigation, and auto-detection via getParentIssue API in DevelopmentIssueDetailModal and IssuesTool ([#41](https://github.com/strawhatluka/cola-records/issues/41))
+- `getParentIssue` service tests for parent lookup, 404/403 handling, and error propagation ([#41](https://github.com/strawhatluka/cola-records/issues/41))
+- Terminal output buffer tests covering accumulation, size cap, and cleanup on kill ([#42](https://github.com/strawhatluka/cola-records/issues/42))
+- `XTermTerminal` buffer replay tests for mount-time fetch, `initialOutput` skip, and null handling ([#42](https://github.com/strawhatluka/cola-records/issues/42))
+- `ScriptExecutionModal` multi-terminal rendering tests verifying all tabs mount simultaneously with CSS visibility toggling ([#42](https://github.com/strawhatluka/cola-records/issues/42))
 
 ## [1.0.7] - 2026-02-20
 
 ### Added
 
-- Toggle mode for dev scripts — alternating start/stop commands with visual state feedback ([#34](https://github.com/lukadfagundes/cola-records/issues/34))
+- Toggle mode for dev scripts — alternating start/stop commands with visual state feedback ([#34](https://github.com/strawhatluka/cola-records/issues/34))
   - New `DevScriptToggle` interface with first/second press name and command pairs
   - SQLite schema v7 migration adding `toggle` column to `dev_scripts` table
   - 3-way mode selector in script form (Single / Multi / Toggle)
@@ -576,7 +580,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- Toggle dev script tests covering database, store, ScriptButton, DevScriptsTool form, and DevelopmentScreen integration ([#34](https://github.com/lukadfagundes/cola-records/issues/34))
+- Toggle dev script tests covering database, store, ScriptButton, DevScriptsTool form, and DevelopmentScreen integration ([#34](https://github.com/strawhatluka/cola-records/issues/34))
 
 ## [1.0.6] - 2026-02-20
 
@@ -691,7 +695,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Dashboard screen with 6 live widgets in a responsive 2-column grid ([#18](https://github.com/lukadfagundes/cola-records/issues/18))
+- Dashboard screen with 6 live widgets in a responsive 2-column grid ([#18](https://github.com/strawhatluka/cola-records/issues/18))
   - **Contribution Status** widget: 4 metric cards (Open PRs, Merged PRs 30d, Open Issues, Closed Issues 30d) via `github:search-issues-and-prs` with `Promise.allSettled` error isolation
   - **GitHub Profile** widget: real avatar image (with initial fallback), bio, "Member since" date, 4-stat row (Repos/Stars/Followers/Following), and top-3 language usage bar via expanded `github:get-authenticated-user` GraphQL query and `github:list-user-repos` IPC channel
   - **PRs Needing Attention** widget: up to 10 open PRs the user is involved in (`involves:` query — authored, assigned, review-requested, mentioned) with aggregated review state and CI status, plus "Open in Cola Records" button per entry via `github:search-issues-and-prs`, `github:list-pr-reviews`, `github:get-pr-check-status`
@@ -706,26 +710,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All widgets fetch data directly from GitHub API — no dependency on local contributions store
   - Graceful degradation: widgets detect missing GitHub token and show "Connect GitHub in Settings" prompt
   - "Open in Cola Records" navigation: PRs, Issues, and CI/CD widgets include a per-entry button that matches `repoFullName` to a local Contribution record and opens the project in the IDE via `DashboardScreen` → `App.tsx` `handleOpenIDE` callback plumbing
-- Auto-assign issue to authenticated user when clicking "Fix Issue" in the Issues tool ([#18](https://github.com/lukadfagundes/cola-records/issues/18))
+- Auto-assign issue to authenticated user when clicking "Fix Issue" in the Issues tool ([#18](https://github.com/strawhatluka/cola-records/issues/18))
   - New `github:add-assignees` IPC channel wrapping `client.issues.addAssignees`
   - New `addAssignees()` method in `GitHubRestService`
   - Best-effort assignment after branch creation — failure does not block the Fix Issue flow
 
 ### Fixed
 
-- Fixed Create Pull Request form not scrolling in Tool Box inline mode ([#25](https://github.com/lukadfagundes/cola-records/issues/25))
+- Fixed Create Pull Request form not scrolling in Tool Box inline mode ([#25](https://github.com/strawhatluka/cola-records/issues/25))
   - Removed `overflow-hidden` from `formContent` wrapper in `CreatePullRequestModal` which was blocking the outer scroll container
   - Title, Description, and Submit button are now reachable when the comparison preview is tall
-- Fixed terminal output overflow breaking Tool Box layout ([#26](https://github.com/lukadfagundes/cola-records/issues/26))
+- Fixed terminal output overflow breaking Tool Box layout ([#26](https://github.com/strawhatluka/cola-records/issues/26))
   - Replaced `calc(100% - terminalHeight)` with flex-based layout in ToolsPanel to prevent ~44px overflow when header and drag handle were unaccounted for
   - Added `overflow-hidden` to ToolsPanel wrapper in DevelopmentScreen for containment
   - Header now has explicit `shrink-0` to prevent compression when terminal is large
-- Fixed dev scripts from wrong project appearing in header and Tool Box when multiple projects open ([#24](https://github.com/lukadfagundes/cola-records/issues/24))
+- Fixed dev scripts from wrong project appearing in header and Tool Box when multiple projects open ([#24](https://github.com/strawhatluka/cola-records/issues/24))
   - Changed `useDevScriptsStore` to merge scripts from multiple projects instead of replacing the global array
   - Added `selectScriptsForProject()` utility for consumer-side filtering by `projectPath`
   - `DevelopmentScreen` header buttons now filter by `contribution.localPath`
   - `DevScriptsTool` script list now filters by `workingDirectory`
-- Fixed links in code-server opening in Electron window instead of user's default browser ([#28](https://github.com/lukadfagundes/cola-records/issues/28))
+- Fixed links in code-server opening in Electron window instead of user's default browser ([#28](https://github.com/strawhatluka/cola-records/issues/28))
   - Added global `app.on('web-contents-created')` handler with `setWindowOpenHandler` to redirect external URLs via `shell.openExternal`
   - Only `http://` and `https://` protocols are opened externally (security hardening)
 
@@ -745,29 +749,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `github-rest.service.test.ts`: 2 new tests for `addAssignees` (correct params, API error)
   - `DevelopmentIssueDetailModal.test.tsx`: 2 new tests for Fix Issue auto-assign (assigns user after branch creation, completes when assignment fails)
   - `CreatePullRequestModal.test.tsx`: 1 new test for inline mode scrollable container regression check
-  - `ToolsPanel.test.tsx`: 1 new test for flex-based tool content layout regression guard ([#26](https://github.com/lukadfagundes/cola-records/issues/26))
-- Dev script overrun fix tests ([#24](https://github.com/lukadfagundes/cola-records/issues/24))
+  - `ToolsPanel.test.tsx`: 1 new test for flex-based tool content layout regression guard ([#26](https://github.com/strawhatluka/cola-records/issues/26))
+- Dev script overrun fix tests ([#24](https://github.com/strawhatluka/cola-records/issues/24))
   - `useDevScriptsStore.test.ts`: 6 new tests for multi-project merge behavior and `selectScriptsForProject`
   - `DevScriptsTool.test.tsx`: 2 new tests for cross-project script isolation
   - Updated existing "different project paths" test for merge semantics
   - Updated store mocks in 4 DevelopmentScreen test files and ToolsPanel test to export `selectScriptsForProject`
-- Webview external link redirect tests ([#28](https://github.com/lukadfagundes/cola-records/issues/28))
+- Webview external link redirect tests ([#28](https://github.com/strawhatluka/cola-records/issues/28))
   - `webview-external-links.test.ts`: 5 tests covering handler registration, http/https redirect, deny action, and non-http protocol blocking
 
 ## [1.0.4] - 2026-02-17
 
 ### Added
 
-- Persistent webview sessions for multi-project support ([#6](https://github.com/lukadfagundes/cola-records/issues/6))
+- Persistent webview sessions for multi-project support ([#6](https://github.com/strawhatluka/cola-records/issues/6))
   - All open DevelopmentScreens now render persistently using CSS visibility toggling (`display: none`/`display: contents`) instead of conditional mounting
   - Background processes (Claude Code, terminals, builds) survive tab switches — webview WebSocket connections stay alive
   - Previously, switching project tabs unmounted the `<webview>`, severing the code-server connection and killing the Extension Host Process ~5 min later
-- In-app documentation reader with category navigation and Mermaid diagram support ([#8](https://github.com/lukadfagundes/cola-records/issues/8))
+- In-app documentation reader with category navigation and Mermaid diagram support ([#8](https://github.com/strawhatluka/cola-records/issues/8))
   - New "Documentation" screen accessible from sidebar navigation
   - Category-based browsing of `docs/` directory (subdirectories as categories)
   - Full GitHub Flavored Markdown rendering with Mermaid diagram support
   - New `docs:get-structure` IPC channel for documentation tree retrieval
-- Code Server settings tab for Docker container resource configuration ([#3](https://github.com/lukadfagundes/cola-records/issues/3))
+- Code Server settings tab for Docker container resource configuration ([#3](https://github.com/strawhatluka/cola-records/issues/3))
   - Resource allocation with presets (Light, Standard, Performance, Unlimited) and manual CPU/memory/shared memory controls
   - Live container usage display polling `docker stats` every 5 seconds with CPU and memory progress bars
   - Startup behavior settings: auto-start Docker Desktop toggle and configurable health check timeout
@@ -777,12 +781,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Advanced: configurable container name
   - New `code-server:get-stats` IPC channel for real-time container resource monitoring
   - New `CodeServerConfig` and `EnvVar` type definitions with full IPC round-trip persistence
-- Automatic container recreation when resource config changes ([#3](https://github.com/lukadfagundes/cola-records/issues/3))
+- Automatic container recreation when resource config changes ([#3](https://github.com/strawhatluka/cola-records/issues/3))
   - `hasResourceConfigChanged()` compares saved CPU/memory/SHM settings against running container via `docker inspect`
   - `parseMemoryString()` converts Docker memory notation (e.g. `4g`, `512m`) to bytes for comparison
   - `start()` now detects config drift on stopped or running containers and recreates with updated settings
 - `checkDockerAvailable()` respects `autoStartDocker` config setting — throws immediately when disabled instead of polling
-- Tool Box expansion: Issues and Pull Requests moved from header dropdowns into Tool Box panel ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+- Tool Box expansion: Issues and Pull Requests moved from header dropdowns into Tool Box panel ([#16](https://github.com/strawhatluka/cola-records/issues/16))
   - New `IssuesTool` component with inline list, detail, and create views inside Tool Box
   - New `PullRequestsTool` component with inline list, detail, and create views inside Tool Box
   - Tool Box now opens by default when entering Development screen with 60/40 IDE/Tool Box split
@@ -793,14 +797,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Header Issues/PR buttons now act as Tool Box navigation shortcuts (color indicators preserved)
   - Added `inline` rendering mode to `DevelopmentIssueDetailModal`, `CreateIssueModal`, `PullRequestDetailModal`, and `CreatePullRequestModal`
   - Removed standalone Issues/PR dropdown panels and modal popups from header toolbar
-- GitHub Actions tool in Tool Box with workflow run monitoring ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+- GitHub Actions tool in Tool Box with workflow run monitoring ([#16](https://github.com/strawhatluka/cola-records/issues/16))
   - New `ActionsTool` component with list → run detail → job logs navigation
   - Workflow runs list with color-coded status badges (green/red/yellow/gray), branch, event, actor, and relative timestamps
   - Run detail view showing summary metadata, jobs with duration, and step-by-step status dots
   - Job logs viewer with truncation (last 500 lines) and "Open in GitHub" link
   - 3 new IPC channels: `github:list-workflow-runs`, `github:list-workflow-run-jobs`, `github:get-job-logs`
   - 3 new `GitHubRestService` methods: `listWorkflowRuns`, `listWorkflowRunJobs`, `getJobLogs`
-- GitHub Releases tool in Tool Box with full release lifecycle management ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+- GitHub Releases tool in Tool Box with full release lifecycle management ([#16](https://github.com/strawhatluka/cola-records/issues/16))
   - New `ReleasesTool` component with list → detail → draft-edit → create views
   - Releases list sorted newest-to-oldest with Latest, Draft, and Pre-release badges
   - Detail view with full Markdown rendering (ReactMarkdown + remark-gfm + rehype-raw) and delete confirmation
@@ -809,7 +813,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 6 new IPC channels: `github:list-releases`, `github:get-release`, `github:create-release`, `github:update-release`, `github:delete-release`, `github:publish-release`
   - 5 new `GitHubRestService` methods: `listReleases`, `getRelease`, `createRelease`, `updateRelease`, `deleteRelease`
   - Tool navigation order updated: Issues → Pull Requests → Actions → Releases → Dev Scripts → Terminal → Maintenance
-- Persistent terminal bar at bottom of Tool Box panel ([#16](https://github.com/lukadfagundes/cola-records/issues/16))
+- Persistent terminal bar at bottom of Tool Box panel ([#16](https://github.com/strawhatluka/cola-records/issues/16))
   - Terminal removed from hamburger menu navigation (6 tools remain: Issues, Pull Requests, Actions, Releases, Dev Scripts, Maintenance)
   - Minimized terminal bar always visible at bottom of Tool Box regardless of active tool, with Terminal icon, label, and expand chevron
   - Click to expand terminal to 50% of Tool Box height; tool content on top, terminal on bottom
@@ -848,7 +852,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Branch naming now follows `<type>/<number>-<description>` convention ([#7](https://github.com/lukadfagundes/cola-records/issues/7))
+- Branch naming now follows `<type>/<number>-<description>` convention ([#7](https://github.com/strawhatluka/cola-records/issues/7))
   - Added `generateBranchName()` utility that maps GitHub labels to type prefixes (bug→fix, enhancement→feat, documentation→docs, etc.)
   - Updated both Development screen and Issues screen branch creation to use new naming
 
@@ -856,22 +860,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed terminal double-paste bug where Ctrl+V pasted clipboard content twice ([#1](https://github.com/lukadfagundes/cola-records/issues/1))
+- Fixed terminal double-paste bug where Ctrl+V pasted clipboard content twice ([#1](https://github.com/strawhatluka/cola-records/issues/1))
   - Switched from `onData` to `terminal.paste()` so paste flows through xterm's data handler exactly once
   - Added `e.preventDefault()` to block the browser's native paste event
-- Fixed issue close/reopen failing silently with no user feedback ([#10](https://github.com/lukadfagundes/cola-records/issues/10))
+- Fixed issue close/reopen failing silently with no user feedback ([#10](https://github.com/strawhatluka/cola-records/issues/10))
   - Added error alerts to `handleCloseIssue` and `handleReopenIssue` so users see why the operation failed
   - Added `Issues: Read/Write` to required GitHub token permissions in `.env.example`
 - Fixed Issues button color and "branched" badge not updating after Fix Issue creates a branch
   - Extracted branch fetching into reusable `fetchBranches` callback and added it to the issue modal's `onClose` handler
   - Fix required permissions in 'settings/api' screen
-- Fixed "Stop & Back" button closing all open projects instead of only the active one ([#4](https://github.com/lukadfagundes/cola-records/issues/4))
+- Fixed "Stop & Back" button closing all open projects instead of only the active one ([#4](https://github.com/strawhatluka/cola-records/issues/4))
   - Changed `stopAndGoBack` to use `code-server:remove-workspace` instead of `code-server:stop` so only the current project's workspace is removed
   - Changed `handleNavigateBack` to use `closeProject` instead of `closeAll` so other open projects are preserved
 
 ### Added
 
-- Auto-start Docker Desktop when navigating to the Development screen ([#5](https://github.com/lukadfagundes/cola-records/issues/5))
+- Auto-start Docker Desktop when navigating to the Development screen ([#5](https://github.com/strawhatluka/cola-records/issues/5))
   - Added `launchDockerDesktop()` with platform-specific launch commands (macOS, Windows, Linux)
   - Modified `checkDockerAvailable()` to automatically launch Docker Desktop and poll for up to 60 seconds
 
@@ -1109,9 +1113,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows build environment setup
 - Cross-platform path handling for SSH config
 
-[Unreleased]: https://github.com/lukadfagundes/cola-records/compare/v0.0.8...HEAD
-[0.0.8]: https://github.com/lukadfagundes/cola-records/compare/v0.0.6...v0.0.8
-[0.0.6]: https://github.com/lukadfagundes/cola-records/compare/v0.0.5...v0.0.6
-[0.0.5]: https://github.com/lukadfagundes/cola-records/compare/v0.0.4...v0.0.5
-[0.0.4]: https://github.com/lukadfagundes/cola-records/compare/v0.0.3...v0.0.4
-[0.0.3]: https://github.com/lukadfagundes/cola-records/releases/tag/v0.0.3
+[Unreleased]: https://github.com/strawhatluka/cola-records/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/strawhatluka/cola-records/compare/v0.0.6...v0.0.8
+[0.0.6]: https://github.com/strawhatluka/cola-records/compare/v0.0.5...v0.0.6
+[0.0.5]: https://github.com/strawhatluka/cola-records/compare/v0.0.4...v0.0.5
+[0.0.4]: https://github.com/strawhatluka/cola-records/compare/v0.0.3...v0.0.4
+[0.0.3]: https://github.com/strawhatluka/cola-records/releases/tag/v0.0.3

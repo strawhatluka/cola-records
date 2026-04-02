@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lukadfagundes/cola-records.git"
+    "url": "git+https://github.com/strawhatluka/cola-records.git"
   },
   "keywords": [],
   "author": {
@@ -37,9 +37,9 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/lukadfagundes/cola-records/issues"
+    "url": "https://github.com/strawhatluka/cola-records/issues"
   },
-  "homepage": "https://github.com/lukadfagundes/cola-records#readme",
+  "homepage": "https://github.com/strawhatluka/cola-records#readme",
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
