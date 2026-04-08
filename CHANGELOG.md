@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Normalize CRLF line endings to LF in `src/main/services/github-config.service.ts` before writing content to a file.
+
 - Update former github username (lukadfagundes) to current username (strawhatluka) across codebase.
+
+### Added
+
+- Add new test case in `tests/main/services/github-config.service.test.ts` to verify CRLF to LF line ending normalization in `github-config.service.ts`.
 
 ## [1.1.3] - 2026-03-18
 

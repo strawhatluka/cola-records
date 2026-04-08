@@ -667,7 +667,7 @@ class GitHubConfigService {
     const fullPath = path.join(workingDirectory, '.github', relativePath);
     try {
       await fs.mkdir(path.dirname(fullPath), { recursive: true });
-      await fs.writeFile(fullPath, content, 'utf-8');
+      await fs.writeFile(fullPath, content.replace(/\r\n/g, '\n'), 'utf-8');
       log.info(`Wrote: .github/${relativePath}`);
       return { success: true, message: `Saved .github/${relativePath}` };
     } catch (err) {
