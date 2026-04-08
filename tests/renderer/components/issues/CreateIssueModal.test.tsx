@@ -130,6 +130,12 @@ describe('CreateIssueModal', () => {
 
     await waitFor(() => {
       expect(onCreated).toHaveBeenCalledTimes(1);
+      expect(onCreated).toHaveBeenCalledWith({
+        number: 1,
+        title: 'Bug report',
+        body: '',
+        labels: ['bug', 'urgent'],
+      });
       expect(onClose).toHaveBeenCalledTimes(1);
     });
   });

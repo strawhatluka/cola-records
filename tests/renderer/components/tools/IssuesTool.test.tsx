@@ -67,13 +67,19 @@ vi.mock('../../../../src/renderer/components/issues/DevelopmentIssueDetailModal'
 
 // Mock CreateIssueModal
 vi.mock('../../../../src/renderer/components/issues/CreateIssueModal', () => ({
-  CreateIssueModal: ({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) => (
+  CreateIssueModal: ({
+    onClose,
+    onCreated,
+  }: {
+    onClose: () => void;
+    onCreated: (issue: { number: number; title: string; body: string; labels: string[] }) => void;
+  }) => (
     <div data-testid="create-issue-modal">
       <span>Create Issue Form</span>
       <button onClick={onClose}>Cancel</button>
       <button
         onClick={() => {
-          onCreated();
+          onCreated({ number: 99, title: 'New Issue', body: 'Description', labels: ['bug'] });
           onClose();
         }}
       >
@@ -291,6 +297,27 @@ describe('IssuesTool', () => {
       await waitFor(() => {
         expect(screen.getByTestId('create-issue-modal')).toBeDefined();
         expect(screen.getByText('Create Issue Form')).toBeDefined();
+      });
+    });
+
+    it('optimistically adds new issue to list after submission', async () => {
+      setupMocks();
+      const user = userEvent.setup();
+      render(<IssuesTool {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('New Issue')).toBeDefined();
+      });
+      await user.click(screen.getByText('New Issue'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-issue-modal')).toBeDefined();
+      });
+
+      await user.click(screen.getByText('Submit'));
+
+      await waitFor(() => {
+        expect(screen.getByText('#99')).toBeDefined();
       });
     });
 

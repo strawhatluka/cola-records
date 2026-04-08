@@ -16,9 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expand Gemini model list with `gemini-2.5-pro`, `gemini-3.1-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemma-4-31b-it`, `gemma-4-26b-a4b-it`, and `gemma-3n-e4b-it`.
 - Remove deprecated Gemini models `gemini-2.0-flash` and `gemini-1.5-pro` from default model list.
 
+### Fixed
+
+- Fix issues and sub-issues not appearing in the UI immediately after creation by optimistically inserting into local state.
+
 ### Added
 
 - Add test for CRLF to LF line ending normalization in GitHub Config service.
+- Add test for optimistic issue insertion in IssuesTool after creation.
 
 ## [1.1.3] - 2026-03-18
 

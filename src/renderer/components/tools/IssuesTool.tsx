@@ -190,8 +190,25 @@ export function IssuesTool({
     setView('list');
   };
 
-  const handleIssueCreated = () => {
-    fetchIssues();
+  const handleIssueCreated = (created: {
+    number: number;
+    title: string;
+    body: string;
+    labels: string[];
+  }) => {
+    const optimistic: Issue = {
+      number: created.number,
+      title: created.title,
+      body: created.body,
+      url: '',
+      state: 'open',
+      labels: created.labels,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      author: githubUsername,
+      authorAvatarUrl: '',
+    };
+    setIssues((prev) => [optimistic, ...prev]);
     setView('list');
   };
 

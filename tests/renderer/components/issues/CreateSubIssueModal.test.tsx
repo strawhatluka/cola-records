@@ -109,7 +109,11 @@ describe('CreateSubIssueModal', () => {
         undefined
       );
     });
-    expect(defaultProps.onCreated).toHaveBeenCalled();
+    expect(defaultProps.onCreated).toHaveBeenCalledWith({
+      number: 99,
+      title: 'Sub-issue title',
+      labels: [],
+    });
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
