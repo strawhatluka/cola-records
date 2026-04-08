@@ -10,12 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update former github username (lukadfagundes) to current username (strawhatluka) across codebase.
-- Normalize CRLF line endings to LF in `src/main/services/github-config.service.ts` before writing content to a file.
-- Update former github username (lukadfagundes) to current username (strawhatluka) across codebase.
+- Normalize CRLF line endings to LF in GitHub Config service before writing files to disk.
+- Rewrite default `release.yml` workflow template to extract release notes from CHANGELOG.md, draft releases, and require manual approval via `environment: release`.
+- Update default workflow templates (`ci.yml`, `release.yml`) to use Node 24.
+- Expand Gemini model list with `gemini-2.5-pro`, `gemini-3.1-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemma-4-31b-it`, `gemma-4-26b-a4b-it`, and `gemma-3n-e4b-it`.
+- Remove deprecated Gemini models `gemini-2.0-flash` and `gemini-1.5-pro` from default model list.
 
 ### Added
 
-- Add new test case in `tests/main/services/github-config.service.test.ts` to verify CRLF to LF line ending normalization in `github-config.service.ts`.
+- Add test for CRLF to LF line ending normalization in GitHub Config service.
 
 ## [1.1.3] - 2026-03-18
 

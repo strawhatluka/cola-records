@@ -26,7 +26,16 @@ const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
 ];
 
 const DEFAULT_MODELS: Record<AIProvider, string[]> = {
-  gemini: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'],
+  gemini: [
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-3.1-pro-preview',
+    'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite-preview',
+    'gemma-4-31b-it',
+    'gemma-4-26b-a4b-it',
+    'gemma-3n-e4b-it',
+  ],
   anthropic: ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
   ollama: [],
