@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix issues and sub-issues not appearing in the UI immediately after creation by optimistically inserting into local state.
+- Fix terminal text rendering flush against the left border by adding padding to the xterm container.
 
 ### Added
 
