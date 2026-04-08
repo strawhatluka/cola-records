@@ -40,7 +40,7 @@ const config: ForgeConfig = {
         description: 'Cola Records - Developer Workspace Engine',
         setupIcon: './assets/icons/icons/win/icon.ico',
         iconUrl:
-          'https://raw.githubusercontent.com/lukadfagundes/cola-records/main/assets/icons/icons/win/icon.ico',
+          'https://raw.githubusercontent.com/strawhatluka/cola-records/main/assets/icons/icons/win/icon.ico',
         setupExe: 'ColaRecordsSetup.exe',
         noMsi: true,
       } as MakerSquirrelConfig,
@@ -64,7 +64,7 @@ const config: ForgeConfig = {
       config: {
         options: {
           maintainer: 'Luka Fagundes',
-          homepage: 'https://github.com/lukadfagundes/cola-records',
+          homepage: 'https://github.com/strawhatluka/cola-records',
           icon: './assets/icons/icon.png',
           categories: ['Development'],
         },
@@ -75,7 +75,7 @@ const config: ForgeConfig = {
       name: '@electron-forge/maker-rpm',
       config: {
         options: {
-          homepage: 'https://github.com/lukadfagundes/cola-records',
+          homepage: 'https://github.com/strawhatluka/cola-records',
           icon: './assets/icons/icon.png',
           categories: ['Development'],
         },
@@ -159,7 +159,7 @@ const config: ForgeConfig = {
       // Generate app-update.yml for electron-updater in the final packaged output
       // This file must be in the resources folder next to app.asar
       const appUpdateYml = `provider: github
-owner: lukadfagundes
+owner: strawhatluka
 repo: cola-records
 `;
 
@@ -191,7 +191,7 @@ repo: cola-records
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: 'lukadfagundes',
+          owner: 'strawhatluka',
           name: 'cola-records',
         },
         prerelease: false,

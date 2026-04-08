@@ -17,7 +17,7 @@ Before installing Cola Records, ensure you have the following:
 
 ```bash
 # Clone the repository
-git clone https://github.com/lukadfagundes/cola-records.git
+git clone https://github.com/strawhatluka/cola-records.git
 cd cola-records
 
 # Install dependencies
@@ -268,5 +268,5 @@ Cola Records uses SQLite (better-sqlite3) for local data persistence:
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/lukadfagundes/cola-records/issues)
+- **Issues**: [GitHub Issues](https://github.com/strawhatluka/cola-records/issues)
 - **Documentation**: Check the `docs/` directory for detailed guides

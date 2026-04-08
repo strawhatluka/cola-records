@@ -191,7 +191,7 @@ describe('Package.json Configuration', () => {
 
     it('has correct repository url', () => {
       const repo = packageJson.repository as { url?: string };
-      expect(repo.url).toContain('github.com/lukadfagundes/cola-records');
+      expect(repo.url).toContain('github.com/strawhatluka/cola-records');
     });
   });
 

@@ -272,7 +272,7 @@ module.exports = {
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: 'lukadfagundes',
+          owner: 'strawhatluka',
           name: 'cola-records',
         },
       },
