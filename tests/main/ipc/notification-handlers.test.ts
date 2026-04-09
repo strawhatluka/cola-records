@@ -240,7 +240,11 @@ describe('notification.handlers', () => {
         native: false,
       });
       // Other categories preserved from defaults
-      expect(result.categories['github-security']).toEqual({ enabled: true, toast: true, native: true });
+      expect(result.categories['github-security']).toEqual({
+        enabled: true,
+        toast: true,
+        native: true,
+      });
     });
   });
 });

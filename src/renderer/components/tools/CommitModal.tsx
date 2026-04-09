@@ -14,7 +14,6 @@ import { XTermTerminal } from './XTermTerminal';
 import { stripAnsiCodes } from './ScriptExecutionModal';
 import { ipc } from '../../ipc/client';
 
-
 interface CommitModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

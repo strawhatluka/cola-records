@@ -293,7 +293,11 @@ export function CreatePullRequestModal({
       // Read PR template
       let template = '';
       try {
-        template = await ipc.invoke('github-config:read-file', localPath, 'PULL_REQUEST_TEMPLATE.md');
+        template = await ipc.invoke(
+          'github-config:read-file',
+          localPath,
+          'PULL_REQUEST_TEMPLATE.md'
+        );
       } catch {
         // No template — will use best practices
       }

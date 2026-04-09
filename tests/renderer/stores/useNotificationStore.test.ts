@@ -213,7 +213,9 @@ describe('useNotificationStore', () => {
 
       useNotificationStore
         .getState()
-        .addNotification(buildNotificationInput({ category: 'github-release', dedupeKey: 'disabled-cat' }));
+        .addNotification(
+          buildNotificationInput({ category: 'github-release', dedupeKey: 'disabled-cat' })
+        );
 
       expect(useNotificationStore.getState().notifications).toHaveLength(0);
       expect(mockInvoke).not.toHaveBeenCalled();
@@ -307,7 +309,9 @@ describe('useNotificationStore', () => {
 
       useNotificationStore
         .getState()
-        .addNotification(buildNotificationInput({ category: 'github-release', dedupeKey: 'no-cat-toast' }));
+        .addNotification(
+          buildNotificationInput({ category: 'github-release', dedupeKey: 'no-cat-toast' })
+        );
 
       // Notification should still be added
       expect(useNotificationStore.getState().notifications).toHaveLength(1);

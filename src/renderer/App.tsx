@@ -23,7 +23,6 @@ import { useContributionsStore } from './stores/useContributionsStore';
 import { useOpenProjectsStore } from './stores/useOpenProjectsStore';
 import { ipc } from './ipc/client';
 
-
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [ideOrigin, setIdeOrigin] = useState<Screen>('contributions');

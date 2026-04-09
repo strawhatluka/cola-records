@@ -48,7 +48,7 @@ export class VersionService {
         const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf-8'));
         const workspaces: string[] = Array.isArray(rootPkg.workspaces)
           ? rootPkg.workspaces
-          : rootPkg.workspaces?.packages ?? [];
+          : (rootPkg.workspaces?.packages ?? []);
 
         for (const pattern of workspaces) {
           const parentDir = path.join(repoPath, pattern.replace(/\/?\*$/, ''));

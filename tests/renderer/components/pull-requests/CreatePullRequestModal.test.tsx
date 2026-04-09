@@ -1424,7 +1424,11 @@ describe('CreatePullRequestModal', () => {
       await userEvent.click(screen.getByText('Draft'));
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('ai:complete', expect.stringContaining('Commits:'), 4096);
+        expect(mockInvoke).toHaveBeenCalledWith(
+          'ai:complete',
+          expect.stringContaining('Commits:'),
+          4096
+        );
       });
 
       await waitFor(() => {

@@ -843,7 +843,14 @@ export function DevelopmentIssueDetailModal({
         onClose={() => setShowCreateSubIssue(false)}
         onCreated={(created) => {
           setSubIssues((prev) => [
-            { id: 0, number: created.number, title: created.title, state: 'open', url: '', labels: created.labels },
+            {
+              id: 0,
+              number: created.number,
+              title: created.title,
+              state: 'open',
+              url: '',
+              labels: created.labels,
+            },
             ...prev,
           ]);
         }}
