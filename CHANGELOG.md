@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expand Gemini model list with `gemini-2.5-pro`, `gemini-3.1-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemma-4-31b-it`, `gemma-4-26b-a4b-it`, and `gemma-3n-e4b-it`.
 - Remove deprecated Gemini models `gemini-2.0-flash` and `gemini-1.5-pro` from default model list.
 - Replace terminal-based "Save & Push" in Version Editor with inline IPC git operations (add, commit, push, tag).
+- Replace local app-action notifications with GitHub-only notifications sourced directly from the GitHub Notifications API.
+- Add `github-release`, `github-discussion`, and `github-security` notification categories; remove `git`, `system`, and `integration` categories.
+- Expand GitHub notification mapping to cover Release, Discussion, SecurityAlert, WorkflowRun subject types and additional reasons (comment, state_change, author, team_mention, approval_requested, ci_activity).
+- Sync mark-as-read state back to GitHub when notifications are marked read in Cola Records.
 
 ### Fixed
 

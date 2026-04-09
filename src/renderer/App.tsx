@@ -22,7 +22,7 @@ import { useSettingsStore } from './stores/useSettingsStore';
 import { useContributionsStore } from './stores/useContributionsStore';
 import { useOpenProjectsStore } from './stores/useOpenProjectsStore';
 import { ipc } from './ipc/client';
-import { useNotificationStore } from './stores/useNotificationStore';
+
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
@@ -96,13 +96,6 @@ const App: React.FC = () => {
         }
       } catch (error) {
         updateProjectState(project.id, 'error', null, (error as Error).message);
-        useNotificationStore.getState().addNotification({
-          category: 'integration',
-          priority: 'high',
-          title: 'Code Server Error',
-          message: (error as Error).message,
-          dedupeKey: `code-server-error-${project.id}`,
-        });
       }
     },
     [openProject, updateProjectState]

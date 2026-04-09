@@ -1,4 +1,12 @@
-import { GitPullRequest, CircleDot, Workflow, GitBranch, Monitor, Plug, X } from 'lucide-react';
+import {
+  GitPullRequest,
+  CircleDot,
+  Workflow,
+  Tag,
+  MessageSquare,
+  ShieldAlert,
+  X,
+} from 'lucide-react';
 import type { AppNotification, NotificationCategory } from '../../../main/ipc/channels';
 
 interface NotificationItemProps {
@@ -12,9 +20,9 @@ const CATEGORY_ICONS: Record<NotificationCategory, React.ComponentType<{ classNa
   'github-pr': GitPullRequest,
   'github-issue': CircleDot,
   'github-ci': Workflow,
-  git: GitBranch,
-  system: Monitor,
-  integration: Plug,
+  'github-release': Tag,
+  'github-discussion': MessageSquare,
+  'github-security': ShieldAlert,
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -41,7 +49,7 @@ export function NotificationItem({
   onDismiss,
   onClick,
 }: NotificationItemProps) {
-  const Icon = CATEGORY_ICONS[notification.category] || Monitor;
+  const Icon = CATEGORY_ICONS[notification.category] || CircleDot;
   const priorityColor = PRIORITY_COLORS[notification.priority] || 'border-l-border';
 
   return (

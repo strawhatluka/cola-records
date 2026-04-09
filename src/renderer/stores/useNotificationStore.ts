@@ -24,9 +24,9 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
     'github-pr': { enabled: true, toast: true, native: true },
     'github-issue': { enabled: true, toast: true, native: true },
     'github-ci': { enabled: true, toast: true, native: true },
-    git: { enabled: true, toast: true, native: false },
-    system: { enabled: true, toast: true, native: false },
-    integration: { enabled: true, toast: true, native: false },
+    'github-release': { enabled: true, toast: true, native: true },
+    'github-discussion': { enabled: true, toast: true, native: false },
+    'github-security': { enabled: true, toast: true, native: true },
   },
 };
 

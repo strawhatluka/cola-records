@@ -9,9 +9,9 @@ const CATEGORY_LABELS: Record<NotificationCategory, string> = {
   'github-pr': 'Pull Requests',
   'github-issue': 'Issues',
   'github-ci': 'CI/CD',
-  git: 'Git Operations',
-  system: 'System',
-  integration: 'Integrations',
+  'github-release': 'Releases',
+  'github-discussion': 'Discussions',
+  'github-security': 'Security Alerts',
 };
 
 const POLL_OPTIONS = [

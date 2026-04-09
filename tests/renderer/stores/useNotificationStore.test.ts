@@ -39,7 +39,7 @@ import {
 // Helper to build a notification input (omits id, timestamp, read, dismissed)
 function buildNotificationInput(overrides: Record<string, unknown> = {}) {
   return {
-    category: 'git' as const,
+    category: 'github-pr' as const,
     priority: 'low' as const,
     title: 'Test Notification',
     message: 'Test message body',
@@ -52,7 +52,7 @@ function buildNotificationInput(overrides: Record<string, unknown> = {}) {
 function buildFullNotification(overrides: Record<string, unknown> = {}) {
   return {
     id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    category: 'git' as const,
+    category: 'github-pr' as const,
     priority: 'low' as const,
     title: 'Stored Notification',
     message: 'Stored message body',
@@ -108,9 +108,9 @@ describe('useNotificationStore', () => {
       expect(DEFAULT_PREFERENCES.categories['github-pr'].enabled).toBe(true);
       expect(DEFAULT_PREFERENCES.categories['github-issue'].enabled).toBe(true);
       expect(DEFAULT_PREFERENCES.categories['github-ci'].enabled).toBe(true);
-      expect(DEFAULT_PREFERENCES.categories['git'].enabled).toBe(true);
-      expect(DEFAULT_PREFERENCES.categories['system'].enabled).toBe(true);
-      expect(DEFAULT_PREFERENCES.categories['integration'].enabled).toBe(true);
+      expect(DEFAULT_PREFERENCES.categories['github-release'].enabled).toBe(true);
+      expect(DEFAULT_PREFERENCES.categories['github-discussion'].enabled).toBe(true);
+      expect(DEFAULT_PREFERENCES.categories['github-security'].enabled).toBe(true);
     });
   });
 
@@ -206,14 +206,14 @@ describe('useNotificationStore', () => {
           ...DEFAULT_PREFERENCES,
           categories: {
             ...DEFAULT_PREFERENCES.categories,
-            git: { enabled: false, toast: true, native: false },
+            'github-release': { enabled: false, toast: true, native: false },
           },
         },
       });
 
       useNotificationStore
         .getState()
-        .addNotification(buildNotificationInput({ category: 'git', dedupeKey: 'disabled-cat' }));
+        .addNotification(buildNotificationInput({ category: 'github-pr', dedupeKey: 'disabled-cat' }));
 
       expect(useNotificationStore.getState().notifications).toHaveLength(0);
       expect(mockInvoke).not.toHaveBeenCalled();
@@ -227,7 +227,7 @@ describe('useNotificationStore', () => {
           ...DEFAULT_PREFERENCES,
           categories: {
             ...DEFAULT_PREFERENCES.categories,
-            system: { enabled: false, toast: true, native: false },
+            'github-discussion': { enabled: false, toast: true, native: false },
           },
         },
       });
@@ -235,7 +235,7 @@ describe('useNotificationStore', () => {
       useNotificationStore
         .getState()
         .addNotification(
-          buildNotificationInput({ category: 'git', dedupeKey: 'other-cat-disabled' })
+          buildNotificationInput({ category: 'github-pr', dedupeKey: 'other-cat-disabled' })
         );
 
       expect(useNotificationStore.getState().notifications).toHaveLength(1);
@@ -300,14 +300,14 @@ describe('useNotificationStore', () => {
           ...DEFAULT_PREFERENCES,
           categories: {
             ...DEFAULT_PREFERENCES.categories,
-            git: { enabled: true, toast: false, native: false },
+            'github-release': { enabled: true, toast: false, native: false },
           },
         },
       });
 
       useNotificationStore
         .getState()
-        .addNotification(buildNotificationInput({ category: 'git', dedupeKey: 'no-cat-toast' }));
+        .addNotification(buildNotificationInput({ category: 'github-pr', dedupeKey: 'no-cat-toast' }));
 
       // Notification should still be added
       expect(useNotificationStore.getState().notifications).toHaveLength(1);
@@ -377,7 +377,7 @@ describe('useNotificationStore', () => {
         'notification:add',
         expect.objectContaining({
           id: expect.stringMatching(/^notif_/),
-          category: 'git',
+          category: 'github-pr',
           priority: 'low',
           title: 'Test Notification',
           message: 'Test message body',
@@ -891,7 +891,7 @@ describe('useNotificationStore', () => {
             ...DEFAULT_PREFERENCES,
             categories: {
               ...DEFAULT_PREFERENCES.categories,
-              system: { enabled: false, toast: true, native: false },
+              'github-discussion': { enabled: false, toast: true, native: false },
             },
           },
         });
@@ -901,7 +901,7 @@ describe('useNotificationStore', () => {
         const batchCall = mockOn.mock.calls.find((call) => call[0] === 'notification:batch');
         const batchHandler = batchCall![1];
         batchHandler([
-          buildFullNotification({ id: 'b-sys', dedupeKey: 'b-sys', category: 'system' }),
+          buildFullNotification({ id: 'b-sys', dedupeKey: 'b-sys', category: 'github-discussion' }),
           buildFullNotification({ id: 'b-git', dedupeKey: 'b-git', category: 'git' }),
         ]);
 
