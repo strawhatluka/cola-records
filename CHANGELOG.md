@@ -15,16 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update default workflow templates (`ci.yml`, `release.yml`) to use Node 24.
 - Expand Gemini model list with `gemini-2.5-pro`, `gemini-3.1-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemma-4-31b-it`, `gemma-4-26b-a4b-it`, and `gemma-3n-e4b-it`.
 - Remove deprecated Gemini models `gemini-2.0-flash` and `gemini-1.5-pro` from default model list.
+- Replace terminal-based "Save & Push" in Version Editor with inline IPC git operations (add, commit, push, tag).
 
 ### Fixed
 
 - Fix issues and sub-issues not appearing in the UI immediately after creation by optimistically inserting into local state.
 - Fix terminal text rendering flush against the left border by adding padding to the xterm container.
+- Fix version detection only scanning root-level files by adding npm/yarn workspace (monorepo) support.
 
 ### Added
 
 - Add test for CRLF to LF line ending normalization in GitHub Config service.
 - Add test for optimistic issue insertion in IssuesTool after creation.
+- Add tests for monorepo workspace version detection (array and object workspace formats).
 
 ## [1.1.3] - 2026-03-18
 

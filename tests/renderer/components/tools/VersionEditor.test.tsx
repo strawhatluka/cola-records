@@ -23,7 +23,6 @@ describe('VersionEditor', () => {
   const defaultProps = {
     workingDirectory: '/test/project',
     onClose: vi.fn(),
-    onRunCommand: vi.fn(),
   };
 
   beforeEach(() => {
@@ -149,19 +148,19 @@ describe('VersionEditor', () => {
     });
   });
 
-  it('should send terminal command on Save & Push', async () => {
+  it('should call git IPC operations on Save & Push', async () => {
+    const versionData = [
+      {
+        file: '/test/project/package.json',
+        relativePath: 'package.json',
+        currentVersion: '1.0.0',
+        packageManager: 'npm',
+      },
+    ];
     mockInvoke.mockImplementation((channel: string) => {
-      if (channel === 'workflow:detect-versions') {
-        return Promise.resolve([
-          {
-            file: '/test/project/package.json',
-            relativePath: 'package.json',
-            currentVersion: '1.0.0',
-            packageManager: 'npm',
-          },
-        ]);
-      }
-      return Promise.resolve({ success: true, message: 'ok' });
+      if (channel === 'workflow:detect-versions') return Promise.resolve(versionData);
+      if (channel === 'workflow:update-version') return Promise.resolve({ success: true });
+      return Promise.resolve(undefined);
     });
 
     render(<VersionEditor {...defaultProps} />);
@@ -173,8 +172,16 @@ describe('VersionEditor', () => {
     await userEvent.click(screen.getByText('Save & Push'));
 
     await waitFor(() => {
-      expect(defaultProps.onRunCommand).toHaveBeenCalledWith(expect.stringContaining('git commit'));
+      expect(mockInvoke).toHaveBeenCalledWith('git:push-tags', '/test/project');
     });
+
+    // Verify the full sequence of git IPC calls
+    const calls = mockInvoke.mock.calls.map((c) => c[0]);
+    expect(calls).toContain('git:add');
+    expect(calls).toContain('git:commit');
+    expect(calls).toContain('git:push');
+    expect(calls).toContain('git:tag');
+    expect(calls).toContain('git:push-tags');
   });
 
   it('should call onClose when Back button is clicked', async () => {

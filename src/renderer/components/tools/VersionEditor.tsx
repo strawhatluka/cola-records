@@ -14,12 +14,11 @@ import type { VersionInfo } from '../../../main/ipc/channels/types';
 interface VersionEditorProps {
   workingDirectory: string;
   onClose: () => void;
-  onRunCommand: (command: string) => void;
 }
 
 type BumpType = 'major' | 'minor' | 'patch';
 
-export function VersionEditor({ workingDirectory, onClose, onRunCommand }: VersionEditorProps) {
+export function VersionEditor({ workingDirectory, onClose }: VersionEditorProps) {
   const [loading, setLoading] = useState(true);
   const [versions, setVersions] = useState<VersionInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -79,19 +78,30 @@ export function VersionEditor({ workingDirectory, onClose, onRunCommand }: Versi
 
   const handleSaveAndPush = async () => {
     await handleSave();
-    // Build chained terminal command for visibility
-    const files = versions.map((v) => v.relativePath).join(' ');
-    const commitType = newVersion.endsWith('.0.0')
-      ? 'Breaking Changes'
-      : newVersion.endsWith('.0')
-        ? 'Minor Release'
-        : 'chore';
-    const commitMsg =
-      commitType === 'chore'
-        ? `chore: bump version to v${newVersion}`
-        : `${commitType}: bump version to v${newVersion}`;
-    const command = `git add ${files} CHANGELOG.md && git commit -m "${commitMsg}" && git push && git tag v${newVersion} && git push origin v${newVersion}`;
-    onRunCommand(command);
+    setSaving(true);
+    setError(null);
+    try {
+      const files = [...versions.map((v) => v.relativePath), 'CHANGELOG.md'];
+      const commitType = newVersion.endsWith('.0.0')
+        ? 'Breaking Changes'
+        : newVersion.endsWith('.0')
+          ? 'Minor Release'
+          : 'chore';
+      const commitMsg =
+        commitType === 'chore'
+          ? `chore: bump version to v${newVersion}`
+          : `${commitType}: bump version to v${newVersion}`;
+
+      await ipc.invoke('git:add', workingDirectory, files);
+      await ipc.invoke('git:commit', workingDirectory, commitMsg);
+      await ipc.invoke('git:push', workingDirectory);
+      await ipc.invoke('git:tag', workingDirectory, `v${newVersion}`);
+      await ipc.invoke('git:push-tags', workingDirectory);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to push version');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

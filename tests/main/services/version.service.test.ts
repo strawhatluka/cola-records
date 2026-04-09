@@ -21,6 +21,8 @@ vi.mock('fs', () => ({
   existsSync: vi.fn(),
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
+  readdirSync: vi.fn(),
+  statSync: vi.fn(),
 }));
 
 import { versionService } from '../../../src/main/services/version.service';
@@ -170,6 +172,88 @@ describe('VersionService', () => {
 
       const pyVersion = versions.find((v) => v.relativePath === 'pyproject.toml');
       expect(pyVersion).toBeUndefined();
+    });
+
+    it('should detect workspace package.json files in monorepo', () => {
+      const rootPkg = JSON.stringify({ version: '1.0.0', workspaces: ['packages/*'] });
+      const uiPkg = JSON.stringify({ version: '0.2.0', name: '@mono/ui' });
+      const corePkg = JSON.stringify({ version: '0.3.0', name: '@mono/core' });
+
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        const p = String(filePath);
+        return (
+          p === path.join('/test/repo', 'package.json') ||
+          p === path.join('/test/repo', 'packages') ||
+          p === path.join('/test/repo', 'packages', 'ui', 'package.json') ||
+          p === path.join('/test/repo', 'packages', 'core', 'package.json')
+        );
+      });
+      vi.mocked(fs.readFileSync).mockImplementation((filePath) => {
+        const p = String(filePath);
+        if (p === path.join('/test/repo', 'package.json')) return rootPkg;
+        if (p === path.join('/test/repo', 'packages', 'ui', 'package.json')) return uiPkg;
+        if (p === path.join('/test/repo', 'packages', 'core', 'package.json')) return corePkg;
+        return '';
+      });
+      vi.mocked(fs.readdirSync).mockReturnValue(['ui', 'core'] as never);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      expect(versions).toHaveLength(3);
+      const root = versions.find((v) => v.relativePath === 'package.json');
+      expect(root!.currentVersion).toBe('1.0.0');
+      const ui = versions.find((v) => v.relativePath === 'packages/ui/package.json');
+      expect(ui).toBeDefined();
+      expect(ui!.currentVersion).toBe('0.2.0');
+      const core = versions.find((v) => v.relativePath === 'packages/core/package.json');
+      expect(core).toBeDefined();
+      expect(core!.currentVersion).toBe('0.3.0');
+    });
+
+    it('should handle workspaces with no matching directories', () => {
+      const rootPkg = JSON.stringify({ version: '1.0.0', workspaces: ['libs/*'] });
+
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        return String(filePath) === path.join('/test/repo', 'package.json');
+      });
+      vi.mocked(fs.readFileSync).mockReturnValue(rootPkg);
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      expect(versions).toHaveLength(1);
+      expect(versions[0].relativePath).toBe('package.json');
+    });
+
+    it('should handle yarn-style workspaces.packages field', () => {
+      const rootPkg = JSON.stringify({
+        version: '1.0.0',
+        workspaces: { packages: ['apps/*'] },
+      });
+      const appPkg = JSON.stringify({ version: '2.0.0', name: 'my-app' });
+
+      vi.mocked(fs.existsSync).mockImplementation((filePath) => {
+        const p = String(filePath);
+        return (
+          p === path.join('/test/repo', 'package.json') ||
+          p === path.join('/test/repo', 'apps') ||
+          p === path.join('/test/repo', 'apps', 'web', 'package.json')
+        );
+      });
+      vi.mocked(fs.readFileSync).mockImplementation((filePath) => {
+        const p = String(filePath);
+        if (p === path.join('/test/repo', 'package.json')) return rootPkg;
+        if (p === path.join('/test/repo', 'apps', 'web', 'package.json')) return appPkg;
+        return '';
+      });
+      vi.mocked(fs.readdirSync).mockReturnValue(['web'] as never);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as fs.Stats);
+
+      const versions = versionService.detectVersions('/test/repo');
+
+      const app = versions.find((v) => v.relativePath === 'apps/web/package.json');
+      expect(app).toBeDefined();
+      expect(app!.currentVersion).toBe('2.0.0');
     });
   });
 

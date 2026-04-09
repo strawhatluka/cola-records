@@ -450,7 +450,6 @@ export function MaintenanceTool({
       <VersionEditor
         workingDirectory={workingDirectory}
         onClose={() => setVersionEditorOpen(false)}
-        onRunCommand={onRunCommand}
       />
     );
   }
