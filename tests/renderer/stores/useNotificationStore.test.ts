@@ -136,7 +136,7 @@ describe('useNotificationStore', () => {
       expect(added.dismissed).toBe(false);
       expect(added.title).toBe('Test Notification');
       expect(added.message).toBe('Test message body');
-      expect(added.category).toBe('git');
+      expect(added.category).toBe('github-pr');
       expect(added.priority).toBe('low');
     });
 
@@ -213,7 +213,7 @@ describe('useNotificationStore', () => {
 
       useNotificationStore
         .getState()
-        .addNotification(buildNotificationInput({ category: 'github-pr', dedupeKey: 'disabled-cat' }));
+        .addNotification(buildNotificationInput({ category: 'github-release', dedupeKey: 'disabled-cat' }));
 
       expect(useNotificationStore.getState().notifications).toHaveLength(0);
       expect(mockInvoke).not.toHaveBeenCalled();
@@ -307,7 +307,7 @@ describe('useNotificationStore', () => {
 
       useNotificationStore
         .getState()
-        .addNotification(buildNotificationInput({ category: 'github-pr', dedupeKey: 'no-cat-toast' }));
+        .addNotification(buildNotificationInput({ category: 'github-release', dedupeKey: 'no-cat-toast' }));
 
       // Notification should still be added
       expect(useNotificationStore.getState().notifications).toHaveLength(1);

@@ -166,7 +166,7 @@ describe('NotificationCenter', () => {
     });
 
     render(<NotificationCenter />);
-    expect(screen.getByText('Push Successful')).toBeInTheDocument();
+    expect(screen.getByText('PR Activity')).toBeInTheDocument();
     expect(screen.getByText('PR Approved')).toBeInTheDocument();
     expect(screen.queryByText('No notifications')).not.toBeInTheDocument();
   });
