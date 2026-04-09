@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add AI-powered "Draft" button to Pull Request creation form that generates title and description from branch diff, using PR template if available.
 - Add test for CRLF to LF line ending normalization in GitHub Config service.
 - Add test for optimistic issue insertion in IssuesTool after creation.
 - Add tests for monorepo workspace version detection (array and object workspace formats).

@@ -1354,4 +1354,134 @@ describe('CreatePullRequestModal', () => {
       });
     });
   });
+
+  describe('Draft button', () => {
+    it('renders Draft button when comparison is loaded', async () => {
+      setupMockIPC();
+      render(<CreatePullRequestModal {...defaultProps} open={true} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Draft')).toBeDefined();
+      });
+    });
+
+    it('calls ai:complete and populates title and body on Draft click', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-current-branch':
+            return 'feature-branch';
+          case 'git:compare-branches':
+            return {
+              commits: [
+                {
+                  hash: 'abc1234',
+                  message: 'feat: add login',
+                  author: 'dev <dev@test.com>',
+                  date: '2026-04-09T12:00:00Z',
+                },
+              ],
+              files: [],
+              totalFilesChanged: 2,
+              totalInsertions: 50,
+              totalDeletions: 10,
+              rawDiff: 'diff --git a/file.ts b/file.ts\n+added line',
+            };
+          case 'git:get-remote-branches':
+            return ['main', 'feature-branch'];
+          case 'github:get-parent-issue':
+            return null;
+          case 'github-config:read-file':
+            return '';
+          case 'ai:complete':
+            return {
+              content: 'Add user login\n\n## Summary\nAdded login functionality.',
+              tokensUsed: 100,
+              model: 'gemini-2.5-flash',
+            };
+          default:
+            return undefined;
+        }
+      });
+
+      render(<CreatePullRequestModal {...defaultProps} open={true} />);
+
+      // Wait for comparison to load (shows commit data)
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith(
+          'git:compare-branches',
+          expect.anything(),
+          expect.anything(),
+          expect.anything()
+        );
+      });
+
+      // Wait for Draft button to be enabled (comparison loaded)
+      await waitFor(() => {
+        const draftBtn = screen.getByText('Draft').closest('button');
+        expect(draftBtn!.disabled).toBe(false);
+      });
+
+      await userEvent.click(screen.getByText('Draft'));
+
+      await waitFor(() => {
+        expect(mockInvoke).toHaveBeenCalledWith('ai:complete', expect.stringContaining('Commits:'), 4096);
+      });
+
+      await waitFor(() => {
+        const titleInput = screen.getByPlaceholderText('Pull request title');
+        expect((titleInput as HTMLInputElement).value).toBe('Add user login');
+      });
+    });
+
+    it('shows error when AI call fails', async () => {
+      mockInvoke.mockImplementation(async (channel: string) => {
+        switch (channel) {
+          case 'git:get-current-branch':
+            return 'feature-branch';
+          case 'git:compare-branches':
+            return {
+              commits: [],
+              files: [],
+              totalFilesChanged: 0,
+              totalInsertions: 0,
+              totalDeletions: 0,
+              rawDiff: '',
+            };
+          case 'git:get-remote-branches':
+            return ['main', 'feature-branch'];
+          case 'github:get-parent-issue':
+            return null;
+          case 'github-config:read-file':
+            return '';
+          case 'git:compare-branches':
+            return {
+              commits: [],
+              files: [],
+              totalFilesChanged: 1,
+              totalInsertions: 5,
+              totalDeletions: 0,
+              rawDiff: 'diff',
+            };
+          case 'ai:complete':
+            throw new Error('AI not configured');
+          default:
+            return undefined;
+        }
+      });
+
+      render(<CreatePullRequestModal {...defaultProps} open={true} />);
+
+      // Wait for comparison to load
+      await waitFor(() => {
+        const draftBtn = screen.getByText('Draft').closest('button');
+        expect(draftBtn!.disabled).toBe(false);
+      });
+
+      await userEvent.click(screen.getByText('Draft'));
+
+      await waitFor(() => {
+        expect(screen.getByText('AI not configured')).toBeDefined();
+      });
+    });
+  });
 });
