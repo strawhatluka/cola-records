@@ -28,17 +28,29 @@ const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
 const DEFAULT_MODELS: Record<AIProvider, string[]> = {
   gemini: [
     'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
     'gemini-2.5-pro',
-    'gemini-3.1-pro-preview',
     'gemini-3-flash-preview',
     'gemini-3.1-flash-lite-preview',
-    'gemma-4-31b-it',
-    'gemma-4-26b-a4b-it',
-    'gemma-3n-e4b-it',
+    'gemini-3.1-pro-preview',
   ],
   anthropic: ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
   ollama: [],
+};
+
+const MODEL_LABELS: Record<string, string> = {
+  'gemini-2.5-flash': 'Gemini 2.5 Flash',
+  'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
+  'gemini-2.5-pro': 'Gemini 2.5 Pro',
+  'gemini-3-flash-preview': 'Gemini 3 Flash',
+  'gemini-3.1-flash-lite-preview': 'Gemini 3.1 Flash Lite',
+  'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+  'claude-sonnet-4-5-20250929': 'Claude Sonnet 4.5',
+  'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',
+  'gpt-4o': 'GPT-4o',
+  'gpt-4o-mini': 'GPT-4o Mini',
+  'gpt-4-turbo': 'GPT-4 Turbo',
 };
 
 export function AITab({ settings, onUpdate }: AITabProps) {
@@ -170,7 +182,7 @@ export function AITab({ settings, onUpdate }: AITabProps) {
               >
                 {models.map((m) => (
                   <option key={m} value={m}>
-                    {m}
+                    {MODEL_LABELS[m] || m}
                   </option>
                 ))}
               </select>

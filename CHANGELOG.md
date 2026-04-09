@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Normalize CRLF line endings to LF in GitHub Config service before writing files to disk.
 - Rewrite default `release.yml` workflow template to extract release notes from CHANGELOG.md, draft releases, and require manual approval via `environment: release`.
 - Update default workflow templates (`ci.yml`, `release.yml`) to use Node 24.
-- Expand Gemini model list with `gemini-2.5-pro`, `gemini-3.1-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemma-4-31b-it`, `gemma-4-26b-a4b-it`, and `gemma-3n-e4b-it`.
-- Remove deprecated Gemini models `gemini-2.0-flash` and `gemini-1.5-pro` from default model list.
+- Update Gemini model list to match Google AI Studio: add `gemini-2.5-flash-lite`; remove deprecated `gemini-2.0-flash`, `gemini-1.5-pro`, and all Gemma models (unreliable for text generation use case).
+- Add friendly display names for all AI models in settings UI (e.g. `gemini-2.5-flash` shows as "Gemini 2.5 Flash").
 - Replace terminal-based "Save & Push" in Version Editor with inline IPC git operations (add, commit, push, tag).
 - Replace local app-action notifications with GitHub-only notifications sourced directly from the GitHub Notifications API.
 - Add `github-release`, `github-discussion`, and `github-security` notification categories; remove `git`, `system`, and `integration` categories.
