@@ -14,7 +14,7 @@ interface CreateIssueModalProps {
   repo: string;
   localPath: string;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (issue: { number: number; title: string; body: string; labels: string[] }) => void;
   /** When true, renders content directly without Dialog overlay (for Tool Box inline use) */
   inline?: boolean;
 }
@@ -72,7 +72,7 @@ export function CreateIssueModal({
         .map((l) => l.trim())
         .filter(Boolean);
 
-      await ipc.invoke(
+      const result = await ipc.invoke(
         'github:create-issue',
         owner,
         repo,
@@ -81,10 +81,17 @@ export function CreateIssueModal({
         labelList.length > 0 ? labelList : undefined
       );
 
+      const createdTitle = title.trim();
+      const createdBody = body.trim();
       setTitle('');
       setBody('');
       setLabels('');
-      onCreated();
+      onCreated({
+        number: result.number,
+        title: createdTitle,
+        body: createdBody,
+        labels: labelList,
+      });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

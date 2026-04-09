@@ -330,13 +330,6 @@ describe('CommitModal', () => {
       expect(screen.getByText(/Pushed to origin\/main/)).toBeDefined();
     });
 
-    expect(mockAddNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        category: 'git',
-        title: 'Push Successful',
-      })
-    );
-
     vi.useRealTimers();
   });
 
@@ -424,13 +417,7 @@ describe('CommitModal', () => {
       expect(screen.getByText('Permission denied')).toBeDefined();
     });
 
-    expect(mockAddNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        category: 'git',
-        title: 'Push Failed',
-        priority: 'high',
-      })
-    );
+    // Push failure is shown inline via setPushResult, no notification fired
 
     vi.useRealTimers();
   });

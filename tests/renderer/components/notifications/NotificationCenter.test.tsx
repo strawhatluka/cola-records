@@ -55,10 +55,10 @@ import type { AppNotification } from '../../../../src/main/ipc/channels';
 
 const sampleNotification: AppNotification = {
   id: 'notif_1',
-  category: 'git' as const,
+  category: 'github-pr' as const,
   priority: 'low' as const,
-  title: 'Push Successful',
-  message: 'Pushed to origin/main',
+  title: 'PR Activity',
+  message: 'Fix auth bug in org/repo',
   timestamp: Date.now(),
   read: false,
   dismissed: false,
@@ -166,7 +166,7 @@ describe('NotificationCenter', () => {
     });
 
     render(<NotificationCenter />);
-    expect(screen.getByText('Push Successful')).toBeInTheDocument();
+    expect(screen.getByText('PR Activity')).toBeInTheDocument();
     expect(screen.getByText('PR Approved')).toBeInTheDocument();
     expect(screen.queryByText('No notifications')).not.toBeInTheDocument();
   });

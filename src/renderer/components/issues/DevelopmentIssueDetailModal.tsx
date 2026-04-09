@@ -841,7 +841,19 @@ export function DevelopmentIssueDetailModal({
         repo={repo}
         parentIssueNumber={issue.number}
         onClose={() => setShowCreateSubIssue(false)}
-        onCreated={() => fetchSubIssues(issue.number)}
+        onCreated={(created) => {
+          setSubIssues((prev) => [
+            {
+              id: 0,
+              number: created.number,
+              title: created.title,
+              state: 'open',
+              url: '',
+              labels: created.labels,
+            },
+            ...prev,
+          ]);
+        }}
       />
       <AddExistingSubIssueModal
         open={showAddExistingSubIssue}

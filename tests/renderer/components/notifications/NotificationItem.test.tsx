@@ -107,19 +107,19 @@ describe('NotificationItem', () => {
     expect(screen.getByTestId('icon-workflow')).toBeDefined();
   });
 
-  it('renders correct icon for git category', () => {
-    renderItem({ category: 'git' });
-    expect(screen.getByTestId('icon-gitbranch')).toBeDefined();
+  it('renders correct icon for github-release category', () => {
+    renderItem({ category: 'github-release' });
+    expect(screen.getByTestId('icon-tag')).toBeDefined();
   });
 
-  it('renders correct icon for system category', () => {
-    renderItem({ category: 'system' });
-    expect(screen.getByTestId('icon-monitor')).toBeDefined();
+  it('renders correct icon for github-discussion category', () => {
+    renderItem({ category: 'github-discussion' });
+    expect(screen.getByTestId('icon-messagesquare')).toBeDefined();
   });
 
-  it('renders correct icon for integration category', () => {
-    renderItem({ category: 'integration' });
-    expect(screen.getByTestId('icon-plug')).toBeDefined();
+  it('renders correct icon for github-security category', () => {
+    renderItem({ category: 'github-security' });
+    expect(screen.getByTestId('icon-shieldalert')).toBeDefined();
   });
 
   // ============================================

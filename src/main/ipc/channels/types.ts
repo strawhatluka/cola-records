@@ -1047,9 +1047,9 @@ export type NotificationCategory =
   | 'github-pr'
   | 'github-issue'
   | 'github-ci'
-  | 'git'
-  | 'system'
-  | 'integration';
+  | 'github-release'
+  | 'github-discussion'
+  | 'github-security';
 
 export type NotificationPriority = 'high' | 'medium' | 'low';
 
@@ -1063,6 +1063,7 @@ export interface AppNotification {
   read: boolean;
   dismissed: boolean;
   dedupeKey: string;
+  threadId?: string;
   actionLabel?: string;
   actionScreen?: string;
   actionContext?: string;

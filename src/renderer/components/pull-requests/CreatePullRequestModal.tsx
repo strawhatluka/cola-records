@@ -6,6 +6,8 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Button } from '../ui/Button';
@@ -150,6 +152,8 @@ export function CreatePullRequestModal({
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Comparison preview state
@@ -280,6 +284,73 @@ export function CreatePullRequestModal({
     }
     autoTitleRef.current = newAutoTitle;
   }, [compare]);
+
+  const handleDraft = async () => {
+    if (!comparison || !base || !compare || base === compare) return;
+    setDrafting(true);
+    setDraftError(null);
+    try {
+      // Read PR template
+      let template = '';
+      try {
+        template = await ipc.invoke(
+          'github-config:read-file',
+          localPath,
+          'PULL_REQUEST_TEMPLATE.md'
+        );
+      } catch {
+        // No template — will use best practices
+      }
+
+      // Build commit summary
+      const commitSummary = comparison.commits
+        .slice(0, 20)
+        .map((c) => `- ${c.message}`)
+        .join('\n');
+
+      // Filter out CHANGELOG diff and truncate to avoid token limits
+      const filteredDiff = comparison.rawDiff
+        .split(/^diff --git /m)
+        .filter((section) => !section.startsWith('a/CHANGELOG.md'))
+        .join('diff --git ')
+        .slice(0, 8000);
+
+      const templateInstructions = template
+        ? `Use this PR template for the body structure:\n---\n${template}\n---\nFill in each section based on the changes below.`
+        : `Structure the body with:\n## Summary\nBrief description of what changed and why.\n\n## Changes\n- Bullet list of key changes\n\n## Test Plan\n- How to verify these changes`;
+
+      const prompt = `You are drafting a pull request. Generate a title and description.
+
+The first line of your response must be the PR title only (no prefix, no quotes, no markdown).
+The rest is the PR description body in markdown.
+
+Do NOT reference CHANGELOG.md changes in the title or description.
+
+${templateInstructions}
+
+Commits:
+${commitSummary}
+
+Diff (excludes CHANGELOG.md, ${comparison.totalInsertions} insertions, ${comparison.totalDeletions} deletions across ${comparison.totalFilesChanged} files):
+${filteredDiff}`;
+
+      const result = await ipc.invoke('ai:complete', prompt, 4096);
+      const lines = result.content.split('\n');
+      const draftTitle = lines[0].trim();
+      const draftBody = lines.slice(1).join('\n').trim();
+
+      if (isMounted.current) {
+        setTitle(draftTitle);
+        setBody(draftBody);
+      }
+    } catch (err) {
+      if (isMounted.current) {
+        setDraftError(err instanceof Error ? err.message : 'Failed to draft PR');
+      }
+    } finally {
+      if (isMounted.current) setDrafting(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title.trim() || !base.trim() || !compare.trim()) return;
@@ -677,6 +748,23 @@ export function CreatePullRequestModal({
           disabled={submitting}
           minHeight="160px"
         />
+      </div>
+
+      {/* Draft button */}
+      <div>
+        <button
+          onClick={handleDraft}
+          disabled={drafting || submitting || !comparison || base === compare}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-border hover:bg-accent disabled:opacity-50 transition-colors"
+        >
+          {drafting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" />
+          )}
+          {drafting ? 'Drafting...' : 'Draft'}
+        </button>
+        {draftError && <p className="text-xs text-destructive mt-1">{draftError}</p>}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

@@ -23,6 +23,7 @@ export class VersionService {
   detectVersions(repoPath: string): VersionInfo[] {
     const versions: VersionInfo[] = [];
 
+    // Scan root-level version files
     for (const vf of VERSION_FILES) {
       const filePath = path.join(repoPath, vf.glob);
       if (!fs.existsSync(filePath)) continue;
@@ -37,6 +38,57 @@ export class VersionService {
           currentVersion: version,
           packageManager: vf.manager,
         });
+      }
+    }
+
+    // Scan npm/yarn workspace directories
+    const rootPkgPath = path.join(repoPath, 'package.json');
+    if (fs.existsSync(rootPkgPath)) {
+      try {
+        const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf-8'));
+        const workspaces: string[] = Array.isArray(rootPkg.workspaces)
+          ? rootPkg.workspaces
+          : (rootPkg.workspaces?.packages ?? []);
+
+        for (const pattern of workspaces) {
+          const parentDir = path.join(repoPath, pattern.replace(/\/?\*$/, ''));
+          if (!fs.existsSync(parentDir)) continue;
+
+          let entries: string[];
+          try {
+            entries = fs.readdirSync(parentDir);
+          } catch {
+            continue;
+          }
+
+          for (const entry of entries) {
+            const wsDir = path.join(parentDir, entry);
+            try {
+              if (!fs.statSync(wsDir).isDirectory()) continue;
+            } catch {
+              continue;
+            }
+
+            const wsPkgPath = path.join(wsDir, 'package.json');
+            if (!fs.existsSync(wsPkgPath)) continue;
+
+            const content = fs.readFileSync(wsPkgPath, 'utf-8');
+            const version = this.extractVersion(content, 'package.json');
+            if (!version) continue;
+
+            const relativePath = path.relative(repoPath, wsPkgPath).replace(/\\/g, '/');
+            if (versions.some((v) => v.relativePath === relativePath)) continue;
+
+            versions.push({
+              file: wsPkgPath,
+              relativePath,
+              currentVersion: version,
+              packageManager: 'npm',
+            });
+          }
+        }
+      } catch {
+        // Root package.json parse failure — skip workspace scan
       }
     }
 

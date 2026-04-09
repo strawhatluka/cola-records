@@ -72,9 +72,9 @@ class NotificationService {
         'github-pr': { enabled: true, toast: true, native: true },
         'github-issue': { enabled: true, toast: true, native: true },
         'github-ci': { enabled: true, toast: true, native: true },
-        git: { enabled: true, toast: true, native: false },
-        system: { enabled: true, toast: true, native: false },
-        integration: { enabled: true, toast: true, native: false },
+        'github-release': { enabled: true, toast: true, native: true },
+        'github-discussion': { enabled: true, toast: true, native: false },
+        'github-security': { enabled: true, toast: true, native: true },
       },
     };
   }
@@ -153,6 +153,16 @@ class NotificationService {
     }
   }
 
+  async markThreadRead(threadId: string): Promise<void> {
+    const client = this.getClient();
+    if (!client) return;
+    try {
+      await client.activity.markThreadAsRead({ thread_id: Number(threadId) });
+    } catch (error) {
+      logger.error('Failed to mark GitHub thread as read:', error);
+    }
+  }
+
   private mapGitHubNotification(event: {
     id: string;
     reason: string;
@@ -166,51 +176,82 @@ class NotificationService {
     let category: AppNotification['category'] = 'github-issue';
     let priority: AppNotification['priority'] = 'low';
     let title = '';
-    let message = '';
+    const message = `${subject.title} in ${repoName}`;
 
+    // Map reason to priority
+    if (reason === 'review_requested' || reason === 'approval_requested') {
+      priority = 'high';
+    } else if (reason === 'assign' || reason === 'mention' || reason === 'team_mention') {
+      priority = 'medium';
+    } else if (reason === 'ci_activity' || reason === 'security_alert') {
+      priority = 'medium';
+    }
+
+    // Map subject type to category and title
     switch (subject.type) {
       case 'PullRequest':
         category = 'github-pr';
-        if (reason === 'review_requested') {
-          priority = 'high';
-          title = 'Review Requested';
-          message = `${subject.title} in ${repoName}`;
-        } else if (reason === 'mention') {
-          priority = 'medium';
-          title = 'Mentioned in PR';
-          message = `${subject.title} in ${repoName}`;
-        } else {
-          title = 'PR Activity';
-          message = `${subject.title} in ${repoName}`;
-        }
+        title =
+          reason === 'review_requested' || reason === 'approval_requested'
+            ? 'Review Requested'
+            : reason === 'mention' || reason === 'team_mention'
+              ? 'Mentioned in PR'
+              : reason === 'comment'
+                ? 'PR Comment'
+                : reason === 'state_change'
+                  ? 'PR Status Changed'
+                  : reason === 'author'
+                    ? 'PR Update'
+                    : 'PR Activity';
         break;
 
       case 'Issue':
         category = 'github-issue';
-        if (reason === 'assign') {
-          priority = 'medium';
-          title = 'Issue Assigned';
-          message = `${subject.title} in ${repoName}`;
-        } else if (reason === 'mention') {
-          priority = 'medium';
-          title = 'Mentioned in Issue';
-          message = `${subject.title} in ${repoName}`;
-        } else {
-          title = 'Issue Activity';
-          message = `${subject.title} in ${repoName}`;
-        }
+        title =
+          reason === 'assign'
+            ? 'Issue Assigned'
+            : reason === 'mention' || reason === 'team_mention'
+              ? 'Mentioned in Issue'
+              : reason === 'comment'
+                ? 'Issue Comment'
+                : reason === 'state_change'
+                  ? 'Issue Status Changed'
+                  : reason === 'author'
+                    ? 'Issue Update'
+                    : 'Issue Activity';
         break;
 
       case 'CheckSuite':
+      case 'WorkflowRun':
         category = 'github-ci';
-        priority = 'medium';
-        title = 'CI Update';
-        message = `${subject.title} in ${repoName}`;
+        if (priority === 'low') priority = 'medium';
+        title = reason === 'ci_activity' ? 'CI Failed' : 'CI Update';
+        break;
+
+      case 'Release':
+        category = 'github-release';
+        title = 'New Release';
+        break;
+
+      case 'Discussion':
+        category = 'github-discussion';
+        title =
+          reason === 'mention' || reason === 'team_mention'
+            ? 'Mentioned in Discussion'
+            : reason === 'comment'
+              ? 'Discussion Comment'
+              : 'Discussion Activity';
+        break;
+
+      case 'RepositoryVulnerabilityAlert':
+      case 'SecurityAlert':
+        category = 'github-security';
+        priority = 'high';
+        title = 'Security Alert';
         break;
 
       default:
         title = 'GitHub Notification';
-        message = `${subject.title} in ${repoName}`;
     }
 
     return {
@@ -223,6 +264,7 @@ class NotificationService {
       read: false,
       dismissed: false,
       dedupeKey: `github-${event.id}`,
+      threadId: event.id,
       actionScreen: category === 'github-pr' ? 'contributions' : 'issues',
       groupKey: `${repoName}/${subject.type}`,
     };

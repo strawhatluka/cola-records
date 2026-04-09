@@ -247,7 +247,7 @@ export function XTermTerminal({ terminalId, onData, onResize, initialOutput }: X
   return (
     <div
       ref={containerRef}
-      className="w-full h-full"
+      className="w-full h-full py-1 pl-2"
       onClick={handleClick}
       style={{ backgroundColor: '#1e1e1e' }}
     />

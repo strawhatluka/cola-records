@@ -12,7 +12,7 @@ interface CreateSubIssueModalProps {
   repo: string;
   parentIssueNumber: number;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (sub: { number: number; title: string; labels: string[] }) => void;
 }
 
 export function CreateSubIssueModal({
@@ -41,7 +41,7 @@ export function CreateSubIssueModal({
         .map((l) => l.trim())
         .filter(Boolean);
 
-      await ipc.invoke(
+      const result = await ipc.invoke(
         'github:create-sub-issue',
         owner,
         repo,
@@ -51,10 +51,11 @@ export function CreateSubIssueModal({
         labelList.length > 0 ? labelList : undefined
       );
 
+      const createdTitle = title.trim();
       setTitle('');
       setBody('');
       setLabels('');
-      onCreated();
+      onCreated({ number: result.number, title: createdTitle, labels: labelList });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

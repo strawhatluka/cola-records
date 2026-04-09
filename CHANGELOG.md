@@ -10,6 +10,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Update former github username (lukadfagundes) to current username (strawhatluka) across codebase.
+- Normalize CRLF line endings to LF in GitHub Config service before writing files to disk.
+- Rewrite default `release.yml` workflow template to extract release notes from CHANGELOG.md, draft releases, and require manual approval via `environment: release`.
+- Update default workflow templates (`ci.yml`, `release.yml`) to use Node 24.
+- Update Gemini model list to match Google AI Studio: add `gemini-2.5-flash-lite`; remove deprecated `gemini-2.0-flash`, `gemini-1.5-pro`, and all Gemma models (unreliable for text generation use case).
+- Add friendly display names for all AI models in settings UI (e.g. `gemini-2.5-flash` shows as "Gemini 2.5 Flash").
+- Replace terminal-based "Save & Push" in Version Editor with inline IPC git operations (add, commit, push, tag).
+- Replace local app-action notifications with GitHub-only notifications sourced directly from the GitHub Notifications API.
+- Add `github-release`, `github-discussion`, and `github-security` notification categories; remove `git`, `system`, and `integration` categories.
+- Expand GitHub notification mapping to cover Release, Discussion, SecurityAlert, WorkflowRun subject types and additional reasons (comment, state_change, author, team_mention, approval_requested, ci_activity).
+- Sync mark-as-read state back to GitHub when notifications are marked read in Cola Records.
+
+### Fixed
+
+- Fix issues and sub-issues not appearing in the UI immediately after creation by optimistically inserting into local state.
+- Fix terminal text rendering flush against the left border by adding padding to the xterm container.
+- Fix version detection only scanning root-level files by adding npm/yarn workspace (monorepo) support.
+
+### Added
+
+- Add AI-powered "Draft" button to Pull Request creation form that generates title and description from branch diff, using PR template if available.
+- Add test for CRLF to LF line ending normalization in GitHub Config service.
+- Add test for optimistic issue insertion in IssuesTool after creation.
+- Add tests for monorepo workspace version detection (array and object workspace formats).
 
 ## [1.1.3] - 2026-03-18
 

@@ -34,6 +34,12 @@ vi.mock('../../../src/main/database', () => ({
   },
 }));
 
+vi.mock('../../../src/main/services/notification.service', () => ({
+  notificationService: {
+    markThreadRead: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import { setupNotificationHandlers } from '../../../src/main/ipc/handlers/notification.handlers';
 
 function getHandler(channel: string) {
@@ -62,7 +68,7 @@ describe('notification.handlers', () => {
   });
 
   it('notification:add delegates to database.addNotification', async () => {
-    const notification = { id: 'n1', title: 'Test', category: 'system' };
+    const notification = { id: 'n1', title: 'Test', category: 'github-pr' };
 
     const handler = getHandler('notification:add');
     expect(handler).toBeDefined();
@@ -234,7 +240,11 @@ describe('notification.handlers', () => {
         native: false,
       });
       // Other categories preserved from defaults
-      expect(result.categories['system']).toEqual({ enabled: true, toast: true, native: false });
+      expect(result.categories['github-security']).toEqual({
+        enabled: true,
+        toast: true,
+        native: true,
+      });
     });
   });
 });

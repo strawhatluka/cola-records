@@ -32,7 +32,7 @@ import {
   FolderCog,
 } from 'lucide-react';
 import { ipc } from '../../ipc/client';
-import { useNotificationStore } from '../../stores/useNotificationStore';
+
 import type { ProjectInfo, Contribution } from '../../../main/ipc/channels/types';
 import { PackageManagerPanel } from './PackageManagerPanel';
 import { NewBranchDialog } from './NewBranchDialog';
@@ -208,23 +208,9 @@ export function MaintenanceTool({
         success: true,
         message: `Pushed to origin/${branch}${needsUpstream ? ' (upstream set)' : ''}`,
       });
-      useNotificationStore.getState().addNotification({
-        category: 'git',
-        priority: 'low',
-        title: 'Push Successful',
-        message: `Pushed to origin/${branch}${needsUpstream ? ' (upstream set)' : ''}`,
-        dedupeKey: `git-push:${workingDirectory}:${Date.now()}`,
-      });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Push failed';
       setPushResult({ success: false, message: msg });
-      useNotificationStore.getState().addNotification({
-        category: 'git',
-        priority: 'high',
-        title: 'Push Failed',
-        message: msg,
-        dedupeKey: `git-push-fail:${workingDirectory}:${Date.now()}`,
-      });
     } finally {
       setPushLoading(false);
       // Auto-clear result after 5 seconds
@@ -450,7 +436,6 @@ export function MaintenanceTool({
       <VersionEditor
         workingDirectory={workingDirectory}
         onClose={() => setVersionEditorOpen(false)}
-        onRunCommand={onRunCommand}
       />
     );
   }

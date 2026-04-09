@@ -26,9 +26,14 @@ vi.mock('electron', () => ({
   },
 }));
 
+const mockMarkThreadAsRead = vi.fn().mockResolvedValue({});
+
 vi.mock('@octokit/rest', () => ({
   Octokit: class MockOctokit {
-    activity = { listNotificationsForAuthenticatedUser: mocks.mockListNotifications };
+    activity = {
+      listNotificationsForAuthenticatedUser: mocks.mockListNotifications,
+      markThreadAsRead: mockMarkThreadAsRead,
+    };
   },
 }));
 
@@ -292,9 +297,61 @@ describe('NotificationService', () => {
       expect(notification.title).toBe('CI Update');
     });
 
-    it('handles unknown subject types as default notification', async () => {
+    it('processes Release notifications', async () => {
       mocks.mockListNotifications.mockResolvedValue({
         data: [makeGitHubEvent({ subjectType: 'Release' })],
+      });
+
+      const win = createMockWindow();
+      await initializeAndPoll(win);
+
+      const notification = mocks.mockAddNotification.mock.calls[0][0];
+      expect(notification.category).toBe('github-release');
+      expect(notification.title).toBe('New Release');
+    });
+
+    it('processes Discussion notifications', async () => {
+      mocks.mockListNotifications.mockResolvedValue({
+        data: [makeGitHubEvent({ subjectType: 'Discussion', reason: 'mention' })],
+      });
+
+      const win = createMockWindow();
+      await initializeAndPoll(win);
+
+      const notification = mocks.mockAddNotification.mock.calls[0][0];
+      expect(notification.category).toBe('github-discussion');
+      expect(notification.title).toBe('Mentioned in Discussion');
+    });
+
+    it('processes SecurityAlert notifications with high priority', async () => {
+      mocks.mockListNotifications.mockResolvedValue({
+        data: [makeGitHubEvent({ subjectType: 'RepositoryVulnerabilityAlert' })],
+      });
+
+      const win = createMockWindow();
+      await initializeAndPoll(win);
+
+      const notification = mocks.mockAddNotification.mock.calls[0][0];
+      expect(notification.category).toBe('github-security');
+      expect(notification.priority).toBe('high');
+      expect(notification.title).toBe('Security Alert');
+    });
+
+    it('includes threadId from GitHub event id', async () => {
+      mocks.mockListNotifications.mockResolvedValue({
+        data: [makeGitHubEvent({ id: 'thread-123' })],
+      });
+
+      const win = createMockWindow();
+      await initializeAndPoll(win);
+
+      const notification = mocks.mockAddNotification.mock.calls[0][0];
+      expect(notification.threadId).toBe('thread-123');
+    });
+
+    it('handles unknown subject types as default notification', async () => {
+      mocks.mockListNotifications.mockResolvedValue({
+        data: [makeGitHubEvent({ subjectType: 'Unknown' })],
       });
 
       const win = createMockWindow();

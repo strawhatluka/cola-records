@@ -259,6 +259,19 @@ describe('GitHubConfigService', () => {
       expect(result.success).toBe(false);
       expect(result.message).toBe('string error');
     });
+
+    it('normalizes CRLF line endings to LF before writing', async () => {
+      const crlfContent = 'version: 2\r\nupdates:\r\n  - package-ecosystem: npm\r\n';
+      const expectedContent = 'version: 2\nupdates:\n  - package-ecosystem: npm\n';
+
+      await githubConfigService.writeFile(WORK_DIR, 'dependabot.yml', crlfContent);
+
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        path.join(GITHUB_DIR, 'dependabot.yml'),
+        expectedContent,
+        'utf-8'
+      );
+    });
   });
 
   // ── deleteFile ──

@@ -164,7 +164,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -175,7 +175,7 @@ jobs:
         {
           id: 'release',
           label: 'Release',
-          description: 'Build and publish on tag push',
+          description: 'Draft release from changelog on tag push',
           targetPath: 'workflows/release.yml',
           content: `name: Release
 
@@ -189,17 +189,28 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: release
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION="\${GITHUB_REF_NAME#v}"
+          NOTES=$(awk "/^## \\\\[?$VERSION/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
+          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$NOTES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          draft: true
+          body: \${{ steps.changelog.outputs.notes }}
+          generate_release_notes: false
 `,
         },
         {
@@ -667,7 +678,7 @@ class GitHubConfigService {
     const fullPath = path.join(workingDirectory, '.github', relativePath);
     try {
       await fs.mkdir(path.dirname(fullPath), { recursive: true });
-      await fs.writeFile(fullPath, content, 'utf-8');
+      await fs.writeFile(fullPath, content.replace(/\r\n/g, '\n'), 'utf-8');
       log.info(`Wrote: .github/${relativePath}`);
       return { success: true, message: `Saved .github/${relativePath}` };
     } catch (err) {

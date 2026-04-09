@@ -329,9 +329,9 @@ describe('NotificationsTab', () => {
         'github-pr': { enabled: true, toast: true, native: true },
         'github-issue': { enabled: true, toast: true, native: true },
         'github-ci': { enabled: true, toast: true, native: true },
-        git: { enabled: true, toast: true, native: false },
-        system: { enabled: true, toast: true, native: false },
-        integration: { enabled: true, toast: true, native: false },
+        'github-release': { enabled: true, toast: true, native: true },
+        'github-discussion': { enabled: true, toast: true, native: false },
+        'github-security': { enabled: true, toast: true, native: true },
       },
     };
 
@@ -340,10 +340,10 @@ describe('NotificationsTab', () => {
     render(<NotificationsTab />);
 
     const switches = screen.getAllByRole('switch');
-    // The last category switch (integration) should default to enabled
-    const integrationToggle = switches[switches.length - 1];
+    // The last category switch (github-security) should default to enabled
+    const securityToggle = switches[switches.length - 1];
 
-    expect(integrationToggle).toHaveAttribute('aria-checked', 'true');
+    expect(securityToggle).toHaveAttribute('aria-checked', 'true');
   });
 
   it('toggles category with initial undefined state', () => {
